@@ -8,6 +8,9 @@ rust-version.workspace = true
 
 [lib]
 crate-type = ["staticlib"]
+# Only linkable together with the C++ shell (EventSink::post lives there).
+test = false
+doctest = false
 
 [dependencies]
 huehuecoyotl-core.workspace = true
