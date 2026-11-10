@@ -80,7 +80,13 @@ jobs:
       - uses: jurplel/install-qt-action@v4
         with: { version: "${{ env.QT_VERSION }}", cache: true }
       - name: System packages
-        run: sudo apt-get update && sudo apt-get install -y ninja-build libxcb-cursor0 libgl-dev libegl-dev clang-format
+        # Runtime libraries the libmpv bundle links against (present on every desktop, not on
+        # a bare runner): VA-API, PulseAudio, PipeWire, ALSA, fonts, lcms, xkbcommon.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libxcb-cursor0 libgl-dev libegl-dev clang-format \
+            libva2 libva-drm2 libva-wayland2 libpulse0 libpipewire-0.3-0t64 libasound2t64 \
+            libfreetype6 libfribidi0 libharfbuzz0b libfontconfig1 liblcms2-2 libxkbcommon0 libdrm2
       - name: clang-format
         run: clang-format --dry-run --Werror app/src/*.cpp app/src/*.h app/src/coyotl/*.h tests/*.cpp
       - name: Configure
