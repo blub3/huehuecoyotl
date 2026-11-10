@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     app.setApplicationName("coyotl"); // config and data folders (SPEC 12)
     app.setApplicationDisplayName("Huehuecoyotl");
     app.setApplicationVersion(QStringLiteral(COYOTL_VERSION));
-    app.setDesktopFileName("io.github.huehuecoyotl.Huehuecoyotl");
+    app.setDesktopFileName("io.github.blub3.Huehuecoyotl");
     QQuickStyle::setStyle("Basic");
 
     QTranslator translator;
