@@ -6,7 +6,7 @@ members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "cr
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
-repository = "https://github.com/huehuecoyotl/huehuecoyotl"
+repository = "https://github.com/blub3/huehuecoyotl"
 rust-version = "1.85"
 
 [workspace.dependencies]
