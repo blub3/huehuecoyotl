@@ -1,0 +1,9 @@
+/build/
+/target/
+*.user
+/spike/**/build/
+/spike/**/target/
+/spike/libmpv-lgpl/out/
+/spike/libmpv-lgpl/build.log
+/spike/media/*.mkv
+/third_party/mpv/out/

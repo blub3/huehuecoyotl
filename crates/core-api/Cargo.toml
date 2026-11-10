@@ -1,0 +1,17 @@
+[package]
+name = "huehuecoyotl-core-api"
+description = "cxx bridge between the Qt shell and the core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+huehuecoyotl-core.workspace = true
+cxx.workspace = true
+
+[lints]
+workspace = true
