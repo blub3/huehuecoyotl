@@ -24,9 +24,18 @@ echo "== Shared libraries in bundle (no static archives allowed)"
 ls "$out"/lib/*.a 2>/dev/null && { echo "FAIL: static archives present"; fail=1; }
 ls "$out"/lib/ | grep -E '\.so' | sed 's/^/  /'
 
-echo "== External dependencies of libmpv (must all be system or bundle libs)"
-LD_LIBRARY_PATH="$out/lib" ldd "$out"/lib/libmpv.so.2 | awk '{print "  "$1" -> "$3}'
-LD_LIBRARY_PATH="$out/lib" ldd "$out"/lib/libmpv.so.2 | grep -q 'not found' && { echo "FAIL: unresolved deps"; fail=1; }
+echo "== External dependencies of libmpv"
+deps=$(LD_LIBRARY_PATH="$out/lib" ldd "$out"/lib/libmpv.so.2)
+echo "$deps" | awk '{print "  "$1" -> "$3}'
+# Libraries we build must resolve inside the bundle. Desktop system libraries (PulseAudio,
+# VA-API, ...) may be missing on a bare CI runner; that is a warning, not a failure.
+missing=$(echo "$deps" | awk '/not found/{print $1}')
+for m in $missing; do
+  case "$m" in
+    libav*|libsw*|libmpv*|libass*|libplacebo*|libwayland*) echo "FAIL: bundle library unresolved: $m"; fail=1;;
+    *) echo "WARN: system library not present on this machine: $m";;
+  esac
+done
 
 [ $fail -eq 0 ] && echo "LICENCE CHECK: PASS" || echo "LICENCE CHECK: FAIL"
 exit $fail
