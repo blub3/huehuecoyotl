@@ -1,0 +1,13 @@
+Huehuecoyotl
+Copyright 2026 The Huehuecoyotl contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Official builds ship the following libraries as separate, replaceable shared
+libraries under their own licences; see THIRD_PARTY_NOTICES (generated at release):
+  - Qt 6 (LGPLv3)                      https://www.qt.io
+  - libmpv, built with -Dgpl=false (LGPLv2.1+)  https://mpv.io
+  - FFmpeg, LGPL configuration (LGPLv2.1+)      https://ffmpeg.org
+  - libass (ISC), libplacebo (LGPLv2.1+), libwayland (MIT)
+
+This product uses the TMDB API but is not endorsed or certified by TMDB.

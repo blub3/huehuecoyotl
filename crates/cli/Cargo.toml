@@ -1,0 +1,18 @@
+[package]
+name = "huehuecoyotl-cli"
+description = "Headless harness for tests and debugging"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "coyotl-cli"
+path = "src/main.rs"
+
+[dependencies]
+huehuecoyotl-core.workspace = true
+crossbeam-channel.workspace = true
+
+[lints]
+workspace = true

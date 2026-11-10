@@ -1,0 +1,99 @@
+# SPEC 10, CI pipeline. Steps 3 (protocol containers) and 6 (release) arrive with M3 and M4.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  QT_VERSION: "6.12.0"
+
+jobs:
+  dco:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Every commit is signed off (DCO)
+        run: |
+          missing=0
+          for c in $(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}); do
+            git log -1 --format=%B "$c" | grep -q '^Signed-off-by: ' || { echo "missing sign-off: $c"; missing=1; }
+          done
+          exit $missing
+
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: "rustfmt, clippy" }
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
+
+  licences:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with: { command: check licenses bans sources advisories }
+
+  libmpv-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache the LGPL libmpv bundle
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: third_party/mpv/out
+          key: libmpv-${{ hashFiles('third_party/mpv/Dockerfile') }}
+      - name: Build LGPL libmpv + FFmpeg (asserts -Dgpl=false and the FFmpeg configuration)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: third_party/mpv/build.sh
+      - name: Licence assertions
+        run: third_party/mpv/check-licence.sh third_party/mpv/out
+      - uses: actions/upload-artifact@v4
+        with: { name: libmpv-linux, path: third_party/mpv/out }
+
+  app-linux:
+    needs: libmpv-linux
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: libmpv-linux, path: third_party/mpv/out }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: jurplel/install-qt-action@v4
+        with: { version: "${{ env.QT_VERSION }}", cache: true }
+      - name: System packages
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libxcb-cursor0 libgl-dev libegl-dev clang-format
+      - name: clang-format
+        run: clang-format --dry-run --Werror app/src/*.cpp app/src/*.h app/src/coyotl/*.h tests/*.cpp
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - name: Build (includes the QML compiler)
+        run: cmake --build build
+      - name: qmllint
+        run: cmake --build build --target all_qmllint
+      - name: Qt Quick Test (navigation and focus)
+        run: ctest --test-dir build --output-on-failure
+        env: { QT_QPA_PLATFORM: offscreen }
+      - name: Qt runtime licence check
+        run: tools/check-qt-runtime.sh build/app/coyotl
+
+  # Windows app build waits for the Windows LGPL libmpv recipe (open M0 item, see
+  # docs/spike/M0-report.md section 5). Until then only the Rust job runs on Windows.
