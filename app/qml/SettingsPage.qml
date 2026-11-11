@@ -10,11 +10,13 @@ FocusScope {
     property var keyRequest: 0
     property string keyMessage: ""
     property bool keyBusy: false
+    property string exportMessage: ""
+    property bool exportFailed: false
 
     // When the page receives focus, hand it to its first control.
     function focusFirst() {
         if (!page.activeFocus) return
-        for (const c of [keyField, saveKey, removeKey, reviewButton]) if (c.activeFocus) return
+        for (const c of [keyField, saveKey, removeKey, reviewButton, exportButton, noticesButton]) if (c.activeFocus) return
         (Core.hasTmdbKey ? reviewButton : keyField).forceActiveFocus()
     }
     onActiveFocusChanged: if (activeFocus) Qt.callLater(focusFirst)
@@ -113,6 +115,7 @@ FocusScope {
                     id: reviewButton
                     text: qsTr("Review matches")
                     KeyNavigation.up: Core.hasTmdbKey ? (removeKey.visible ? removeKey : null) : keyField
+                    KeyNavigation.down: exportButton
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: Nav.open(Qt.resolvedUrl("ReviewPage.qml"))
                 }
@@ -127,6 +130,38 @@ FocusScope {
                 }
             }
 
+            // ---- Troubleshooting -----------------------------------------------------------
+            Label { text: qsTr("Troubleshooting"); color: Theme.textDim; font.pixelSize: Theme.fontLarge; Layout.topMargin: 24 }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.text
+                text: qsTr("If something does not work, export a diagnostics file and attach it to a bug report. It contains the app's log and version information. Server names, user names, addresses, keys and your home folder are removed.")
+            }
+            RowLayout {
+                spacing: 12
+                FocusButton {
+                    id: exportButton
+                    text: qsTr("Export diagnostics")
+                    KeyNavigation.up: reviewButton
+                    KeyNavigation.down: noticesButton
+                    Keys.onLeftPressed: Nav.focusRail()
+                    onClicked: {
+                        const path = Core.exportDiagnostics()
+                        page.exportFailed = path === ""
+                        page.exportMessage = path !== "" ? qsTr("Saved to %1").arg(path)
+                                                         : qsTr("Export failed: %1").arg(Core.lastExportError())
+                    }
+                }
+                Label {
+                    Layout.fillWidth: true
+                    visible: page.exportMessage !== ""
+                    text: page.exportMessage
+                    wrapMode: Text.WrapAnywhere
+                    color: page.exportFailed ? Theme.danger : Theme.textDim
+                }
+            }
+
             // ---- About ---------------------------------------------------------------------
             Label { text: qsTr("About"); color: Theme.textDim; font.pixelSize: Theme.fontLarge; Layout.topMargin: 24 }
             Label {
@@ -134,6 +169,13 @@ FocusScope {
                 wrapMode: Text.Wrap
                 color: Theme.text
                 text: qsTr("Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt, all used under the LGPL.").arg(Qt.application.version)
+            }
+            FocusButton {
+                id: noticesButton
+                text: qsTr("Third-party licences")
+                KeyNavigation.up: exportButton
+                Keys.onLeftPressed: Nav.focusRail()
+                onClicked: Nav.open(Qt.resolvedUrl("NoticesPage.qml"))
             }
             RowLayout {
                 spacing: 14

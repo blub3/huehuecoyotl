@@ -1,0 +1,79 @@
+# SPEC 10, CI step 6: release packages, third-party notices and a software bill of materials.
+# Runs on a version tag (v1.0.0) and creates a *draft* GitHub release; a maintainer reviews and
+# publishes it (GOVERNANCE.md: releases are built by CI only).
+#
+# Not here yet: the Windows MSIX/zip and code signing (blocked on the Windows libmpv build,
+# docs/milestones/M4.md). Flathub builds and signs the Flatpak itself from its own manifest.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  libmpv-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: third_party/mpv/out
+          key: libmpv-${{ hashFiles('third_party/mpv/Dockerfile') }}
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: third_party/mpv/build.sh
+      - run: third_party/mpv/check-licence.sh third_party/mpv/out
+      - uses: actions/upload-artifact@v4
+        with: { name: libmpv-linux, path: third_party/mpv/out }
+
+  linux:
+    needs: libmpv-linux
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: libmpv-linux, path: third_party/mpv/out }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with: { tool: "cargo-about,cargo-cyclonedx" }
+      - name: Flatpak tools and the KDE 6.11 SDK
+        run: |
+          sudo apt-get update && sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub org.kde.Platform//6.11 org.kde.Sdk//6.11 \
+            org.freedesktop.Sdk.Extension.rust-stable//25.08
+      - name: Flatpak bundle
+        run: packaging/flatpak/build.sh
+      - name: Third-party notices and SBOM
+        run: |
+          mkdir -p dist
+          cp build/io.github.blub3.Huehuecoyotl.flatpak dist/
+          cp packaging/flatpak/generated/THIRD_PARTY_NOTICES.txt dist/
+          cargo cyclonedx --manifest-path crates/core-api/Cargo.toml --format json --override-filename sbom-rust
+          cp crates/core-api/sbom-rust.json dist/huehuecoyotl-sbom-rust.cdx.json
+          cp third_party/mpv/out/BUILDINFO.txt dist/libmpv-BUILDINFO.txt
+          (cd dist && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with: { name: release-linux, path: dist }
+
+  draft:
+    needs: linux
+    runs-on: ubuntu-24.04
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: release-linux, path: dist }
+      - name: Draft release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+            --title "Huehuecoyotl ${GITHUB_REF_NAME#v}" \
+            --notes "See CHANGELOG.md. Checksums are in SHA256SUMS." dist/*

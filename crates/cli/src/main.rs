@@ -11,7 +11,7 @@
 //!
 //! Commands that start background work (library add, rescan) wait until the job queue is
 //! empty, so the harness can scan and match a library headless.
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::Duration;
 
@@ -41,7 +41,7 @@ fn usage() -> ExitCode {
     eprintln!(
         "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent\n\
          \x20      | library add PATH | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
-         \x20      | discover | rescan | movies | shows | search TEXT | detail ID | review | key KEY\n\
+         \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | review | key KEY\n\
          network shares: SPEC_JSON is {{\"protocol\":\"smb\",\"host\":\"nas\",\"share\":\"media\",\"user\":\"me\",\"path\":\"/Movies\"}};\n\
          the password comes from COYOTL_SHARE_PASSWORD (never from the command line)"
     );
@@ -205,6 +205,18 @@ fn main() -> ExitCode {
         ("discover", []) => {
             core.discover(1);
             wait()
+        }
+        ("diagnostics", [dest]) => {
+            return match core.export_diagnostics(Path::new(dest), "app coyotl-cli") {
+                Ok(n) => {
+                    println!("wrote {dest} ({n} bytes)");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    ExitCode::FAILURE
+                }
+            };
         }
         ("library", [sub]) if sub == "list" => {
             core.libraries(1);

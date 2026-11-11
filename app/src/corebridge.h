@@ -5,6 +5,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
+#include <functional>
 #include <optional>
 
 #include "coyotl_bridge/lib.h"
@@ -68,10 +69,18 @@ class CoreBridge : public QObject {
 
     // M3: network sources. `spec`: protocol, host, port, share, user, tls, path, name.
     // browseNetwork answers with folderListed (or requestFailed: wrong password, unreachable).
-    Q_INVOKABLE quint64 browseNetwork(const QVariantMap &spec, const QString &password,
-                                      const QString &path);
+    Q_INVOKABLE quint64 browseNetwork(const QVariantMap &spec, const QString &password, const QString &path);
     Q_INVOKABLE quint64 addNetworkLibrary(const QVariantMap &spec, const QString &password);
     Q_INVOKABLE quint64 discover();
+
+    // M4: writes a redacted diagnostics file to the Downloads folder and returns its path,
+    // or an empty string (the reason goes to the log and the toast via `lastError`).
+    Q_INVOKABLE QString exportDiagnostics();
+    Q_INVOKABLE QString lastExportError() const { return m_exportError; }
+    // The licences of everything the app ships, embedded at build time.
+    Q_INVOKABLE QString thirdPartyNotices() const;
+    // Versions and settings from the shell that the core cannot see (Qt, mpv, GPU).
+    void setAppInfoProvider(std::function<QString()> f) { m_appInfo = std::move(f); }
 
     bool hasTmdbKey() const { return m_hasKey; }
     bool tmdbKeyFromEnvironment() const { return m_keyFromEnv; }
@@ -115,4 +124,6 @@ class CoreBridge : public QObject {
     bool m_hasKey = false, m_keyFromEnv = false;
     QSet<qint64> m_scanning;
     int m_pending = 0, m_failed = 0;
+    std::function<QString()> m_appInfo;
+    QString m_exportError;
 };

@@ -4,9 +4,13 @@
 #include <QJsonObject>
 
 #include <QCoreApplication>
+#include <QDateTime>
+#include <QDir>
+#include <QFile>
 #include <QLoggingCategory>
 #include <QMetaObject>
 #include <QQmlEngine>
+#include <QStandardPaths>
 #include <QUrl>
 
 Q_LOGGING_CATEGORY(lcCore, "coyotl.core")
@@ -425,4 +429,32 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
         qCWarning(lcCore) << "request" << e.request_id << "failed:" << qs(e.message);
         emit requestFailed(e.request_id, kind, errorText(kind, qs(e.message)));
     }
+}
+
+QString CoreBridge::exportDiagnostics()
+{
+    m_exportError.clear();
+    if (!m_core) return {};
+    QString dir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    if (dir.isEmpty() || !QDir().mkpath(dir)) dir = QDir::homePath();
+    const QString path =
+        QDir(dir).filePath(QStringLiteral("coyotl-diagnostics-%1.txt")
+                               .arg(QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss")));
+    const QByteArray dest = path.toUtf8(), info = (m_appInfo ? m_appInfo() : QString()).toUtf8();
+    try {
+        const auto bytes = (*m_core)->export_diagnostics(rs(dest), rs(info));
+        qCInfo(lcCore) << "diagnostics exported," << bytes << "bytes";
+        return path;
+    } catch (const rust::Error &e) {
+        m_exportError = QString::fromUtf8(e.what());
+        qCWarning(lcCore) << "diagnostics export failed:" << m_exportError;
+        return {};
+    }
+}
+
+QString CoreBridge::thirdPartyNotices() const
+{
+    QFile f(QStringLiteral(":/notices/THIRD_PARTY_NOTICES.txt"));
+    if (!f.open(QIODevice::ReadOnly)) return tr("The licence texts are missing from this build.");
+    return QString::fromUtf8(f.readAll());
 }

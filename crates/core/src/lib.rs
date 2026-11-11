@@ -5,6 +5,7 @@
 //! [`Event`] on the sink; change events carry ids, not payloads; every request can be
 //! cancelled; errors carry an [`ErrorKind`]; panics never escape a task.
 
+pub mod diagnostics;
 pub mod lang;
 mod library;
 mod network;
@@ -349,17 +350,13 @@ pub struct Core {
     next_ticket: AtomicU64,
 }
 
-/// Log to `<data_dir>/logs/coyotl.log` (and stderr when `COYOTL_LOG_STDERR` is set).
-/// Safe to call more than once; only the first call installs the subscriber.
+/// Log to `<data_dir>/logs/coyotl.log`, rotated at 5 MiB with three old files kept (and to
+/// stderr instead when `COYOTL_LOG_STDERR` is set). Safe to call more than once; only the first
+/// call installs the subscriber.
 pub fn init_logging(data_dir: &Path) {
     static ONCE: OnceLock<()> = OnceLock::new();
     ONCE.get_or_init(|| {
-        let dir = data_dir.join("logs");
-        let _ = std::fs::create_dir_all(&dir);
-        let file = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(dir.join("coyotl.log"));
+        let file = diagnostics::RotatingFile::open(&data_dir.join("logs"));
         let filter = tracing_subscriber::EnvFilter::try_from_env("COYOTL_LOG")
             .unwrap_or_else(|_| "info".into());
         let builder = tracing_subscriber::fmt()

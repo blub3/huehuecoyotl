@@ -23,7 +23,28 @@ FocusScope {
         id: lib
         kind: page.kind
         // The first page arrives after the grid took focus: select the first card then.
-        onTotalChanged: if (grid.currentIndex < 0 && grid.count > 0) grid.currentIndex = 0
+        onTotalChanged: {
+            if (grid.currentIndex < 0 && grid.count > 0) grid.currentIndex = 0
+            if (Bench.mode === "scroll" && total > 0 && !benchScroll.running) benchStart.start()
+        }
+    }
+
+    // --benchmark scroll: scroll the grid on its own at a steady speed and record frame times.
+    // 20 seconds at 4000 px/s covers about 1,400 posters, with pages fetched along the way.
+    Timer { id: benchStart; interval: 1500; onTriggered: { Bench.beginFrames(); benchScroll.start() } }
+    FrameAnimation {
+        id: benchScroll
+        property real travelled: 0
+        onTriggered: {
+            const step = Math.min(frameTime, 0.05) * 4000
+            const max = grid.originY + grid.contentHeight - grid.height
+            grid.contentY = Math.min(grid.contentY + step, max)
+            travelled += step
+            if (elapsedTime > 20 || (grid.contentY >= max && grid.count >= lib.total)) {
+                stop()
+                Bench.endFrames(grid.count, travelled)
+            }
+        }
     }
 
     Component.onCompleted: grid.forceActiveFocus()

@@ -5,7 +5,7 @@ class MpvPlayer;
 
 // OS integration that is not QML's job (SPEC 9): keep the screen awake during playback.
 // Linux: org.freedesktop.ScreenSaver over D-Bus (the portal under Flatpak is a later step).
-// Windows: SetThreadExecutionState. Media keys (MPRIS/SMTC) follow in M4.
+// Windows: SetThreadExecutionState. Media keys: MPRIS in mpris.h on Linux; SMTC on Windows is open.
 class DesktopIntegration : public QObject {
     Q_OBJECT
   public:

@@ -83,4 +83,9 @@ ALTER TABLE job ADD COLUMN dedupe TEXT;
 ALTER TABLE job ADD COLUMN last_error TEXT;
 CREATE UNIQUE INDEX job_dedupe ON job(dedupe) WHERE state IN ('queued', 'running');
 "#,
+    // 3: every poster lookup in the summary queries filters artwork by item; without this index
+    // "recently added" scanned the whole artwork table once per item (1.2 s at 5,000 movies).
+    r#"
+CREATE INDEX artwork_item ON artwork(item_id, role);
+"#,
 ];
