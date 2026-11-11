@@ -191,7 +191,7 @@ modules:
           - spike
           - third_party/mpv/out
           - tests/servers/fixtures
-          - crates/vfs-sftp/target
+          - tests/servers/keys
           - packaging/flatpak/.flatpak-builder
           - packaging/flatpak/build-dir
           - packaging/flatpak/repo

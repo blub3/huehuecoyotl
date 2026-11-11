@@ -74,6 +74,10 @@ pub struct RemoteConfig {
     /// SFTP host key fingerprint, recorded on first connection (trust on first use).
     #[serde(default)]
     pub host_key: Option<String>,
+    /// SFTP: a private key file (OpenSSH format) to log in with instead of a password; the
+    /// `password` field then holds the key's passphrase, if it has one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_file: Option<String>,
 }
 
 impl RemoteConfig {
@@ -224,6 +228,7 @@ mod tests {
             password: "secret".into(),
             tls: true,
             host_key: None,
+            key_file: None,
         };
         assert_eq!(c.display_url(), "https://nas:5006/video");
         let json = serde_json::to_string(&c).unwrap();

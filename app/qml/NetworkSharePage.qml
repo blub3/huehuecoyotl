@@ -6,7 +6,9 @@ import Coyotl
 
 // Add a folder on a network share as a library (SPEC 6): servers found on the network, the
 // connection settings, a connection test that lists the share, and a folder picker.
-// The password goes to the OS keystore; it is never stored in the library database.
+// The password (or an SFTP key's passphrase) goes to the OS keystore; it is never stored in the
+// library database. SFTP shows the server's host key fingerprint after connecting: adding the
+// library trusts that key, and a different key is refused later.
 FocusScope {
     id: page
     readonly property bool isPlayer: false
@@ -20,6 +22,7 @@ FocusScope {
     property var folders: []
     property var servers: []
     property bool searching: false
+    property string hostKey: ""
 
     property var pending: ({ browse: 0, add: 0, discover: 0 })
 
@@ -27,7 +30,8 @@ FocusScope {
         { key: "smb", label: "SMB" },
         { key: "nfs", label: "NFS" },
         { key: "webdav", label: "WebDAV" },
-        { key: "ftp", label: "FTP" }
+        { key: "ftp", label: "FTP" },
+        { key: "sftp", label: "SFTP" }
     ]
 
     function shareLabel() {
@@ -46,6 +50,7 @@ FocusScope {
             share: shareField.text.trim(),
             user: protocol === "nfs" ? "" : userField.text.trim(),
             tls: protocol === "webdav" && tlsBox.checked,
+            key_file: protocol === "sftp" && keyField.text.trim() !== "" ? keyField.text.trim() : null,
             path: path || "",
             name: ""
         }
@@ -78,9 +83,9 @@ FocusScope {
     }
 
     function useServer(s) {
-        protocol = s.protocol === "sftp" ? "smb" : s.protocol
+        protocol = s.protocol
         hostField.text = s.host
-        const def = { smb: 445, nfs: 2049, webdav: s.tls ? 443 : 80, ftp: 21 }[protocol]
+        const def = { smb: 445, nfs: 2049, webdav: s.tls ? 443 : 80, ftp: 21, sftp: 22 }[protocol]
         portField.text = s.port && s.port !== def ? String(s.port) : ""
         tlsBox.checked = !!s.tls
         connected = false
@@ -89,7 +94,7 @@ FocusScope {
     }
 
     // Changing the settings invalidates the folder list.
-    function settingsChanged() { connected = false; folders = []; currentPath = "/" }
+    function settingsChanged() { connected = false; folders = []; currentPath = "/"; hostKey = "" }
     onProtocolChanged: settingsChanged()
 
     Component.onCompleted: discover()
@@ -100,6 +105,7 @@ FocusScope {
             if (id !== page.pending.browse) return
             page.busy = false
             page.connected = true
+            page.hostKey = page.protocol === "sftp" ? Core.networkHostKey() : ""
             page.currentPath = path
             page.parentPath = parent
             page.folders = entries.filter(e => e.isDir)
@@ -121,7 +127,7 @@ FocusScope {
         function onServersDiscovered(id, list) {
             if (id !== page.pending.discover) return
             page.searching = false
-            page.servers = list.filter(s => s.protocol !== "sftp")
+            page.servers = list
         }
     }
 
@@ -253,7 +259,8 @@ FocusScope {
                 TextField {
                     id: shareField
                     Layout.fillWidth: true
-                    placeholderText: page.protocol === "smb" ? qsTr("e.g. media") : page.protocol === "nfs" ? qsTr("e.g. /volume1/media") : qsTr("e.g. /dav")
+                    placeholderText: page.protocol === "smb" ? qsTr("e.g. media") : page.protocol === "nfs" ? qsTr("e.g. /volume1/media")
+                                   : page.protocol === "sftp" ? qsTr("e.g. /srv/media") : qsTr("e.g. /dav")
                     Accessible.name: page.shareLabel()
                     inputMethodHints: Qt.ImhNoAutoUppercase
                     KeyNavigation.up: hostField
@@ -276,16 +283,35 @@ FocusScope {
                     onAccepted: passwordField.forceActiveFocus()
                 }
 
-                Label { visible: page.protocol !== "nfs"; text: qsTr("Password"); color: Theme.text }
+                Label {
+                    visible: page.protocol !== "nfs"
+                    text: page.protocol === "sftp" && keyField.text.trim() !== "" ? qsTr("Key passphrase") : qsTr("Password")
+                    color: Theme.text
+                }
                 TextField {
                     id: passwordField
                     visible: page.protocol !== "nfs"
                     Layout.fillWidth: true
                     echoMode: TextInput.Password
-                    Accessible.name: qsTr("Password")
+                    placeholderText: page.protocol === "sftp" && keyField.text.trim() !== "" ? qsTr("Empty if the key has none") : ""
+                    Accessible.name: page.protocol === "sftp" && keyField.text.trim() !== "" ? qsTr("Key passphrase") : qsTr("Password")
                     inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
                     KeyNavigation.up: userField
-                    KeyNavigation.down: page.protocol === "webdav" ? tlsBox : connectButton
+                    KeyNavigation.down: page.protocol === "webdav" ? tlsBox : page.protocol === "sftp" ? keyField : connectButton
+                    onTextEdited: page.settingsChanged()
+                    onAccepted: page.browse("/")
+                }
+
+                Label { visible: page.protocol === "sftp"; text: qsTr("Key file (optional)"); color: Theme.text }
+                TextField {
+                    id: keyField
+                    visible: page.protocol === "sftp"
+                    Layout.fillWidth: true
+                    placeholderText: qsTr("Log in with a key instead of a password, e.g. ~/.ssh/id_ed25519")
+                    Accessible.name: qsTr("Key file")
+                    inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+                    KeyNavigation.up: passwordField
+                    KeyNavigation.down: connectButton
                     onTextEdited: page.settingsChanged()
                     onAccepted: page.browse("/")
                 }
@@ -309,7 +335,8 @@ FocusScope {
                     text: page.connected ? qsTr("Reconnect") : qsTr("Connect")
                     primary: !page.connected
                     enabled: !page.busy
-                    KeyNavigation.up: page.protocol === "webdav" ? tlsBox : page.protocol === "nfs" ? shareField : passwordField
+                    KeyNavigation.up: page.protocol === "webdav" ? tlsBox : page.protocol === "nfs" ? shareField
+                                    : page.protocol === "sftp" ? keyField : passwordField
                     KeyNavigation.down: page.connected ? folderList : null
                     KeyNavigation.right: page.connected ? addButton : null
                     Keys.onLeftPressed: Nav.focusRail()
@@ -333,6 +360,24 @@ FocusScope {
                     Accessible.role: Accessible.StaticText
                     Accessible.name: text
                 }
+            }
+
+            // ---- SFTP host key (trust on first use)
+            Label {
+                visible: page.connected && page.hostKey !== ""
+                Layout.fillWidth: true
+                wrapMode: Text.WrapAnywhere
+                color: Theme.text
+                text: qsTr("Server key fingerprint: %1").arg(page.hostKey)
+                Accessible.role: Accessible.StaticText
+                Accessible.name: text
+            }
+            Label {
+                visible: page.connected && page.hostKey !== ""
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.textDim
+                text: qsTr("Compare it with the server's own fingerprint before adding (on the server: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Adding the library trusts this key; if the server later presents a different key, the connection is refused.")
             }
 
             // ---- folder picker
