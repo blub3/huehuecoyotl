@@ -87,6 +87,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="1.0.0" date="2026-11-11" type="stable">
+      <description>
+        <p>First stable release for Linux: player, library with TMDB metadata, and libraries on SMB, NFS, WebDAV and FTP shares. New app icon; fixes a crash after leaving the player.</p>
+      </description>
+    </release>
     <release version="0.9.0" date="2026-11-11" type="development">
       <description>
         <p>Linux preview: player, library with TMDB metadata, and libraries on SMB, NFS, WebDAV and FTP shares.</p>

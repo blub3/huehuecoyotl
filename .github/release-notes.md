@@ -1,4 +1,4 @@
-Linux preview. Install the Flatpak bundle (it pulls the KDE 6.11 runtime from Flathub):
+Linux release. Install the Flatpak bundle (it pulls the KDE 6.11 runtime from Flathub):
 
 ```bash
 flatpak install --user io.github.blub3.Huehuecoyotl.flatpak
