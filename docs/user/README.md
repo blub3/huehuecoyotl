@@ -26,7 +26,26 @@ flatpak install --user io.github.blub3.Huehuecoyotl.flatpak
 
 Then start Huehuecoyotl from your application menu, or run `flatpak run io.github.blub3.Huehuecoyotl`.
 
-**Windows.** Windows packages follow; see the project's README for the current state.
+### Windows
+
+Windows 10 (version 2004 or later) and Windows 11, 64-bit. Each release has two Windows
+packages. Neither is signed yet, so Windows asks before running them.
+
+**Portable zip (simplest).** Unzip `Huehuecoyotl-<version>-windows-x64.zip` anywhere, for
+example into your Documents, and start `Huehuecoyotl\bin\coyotl.exe`. Nothing is installed.
+SmartScreen warns the first time: choose **More info → Run anyway**. To update, replace the
+folder; your library stays where it is (see below). To remove it, delete the folder.
+
+**MSIX (Start menu, file associations, uninstall in Settings).** Open PowerShell in the folder
+with the download and run:
+
+```powershell
+Add-AppxPackage -Path .\Huehuecoyotl-<version>-windows-x64.msix -AllowUnsigned
+```
+
+Huehuecoyotl then appears in the Start menu and under "Open with" for video files. Remove it in
+Settings → Apps like any other app. If PowerShell refuses the unsigned package, use the portable
+zip; signed packages follow.
 
 ## First start
 
@@ -180,7 +199,7 @@ folders called `Extras` or `Featurettes` are kept out of the library.
 
 | | Linux (Flatpak) | Linux (other) | Windows |
 | --- | --- | --- | --- |
-| Library, artwork, log | `~/.var/app/io.github.blub3.Huehuecoyotl/data/coyotl` | `~/.local/share/coyotl` | `%APPDATA%\coyotl` |
+| Library, artwork, log | `~/.var/app/io.github.blub3.Huehuecoyotl/data/coyotl` | `~/.local/share/coyotl` | `%APPDATA%\coyotl` (portable); the MSIX keeps it in `%LOCALAPPDATA%\Packages\io.github.blub3.Huehuecoyotl_…\LocalCache\Roaming\coyotl` and removes it on uninstall |
 
 Deleting this folder resets the library; your video files are never changed or deleted.
 Passwords and the TMDB key are in the system keyring under the service name `coyotl`.

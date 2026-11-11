@@ -393,7 +393,7 @@ Cargo.toml           Rust workspace
 
 | Platform | Formats | Notes |
 | --- | --- | --- |
-| Windows | MSIX and a portable zip; winget manifest | MSVC toolchain; `windeployqt` collects the Qt libraries. Code signing is needed to avoid SmartScreen warnings and has a recurring cost. |
+| Windows | MSIX and a portable zip; winget manifest | MSVC toolchain; `windeployqt` collects the Qt libraries and the Visual C++ runtime DLLs sit next to the exe (app-local). `.github/workflows/windows.yml` builds both packages for CI and releases (`packaging/windows/package.ps1`); CI installs the MSIX once and starts the app. Until code signing (#24) the MSIX uses the publisher OID Windows reserves for unsigned packages and installs with `Add-AppxPackage -AllowUnsigned`. The winget manifests (portable zip) are generated with each release and submitted once the repository is public. Code signing is needed to avoid SmartScreen warnings and has a recurring cost. |
 | Linux | Flatpak on Flathub first; AppImage second | The Flatpak builds on the KDE runtime, which provides Qt 6, and uses portals for secrets and idle inhibit. The AppImage bundles Qt. Distribution packages are left to the community. |
 | macOS | Universal, notarised app bundle | Tier 2, after 1.0 |
 

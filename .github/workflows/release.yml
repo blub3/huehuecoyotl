@@ -2,8 +2,9 @@
 # Runs on a version tag (v1.0.0) and creates a *draft* GitHub release; a maintainer reviews and
 # publishes it (GOVERNANCE.md: releases are built by CI only).
 #
-# Not here yet: the Windows MSIX/zip and code signing (blocked on the Windows libmpv build,
-# docs/milestones/M4.md). Flathub builds and signs the Flatpak itself from its own manifest.
+# Linux: the Flatpak bundle. Windows: a portable zip and an unsigned MSIX, built by the shared
+# workflow windows.yml (as in CI, but a Release build). Not here yet: code signing (#24).
+# Flathub builds and signs the Flatpak itself from its own manifest.
 name: Release
 
 on:
@@ -64,18 +65,27 @@ jobs:
           cargo cyclonedx --manifest-path crates/core-api/Cargo.toml --format json --override-filename sbom-rust
           cp crates/core-api/sbom-rust.json dist/huehuecoyotl-sbom-rust.cdx.json
           cp third_party/mpv/out/BUILDINFO.txt dist/libmpv-BUILDINFO.txt
-          (cd dist && sha256sum * > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with: { name: release-linux, path: dist }
 
+  windows:
+    uses: ./.github/workflows/windows.yml
+    with: { build-type: Release }
+
   draft:
-    needs: linux
+    needs: [linux, windows]
     runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: { name: release-linux, path: dist }
+      - uses: actions/download-artifact@v4
+        with: { name: release-windows, path: windows }
+      - name: Collect the Windows files and the checksums of everything
+        run: |
+          cp windows/*.zip windows/*.msix windows/THIRD_PARTY_NOTICES-windows.txt dist/
+          (cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS)
       - name: Draft release
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
