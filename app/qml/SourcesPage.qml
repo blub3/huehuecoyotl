@@ -113,12 +113,13 @@ FocusScope {
                         anchors.leftMargin: 16; anchors.rightMargin: 10
                         spacing: 12
                         Rectangle {
-                            Layout.preferredWidth: 26; Layout.preferredHeight: 20; radius: 4
+                            Layout.preferredWidth: Math.max(26, kindBadge.implicitWidth + 8); Layout.preferredHeight: 20; radius: 4
                             color: row.model.online ? Theme.accent : Theme.textDim
                             Text {
+                                id: kindBadge
                                 anchors.centerIn: parent
                                 visible: row.model.kind !== "local"
-                                text: row.model.kind === "local" ? "" : row.model.kind.toUpperCase().slice(0, 3)
+                                text: ({ smb: "SMB", nfs: "NFS", webdav: "DAV", ftp: "FTP", sftp: "SFTP" })[row.model.kind] ?? ""
                                 color: Theme.bg; font.pixelSize: 9; font.bold: true
                             }
                         }

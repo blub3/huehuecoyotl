@@ -7,9 +7,8 @@ license.workspace = true
 rust-version.workspace = true
 
 [features]
-# SFTP lives in crates/vfs-sftp (outside the workspace): russh needs final releases of the
-# RustCrypto crates while smb 0.12.1 pins pre-releases of the same crates (via sspi), so both
-# cannot share one lock file or binary yet.
+# SFTP lives in crates/vfs-sftp (russh). It shares the workspace with smb through the patched
+# smb in third_party/smb (see the root Cargo.toml).
 default = ["smb", "nfs", "webdav", "ftp"]
 smb = ["dep:smb", "dep:futures-util"]
 nfs = ["dep:nfs-rs", "dep:futures-util"]

@@ -1,12 +1,12 @@
 [package]
 name = "huehuecoyotl-vfs-sftp"
-description = "SFTP source (kept out of the workspace until smb and russh share their crypto crates)"
-version = "1.0.0"
-edition = "2024"
-license = "Apache-2.0"
+description = "SFTP source"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
 publish = false
 
-[workspace]
 
 [dependencies]
 huehuecoyotl-vfs = { path = "../vfs", default-features = false }

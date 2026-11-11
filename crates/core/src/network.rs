@@ -1,4 +1,4 @@
-//! M3: network sources (SPEC 6). Libraries on SMB, NFS, WebDAV and FTP shares, their passwords
+//! M3: network sources (SPEC 6). Libraries on SMB, NFS, WebDAV, FTP and SFTP shares, their passwords
 //! in the OS keystore, one live connection per source, offline tracking, the folder picker of
 //! the "add network share" dialog, playback through `coyotl://` URLs and LAN discovery.
 
@@ -92,7 +92,14 @@ fn timeout_err() -> CoreError {
 }
 
 async fn connect(cfg: RemoteConfig) -> CResult<Arc<dyn RemoteSource>> {
-    match tokio::time::timeout(CONNECT_TIMEOUT, remote::connect(cfg)).await {
+    let attempt = async move {
+        match cfg.protocol {
+            // SFTP lives in its own crate (russh), which the vfs crate cannot depend on.
+            Protocol::Sftp => huehuecoyotl_vfs_sftp::connect(cfg).await,
+            _ => remote::connect(cfg).await,
+        }
+    };
+    match tokio::time::timeout(CONNECT_TIMEOUT, attempt).await {
         Ok(r) => Ok(r?),
         Err(_) => Err(timeout_err()),
     }
@@ -351,6 +358,18 @@ fn discover_blocking(secs: u64) -> Result<Vec<Discovered>, String> {
 }
 
 impl Core {
+    /// SFTP: the host key fingerprint of the server the dialog last connected to ("" for other
+    /// protocols or before connecting), for the user to check before adding the library.
+    pub fn network_host_key(&self) -> String {
+        self.inner
+            .probe
+            .lock()
+            .unwrap()
+            .as_ref()
+            .and_then(|(_, s)| s.host_key())
+            .unwrap_or_default()
+    }
+
     /// List a folder of a share that is not a library yet (the dialog's folder picker; listing
     /// "/" doubles as the connection test). Answers with a Folder event of sub-folders and
     /// videos, or a typed Error (wrong password, unreachable, no such share).

@@ -9,6 +9,7 @@
 /spike/media/*.mkv
 /third_party/mpv/out/
 /tests/servers/fixtures/
+/tests/servers/keys/
 /packaging/flatpak/generated/
 /packaging/flatpak/.flatpak-builder/
 /packaging/flatpak/build-dir/

@@ -72,6 +72,8 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 browseNetwork(const QVariantMap &spec, const QString &password, const QString &path);
     Q_INVOKABLE quint64 addNetworkLibrary(const QVariantMap &spec, const QString &password);
     Q_INVOKABLE quint64 discover();
+    // SFTP: the host key fingerprint of the server browseNetwork last reached ("" otherwise).
+    Q_INVOKABLE QString networkHostKey() const;
 
     // M4: writes a redacted diagnostics file to the Downloads folder and returns its path,
     // or an empty string (the reason goes to the log and the toast via `lastError`).

@@ -27,32 +27,32 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="302"/>
+        <location filename="../src/corebridge.cpp" line="307"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="304"/>
+        <location filename="../src/corebridge.cpp" line="309"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="306"/>
+        <location filename="../src/corebridge.cpp" line="311"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="308"/>
+        <location filename="../src/corebridge.cpp" line="313"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="310"/>
+        <location filename="../src/corebridge.cpp" line="315"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="457"/>
+        <location filename="../src/corebridge.cpp" line="463"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -361,47 +361,47 @@
 <context>
     <name>NetworkSharePage</name>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="35"/>
+        <location filename="../qml/NetworkSharePage.qml" line="39"/>
         <source>Share</source>
         <translation>Freigabe</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="36"/>
+        <location filename="../qml/NetworkSharePage.qml" line="40"/>
         <source>Export path</source>
         <translation>Exportpfad</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="37"/>
+        <location filename="../qml/NetworkSharePage.qml" line="41"/>
         <source>Base folder (optional)</source>
         <translation>Basisordner (optional)</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="55"/>
+        <location filename="../qml/NetworkSharePage.qml" line="60"/>
         <source>Please enter a server name or address.</source>
         <translation>Bitte einen Servernamen oder eine Adresse eingeben.</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="56"/>
+        <location filename="../qml/NetworkSharePage.qml" line="61"/>
         <source>Please enter the name of the share.</source>
         <translation>Bitte den Namen der Freigabe eingeben.</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="57"/>
+        <location filename="../qml/NetworkSharePage.qml" line="62"/>
         <source>Please enter the export path.</source>
         <translation>Bitte den Exportpfad eingeben.</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="65"/>
+        <location filename="../qml/NetworkSharePage.qml" line="70"/>
         <source>Connecting…</source>
         <translation>Verbinde …</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="71"/>
+        <location filename="../qml/NetworkSharePage.qml" line="76"/>
         <source>Adding…</source>
         <translation>Wird hinzugefügt …</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/NetworkSharePage.qml" line="107"/>
+        <location filename="../qml/NetworkSharePage.qml" line="113"/>
         <source>%n video(s) in this folder</source>
         <translation>
             <numerusform>%n Video in diesem Ordner</numerusform>
@@ -409,132 +409,173 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="142"/>
+        <location filename="../qml/NetworkSharePage.qml" line="148"/>
         <source>Add network share</source>
         <translation>Netzwerkfreigabe hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="147"/>
+        <location filename="../qml/NetworkSharePage.qml" line="153"/>
         <source>Found on your network</source>
         <translation>In deinem Netzwerk gefunden</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="150"/>
+        <location filename="../qml/NetworkSharePage.qml" line="156"/>
         <source>Searching…</source>
         <translation>Suche läuft …</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="150"/>
+        <location filename="../qml/NetworkSharePage.qml" line="156"/>
         <source>Search again</source>
         <translation>Erneut suchen</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="159"/>
+        <location filename="../qml/NetworkSharePage.qml" line="165"/>
         <source>Looking for file servers…</source>
         <translation>Suche nach Dateiservern …</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="159"/>
+        <location filename="../qml/NetworkSharePage.qml" line="165"/>
         <source>No servers announced themselves. Enter the address below.</source>
         <translation>Kein Server hat sich gemeldet. Gib die Adresse unten ein.</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="188"/>
+        <location filename="../qml/NetworkSharePage.qml" line="194"/>
         <source>Connection</source>
         <translation>Verbindung</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="221"/>
-        <location filename="../qml/NetworkSharePage.qml" line="229"/>
+        <location filename="../qml/NetworkSharePage.qml" line="227"/>
+        <location filename="../qml/NetworkSharePage.qml" line="235"/>
         <source>Server</source>
         <translation>Server</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="228"/>
+        <location filename="../qml/NetworkSharePage.qml" line="234"/>
         <source>Name or address, e.g. nas.local</source>
         <translation>Name oder Adresse, z. B. nas.local</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="240"/>
-        <location filename="../qml/NetworkSharePage.qml" line="241"/>
+        <location filename="../qml/NetworkSharePage.qml" line="246"/>
+        <location filename="../qml/NetworkSharePage.qml" line="247"/>
         <source>Port</source>
         <translation>Port</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="256"/>
+        <location filename="../qml/NetworkSharePage.qml" line="262"/>
         <source>e.g. media</source>
         <translation>z. B. media</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="256"/>
+        <location filename="../qml/NetworkSharePage.qml" line="262"/>
         <source>e.g. /volume1/media</source>
         <translation>z. B. /volume1/media</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="256"/>
+        <location filename="../qml/NetworkSharePage.qml" line="263"/>
         <source>e.g. /dav</source>
         <translation>z. B. /dav</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="265"/>
-        <location filename="../qml/NetworkSharePage.qml" line="271"/>
+        <location filename="../qml/NetworkSharePage.qml" line="263"/>
+        <source>e.g. /srv/media</source>
+        <translation>z. B. /srv/media</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="272"/>
+        <location filename="../qml/NetworkSharePage.qml" line="278"/>
         <source>User name</source>
         <translation>Benutzername</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="270"/>
+        <location filename="../qml/NetworkSharePage.qml" line="277"/>
         <source>Empty for guest access</source>
         <translation>Leer für Gastzugriff</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="270"/>
+        <location filename="../qml/NetworkSharePage.qml" line="277"/>
         <source>Empty for anonymous</source>
         <translation>Leer für anonym</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="279"/>
-        <location filename="../qml/NetworkSharePage.qml" line="285"/>
+        <location filename="../qml/NetworkSharePage.qml" line="288"/>
+        <location filename="../qml/NetworkSharePage.qml" line="297"/>
         <source>Password</source>
         <translation>Passwort</translation>
     </message>
     <message>
+        <location filename="../qml/NetworkSharePage.qml" line="288"/>
         <location filename="../qml/NetworkSharePage.qml" line="297"/>
+        <source>Key passphrase</source>
+        <translation>Passphrase des Schlüssels</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="296"/>
+        <source>Empty if the key has none</source>
+        <translation>Leer, wenn der Schlüssel keine hat</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="305"/>
+        <source>Key file (optional)</source>
+        <translation>Schlüsseldatei (optional)</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="310"/>
+        <source>Log in with a key instead of a password, e.g. ~/.ssh/id_ed25519</source>
+        <translation>Mit einem Schlüssel statt Passwort anmelden, z. B. ~/.ssh/id_ed25519</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="311"/>
+        <source>Key file</source>
+        <translation>Schlüsseldatei</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="323"/>
         <source>Use HTTPS</source>
         <translation>HTTPS verwenden</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="309"/>
+        <location filename="../qml/NetworkSharePage.qml" line="335"/>
         <source>Reconnect</source>
         <translation>Neu verbinden</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="309"/>
+        <location filename="../qml/NetworkSharePage.qml" line="335"/>
         <source>Connect</source>
         <translation>Verbinden</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="323"/>
+        <location filename="../qml/NetworkSharePage.qml" line="350"/>
         <source>Add the whole share</source>
         <translation>Ganze Freigabe hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="323"/>
+        <location filename="../qml/NetworkSharePage.qml" line="350"/>
         <source>Add this folder</source>
         <translation>Diesen Ordner hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="341"/>
+        <location filename="../qml/NetworkSharePage.qml" line="371"/>
+        <source>Server key fingerprint: %1</source>
+        <translation>Fingerabdruck des Server-Schlüssels: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="380"/>
+        <source>Compare it with the server&apos;s own fingerprint before adding (on the server: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Adding the library trusts this key; if the server later presents a different key, the connection is refused.</source>
+        <translation>Vergleichen Sie ihn vor dem Hinzufügen mit dem Fingerabdruck auf dem Server (dort: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Mit dem Hinzufügen wird diesem Schlüssel vertraut; zeigt der Server später einen anderen, wird die Verbindung abgelehnt.</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="386"/>
         <source>Folder: %1</source>
         <translation>Ordner: %1</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="368"/>
-        <location filename="../qml/NetworkSharePage.qml" line="383"/>
+        <location filename="../qml/NetworkSharePage.qml" line="413"/>
+        <location filename="../qml/NetworkSharePage.qml" line="428"/>
         <source>Up one folder</source>
         <translation>Eine Ebene höher</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="389"/>
+        <location filename="../qml/NetworkSharePage.qml" line="434"/>
         <source>No sub-folders here.</source>
         <translation>Hier gibt es keine Unterordner.</translation>
     </message>
@@ -912,27 +953,27 @@
 <context>
     <name>main</name>
     <message>
-        <location filename="../src/main.cpp" line="63"/>
+        <location filename="../src/main.cpp" line="70"/>
         <source>Start in fullscreen.</source>
         <translation>Im Vollbild starten.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="64"/>
+        <location filename="../src/main.cpp" line="71"/>
         <source>Use this data folder.</source>
         <translation>Diesen Datenordner verwenden.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="65"/>
+        <location filename="../src/main.cpp" line="74"/>
         <source>Measure a performance budget and quit: startup or scroll.</source>
         <translation>Ein Leistungsbudget messen und beenden: startup oder scroll.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="66"/>
+        <location filename="../src/main.cpp" line="77"/>
         <source>Also write the benchmark result to this file.</source>
         <translation>Das Messergebnis zusätzlich in diese Datei schreiben.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="67"/>
+        <location filename="../src/main.cpp" line="79"/>
         <source>Video file to play.</source>
         <translation>Abzuspielende Videodatei.</translation>
     </message>

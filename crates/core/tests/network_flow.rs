@@ -100,6 +100,13 @@ fn flow(spec: &str) {
     };
     let names: Vec<_> = entries.iter().map(|e| e.name.as_str()).collect();
     assert_eq!(names, ["Movies", "Shows"], "{spec}");
+    // SFTP: the dialog shows the host key it is about to trust.
+    let key = core.network_host_key();
+    assert_eq!(
+        key.starts_with("SHA256:"),
+        spec.contains("\"sftp\""),
+        "{spec}: {key}"
+    );
 
     // Add the Movies folder and wait for its scan.
     let with_path = spec.replace('}', r#","path":"/Movies"}"#);
@@ -184,6 +191,7 @@ fn network_libraries() {
         r#"{"protocol":"nfs","host":"172.29.0.11","share":"/media"}"#,
         r#"{"protocol":"webdav","host":"172.29.0.12","port":8080,"user":"coyotl"}"#,
         r#"{"protocol":"ftp","host":"172.29.0.12","user":"coyotl"}"#,
+        r#"{"protocol":"sftp","host":"172.29.0.12","port":2022,"user":"coyotl"}"#,
     ] {
         flow(spec);
     }

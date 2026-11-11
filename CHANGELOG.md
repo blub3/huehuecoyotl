@@ -4,6 +4,8 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+- SFTP sources in the app (#26): password or SSH key login (Ed25519, ECDSA; the passphrase is kept in the keystore), and the server's host key fingerprint shown before adding, then pinned. Discovered `_sftp-ssh` servers now appear in the list. To build SFTP together with SMB, `third_party/smb` carries the published `smb` 0.12.1 with only its `sspi` dependency raised (upstream fix pending); CI checks that nothing else differs.
+
 ## 1.0.0 – 2026-11-11 (Linux)
 
 First stable release, for Linux, as a Flatpak bundle. Windows follows in 1.1 (milestone M5).
