@@ -17,5 +17,5 @@ services:
     networks: { test: { ipv4_address: 172.29.0.11 } }
   rclone:
     build: { context: ., dockerfile: Dockerfile.rclone }
-    volumes: ["./fixtures:/media:ro"]
+    volumes: ["./fixtures:/media:ro", "./keys:/keys:ro"]
     networks: { test: { ipv4_address: 172.29.0.12 } }

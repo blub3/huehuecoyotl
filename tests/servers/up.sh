@@ -15,6 +15,12 @@ blob("fixtures/Shows/Firefly/Season 1/Firefly.S01E01.mkv", 512 * 1024, 3)
 blob("fixtures/Shows/Firefly/Season 1/Firefly.S01E02.mkv", 700 * 1024 + 7, 4)
 open("fixtures/notes.txt", "w").write("not a video\n")
 PY
+# SFTP key login: two throwaway Ed25519 keys (one with the passphrase "coyotl-key"), made
+# fresh on each machine and never committed.
+mkdir -p keys
+[ -f keys/id_ed25519 ] || ssh-keygen -q -t ed25519 -N '' -C coyotl-test -f keys/id_ed25519
+[ -f keys/id_ed25519_pass ] || ssh-keygen -q -t ed25519 -N 'coyotl-key' -C coyotl-test-pass -f keys/id_ed25519_pass
+cat keys/id_ed25519.pub keys/id_ed25519_pass.pub > keys/authorized_keys
 docker compose up -d --build --wait 2>/dev/null || docker compose up -d --build
 # Wait until every service accepts connections (CI starts the tests right after this).
 for hp in 172.29.0.10:445 172.29.0.11:2049 172.29.0.12:8080 172.29.0.12:21 172.29.0.12:2022; do

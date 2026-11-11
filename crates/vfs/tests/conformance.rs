@@ -44,6 +44,7 @@ fn cfg(protocol: Protocol) -> RemoteConfig {
         password: "coyotl-test".into(),
         tls: false,
         host_key: None,
+        key_file: None,
     }
 }
 

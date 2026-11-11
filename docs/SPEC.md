@@ -208,7 +208,7 @@ pub trait Source: Send + Sync {
 | NFS v3 and v4.1 | [`nfs-rs`](https://docs.rs/crate/nfs-rs/latest/source/README.md) 0.12, pure Rust | Servers that enforce privileged source ports need the `insecure` export option or elevated rights; document this for users. | M3 |
 | WebDAV | `reqwest` (rustls) with a small PROPFIND client | Range requests map directly onto `read_at`. | M3 |
 | FTP (FTPS later) | [`suppaftp`](https://docs.rs/suppaftp) on tokio | No ranged reads in FTP: the backend keeps one transfer open while reads are sequential and restarts it with `REST` on a seek. | M3 |
-| SFTP | [`russh`](https://docs.rs/russh) with `russh-sftp` | Host keys are trusted on first use and pinned. Until `smb`'s pre-release RustCrypto dependencies are released, `russh` cannot share a build with `smb`, so SFTP lives in its own crate (`crates/vfs-sftp`) outside the app. | M3 |
+| SFTP | [`russh`](https://docs.rs/russh) with `russh-sftp` | Password or key-file login (Ed25519, ECDSA; the passphrase goes to the keystore). Host keys are trusted on first use: the dialog shows the fingerprint before the library is added, and a different key is refused later. Lives in `crates/vfs-sftp`, which the core links. `smb` 0.12.1 pins pre-release RustCrypto crates (through `sspi` 0.21.3) that clash with `russh`, so the build uses `third_party/smb`: the published crate with only `sspi` raised to 0.23.1, as in the upstream fix afiffon/smb-rs#189, checked in CI by `tools/check-smb-patch.sh`. It goes away once `smb` releases the fix. | M3 (in the app since 1.1) |
 | Jellyfin, Emby, Plex | Their HTTP APIs | These bring their own metadata, so they bypass the scanner | After 1.0 |
 
 OpenDAL was evaluated in M3 and dropped: its SFTP service runs the system `ssh` binary (not available on Windows by default) and its HTTP layer pulls in `aws-lc`. Small direct clients are less code than adapting it.
@@ -426,7 +426,7 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 
 **M4 status (Nov 11, 2026): released as 1.0.0 for Linux.** Flatpak, MPRIS media keys, diagnostics export, third-party notices, user guide, German translation, and the startup and scroll budgets measured within limits on one machine; used without errors by the maintainer. See the [M4 status](milestones/M4.md).
 
-**M3 status (Nov 11, 2026).** SMB, NFS, WebDAV and FTP libraries work end to end on Linux. SFTP is built but not linked into the app yet, and Windows servers are untested. See the [M3 status](milestones/M3.md).
+**M3 status (Nov 11, 2026).** SMB, NFS, WebDAV and FTP libraries work end to end on Linux; SFTP joined them in 1.1 (#26). Windows servers are untested. See the [M3 status](milestones/M3.md).
 
 **M0 status (Nov 10, 2026).** First run on Linux, X11 and NVIDIA: the LGPL build, the embedded item and Samba streaming pass, and the direct mode design is drafted. Still open for the gate: everything on Windows (including HDR passthrough), Intel and AMD graphics, and Wayland. See the [M0 report](spike/M0-report.md).
 

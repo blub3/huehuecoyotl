@@ -254,7 +254,8 @@ mod ffi {
         fn set_tmdb_key(self: &Core, request_id: u64, key: &str);
         fn clear_tmdb_key(self: &Core, request_id: u64);
 
-        // M3: network sources. `spec_json`: {protocol, host, port, share, user, tls, path, name}.
+        // M3: network sources. `spec_json`: {protocol, host, port, share, user, tls, key_file,
+        // path, name}; for SFTP with a key file, `password` is the key's passphrase.
         fn browse_network(
             self: &Core,
             request_id: u64,
@@ -264,6 +265,8 @@ mod ffi {
         );
         fn add_network_library(self: &Core, request_id: u64, spec_json: &str, password: &str);
         fn discover(self: &Core, request_id: u64);
+        /// SFTP: SHA-256 fingerprint of the server the dialog last connected to, or "".
+        fn network_host_key(self: &Core) -> String;
 
         // M4
         /// Write a redacted diagnostics file; returns its size in bytes.
@@ -732,6 +735,9 @@ impl Core {
         guard("browse_network", || {
             self.0.browse_network(request_id, spec_json, password, path)
         })
+    }
+    fn network_host_key(&self) -> String {
+        catch_unwind(AssertUnwindSafe(|| self.0.network_host_key())).unwrap_or_default()
     }
     fn add_network_library(&self, request_id: u64, spec_json: &str, password: &str) {
         guard("add_network_library", || {
