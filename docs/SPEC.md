@@ -383,6 +383,8 @@ CMakeLists.txt       top-level build
 Cargo.toml           Rust workspace
 ```
 
+**Logo and icons.** The logo's master is `assets/logo/huehuecoyotl.png` (raster artwork, 1254 px). `tools/make-icons.py` generates every size from it: the hicolor icons for Linux and the Flatpak (16 to 512 px; there is no scalable SVG), the Windows `.ico`, the MSIX image assets and the 512 px image the UI scales to the screen's scale factor. Nothing is resized by hand. The logo is not under the Apache License 2.0; `assets/logo/LICENSE` states its terms.
+
 **libmpv bundle.** The Linux recipe builds in a container on the Ubuntu 24.04 base and ships libmpv with FFmpeg, libass, libplacebo and libwayland as shared libraries with an `$ORIGIN` rpath. libwayland is bundled because mpv 0.42 needs version 1.23 or newer and Ubuntu 24.04 has 1.22. Versions are pinned by tag and recorded by commit. The spike baseline is mpv 0.42.0, FFmpeg 8.1.3, libplacebo 7.387.0, libass 0.17.5 and libwayland 1.24.0.
 
 | Platform | Formats | Notes |
