@@ -38,10 +38,9 @@ FocusScope {
             Layout.leftMargin: 20
             Layout.bottomMargin: 18
             spacing: 10
-            Rectangle {
-                Layout.preferredWidth: 34; Layout.preferredHeight: 34; radius: 17
-                color: Theme.accent
-                Label { anchors.centerIn: parent; text: "H"; color: Theme.bg; font.pixelSize: 19; font.bold: true }
+            AppLogo {
+                size: 34
+                Layout.preferredWidth: 34; Layout.preferredHeight: 34
             }
             Label { text: "Huehuecoyotl"; color: Theme.text; font.pixelSize: 17; font.bold: true }
         }

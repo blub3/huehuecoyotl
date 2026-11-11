@@ -23,6 +23,7 @@ qt_add_qml_module(coyotl
     qml/FocusButton.qml
     qml/PosterTile.qml
     qml/Toast.qml
+    qml/AppLogo.qml
     qml/Nav.qml
     qml/NavRail.qml
     qml/Shell.qml
@@ -65,11 +66,13 @@ endif()
 qt_add_resources(coyotl notices PREFIX /notices BASE ${CMAKE_CURRENT_BINARY_DIR}/notices FILES ${_notices})
 install(FILES ${_notices} DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/coyotl)
 
-# Window icon (the taskbar and title bar on Windows and X11; Wayland uses the desktop entry).
+# Window icon (the taskbar and title bar on Windows and X11; Wayland uses the desktop entry) and
+# the logo in the UI (AppLogo.qml, from the 512 px size).
 qt_add_resources(coyotl icons PREFIX /icons BASE ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor FILES
   ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor/32x32/apps/io.github.blub3.Huehuecoyotl.png
   ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor/64x64/apps/io.github.blub3.Huehuecoyotl.png
-  ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor/256x256/apps/io.github.blub3.Huehuecoyotl.png)
+  ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor/256x256/apps/io.github.blub3.Huehuecoyotl.png
+  ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor/512x512/apps/io.github.blub3.Huehuecoyotl.png)
 if(WIN32)
   # The .exe icon for Explorer and shortcuts.
   target_sources(coyotl PRIVATE src/coyotl.rc)
