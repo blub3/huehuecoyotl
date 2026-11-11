@@ -65,6 +65,16 @@ endif()
 qt_add_resources(coyotl notices PREFIX /notices BASE ${CMAKE_CURRENT_BINARY_DIR}/notices FILES ${_notices})
 install(FILES ${_notices} DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/coyotl)
 
+# Window icon (the taskbar and title bar on Windows and X11; Wayland uses the desktop entry).
+qt_add_resources(coyotl icons PREFIX /icons BASE ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor FILES
+  ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor/32x32/apps/io.github.blub3.Huehuecoyotl.png
+  ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor/64x64/apps/io.github.blub3.Huehuecoyotl.png
+  ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor/256x256/apps/io.github.blub3.Huehuecoyotl.png)
+if(WIN32)
+  # The .exe icon for Explorer and shortcuts.
+  target_sources(coyotl PRIVATE src/coyotl.rc)
+endif()
+
 qt_add_translations(coyotl TS_FILE_DIR ${CMAKE_SOURCE_DIR}/app/i18n TS_FILE_BASE coyotl RESOURCE_PREFIX /i18n
                     LUPDATE_OPTIONS -no-obsolete)
 
@@ -97,7 +107,7 @@ if(UNIX AND NOT APPLE)
   set(_pkg ${CMAKE_SOURCE_DIR}/packaging/linux)
   install(FILES ${_pkg}/${_appid}.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
   install(FILES ${_pkg}/${_appid}.metainfo.xml DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
-  install(FILES ${_pkg}/${_appid}.svg DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor DESTINATION ${CMAKE_INSTALL_DATADIR}/icons)
   # The LGPL libmpv bundle goes next to the binary's rpath ($ORIGIN/../lib), unless it is
   # already installed into the same prefix (Flatpak builds it as a module into /app).
   get_filename_component(_mpv_prefix "${COYOTL_LIBMPV_PREFIX}" REALPATH)
