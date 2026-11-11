@@ -10,6 +10,9 @@ FocusScope {
     readonly property bool isPlayer: false
     property string startPath
     property string returnTo: ""   // path of the folder we just left, to restore focus
+    // Pick mode (adding a library folder): a button picks the folder being shown.
+    property bool pickMode: false
+    property var onPicked: null
 
     FolderModel {
         id: folder
@@ -28,7 +31,7 @@ FocusScope {
     function goUp() {
         // Back from the place you entered returns to Home, like a remote expects.
         if (folder.parentPath === "" || folder.path === page.startPath) {
-            StackView.view.pop()
+            Nav.back()
         } else {
             returnTo = folder.path
             folder.path = folder.parentPath
@@ -65,6 +68,14 @@ FocusScope {
                 Accessible.role: Accessible.Heading
             }
             BusyIndicator { running: folder.loading; implicitWidth: 32; implicitHeight: 32 }
+            FocusButton {
+                id: pickButton
+                visible: page.pickMode && folder.path !== ""
+                primary: true
+                text: qsTr("Add this folder")
+                KeyNavigation.down: list
+                onClicked: { if (page.onPicked) page.onPicked(folder.path); Nav.back() }
+            }
         }
 
         ListView {
@@ -80,6 +91,7 @@ FocusScope {
             Accessible.role: Accessible.List
             Accessible.name: folder.path
             Keys.onLeftPressed: page.goUp()
+            Keys.onUpPressed: (e) => { if (currentIndex <= 0 && pickButton.visible) pickButton.forceActiveFocus(); else e.accepted = false }
             Keys.onPressed: (e) => { if (e.key === Qt.Key_Backspace) { page.goUp(); e.accepted = true } }
             ScrollBar.vertical: ScrollBar {}
 

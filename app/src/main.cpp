@@ -49,7 +49,9 @@ int main(int argc, char *argv[])
                                 : QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir().mkpath(dataDir);
 
-    auto *core = new CoreBridge(dataDir, &app);
+    // Metadata language follows the UI language, e.g. "de-DE" (TMDB falls back to English).
+    const QString language = QLocale().name().replace('_', '-');
+    auto *core = new CoreBridge(dataDir, language, &app);
     if (!core->isOpen()) {
         qCritical("%s", qPrintable(core->openError()));
         return 1;

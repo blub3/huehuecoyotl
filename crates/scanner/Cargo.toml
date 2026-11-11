@@ -1,0 +1,20 @@
+[package]
+name = "huehuecoyotl-scanner"
+description = "Enumeration, filename parser and scan diffing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+huehuecoyotl-library.workspace = true
+huehuecoyotl-vfs.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

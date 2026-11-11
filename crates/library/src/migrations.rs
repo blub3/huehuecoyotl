@@ -55,4 +55,32 @@ CREATE VIRTUAL TABLE item_fts USING fts5(title, original_title, overview);
 -- Source 1 is the local file system; paths are absolute OS paths with '/' separators.
 INSERT INTO source(id, kind, name) VALUES (1, 'local', 'This computer');
 "#,
+    // 2: library folders, item metadata columns, grouping keys, match candidates, job dedupe
+    r#"
+-- Library folders: local sources with a root. Source 1 stays the ad-hoc "this computer" source.
+ALTER TABLE source ADD COLUMN root TEXT;
+ALTER TABLE source ADD COLUMN last_scan INTEGER;
+
+ALTER TABLE item ADD COLUMN original_title TEXT;
+ALTER TABLE item ADD COLUMN overview TEXT;
+ALTER TABLE item ADD COLUMN rating REAL;
+ALTER TABLE item ADD COLUMN runtime_min INTEGER;
+ALTER TABLE item ADD COLUMN added_at INTEGER;
+-- Grouping key: normalised title(+year) for movies and shows, so rescans find the same item.
+ALTER TABLE item ADD COLUMN group_key TEXT;
+CREATE INDEX item_group ON item(kind, group_key);
+CREATE INDEX item_sort ON item(kind, sort_title);
+CREATE INDEX item_added ON item(kind, added_at);
+CREATE INDEX file_source ON file(source_id, last_seen_scan);
+
+-- Candidates offered for "needs review" items.
+CREATE TABLE match_candidate(item_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                             provider_id INTEGER NOT NULL, title TEXT, year INTEGER,
+                             score REAL, poster_path TEXT, overview TEXT);
+CREATE INDEX match_candidate_item ON match_candidate(item_id);
+
+ALTER TABLE job ADD COLUMN dedupe TEXT;
+ALTER TABLE job ADD COLUMN last_error TEXT;
+CREATE UNIQUE INDEX job_dedupe ON job(dedupe) WHERE state IN ('queued', 'running');
+"#,
 ];

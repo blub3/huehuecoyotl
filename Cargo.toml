@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "crates/cli"]
+members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "crates/scanner", "crates/metadata", "crates/cli"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,6 +13,8 @@ rust-version = "1.85"
 huehuecoyotl-core = { path = "crates/core" }
 huehuecoyotl-library = { path = "crates/library" }
 huehuecoyotl-vfs = { path = "crates/vfs" }
+huehuecoyotl-scanner = { path = "crates/scanner" }
+huehuecoyotl-metadata = { path = "crates/metadata" }
 async-trait = "0.1"
 bytes = "1"
 crossbeam-channel = "0.5"

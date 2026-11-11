@@ -82,3 +82,105 @@ class ContinueWatchingModel : public VariantListModel {
     }
     quint64 send() override;
 };
+
+// Keys of an item summary as the bridge delivers it (CoreBridge::summaryMap).
+inline QList<QByteArray> summaryKeys()
+{
+    return {"id",     "kind",     "title",   "year",      "seasonNo", "episodeNo",
+            "poster", "progress", "watched", "unwatched", "overview"};
+}
+
+// Movies or shows, or the children of an item, fetched page by page as the view scrolls
+// (SPEC 8, rule 3). Re-queries the loaded range when the library changes.
+class LibraryModel : public QAbstractListModel {
+    Q_OBJECT
+    QML_ELEMENT
+    Q_PROPERTY(QString kind READ kind WRITE setKind NOTIFY queryChanged)
+    Q_PROPERTY(QString sort READ sort WRITE setSort NOTIFY queryChanged)
+    Q_PROPERTY(bool unwatchedOnly READ unwatchedOnly WRITE setUnwatchedOnly NOTIFY queryChanged)
+    Q_PROPERTY(int total READ total NOTIFY totalChanged)
+    Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
+  public:
+    explicit LibraryModel(QObject *parent = nullptr);
+    int rowCount(const QModelIndex &parent = {}) const override
+    {
+        return parent.isValid() ? 0 : int(m_rows.size());
+    }
+    QVariant data(const QModelIndex &index, int role) const override;
+    QHash<int, QByteArray> roleNames() const override;
+    bool canFetchMore(const QModelIndex &parent) const override;
+    void fetchMore(const QModelIndex &parent) override;
+
+    QString kind() const { return m_kind; }
+    void setKind(const QString &k);
+    QString sort() const { return m_sort; }
+    void setSort(const QString &s);
+    bool unwatchedOnly() const { return m_unwatched; }
+    void setUnwatchedOnly(bool u);
+    int total() const { return m_total; }
+    bool loading() const { return m_request != 0; }
+    Q_INVOKABLE QVariantMap get(int row) const;
+    Q_INVOKABLE void refresh();
+
+  signals:
+    void queryChanged();
+    void totalChanged();
+    void loadingChanged();
+
+  private:
+    void reload();
+    void onPage(quint64 id, int total, int offset, const QVariantList &items);
+    static constexpr int kPage = 120;
+    QString m_kind = QStringLiteral("movie"), m_sort = QStringLiteral("title");
+    bool m_unwatched = false;
+    QVariantList m_rows;
+    int m_total = 0;
+    quint64 m_request = 0;
+    bool m_replace = false;
+};
+
+class SearchModel : public VariantListModel {
+    Q_OBJECT
+    QML_ELEMENT
+    Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
+  public:
+    explicit SearchModel(QObject *parent = nullptr);
+    QString text() const { return m_text; }
+    void setText(const QString &t);
+  signals:
+    void textChanged();
+
+  protected:
+    QList<QByteArray> keys() const override { return summaryKeys(); }
+    quint64 send() override;
+
+  private:
+    QString m_text;
+};
+
+class RecentlyAddedModel : public VariantListModel {
+    Q_OBJECT
+    QML_ELEMENT
+  public:
+    explicit RecentlyAddedModel(QObject *parent = nullptr);
+
+  protected:
+    QList<QByteArray> keys() const override { return summaryKeys(); }
+    quint64 send() override;
+};
+
+class LibraryFoldersModel : public VariantListModel {
+    Q_OBJECT
+    QML_ELEMENT
+  public:
+    explicit LibraryFoldersModel(QObject *parent = nullptr);
+    Q_INVOKABLE void add(const QString &path);
+    Q_INVOKABLE void remove(qint64 id);
+
+  protected:
+    QList<QByteArray> keys() const override
+    {
+        return {"id", "name", "root", "files", "lastScanMs", "scanning"};
+    }
+    quint64 send() override;
+};

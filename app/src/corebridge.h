@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
@@ -18,13 +19,19 @@ class CoreBridge : public QObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(Core)
     QML_SINGLETON
+    Q_PROPERTY(bool hasTmdbKey READ hasTmdbKey NOTIFY keyStatusChanged)
+    Q_PROPERTY(bool tmdbKeyFromEnvironment READ tmdbKeyFromEnvironment NOTIFY keyStatusChanged)
+    Q_PROPERTY(bool scanning READ scanning NOTIFY activityChanged)
+    Q_PROPERTY(int pendingJobs READ pendingJobs NOTIFY activityChanged)
+    Q_PROPERTY(int failedJobs READ failedJobs NOTIFY activityChanged)
 
   public:
     enum ErrorKind { NoError = 0, Auth, Unreachable, NotFound, Unsupported, Internal };
     Q_ENUM(ErrorKind)
 
     // Opens the core in `dataDir`. On failure `isOpen()` is false and `openError()` explains.
-    explicit CoreBridge(const QString &dataDir, QObject *parent = nullptr);
+    // `language` is the UI language as a BCP-47 tag ("de-DE") for metadata requests.
+    explicit CoreBridge(const QString &dataDir, const QString &language, QObject *parent = nullptr);
     ~CoreBridge() override;
 
     static CoreBridge *instance() { return s_instance; }
@@ -42,6 +49,29 @@ class CoreBridge : public QObject {
     Q_INVOKABLE void setWatched(qint64 itemId, bool watched);
     Q_INVOKABLE void cancel(quint64 requestId);
 
+    // M2: library
+    Q_INVOKABLE quint64 libraries();
+    Q_INVOKABLE quint64 addLibrary(const QString &path);
+    Q_INVOKABLE quint64 removeLibrary(qint64 sourceId);
+    Q_INVOKABLE void rescan(qint64 sourceId = 0);
+    Q_INVOKABLE quint64 browseItems(const QString &kind, qint64 parent, const QString &sort,
+                                    bool unwatchedOnly, int offset, int limit);
+    Q_INVOKABLE quint64 recentlyAdded(int limit = 20);
+    Q_INVOKABLE quint64 search(const QString &text);
+    Q_INVOKABLE quint64 itemDetail(qint64 itemId);
+    Q_INVOKABLE quint64 review();
+    Q_INVOKABLE quint64 findMatches(qint64 itemId, const QString &title, int year);
+    Q_INVOKABLE void chooseMatch(qint64 itemId, qint64 providerId);
+    Q_INVOKABLE quint64 refreshKeyStatus();
+    Q_INVOKABLE quint64 setTmdbKey(const QString &key);
+    Q_INVOKABLE quint64 clearTmdbKey();
+
+    bool hasTmdbKey() const { return m_hasKey; }
+    bool tmdbKeyFromEnvironment() const { return m_keyFromEnv; }
+    bool scanning() const { return !m_scanning.isEmpty(); }
+    int pendingJobs() const { return m_pending; }
+    int failedJobs() const { return m_failed; }
+
     void reportProgress(quint64 ticket, qint64 positionMs, qint64 durationMs, int state);
     void setTrackPref(quint64 ticket, const QString &audioLang, const QString &subLang, bool subOff);
 
@@ -54,6 +84,17 @@ class CoreBridge : public QObject {
     void continueWatchingListed(quint64 requestId, const QVariantList &items);
     void itemChanged(qint64 itemId);
     void requestFailed(quint64 requestId, int kind, const QString &message);
+    void pageReady(quint64 requestId, int total, int offset, const QVariantList &items);
+    void detailReady(quint64 requestId, const QVariantMap &detail);
+    void librariesListed(quint64 requestId, const QVariantList &libraries);
+    void reviewReady(quint64 requestId, const QVariantList &items);
+    void candidatesReady(quint64 requestId, qint64 itemId, const QVariantList &candidates);
+    // requestId 0: unsolicited (e.g. TMDB rejected the stored key).
+    void keyStatusChanged(quint64 requestId, const QString &message);
+    void scanFinished(qint64 sourceId, const QString &message);
+    void activityChanged();
+    // The library changed in bulk; grids re-query.
+    void libraryChanged();
 
   private:
     void dispatch(const coyotl::core::CoreEvent &e);
@@ -63,4 +104,7 @@ class CoreBridge : public QObject {
     std::optional<rust::Box<coyotl::core::Core>> m_core;
     QString m_openError;
     quint64 m_lastId = 0;
+    bool m_hasKey = false, m_keyFromEnv = false;
+    QSet<qint64> m_scanning;
+    int m_pending = 0, m_failed = 0;
 };

@@ -7,7 +7,7 @@ qt_add_executable(coyotl WIN32 MACOSX_BUNDLE
   src/models.h src/models.cpp
   src/desktopintegration.h src/desktopintegration.cpp)
 
-set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(qml/Theme.qml qml/Nav.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(coyotl
   URI Coyotl
   VERSION 1.0
@@ -21,7 +21,20 @@ qt_add_qml_module(coyotl
     qml/TrackMenu.qml
     qml/FocusButton.qml
     qml/PosterTile.qml
-    qml/Toast.qml)
+    qml/Toast.qml
+    qml/Nav.qml
+    qml/NavRail.qml
+    qml/Shell.qml
+    qml/PosterCard.qml
+    qml/GridPage.qml
+    qml/MoviesPage.qml
+    qml/ShowsPage.qml
+    qml/DetailPage.qml
+    qml/FixMatchDialog.qml
+    qml/SearchPage.qml
+    qml/SourcesPage.qml
+    qml/SettingsPage.qml
+    qml/ReviewPage.qml)
 
 qt_add_translations(coyotl TS_FILE_DIR ${CMAKE_SOURCE_DIR}/app/i18n TS_FILE_BASE coyotl RESOURCE_PREFIX /i18n
                     LUPDATE_OPTIONS -no-obsolete)

@@ -9,13 +9,20 @@ rust-version.workspace = true
 [dependencies]
 huehuecoyotl-library.workspace = true
 huehuecoyotl-vfs.workspace = true
+huehuecoyotl-scanner.workspace = true
+huehuecoyotl-metadata.workspace = true
+keyring = "4"
+serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 
 [dev-dependencies]
+async-trait.workspace = true
+bytes.workspace = true
 crossbeam-channel.workspace = true
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 tempfile.workspace = true
 
 [lints]

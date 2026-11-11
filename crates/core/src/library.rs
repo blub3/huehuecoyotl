@@ -1,0 +1,356 @@
+//! M2 requests: library folders, paged browsing, detail pages, search, the review list,
+//! manual matching and the TMDB key.
+
+use std::sync::Arc;
+
+use huehuecoyotl_library::catalog::{self, Query, Sort};
+use huehuecoyotl_library::jobs;
+use huehuecoyotl_metadata::tmdb::Tmdb;
+use huehuecoyotl_metadata::{MediaType, MetaError, MetadataProvider};
+use serde_json::json;
+
+use crate::secrets::{self, KeySource};
+use crate::{Core, CoreError, ErrorKind, Event, Inner, LibraryInfo, ReviewItem, worker};
+
+fn internal(e: impl std::fmt::Display) -> CoreError {
+    CoreError {
+        kind: ErrorKind::Internal,
+        message: e.to_string(),
+    }
+}
+
+async fn library_list(inner: &Arc<Inner>) -> Result<Vec<LibraryInfo>, CoreError> {
+    let rows = inner.lib.read(catalog::libraries).await?;
+    let scanning = inner.scanning.lock().unwrap().clone();
+    Ok(rows
+        .into_iter()
+        .map(|l| LibraryInfo {
+            scanning: scanning.contains(&l.id),
+            id: l.id,
+            name: l.name,
+            root: l.root,
+            files: l.files,
+            last_scan_ms: l.last_scan.unwrap_or(0),
+        })
+        .collect())
+}
+
+pub(crate) async fn enqueue_scan(inner: &Arc<Inner>, source_id: i64, prio: i64) {
+    let payload = json!({ "source_id": source_id }).to_string();
+    let _ = inner
+        .lib
+        .write(move |c| {
+            jobs::enqueue(
+                c,
+                "scan",
+                &payload,
+                prio,
+                Some(&format!("scan:{source_id}")),
+            )
+        })
+        .await;
+    inner.wake.notify_waiters();
+}
+
+impl Core {
+    pub fn libraries(&self, request_id: u64) {
+        self.spawn(request_id, move |inner| async move {
+            Ok(Event::Libraries {
+                request_id,
+                libraries: library_list(&inner).await?,
+            })
+        });
+    }
+
+    /// Add a folder to the library and scan it.
+    pub fn add_library(&self, request_id: u64, path: &str) {
+        let root = huehuecoyotl_vfs::VPath::new(path.trim_end_matches(['/', '\\'])).to_string();
+        self.spawn(request_id, move |inner| async move {
+            let meta = tokio::fs::metadata(&root)
+                .await
+                .map_err(|e| CoreError::from(huehuecoyotl_vfs::VfsError::from(e)))?;
+            if !meta.is_dir() {
+                return Err(CoreError {
+                    kind: ErrorKind::Unsupported,
+                    message: format!("{root} is not a folder"),
+                });
+            }
+            let name = root
+                .rsplit('/')
+                .find(|s| !s.is_empty())
+                .unwrap_or(&root)
+                .to_string();
+            let r = root.clone();
+            let id = inner
+                .lib
+                .write(move |c| catalog::add_library(c, &name, &r))
+                .await?;
+            enqueue_scan(&inner, id, jobs::priority::USER).await;
+            Ok(Event::Libraries {
+                request_id,
+                libraries: library_list(&inner).await?,
+            })
+        });
+    }
+
+    pub fn remove_library(&self, request_id: u64, source_id: i64) {
+        self.spawn(request_id, move |inner| async move {
+            inner
+                .lib
+                .write(move |c| catalog::remove_library(c, source_id))
+                .await?;
+            inner.mark_changed();
+            Ok(Event::Libraries {
+                request_id,
+                libraries: library_list(&inner).await?,
+            })
+        });
+    }
+
+    /// Rescan one library folder, or all of them with `source_id == 0`.
+    pub fn rescan(&self, source_id: i64) {
+        let inner = self.inner.clone();
+        self.rt.spawn(async move {
+            let ids: Vec<i64> = match source_id {
+                0 => inner
+                    .lib
+                    .read(catalog::libraries)
+                    .await
+                    .map(|l| l.into_iter().map(|l| l.id).collect())
+                    .unwrap_or_default(),
+                id => vec![id],
+            };
+            for id in ids {
+                enqueue_scan(&inner, id, jobs::priority::USER).await;
+            }
+        });
+    }
+
+    /// One page of movies or shows (`kind`), or the children of `parent` (> 0).
+    #[allow(clippy::too_many_arguments)]
+    pub fn browse_items(
+        &self,
+        request_id: u64,
+        kind: &str,
+        parent: i64,
+        sort: &str,
+        unwatched_only: bool,
+        offset: u32,
+        limit: u32,
+    ) {
+        let q = Query {
+            kind: kind.to_string(),
+            parent: (parent > 0).then_some(parent),
+            sort: match sort {
+                "added" => Sort::Added,
+                "year" => Sort::Year,
+                _ => Sort::Title,
+            },
+            unwatched_only,
+            offset,
+            limit: limit.clamp(1, 500),
+        };
+        self.spawn(request_id, move |inner| async move {
+            let (total, items) = inner.lib.read(move |c| catalog::browse(c, &q)).await?;
+            let ids: Vec<i64> = items.iter().map(|s| s.id).collect();
+            // Items on screen are processed first (SPEC 7).
+            let _ = inner.lib.write(move |c| jobs::bump_items(c, &ids)).await;
+            Ok(Event::Page {
+                request_id,
+                total,
+                offset,
+                items,
+            })
+        });
+    }
+
+    pub fn recently_added(&self, request_id: u64, limit: u32) {
+        self.spawn(request_id, move |inner| async move {
+            let items = inner
+                .lib
+                .read(move |c| catalog::recently_added(c, limit))
+                .await?;
+            Ok(Event::Page {
+                request_id,
+                total: items.len() as u32,
+                offset: 0,
+                items,
+            })
+        });
+    }
+
+    pub fn search(&self, request_id: u64, text: &str) {
+        let text = text.to_string();
+        self.spawn(request_id, move |inner| async move {
+            let items = inner
+                .lib
+                .read(move |c| catalog::search(c, &text, 60))
+                .await?;
+            Ok(Event::Page {
+                request_id,
+                total: items.len() as u32,
+                offset: 0,
+                items,
+            })
+        });
+    }
+
+    pub fn item_detail(&self, request_id: u64, item_id: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let d = inner.lib.read(move |c| catalog::detail(c, item_id)).await?;
+            let d = d.ok_or_else(|| CoreError {
+                kind: ErrorKind::NotFound,
+                message: format!("item {item_id}"),
+            })?;
+            let _ = inner
+                .lib
+                .write(move |c| jobs::bump_items(c, &[item_id]))
+                .await;
+            Ok(Event::Detail {
+                request_id,
+                detail: Box::new(d),
+            })
+        });
+    }
+
+    pub fn review(&self, request_id: u64) {
+        self.spawn(request_id, move |inner| async move {
+            let rows = inner.lib.read(catalog::review_list).await?;
+            Ok(Event::Review {
+                request_id,
+                items: rows
+                    .into_iter()
+                    .map(|(item, candidates)| ReviewItem { item, candidates })
+                    .collect(),
+            })
+        });
+    }
+
+    /// Search the provider for a different match (the "fix match" dialog).
+    pub fn find_matches(&self, request_id: u64, item_id: i64, title: &str, year: u16) {
+        let title = title.trim().to_string();
+        self.spawn(request_id, move |inner| async move {
+            let p = inner.provider().ok_or_else(|| CoreError {
+                kind: ErrorKind::Auth,
+                message: "No TMDB API key is set.".into(),
+            })?;
+            let t = inner
+                .lib
+                .read(move |c| catalog::match_target(c, item_id))
+                .await?
+                .ok_or_else(|| CoreError {
+                    kind: ErrorKind::NotFound,
+                    message: "item".into(),
+                })?;
+            let ty = if t.kind == "show" {
+                MediaType::Show
+            } else {
+                MediaType::Movie
+            };
+            let query = if title.is_empty() {
+                t.title.clone()
+            } else {
+                title
+            };
+            let year = if year > 0 { Some(year) } else { None };
+            let mut found = p.search(ty, &query, year).await.map_err(meta_err)?;
+            let (_, scores) = huehuecoyotl_metadata::matching::decide(&mut found, &query, year);
+            let candidates = found
+                .into_iter()
+                .zip(scores)
+                .map(|(c, s)| catalog::CandidateRow {
+                    provider_id: c.id,
+                    title: c.title,
+                    year: c.year,
+                    score: s,
+                    poster_path: c.poster_path,
+                    overview: c.overview,
+                })
+                .collect();
+            Ok(Event::Candidates {
+                request_id,
+                item_id,
+                candidates,
+            })
+        });
+    }
+
+    /// The user picked a match: lock it and fetch its details.
+    pub fn choose_match(&self, item_id: i64, provider_id: i64) {
+        let inner = self.inner.clone();
+        self.rt.spawn(async move {
+            if let Err(e) = inner
+                .lib
+                .write(move |c| catalog::lock(c, item_id, Some(provider_id)))
+                .await
+            {
+                tracing::error!("locking match failed: {e}");
+                return;
+            }
+            worker::enqueue_details(&inner, item_id, provider_id, jobs::priority::USER).await;
+            inner.mark_changed();
+        });
+    }
+
+    pub fn key_status(&self, request_id: u64) {
+        self.spawn(request_id, move |inner| async move {
+            Ok(inner.key_status_event(request_id, String::new()))
+        });
+    }
+
+    /// Validate a TMDB key with a test request, store it in the OS keystore and start fetching.
+    pub fn set_tmdb_key(&self, request_id: u64, key: &str) {
+        let key = key.trim().to_string();
+        self.spawn(request_id, move |inner| async move {
+            if key.is_empty() {
+                return Ok(inner.key_status_event(request_id, "Please enter a key.".into()));
+            }
+            let tmdb = Tmdb::new(key.clone(), inner.language.clone()).map_err(internal)?;
+            match tmdb.validate().await {
+                Ok(()) => {}
+                Err(MetaError::Auth) => {
+                    return Ok(inner.key_status_event(request_id, "TMDB rejected this key.".into()));
+                }
+                Err(e) => {
+                    return Ok(inner
+                        .key_status_event(request_id, format!("TMDB could not be reached: {e}")));
+                }
+            }
+            let stored = tokio::task::spawn_blocking(move || secrets::store_tmdb_key(&key))
+                .await
+                .map_err(internal)?;
+            inner.set_provider(Some(Arc::new(tmdb)), Some(KeySource::Keystore));
+            Ok(inner.key_status_event(request_id, stored.err().unwrap_or_default()))
+        });
+    }
+
+    pub fn clear_tmdb_key(&self, request_id: u64) {
+        self.spawn(request_id, move |inner| async move {
+            tokio::task::spawn_blocking(secrets::clear_tmdb_key)
+                .await
+                .map_err(internal)?;
+            inner.set_provider(None, None);
+            Ok(inner.key_status_event(request_id, String::new()))
+        });
+    }
+
+    /// For tests and the CLI: use this provider instead of TMDB.
+    pub fn set_provider(&self, p: Arc<dyn MetadataProvider>) {
+        let _rt = self.rt.enter();
+        self.inner
+            .set_provider(Some(p), Some(KeySource::Environment));
+    }
+}
+
+fn meta_err(e: MetaError) -> CoreError {
+    let kind = match e {
+        MetaError::Auth => ErrorKind::Auth,
+        MetaError::Network(_) | MetaError::RateLimited(_) => ErrorKind::Unreachable,
+        MetaError::NotFound => ErrorKind::NotFound,
+        MetaError::Other(_) => ErrorKind::Internal,
+    };
+    CoreError {
+        kind,
+        message: e.to_string(),
+    }
+}

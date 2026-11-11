@@ -6,20 +6,43 @@
 //! cancelled; errors carry an [`ErrorKind`]; panics never escape a task.
 
 pub mod lang;
+mod library;
+pub mod secrets;
+mod worker;
 
-use std::collections::HashMap;
-use std::path::Path;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
 use huehuecoyotl_library::{DbError, Library, queries};
+use huehuecoyotl_metadata::MetadataProvider;
 use huehuecoyotl_vfs::{
     LocalSource, MediaKind, Source, VPath, VfsError, find_sidecar_subtitles, media_kind,
 };
 use tokio::runtime::Runtime;
+use tokio::sync::Notify;
 use tokio::task::AbortHandle;
 
+pub use huehuecoyotl_library::catalog::{CandidateRow, Detail, FileInfo, Summary};
 pub use queries::TrackPref;
+use secrets::KeySource;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LibraryInfo {
+    pub id: i64,
+    pub name: String,
+    pub root: String,
+    pub files: i64,
+    pub last_scan_ms: i64,
+    pub scanning: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReviewItem {
+    pub item: Summary,
+    pub candidates: Vec<CandidateRow>,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ErrorKind {
@@ -159,6 +182,46 @@ pub enum Event {
     ItemChanged {
         item_id: i64,
     },
+    /// One page of items (browse, search, recently added).
+    Page {
+        request_id: u64,
+        total: u32,
+        offset: u32,
+        items: Vec<Summary>,
+    },
+    Detail {
+        request_id: u64,
+        detail: Box<Detail>,
+    },
+    Libraries {
+        request_id: u64,
+        libraries: Vec<LibraryInfo>,
+    },
+    Review {
+        request_id: u64,
+        items: Vec<ReviewItem>,
+    },
+    Candidates {
+        request_id: u64,
+        item_id: i64,
+        candidates: Vec<CandidateRow>,
+    },
+    ScanState {
+        source_id: i64,
+        running: bool,
+        message: String,
+    },
+    /// The library changed in bulk (scan or metadata). Grids re-query. Debounced.
+    LibraryChanged {
+        queued: i64,
+        failed: i64,
+    },
+    KeyStatus {
+        request_id: u64,
+        has_key: bool,
+        from_env: bool,
+        message: String,
+    },
     Error {
         request_id: u64,
         kind: ErrorKind,
@@ -182,6 +245,84 @@ struct Inner {
     sink: Box<dyn EventSink>,
     tasks: Mutex<HashMap<u64, AbortHandle>>,
     tickets: Mutex<HashMap<u64, i64>>,
+    data_dir: PathBuf,
+    /// BCP-47 UI language for metadata ("de-DE").
+    language: String,
+    provider: RwLock<Option<Arc<dyn MetadataProvider>>>,
+    key_source: Mutex<Option<KeySource>>,
+    /// Wakes the job workers: new work, a new key.
+    wake: Notify,
+    changed: AtomicBool,
+    scanning: Mutex<HashSet<i64>>,
+}
+
+impl Inner {
+    fn provider(&self) -> Option<Arc<dyn MetadataProvider>> {
+        self.provider.read().unwrap().clone()
+    }
+
+    fn set_provider(
+        self: &Arc<Self>,
+        p: Option<Arc<dyn MetadataProvider>>,
+        src: Option<KeySource>,
+    ) {
+        let has = p.is_some();
+        *self.provider.write().unwrap() = p;
+        *self.key_source.lock().unwrap() = src;
+        if has {
+            let me = self.clone();
+            tokio::spawn(async move {
+                let _ = me
+                    .lib
+                    .write(|c| huehuecoyotl_library::jobs::wake(c, worker::META_KINDS))
+                    .await;
+                me.wake.notify_waiters();
+            });
+        }
+    }
+
+    /// TMDB said 401: drop the key so the UI asks for a new one.
+    fn key_rejected(self: &Arc<Self>) {
+        tracing::warn!("TMDB rejected the API key");
+        *self.provider.write().unwrap() = None;
+        self.sink
+            .post(self.key_status_event(0, "TMDB rejected the stored API key.".into()));
+    }
+
+    fn key_status_event(&self, request_id: u64, message: String) -> Event {
+        let src = *self.key_source.lock().unwrap();
+        Event::KeyStatus {
+            request_id,
+            has_key: self.provider().is_some(),
+            from_env: src == Some(KeySource::Environment),
+            message,
+        }
+    }
+
+    /// Post a debounced LibraryChanged so grids re-query at most a few times per second.
+    fn mark_changed(self: &Arc<Self>) {
+        if self.changed.swap(true, Ordering::AcqRel) {
+            return;
+        }
+        let me = self.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(700)).await;
+            me.changed.store(false, Ordering::Release);
+            // Without a metadata key only scans can run; do not report waiting metadata work.
+            let st = if me.provider().is_some() {
+                me.lib.read(huehuecoyotl_library::jobs::stats).await
+            } else {
+                me.lib
+                    .read(|c| huehuecoyotl_library::jobs::stats_for(c, worker::SCAN_KINDS))
+                    .await
+            }
+            .unwrap_or_default();
+            me.sink.post(Event::LibraryChanged {
+                queued: st.queued + st.running,
+                failed: st.failed,
+            });
+        });
+    }
 }
 
 pub struct Core {
@@ -214,7 +355,9 @@ pub fn init_logging(data_dir: &Path) {
 }
 
 impl Core {
-    pub fn open(data_dir: &Path, sink: impl EventSink) -> CResult<Self> {
+    /// Open the core. `language` is the UI language as a BCP-47 tag ("de-DE"); metadata is
+    /// requested in it with an English fallback.
+    pub fn open(data_dir: &Path, language: &str, sink: impl EventSink) -> CResult<Self> {
         init_logging(data_dir);
         let lib = Library::open(&data_dir.join("library.db"))?;
         let rt = tokio::runtime::Builder::new_multi_thread()
@@ -224,15 +367,62 @@ impl Core {
             .build()
             .map_err(|e| CoreError::new(ErrorKind::Internal, e.to_string()))?;
         tracing::info!(version = env!("CARGO_PKG_VERSION"), data_dir = %data_dir.display(), "core opened");
+        let inner = Arc::new(Inner {
+            lib,
+            local: LocalSource,
+            sink: Box::new(sink),
+            tasks: Mutex::default(),
+            tickets: Mutex::default(),
+            data_dir: data_dir.to_path_buf(),
+            language: if language.is_empty() {
+                "en-US".into()
+            } else {
+                language.to_string()
+            },
+            provider: RwLock::new(None),
+            key_source: Mutex::new(None),
+            wake: Notify::new(),
+            changed: AtomicBool::new(false),
+            scanning: Mutex::default(),
+        });
+        let start = inner.clone();
+        rt.spawn(async move {
+            // Crash-safe queue: running jobs from a previous session run again.
+            let _ = start
+                .lib
+                .write(|c| huehuecoyotl_library::jobs::recover(c))
+                .await;
+            // Catch up with changes made while the app was closed.
+            if let Ok(libs) = start
+                .lib
+                .read(huehuecoyotl_library::catalog::libraries)
+                .await
+            {
+                for l in libs {
+                    library::enqueue_scan(
+                        &start,
+                        l.id,
+                        huehuecoyotl_library::jobs::priority::BACKGROUND,
+                    )
+                    .await;
+                }
+            }
+            if let Ok(Some((key, src))) = tokio::task::spawn_blocking(secrets::load_tmdb_key).await
+            {
+                match huehuecoyotl_metadata::tmdb::Tmdb::new(key, start.language.clone()) {
+                    // A provider set meanwhile (tests, the CLI) wins over the keystore.
+                    Ok(t) if start.provider().is_none() => {
+                        start.set_provider(Some(Arc::new(t)), Some(src))
+                    }
+                    Ok(_) => {}
+                    Err(e) => tracing::error!("TMDB client: {e}"),
+                }
+            }
+            worker::spawn_workers(&start);
+        });
         Ok(Self {
             rt,
-            inner: Arc::new(Inner {
-                lib,
-                local: LocalSource,
-                sink: Box::new(sink),
-                tasks: Mutex::default(),
-                tickets: Mutex::default(),
-            }),
+            inner,
             next_ticket: AtomicU64::new(1),
         })
     }
@@ -352,18 +542,25 @@ impl Core {
         });
     }
 
-    /// Prepare a known item (e.g. from "continue watching") for playback.
+    /// Prepare a known item for playback. Shows and seasons play their next-up episode.
     pub fn open_item(&self, request_id: u64, item_id: i64) {
         let ticket_id = self.next_ticket.fetch_add(1, Ordering::Relaxed);
         self.spawn(request_id, move |inner| async move {
-            let path: Option<String> = inner
+            let path = inner
                 .lib
                 .read(move |c| {
-                    use huehuecoyotl_library::rusqlite::OptionalExtension;
-                    Ok(c.query_row("SELECT path FROM file WHERE item_id = ?1 AND source_id = 1 ORDER BY id LIMIT 1", [item_id], |r| r.get(0)).optional()?)
+                    let mut id = item_id;
+                    if let Some(d) = huehuecoyotl_library::catalog::detail(c, item_id)? {
+                        if let Some(n) = d.next_up {
+                            id = n.id;
+                        }
+                    }
+                    huehuecoyotl_library::catalog::playable_path(c, id)
                 })
                 .await?;
-            let path = path.ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("item {item_id} has no file")))?;
+            let path = path.ok_or_else(|| {
+                CoreError::new(ErrorKind::NotFound, format!("item {item_id} has no file"))
+            })?;
             let ticket = prepare_local(&inner, &path, ticket_id).await?;
             Ok(Event::Playback { request_id, ticket })
         });
@@ -439,14 +636,15 @@ impl Core {
         });
     }
 
+    /// Mark an item watched or unwatched; shows and seasons apply to all their episodes.
     pub fn set_watched(&self, item_id: i64, watched: bool) {
         let inner = self.inner.clone();
-        let fut = inner
-            .lib
-            .submit(move |c| queries::set_watched(c, item_id, watched));
         self.rt.spawn(async move {
-            match fut.await {
-                Ok(()) => inner.sink.post(Event::ItemChanged { item_id }),
+            match worker::set_watched_tree(&inner, item_id, watched).await {
+                Ok(()) => {
+                    inner.sink.post(Event::ItemChanged { item_id });
+                    inner.mark_changed();
+                }
                 Err(e) => tracing::error!(item_id, "set_watched failed: {e}"),
             }
         });
@@ -477,10 +675,20 @@ async fn prepare_local(inner: &Arc<Inner>, path: &str, ticket_id: u64) -> CResul
         .map(|e| sidecar(&entry.name, &e.name, e.path.to_string()))
         .collect();
     let (p, size, mtime) = (vp.to_string(), entry.size, entry.mtime);
-    let item_id = inner
+    let p2 = p.clone();
+    let in_library = inner
         .lib
-        .write(move |c| queries::ensure_local_video(c, &p, size, mtime))
+        .read(move |c| huehuecoyotl_library::catalog::library_item_for_path(c, &p2))
         .await?;
+    let item_id = match in_library {
+        Some(id) => id,
+        None => {
+            inner
+                .lib
+                .write(move |c| queries::ensure_local_video(c, &p, size, mtime))
+                .await?
+        }
+    };
     let (title, state, prefs) = inner
         .lib
         .read(move |c| {
@@ -533,9 +741,11 @@ mod tests {
     use std::time::Duration;
 
     fn core() -> (tempfile::TempDir, Core, Receiver<Event>) {
+        // SAFETY: tests set this before opening a core; nothing reads it concurrently.
+        unsafe { std::env::set_var("COYOTL_DISABLE_KEYSTORE", "1") };
         let d = tempfile::tempdir().unwrap();
         let (tx, rx) = unbounded();
-        let c = Core::open(&d.path().join("data"), move |e| {
+        let c = Core::open(&d.path().join("data"), "en-US", move |e| {
             let _ = tx.send(e);
         })
         .unwrap();
