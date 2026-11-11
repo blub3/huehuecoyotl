@@ -150,6 +150,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Free disk space (the SDK and the FFmpeg/mpv builds need more than a runner has)
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/share/swift
+          df -h /
       - uses: actions/download-artifact@v4
         # Only for the licence texts in the third-party notices; the Flatpak builds its own libmpv.
         with: { name: libmpv-linux, path: third_party/mpv/out }

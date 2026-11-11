@@ -28,6 +28,6 @@ else fb=(flatpak run --env=FLATPAK_USER_DIR="$HOME/.local/share/flatpak" --comma
 install=(--user)
 [ "${1:-}" = "--install" ] && install+=(--install)
 cd "$here"
-"${fb[@]}" --force-clean --repo=repo --state-dir=.flatpak-builder "${install[@]}" build-dir "$app.yml"
+"${fb[@]}" --force-clean --delete-build-dirs --repo=repo --state-dir=.flatpak-builder "${install[@]}" build-dir "$app.yml"
 flatpak build-bundle repo "$root/build/$app.flatpak" "$app" --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
 echo "bundle: build/$app.flatpak"
