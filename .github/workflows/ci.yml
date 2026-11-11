@@ -218,8 +218,21 @@ jobs:
         with: { name: libmpv-windows, path: third_party/mpv/out-win }
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - uses: jurplel/install-qt-action@v4
-        with: { version: "${{ env.QT_VERSION }}", arch: win64_msvc2022_64, cache: true }
+      # Qt 6.11+ uses a repository layout that aqtinstall (install-qt-action) cannot read yet.
+      - name: Cache Qt
+        id: qt-cache
+        uses: actions/cache@v4
+        with:
+          path: C:/Qt
+          key: qt-${{ env.QT_VERSION }}-msvc2022_64-${{ hashFiles('tools/install-qt-windows.py') }}
+      - name: Install Qt (MSVC 2022, from the official repository)
+        if: steps.qt-cache.outputs.cache-hit != 'true'
+        run: python tools/install-qt-windows.py ${{ env.QT_VERSION }} C:/Qt
+      - name: Qt on PATH
+        shell: bash
+        run: |
+          echo "C:/Qt/${QT_VERSION}/msvc2022_64/bin" >> "$GITHUB_PATH"
+          echo "CMAKE_PREFIX_PATH=C:/Qt/${QT_VERSION}/msvc2022_64" >> "$GITHUB_ENV"
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Configure
         shell: bash
