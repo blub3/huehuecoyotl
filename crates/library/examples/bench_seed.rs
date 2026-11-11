@@ -1,7 +1,10 @@
 //! Fill a data folder with a synthetic library for the performance budgets (SPEC 9): N movies,
 //! each with its own pre-scaled grid poster, as the scanner and artwork worker would leave them.
 //!
-//!   cargo run --release -p huehuecoyotl-library --example bench_seed -- DATA_DIR [N]
+//!   cargo run --release -p huehuecoyotl-library --example bench_seed -- DATA_DIR [N] [--originals]
+//!
+//! With `--originals` each movie also gets a 780 px full-size poster (role `poster`), as a
+//! library from before the 540 px grid tier had: the app's `tiers` job then makes that tier.
 //!
 //! The library folder points at a path that does not exist, so a rescan finds it unreachable
 //! and leaves the items alone. Items are locked and matched, so no metadata jobs are queued.
@@ -16,14 +19,15 @@ const WORDS: &[&str] = &[
     "Dance", "Storm", "Lost", "Garden", "Machine", "Desert", "Mirror", "Echo", "Harbor", "Kingdom",
 ];
 
-fn poster(id: u32) -> Vec<u8> {
-    // 360 px wide like the artwork worker's grid thumbnails (artwork::GRID_WIDTH), 2:3.
-    let (w, h) = (360u32, 540u32);
+fn poster(id: u32, w: u32) -> Vec<u8> {
+    // 360 px wide like the artwork worker's grid thumbnails (artwork::GRID_WIDTH), 2:3; 780 px
+    // for a full-size original.
+    let h = w * 3 / 2;
     let hue = (id.wrapping_mul(2_654_435_761) >> 8) % 360;
     let base = hsv(hue as f32, 0.55, 0.55);
     let img = ImageBuffer::from_fn(w, h, |x, y| {
         let t = y as f32 / h as f32;
-        let band = ((x / 40 + y / 60 + id) % 7) as f32 / 30.0;
+        let band = ((x * 360 / w / 40 + y * 540 / h / 60 + id) % 7) as f32 / 30.0;
         let k = 1.15 - 0.7 * t + band;
         Rgb([
             (base[0] * k).min(255.0) as u8,
@@ -56,7 +60,12 @@ fn hsv(h: f32, s: f32, v: f32) -> [f32; 3] {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
     let dir = PathBuf::from(args.next().ok_or("usage: bench_seed DATA_DIR [N]")?);
-    let n: u32 = args.next().map_or(Ok(5000), |s| s.parse())?;
+    let rest: Vec<String> = args.collect();
+    let originals = rest.iter().any(|a| a == "--originals");
+    let n: u32 = rest
+        .iter()
+        .find(|a| !a.starts_with("--"))
+        .map_or(Ok(5000), |s| s.parse())?;
     let art = dir.join("artwork").join("bench");
     std::fs::create_dir_all(&art)?;
 
@@ -95,7 +104,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             rusqlite::params![source, path.to_string_lossy(), 4_000_000_000i64, id],
         )?;
         let jpg = art.join(format!("{id}.jpg"));
-        std::fs::write(&jpg, poster(i))?;
+        std::fs::write(&jpg, poster(i, 360))?;
+        if originals {
+            let full = art.join(format!("{id}-full.jpg"));
+            std::fs::write(&full, poster(i, 780))?;
+            tx.execute(
+                "INSERT INTO artwork(item_id, role, remote_path, local_path, width, height) VALUES (?1, 'poster', ?2, ?3, 780, 1170)",
+                rusqlite::params![id, format!("/bench/{id}.jpg"), full.to_string_lossy()],
+            )?;
+        }
         tx.execute(
             "INSERT INTO artwork(item_id, role, remote_path, local_path, width, height) VALUES (?1, 'poster_grid', ?2, ?3, 360, 540)",
             rusqlite::params![id, format!("/bench/{id}.jpg"), jpg.to_string_lossy()],
