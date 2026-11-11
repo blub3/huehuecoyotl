@@ -1,6 +1,8 @@
-# Huehuecoyotl – Architecture Specification v1.2
+# Huehuecoyotl – Architecture Specification v1.3
 
-Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release
+Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
+
+**Changes in v1.3:** HDR passthrough on Windows (direct mode) leaves 1.1 and is postponed without a planned version (milestone "Unknown"), because no Windows PC with an HDR display is available for its tests. Until then Windows plays HDR10 tone-mapped in embedded mode, like Linux (sections 2, 5.2, 11, 12).
 
 **Changes in v1.2:** 1.0 is released for Linux on Nov 11, 2026. Windows moves to version 1.1 with its own milestone, M5: the Windows build, direct mode with HDR passthrough, MSIX and winget, code signing and Windows media keys. SFTP in the app moves to 1.1 as well (sections 2, 11, 12).
 
@@ -39,7 +41,8 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | Stage | Features |
 | --- | --- |
 | 1.0 (Linux, released) | Playback of common containers and codecs with hardware decoding; embedded and sidecar subtitles; audio track selection; resume and watched state; library scan; TMDB matching for movies and series; SMB, NFS, WebDAV and FTP sources; keyboard, mouse and remote-style navigation; MPRIS media keys; Flatpak |
-| 1.1 (Windows) | The Windows build; HDR passthrough on Windows through direct mode; MSIX and winget packages; code signing; Windows media keys (SMTC); SFTP sources on both platforms |
+| 1.1 (Windows) | The Windows build; MSIX and winget packages; code signing; Windows media keys (SMTC); SFTP sources on both platforms; the logo; cover sizes per display mode |
+| Unscheduled | HDR passthrough on Windows through direct mode (needs a Windows PC with an HDR display for tests W1–W8) |
 | After 1.1 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
 | Non-goals | Phones, tablets and TV boxes; DRM streaming services; transcoding or acting as a media server; SMB1; cloud accounts run by the project |
 
@@ -133,7 +136,7 @@ The C++ shell owns the mpv handle directly and offers two video paths: an embedd
 | Mode | How it works | HDR | Platforms | Milestone |
 | --- | --- | --- | --- | --- |
 | Embedded | mpv's OpenGL render API draws into a framebuffer inside a Qt Quick item; QML controls are composited on top | Tone-mapped to SDR | Windows, Linux (X11 and Wayland), macOS | M1 |
-| Direct | mpv renders with its own GPU output into a native child window; QML controls sit in a transparent overlay window above it | Passthrough, with mpv's own frame timing | Windows only in official builds; X11 only with a GPL libmpv (distribution packages); Wayland open | M4 |
+| Direct | mpv renders with its own GPU output into a native child window; QML controls sit in a transparent overlay window above it | Passthrough, with mpv's own frame timing | Windows only in official builds; X11 only with a GPL libmpv (distribution packages); Wayland open | Unscheduled (was M4, then 1.1) |
 
 - Embedded mode requires Qt Quick itself to run on OpenGL, set once at start-up before the first window. Qt's default on Windows is Direct3D 11, and mpv's render API offers only OpenGL and software targets. For the same reason Qt's newer [QQuickRhiItem](https://doc.qt.io/qt-6.11/qquickrhiitem.html) cannot be used.
 - Direct mode needs careful handling of focus, resizing and stacking between the two windows. The window structure and lifecycle are fixed in the [direct mode design](spike/direct-mode-design.md): the video window owns the overlay as a transient (owned) top-level window that covers the whole client area and takes all input.
@@ -420,9 +423,9 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 - **M2 Library.** Scanner, filename parser with its fixture corpus, job queue, TMDB matching with a review list, poster grids, detail pages, search, watched state.
 - **M3 Network.** SMB, NFS, WebDAV, SFTP and FTP sources; discovery; keystore credentials; reconnect handling; the protocol conformance suite.
 - **M4 Release 1.0 (Linux).** Flatpak package, media keys, third-party notices, user documentation, translations, performance budgets met.
-- **M5 Release 1.1 (Windows).** The Windows parts of the M0 to M4 gates (first run on Windows, Windows servers, Intel and AMD graphics); direct mode with HDR passthrough; MSIX and winget packages; code signing; SMTC media keys; SFTP in the app.
+- **M5 Release 1.1 (Windows).** The Windows parts of the M0 to M4 gates (first run on Windows, Windows servers, Intel and AMD graphics); MSIX and winget packages; code signing; SMTC media keys; SFTP in the app. Direct mode with HDR passthrough was part of M5 until v1.3 and is now unscheduled.
 
-**M5 status (Nov 11, 2026).** Not started. The Windows LGPL libmpv bundle and the app build in CI, and a portable package exists, but it has not been run on Windows yet ([first-run checklist](testing/windows-first-run.md)).
+**M5 status (Nov 11, 2026).** In progress. The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). Merged for 1.1: SFTP, the logo and cover sizes. Open: Windows packages in the release workflow, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
 
 **M4 status (Nov 11, 2026): released as 1.0.0 for Linux.** Flatpak, MPRIS media keys, diagnostics export, third-party notices, user guide, German translation, and the startup and scroll budgets measured within limits on one machine; used without errors by the maintainer. See the [M4 status](milestones/M4.md).
 
@@ -439,7 +442,7 @@ The two video paths are the risk that could still change the architecture, so bo
 | Risk | Why it matters | Mitigation |
 | --- | --- | --- |
 | Embedded video needs an OpenGL scene graph | It forces OpenGL on Windows, where Qt defaults to Direct3D, and driver quality varies | Spike across Intel, AMD and NVIDIA; mpvqt as a proven reference; direct mode as a second path. On Windows, direct mode for all playback would remove the risk there (open decision below). |
-| HDR direct mode | Two stacked windows are fiddly (focus, resize, stacking), mpv cannot embed on Wayland, and another Qt and mpv project cited HDR as a reason to rewrite | Prototype in the spike; Windows only. HDR is committed for 1.1, so a problem here moves the 1.1 release date, not the scope |
+| HDR direct mode | Two stacked windows are fiddly (focus, resize, stacking), mpv cannot embed on Wayland, and another Qt and mpv project cited HDR as a reason to rewrite | Prototype in the spike; Windows only. Postponed in v1.3 until HDR hardware is available for the tests; until then HDR is tone-mapped on every platform |
 | Two languages | Contributors need C++ and Rust, and the bridge adds friction | Keep the C++ layer thin and free of logic; stable `cxx` instead of a pre-1.0 binding |
 | SMB and NFS crates below 1.0 | NAS playback is the main use case | Conformance suite; pinned versions; C-library fallbacks behind the same trait |
 | Licence contamination | One GPL crate or GPL-only Qt module changes the licence of every binary | `cargo-deny`, the Qt module allowlist and build assertions in CI |
@@ -452,7 +455,7 @@ The two video paths are the risk that could still change the architecture, so bo
 
 - [x] Project name: Huehuecoyotl, with `coyotl` as the short form (see below)
 - [x] Video item: own implementation, with mpvqt as a reference only (section 5.1)
-- [x] Direct mode and HDR passthrough on Windows ship in 1.1 with the Windows release (section 5.2; moved from 1.0 in v1.2)
+- [x] Direct mode and HDR passthrough on Windows: postponed without a planned version (v1.3; was 1.0, then 1.1 in v1.2)
 - [x] 1.0 ships for Linux alone; Windows follows as 1.1 (v1.2)
 - [x] Direct mode on Wayland: embedded mode in 1.0, a separate mpv window as a later opt-in (section 5.6)
 - [x] TMDB key policy: user-supplied only, entered in the Settings menu
