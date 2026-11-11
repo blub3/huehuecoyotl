@@ -219,7 +219,9 @@ fn network_libraries() {
     // instead of running into the CI step's 20-minute timeout.
     std::thread::spawn(|| {
         std::thread::sleep(Duration::from_secs(180));
-        eprintln!("network_flow: not finished after 3 minutes; the last step above is where it hangs");
+        eprintln!(
+            "network_flow: not finished after 3 minutes; the last step above is where it hangs"
+        );
         std::process::exit(101);
     });
     for spec in [
