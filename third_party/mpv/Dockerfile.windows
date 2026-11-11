@@ -1,0 +1,28 @@
+# Reproducible LGPL build of libmpv + FFmpeg for Windows x86_64, cross-compiled with MinGW-w64.
+# Output: /opt/coyotl-mpv-win (bin/*.dll, lib/mpv.lib for MSVC, include/mpv, BUILDINFO.txt,
+# share/licenses). Built by build-windows.sh.
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive SOURCE_DATE_EPOCH=1762732800
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates git wget xz-utils make cmake ninja-build meson nasm pkg-config python3 \
+      python3-jinja2 python3-markupsafe autoconf automake libtool gettext \
+      g++-mingw-w64-x86-64-posix gcc-mingw-w64-x86-64-posix binutils-mingw-w64-x86-64 \
+    && rm -rf /var/lib/apt/lists/*
+COPY build-windows-deps.sh /usr/local/bin/
+# One layer per dependency, so a failure late in the chain does not rebuild the rest.
+RUN build-windows-deps.sh iconv
+RUN build-windows-deps.sh zlib
+RUN build-windows-deps.sh shaderc
+RUN build-windows-deps.sh spirv-cross
+RUN build-windows-deps.sh nv-headers
+RUN build-windows-deps.sh vulkan
+RUN build-windows-deps.sh dav1d
+RUN build-windows-deps.sh lcms2
+RUN build-windows-deps.sh ffmpeg
+RUN build-windows-deps.sh libplacebo
+RUN build-windows-deps.sh freetype
+RUN build-windows-deps.sh fribidi
+RUN build-windows-deps.sh harfbuzz
+RUN build-windows-deps.sh libass
+RUN build-windows-deps.sh mpv
+RUN build-windows-deps.sh runtime
