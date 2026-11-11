@@ -53,32 +53,32 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="307"/>
+        <location filename="../src/corebridge.cpp" line="313"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="309"/>
+        <location filename="../src/corebridge.cpp" line="315"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="311"/>
+        <location filename="../src/corebridge.cpp" line="317"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="313"/>
+        <location filename="../src/corebridge.cpp" line="319"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="315"/>
+        <location filename="../src/corebridge.cpp" line="321"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="463"/>
+        <location filename="../src/corebridge.cpp" line="469"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -953,17 +953,17 @@
         <translation>Füge die Ordner mit deinen Filmen und Serien hinzu, auf diesem Computer oder auf einer Netzwerkfreigabe (NAS). Sie werden durchsucht, mit TMDB abgeglichen und unter Filme und Serien angezeigt.</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="131"/>
+        <location filename="../qml/SourcesPage.qml" line="132"/>
         <source>scanning…</source>
         <translation>wird durchsucht …</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="132"/>
+        <location filename="../qml/SourcesPage.qml" line="133"/>
         <source>offline</source>
         <translation>offline</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="133"/>
+        <location filename="../qml/SourcesPage.qml" line="134"/>
         <source>%n video(s)</source>
         <translation>
             <numerusform>%n Video</numerusform>
@@ -971,22 +971,22 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="140"/>
+        <location filename="../qml/SourcesPage.qml" line="141"/>
         <source>Rescan</source>
         <translation>Neu durchsuchen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="147"/>
+        <location filename="../qml/SourcesPage.qml" line="148"/>
         <source>Really remove?</source>
         <translation>Wirklich entfernen?</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="147"/>
+        <location filename="../qml/SourcesPage.qml" line="148"/>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="156"/>
+        <location filename="../qml/SourcesPage.qml" line="157"/>
         <source>Browse this computer</source>
         <translation>Diesen Computer durchsuchen</translation>
     </message>
@@ -994,27 +994,27 @@
 <context>
     <name>main</name>
     <message>
-        <location filename="../src/main.cpp" line="70"/>
+        <location filename="../src/main.cpp" line="71"/>
         <source>Start in fullscreen.</source>
         <translation>Im Vollbild starten.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="71"/>
+        <location filename="../src/main.cpp" line="72"/>
         <source>Use this data folder.</source>
         <translation>Diesen Datenordner verwenden.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="74"/>
+        <location filename="../src/main.cpp" line="75"/>
         <source>Measure a performance budget and quit: startup or scroll.</source>
         <translation>Ein Leistungsbudget messen und beenden: startup oder scroll.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="77"/>
+        <location filename="../src/main.cpp" line="78"/>
         <source>Also write the benchmark result to this file.</source>
         <translation>Das Messergebnis zusätzlich in diese Datei schreiben.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="79"/>
+        <location filename="../src/main.cpp" line="80"/>
         <source>Video file to play.</source>
         <translation>Abzuspielende Videodatei.</translation>
     </message>
