@@ -15,7 +15,7 @@
 <context>
     <name>SourcesPage</name>
     <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="133"/>
+        <location filename="../qml/SourcesPage.qml" line="134"/>
         <source>%n video(s)</source>
         <translation type="unfinished">
             <numerusform></numerusform>
