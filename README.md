@@ -7,10 +7,10 @@ the living-room PC alike: everything works with a keyboard or remote.
 The name honours Huehuecoyotl, the dancing coyote of the Nahua tradition, patron of music,
 dance and storytelling. The command and config folder use the short form `coyotl`.
 
-**Status:** milestones M1 (player) and M2 (library) on Linux. See the [architecture specification](docs/SPEC.md)
+**Status:** milestones M1 (player), M2 (library) and M3 (network shares) on Linux. See the [architecture specification](docs/SPEC.md)
 and the [M0 spike report](docs/spike/M0-report.md).
 
-## Features so far (M1, M2)
+## Features so far (M1–M3)
 
 - Embedded mpv video in Qt Quick with hardware decoding (`hwdec=auto-safe`) and display-synced timing
 - Browse local folders and mounted drives; open files from the command line
@@ -22,6 +22,7 @@ and the [M0 spike report](docs/spike/M0-report.md).
 - Library folders scanned into Movies and Shows; moves and renames keep watch state
 - TMDB metadata with posters, descriptions and episode titles (free personal API key, stored in the OS keystore); uncertain matches go to a review list
 - Poster grids that stay smooth with thousands of titles, detail pages, full-text search
+- Libraries on network shares: SMB 2/3, NFS, WebDAV and FTP, all in pure Rust (no Samba, no GPL). Servers are found on the local network, passwords go to the OS keystore, and playback streams straight to mpv with adaptive read-ahead and rides out short network drops. Offline shares keep their library entries.
 
 ## Building
 

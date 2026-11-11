@@ -19,16 +19,19 @@ fn internal(e: impl std::fmt::Display) -> CoreError {
     }
 }
 
-async fn library_list(inner: &Arc<Inner>) -> Result<Vec<LibraryInfo>, CoreError> {
+pub(crate) async fn library_list(inner: &Arc<Inner>) -> Result<Vec<LibraryInfo>, CoreError> {
     let rows = inner.lib.read(catalog::libraries).await?;
     let scanning = inner.scanning.lock().unwrap().clone();
+    let offline = inner.offline.lock().unwrap().clone();
     Ok(rows
         .into_iter()
         .map(|l| LibraryInfo {
             scanning: scanning.contains(&l.id),
+            online: !offline.contains(&l.id),
             id: l.id,
+            root: crate::network::display_url(&l.kind, &l.config_json, &l.root),
+            kind: l.kind,
             name: l.name,
-            root: l.root,
             files: l.files,
             last_scan_ms: l.last_scan.unwrap_or(0),
         })
@@ -95,10 +98,18 @@ impl Core {
 
     pub fn remove_library(&self, request_id: u64, source_id: i64) {
         self.spawn(request_id, move |inner| async move {
+            let row = inner
+                .lib
+                .read(move |c| catalog::source(c, source_id))
+                .await?;
             inner
                 .lib
                 .write(move |c| catalog::remove_library(c, source_id))
                 .await?;
+            inner.forget_source(source_id);
+            if let Some(r) = row.and_then(|r| r.credential_ref) {
+                let _ = tokio::task::spawn_blocking(move || secrets::delete_password(&r)).await;
+            }
             inner.mark_changed();
             Ok(Event::Libraries {
                 request_id,

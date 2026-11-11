@@ -30,6 +30,15 @@ deny = [
 
 [advisories]
 yanked = "deny"
+# Unmaintained transitive crates (e.g. zvariant, merged into zbus 6 while keyring still uses
+# zbus 5) are reported but do not fail the build; our direct dependencies must be maintained.
+unmaintained = "workspace"
+ignore = [
+  # Marvin attack (timing of RSA *decryption with a private key*) in `rsa`, pulled in by sspi
+  # through smb. No fixed release exists. As an SMB client we never decrypt with an RSA private
+  # key (NTLM does not use RSA). Revisit when smb/sspi update. Reviewed 2026-11-11.
+  { id = "RUSTSEC-2023-0071", reason = "no fix; not reachable from SMB client use" },
+]
 
 [sources]
 unknown-registry = "deny"

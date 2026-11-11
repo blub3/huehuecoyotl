@@ -7,6 +7,7 @@
 
 pub mod lang;
 mod library;
+mod network;
 pub mod secrets;
 mod worker;
 
@@ -18,21 +19,28 @@ use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use huehuecoyotl_library::{DbError, Library, queries};
 use huehuecoyotl_metadata::MetadataProvider;
 use huehuecoyotl_vfs::{
-    LocalSource, MediaKind, Source, VPath, VfsError, find_sidecar_subtitles, media_kind,
+    LocalSource, MediaKind, RemoteSource, Source, VPath, VfsError, find_sidecar_subtitles,
+    media_kind,
 };
 use tokio::runtime::Runtime;
 use tokio::sync::Notify;
 use tokio::task::AbortHandle;
 
 pub use huehuecoyotl_library::catalog::{CandidateRow, Detail, FileInfo, Summary};
+pub use network::{Discovered, NetworkSpec};
 pub use queries::TrackPref;
 use secrets::KeySource;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LibraryInfo {
     pub id: i64,
+    /// `local`, `smb`, `nfs`, `webdav`, `ftp`, `sftp`.
+    pub kind: String,
     pub name: String,
+    /// Local folder, or a display URL without credentials (`smb://nas/media/Movies`).
     pub root: String,
+    /// Network sources: false while the server cannot be reached.
+    pub online: bool,
     pub files: i64,
     pub last_scan_ms: i64,
     pub scanning: bool,
@@ -216,6 +224,11 @@ pub enum Event {
         queued: i64,
         failed: i64,
     },
+    /// File servers found on the local network.
+    Discovered {
+        request_id: u64,
+        devices: Vec<Discovered>,
+    },
     KeyStatus {
         request_id: u64,
         has_key: bool,
@@ -254,6 +267,11 @@ struct Inner {
     wake: Notify,
     changed: AtomicBool,
     scanning: Mutex<HashSet<i64>>,
+    /// Live connections of network sources, by source id.
+    remotes: Mutex<HashMap<i64, Arc<dyn RemoteSource>>>,
+    offline: Mutex<HashSet<i64>>,
+    /// The "add network share" dialog's connection: (settings key, source).
+    probe: Mutex<Option<(String, Arc<dyn RemoteSource>)>>,
 }
 
 impl Inner {
@@ -384,7 +402,26 @@ impl Core {
             wake: Notify::new(),
             changed: AtomicBool::new(false),
             scanning: Mutex::default(),
+            remotes: Mutex::default(),
+            offline: Mutex::default(),
+            probe: Mutex::default(),
         });
+        // mpv's demuxer threads open coyotl:// URLs through this (SPEC 5.3).
+        let weak = Arc::downgrade(&inner);
+        huehuecoyotl_stream::set_resolver(Arc::new(move |id| {
+            let inner = weak
+                .upgrade()
+                .ok_or_else(|| VfsError::Internal("core closed".into()))?;
+            huehuecoyotl_stream::block_on(inner.remote_source(id))
+                .map(|s| s as Arc<dyn Source>)
+                .map_err(|e| match e.kind {
+                    ErrorKind::Auth => VfsError::Auth(e.message),
+                    ErrorKind::Unreachable => VfsError::Unreachable(e.message),
+                    ErrorKind::NotFound => VfsError::NotFound(e.message),
+                    ErrorKind::Unsupported => VfsError::Unsupported(e.message),
+                    ErrorKind::Internal => VfsError::Internal(e.message),
+                })
+        }));
         let start = inner.clone();
         rt.spawn(async move {
             // Crash-safe queue: running jobs from a previous session run again.
@@ -419,6 +456,7 @@ impl Core {
                 }
             }
             worker::spawn_workers(&start);
+            network::spawn_reconnect(&start);
         });
         Ok(Self {
             rt,
@@ -546,7 +584,7 @@ impl Core {
     pub fn open_item(&self, request_id: u64, item_id: i64) {
         let ticket_id = self.next_ticket.fetch_add(1, Ordering::Relaxed);
         self.spawn(request_id, move |inner| async move {
-            let path = inner
+            let files = inner
                 .lib
                 .read(move |c| {
                     let mut id = item_id;
@@ -555,13 +593,29 @@ impl Core {
                             id = n.id;
                         }
                     }
-                    huehuecoyotl_library::catalog::playable_path(c, id)
+                    huehuecoyotl_library::catalog::playable_files(c, id)
                 })
                 .await?;
-            let path = path.ok_or_else(|| {
-                CoreError::new(ErrorKind::NotFound, format!("item {item_id} has no file"))
-            })?;
-            let ticket = prepare_local(&inner, &path, ticket_id).await?;
+            // Local copies first, then network copies.
+            let mut last =
+                CoreError::new(ErrorKind::NotFound, format!("item {item_id} has no file"));
+            let mut ticket = None;
+            for f in files {
+                // A source marked offline is tried anyway: the user asked, and it may be back.
+                let r = if f.kind == "local" {
+                    prepare_local(&inner, &f.path, ticket_id).await
+                } else {
+                    network::prepare_remote(&inner, f.source_id, &f.path, ticket_id).await
+                };
+                match r {
+                    Ok(t) => {
+                        ticket = Some(t);
+                        break;
+                    }
+                    Err(e) => last = e,
+                }
+            }
+            let ticket = ticket.ok_or(last)?;
             Ok(Event::Playback { request_id, ticket })
         });
     }
@@ -654,6 +708,10 @@ impl Core {
 impl Drop for Core {
     fn drop(&mut self) {
         tracing::info!("core shutting down");
+        // Network connections close from tasks on this runtime; drop them while it runs.
+        let _rt = self.rt.enter();
+        self.inner.remotes.lock().unwrap().clear();
+        self.inner.probe.lock().unwrap().take();
     }
 }
 

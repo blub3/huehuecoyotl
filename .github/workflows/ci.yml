@@ -1,4 +1,4 @@
-# SPEC 10, CI pipeline. Steps 3 (protocol containers) and 6 (release) arrive with M3 and M4.
+# SPEC 10, CI pipeline. Step 6 (release) arrives with M4.
 name: CI
 
 on:
@@ -42,6 +42,31 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
+
+  # SPEC 10 step 3: the protocol conformance suite against real servers in containers
+  # (Samba, NFS-Ganesha, rclone for WebDAV and SFTP, vsftpd), plus the network library flow.
+  protocols:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: ". -> target\ncrates/vfs-sftp -> target" }
+      - name: Start the test servers
+        run: tests/servers/up.sh
+      - name: Conformance (SMB, NFS, WebDAV, FTP) and the network library flow
+        env: { COYOTL_TEST_SERVERS: "1", COYOTL_DISABLE_KEYSTORE: "1" }
+        run: |
+          cargo test -p huehuecoyotl-vfs --test conformance
+          cargo test -p huehuecoyotl-core --test network_flow
+      - name: SFTP (separate crate until smb's crypto dependencies are released)
+        env: { COYOTL_TEST_SERVERS: "1" }
+        run: |
+          cargo clippy --manifest-path crates/vfs-sftp/Cargo.toml --all-targets -- -D warnings
+          cargo test --manifest-path crates/vfs-sftp/Cargo.toml
+      - name: Server logs
+        if: failure()
+        run: docker compose -f tests/servers/compose.yaml logs --tail 100
 
   licences:
     runs-on: ubuntu-24.04

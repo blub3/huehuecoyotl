@@ -180,7 +180,7 @@ class LibraryFoldersModel : public VariantListModel {
   protected:
     QList<QByteArray> keys() const override
     {
-        return {"id", "name", "root", "files", "lastScanMs", "scanning"};
+        return {"id", "kind", "name", "root", "files", "lastScanMs", "scanning", "online"};
     }
     quint64 send() override;
 };

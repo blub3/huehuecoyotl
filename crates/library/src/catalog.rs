@@ -21,15 +21,21 @@ pub const ABS_PATH_SQL: &str =
 #[derive(Clone, Debug, PartialEq)]
 pub struct LibraryFolder {
     pub id: i64,
+    /// `local`, or a network protocol (`smb`, `nfs`, ...).
+    pub kind: String,
     pub name: String,
+    /// Local: the absolute folder. Network: the folder inside the share ("" = its root).
     pub root: String,
+    /// Network sources: how to reach them, without the password.
+    pub config_json: String,
     pub files: i64,
     pub last_scan: Option<i64>,
 }
 
 pub fn libraries(c: &Connection) -> Result<Vec<LibraryFolder>> {
     let mut st = c.prepare(
-        "SELECT s.id, s.name, s.root, (SELECT count(*) FROM file f WHERE f.source_id = s.id), s.last_scan
+        "SELECT s.id, s.name, s.root, (SELECT count(*) FROM file f WHERE f.source_id = s.id), s.last_scan,
+                s.kind, s.config_json
          FROM source s WHERE s.root IS NOT NULL ORDER BY s.name",
     )?;
     let rows = st.query_map([], |r| {
@@ -39,6 +45,8 @@ pub fn libraries(c: &Connection) -> Result<Vec<LibraryFolder>> {
             root: r.get(2)?,
             files: r.get(3)?,
             last_scan: r.get(4)?,
+            kind: r.get(5)?,
+            config_json: r.get(6)?,
         })
     })?;
     Ok(rows.collect::<rusqlite::Result<_>>()?)
@@ -48,9 +56,11 @@ pub fn libraries(c: &Connection) -> Result<Vec<LibraryFolder>> {
 pub fn add_library(c: &Connection, name: &str, root: &str) -> Result<i64> {
     let root = root.trim_end_matches('/');
     if let Some(id) = c
-        .query_row("SELECT id FROM source WHERE root = ?1", [root], |r| {
-            r.get(0)
-        })
+        .query_row(
+            "SELECT id FROM source WHERE kind = 'local' AND root = ?1",
+            [root],
+            |r| r.get(0),
+        )
         .optional()?
     {
         return Ok(id);
@@ -60,6 +70,97 @@ pub fn add_library(c: &Connection, name: &str, root: &str) -> Result<i64> {
         params![name, root],
     )?;
     Ok(c.last_insert_rowid())
+}
+
+/// Add a network library: `kind` is the protocol, `root` the folder inside the share.
+/// Returns the existing id if the same place is already a library.
+pub fn add_network_library(
+    c: &Connection,
+    kind: &str,
+    name: &str,
+    config_json: &str,
+    root: &str,
+) -> Result<i64> {
+    let root = root.trim_end_matches('/');
+    if let Some(id) = c
+        .query_row(
+            "SELECT id FROM source WHERE kind = ?1 AND config_json = ?2 AND root = ?3",
+            params![kind, config_json, root],
+            |r| r.get(0),
+        )
+        .optional()?
+    {
+        return Ok(id);
+    }
+    c.execute(
+        "INSERT INTO source(kind, name, config_json, root) VALUES (?1, ?2, ?3, ?4)",
+        params![kind, name, config_json, root],
+    )?;
+    let id = c.last_insert_rowid();
+    c.execute(
+        "UPDATE source SET credential_ref = ?2 WHERE id = ?1",
+        params![id, format!("source:{id}")],
+    )?;
+    Ok(id)
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SourceRow {
+    pub id: i64,
+    pub kind: String,
+    pub config_json: String,
+    pub credential_ref: Option<String>,
+    pub root: Option<String>,
+}
+
+pub fn source(c: &Connection, id: i64) -> Result<Option<SourceRow>> {
+    Ok(c.query_row(
+        "SELECT id, kind, config_json, credential_ref, root FROM source WHERE id = ?1",
+        [id],
+        |r| {
+            Ok(SourceRow {
+                id: r.get(0)?,
+                kind: r.get(1)?,
+                config_json: r.get(2)?,
+                credential_ref: r.get(3)?,
+                root: r.get(4)?,
+            })
+        },
+    )
+    .optional()?)
+}
+
+/// Store a network source's updated configuration (an SFTP host key seen for the first time).
+pub fn set_source_config(c: &Connection, id: i64, config_json: &str) -> Result<()> {
+    c.execute(
+        "UPDATE source SET config_json = ?2 WHERE id = ?1",
+        params![id, config_json],
+    )?;
+    Ok(())
+}
+
+/// The item of a file given by its path inside a source.
+pub fn item_for_source_path(c: &Connection, source_id: i64, abs_path: &str) -> Result<Option<i64>> {
+    let root: Option<String> = c
+        .query_row("SELECT root FROM source WHERE id = ?1", [source_id], |r| {
+            r.get(0)
+        })
+        .optional()?
+        .flatten();
+    let rel = match &root {
+        Some(r) => match abs_path.strip_prefix(&format!("{r}/")) {
+            Some(rel) => rel,
+            None => return Ok(None),
+        },
+        None => abs_path,
+    };
+    Ok(c.query_row(
+        "SELECT item_id FROM file WHERE source_id = ?1 AND path = ?2",
+        params![source_id, rel],
+        |r| r.get(0),
+    )
+    .optional()?
+    .flatten())
 }
 
 /// Remove a library folder and everything only it provided. Play state of items that disappear
@@ -90,7 +191,8 @@ pub fn remove_library(c: &mut Connection, id: i64) -> Result<()> {
 /// library share one play state).
 pub fn library_item_for_path(c: &Connection, abs_path: &str) -> Result<Option<i64>> {
     let roots: Vec<(i64, String)> = {
-        let mut st = c.prepare("SELECT id, root FROM source WHERE root IS NOT NULL")?;
+        let mut st =
+            c.prepare("SELECT id, root FROM source WHERE kind = 'local' AND root IS NOT NULL")?;
         st.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
             .collect::<rusqlite::Result<_>>()?
     };
@@ -416,13 +518,35 @@ fn next_up(c: &Connection, id: i64, kind: &str) -> Result<Option<Summary>> {
 
 /// Absolute path of the best file of a playable item (the largest version).
 pub fn playable_path(c: &Connection, item_id: i64) -> Result<Option<String>> {
-    Ok(c
-        .query_row(
-            &format!("SELECT {ABS_PATH_SQL} FROM file f JOIN source s ON s.id = f.source_id WHERE f.item_id = ?1 ORDER BY f.source_id = 1, f.size DESC LIMIT 1"),
-            [item_id],
-            |r| r.get(0),
-        )
-        .optional()?)
+    Ok(playable_files(c, item_id)?
+        .into_iter()
+        .next()
+        .map(|f| f.path))
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlayableFile {
+    pub source_id: i64,
+    pub kind: String,
+    /// Absolute: an OS path for local files, the path inside the share for network ones.
+    pub path: String,
+}
+
+/// Every file of a playable item, best first: local copies, then the largest version.
+/// The caller skips sources that are offline.
+pub fn playable_files(c: &Connection, item_id: i64) -> Result<Vec<PlayableFile>> {
+    let mut st = c.prepare(&format!(
+        "SELECT f.source_id, s.kind, {ABS_PATH_SQL} FROM file f JOIN source s ON s.id = f.source_id
+         WHERE f.item_id = ?1 ORDER BY s.kind = 'local' DESC, f.size DESC"
+    ))?;
+    let rows = st.query_map([item_id], |r| {
+        Ok(PlayableFile {
+            source_id: r.get(0)?,
+            kind: r.get(1)?,
+            path: r.get(2)?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
 // ---- matching and metadata writes ---------------------------------------------------------------

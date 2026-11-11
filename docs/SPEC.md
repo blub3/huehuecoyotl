@@ -201,9 +201,13 @@ pub trait Source: Send + Sync {
 | --- | --- | --- | --- |
 | Local and OS-mounted folders | `tokio::fs` plus file-system change notifications | Also covers shares the user has already mounted | M1 |
 | SMB 2 and 3 | [`smb`](https://docs.rs/crate/smb/latest) 0.12.1, pure Rust | All SMB 2.x and 3.x dialects, NTLM and Kerberos, encryption, tokio. Still below 1.0, so pin the version and test against Samba and Windows servers. | M3 |
-| NFS v3 and v4.1 | [`nfs-rs`](https://docs.rs/crate/nfs-rs/latest/source/README.md) 0.8.4, pure Rust | Servers that enforce privileged source ports need the `insecure` export option or elevated rights; document this for users. | M3 |
-| WebDAV, FTP and FTPS, SFTP | [Apache OpenDAL](https://opendal.apache.org/core) services | One dependency for three protocols. Verify range-read performance and that the SFTP service builds on Windows; if not, use `russh` with `russh-sftp`. | M3 |
+| NFS v3 and v4.1 | [`nfs-rs`](https://docs.rs/crate/nfs-rs/latest/source/README.md) 0.12, pure Rust | Servers that enforce privileged source ports need the `insecure` export option or elevated rights; document this for users. | M3 |
+| WebDAV | `reqwest` (rustls) with a small PROPFIND client | Range requests map directly onto `read_at`. | M3 |
+| FTP (FTPS later) | [`suppaftp`](https://docs.rs/suppaftp) on tokio | No ranged reads in FTP: the backend keeps one transfer open while reads are sequential and restarts it with `REST` on a seek. | M3 |
+| SFTP | [`russh`](https://docs.rs/russh) with `russh-sftp` | Host keys are trusted on first use and pinned. Until `smb`'s pre-release RustCrypto dependencies are released, `russh` cannot share a build with `smb`, so SFTP lives in its own crate (`crates/vfs-sftp`) outside the app. | M3 |
 | Jellyfin, Emby, Plex | Their HTTP APIs | These bring their own metadata, so they bypass the scanner | After 1.0 |
+
+OpenDAL was evaluated in M3 and dropped: its SFTP service runs the system `ssh` binary (not available on Windows by default) and its HTTP layer pulls in `aws-lc`. Small direct clients are less code than adapting it.
 
 If a pure-Rust client proves unreliable, the C libraries libsmb2 and libnfs can sit behind the same trait after a licence check. Each backend is a Cargo feature, so a build can leave any of them out.
 
@@ -409,6 +413,8 @@ Gates are the diamonds between milestones; a milestone is not finished until its
 - **M2 Library.** Scanner, filename parser with its fixture corpus, job queue, TMDB matching with a review list, poster grids, detail pages, search, watched state.
 - **M3 Network.** SMB, NFS, WebDAV, SFTP and FTP sources; discovery; keystore credentials; reconnect handling; the protocol conformance suite.
 - **M4 Release 1.0.** Direct mode with HDR passthrough on Windows; Flatpak and MSIX packages, signing, third-party notices, user documentation, translations, performance budgets met.
+
+**M3 status (Nov 11, 2026).** SMB, NFS, WebDAV and FTP libraries work end to end on Linux. SFTP is built but not linked into the app yet, and Windows servers are untested. See the [M3 status](milestones/M3.md).
 
 **M0 status (Nov 10, 2026).** First run on Linux, X11 and NVIDIA: the LGPL build, the embedded item and Samba streaming pass, and the direct mode design is drafted. Still open for the gate: everything on Windows (including HDR passthrough), Intel and AMD graphics, and Wayland. See the [M0 report](spike/M0-report.md).
 

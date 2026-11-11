@@ -3,11 +3,21 @@
 //! Nothing above this crate knows which protocol a file lives on. M1 ships the local backend;
 //! SMB, NFS, WebDAV, SFTP and FTP follow in M3 behind Cargo features.
 
+#[cfg(feature = "ftp")]
+mod ftp;
 mod local;
 mod media;
+#[cfg(feature = "nfs")]
+mod nfs;
+pub mod remote;
+#[cfg(feature = "smb")]
+mod smb;
+#[cfg(feature = "webdav")]
+mod webdav;
 
 pub use local::LocalSource;
 pub use media::{MediaKind, find_sidecar_subtitles, media_kind};
+pub use remote::{Protocol, RemoteConfig, RemoteSource};
 
 use async_trait::async_trait;
 use bytes::Bytes;

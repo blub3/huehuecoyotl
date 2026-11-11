@@ -66,6 +66,13 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 setTmdbKey(const QString &key);
     Q_INVOKABLE quint64 clearTmdbKey();
 
+    // M3: network sources. `spec`: protocol, host, port, share, user, tls, path, name.
+    // browseNetwork answers with folderListed (or requestFailed: wrong password, unreachable).
+    Q_INVOKABLE quint64 browseNetwork(const QVariantMap &spec, const QString &password,
+                                      const QString &path);
+    Q_INVOKABLE quint64 addNetworkLibrary(const QVariantMap &spec, const QString &password);
+    Q_INVOKABLE quint64 discover();
+
     bool hasTmdbKey() const { return m_hasKey; }
     bool tmdbKeyFromEnvironment() const { return m_keyFromEnv; }
     bool scanning() const { return !m_scanning.isEmpty(); }
@@ -95,6 +102,7 @@ class CoreBridge : public QObject {
     void activityChanged();
     // The library changed in bulk; grids re-query.
     void libraryChanged();
+    void serversDiscovered(quint64 requestId, const QVariantList &servers);
 
   private:
     void dispatch(const coyotl::core::CoreEvent &e);

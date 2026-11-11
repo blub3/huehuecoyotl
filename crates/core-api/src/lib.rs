@@ -28,6 +28,7 @@ mod ffi {
         ScanState,
         LibraryChanged,
         KeyStatus,
+        Discovered,
     }
 
     #[derive(Debug)]
@@ -129,11 +130,25 @@ mod ffi {
     #[derive(Clone, Debug, Default)]
     struct LibraryFolder {
         id: i64,
+        /// local, smb, nfs, webdav, ftp, sftp
+        kind: String,
         name: String,
+        /// Local folder or display URL (no credentials).
         root: String,
         files: i64,
         last_scan_ms: i64,
         scanning: bool,
+        online: bool,
+    }
+
+    /// A file server found on the local network.
+    #[derive(Clone, Debug, Default)]
+    struct DiscoveredServer {
+        name: String,
+        protocol: String,
+        host: String,
+        port: u16,
+        tls: bool,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -182,6 +197,8 @@ mod ffi {
         /// LibraryChanged: queued and failed jobs.
         queued: i64,
         failed: i64,
+        // M3
+        servers: Vec<DiscoveredServer>,
     }
 
     extern "Rust" {
@@ -232,6 +249,17 @@ mod ffi {
         fn key_status(self: &Core, request_id: u64);
         fn set_tmdb_key(self: &Core, request_id: u64, key: &str);
         fn clear_tmdb_key(self: &Core, request_id: u64);
+
+        // M3: network sources. `spec_json`: {protocol, host, port, share, user, tls, path, name}.
+        fn browse_network(
+            self: &Core,
+            request_id: u64,
+            spec_json: &str,
+            password: &str,
+            path: &str,
+        );
+        fn add_network_library(self: &Core, request_id: u64, spec_json: &str, password: &str);
+        fn discover(self: &Core, request_id: u64);
     }
 
     unsafe extern "C++" {
@@ -284,6 +312,7 @@ fn event(kind: ffi::EventKind, request_id: u64) -> ffi::CoreEvent {
         flag2: false,
         queued: 0,
         failed: 0,
+        servers: Vec::new(),
     }
 }
 
@@ -467,11 +496,13 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                 .into_iter()
                 .map(|l| ffi::LibraryFolder {
                     id: l.id,
+                    kind: l.kind,
                     name: l.name,
                     root: l.root,
                     files: l.files,
                     last_scan_ms: l.last_scan_ms,
                     scanning: l.scanning,
+                    online: l.online,
                 })
                 .collect(),
             ..event(K::Libraries, request_id)
@@ -520,6 +551,22 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
             flag2: from_env,
             message,
             ..event(K::KeyStatus, request_id)
+        },
+        core::Event::Discovered {
+            request_id,
+            devices,
+        } => ffi::CoreEvent {
+            servers: devices
+                .into_iter()
+                .map(|d| ffi::DiscoveredServer {
+                    name: d.name,
+                    protocol: d.protocol,
+                    host: d.host,
+                    port: d.port,
+                    tls: d.tls,
+                })
+                .collect(),
+            ..event(K::Discovered, request_id)
         },
     }
 }
@@ -666,4 +713,20 @@ impl Core {
     fn clear_tmdb_key(&self, request_id: u64) {
         guard("clear_tmdb_key", || self.0.clear_tmdb_key(request_id))
     }
+    fn browse_network(&self, request_id: u64, spec_json: &str, password: &str, path: &str) {
+        guard("browse_network", || {
+            self.0.browse_network(request_id, spec_json, password, path)
+        })
+    }
+    fn add_network_library(&self, request_id: u64, spec_json: &str, password: &str) {
+        guard("add_network_library", || {
+            self.0.add_network_library(request_id, spec_json, password)
+        })
+    }
+    fn discover(&self, request_id: u64) {
+        guard("discover", || self.0.discover(request_id))
+    }
 }
+
+// The mpv stream protocol handler must end up in the static library the shell links.
+pub use huehuecoyotl_stream::coyotl_stream_open;

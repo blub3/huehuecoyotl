@@ -32,9 +32,18 @@ fn default_data_dir() -> PathBuf {
     base.unwrap_or_else(|| ".".into()).join("coyotl")
 }
 
+/// Network share passwords come from the environment so they never show up in `ps` or history.
+fn share_password() -> String {
+    std::env::var("COYOTL_SHARE_PASSWORD").unwrap_or_default()
+}
+
 fn usage() -> ExitCode {
     eprintln!(
-        "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent"
+        "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent\n\
+         \x20      | library add PATH | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
+         \x20      | discover | rescan | movies | shows | search TEXT | detail ID | review | key KEY\n\
+         network shares: SPEC_JSON is {{\"protocol\":\"smb\",\"host\":\"nas\",\"share\":\"media\",\"user\":\"me\",\"path\":\"/Movies\"}};\n\
+         the password comes from COYOTL_SHARE_PASSWORD (never from the command line)"
     );
     ExitCode::from(2)
 }
@@ -182,6 +191,21 @@ fn main() -> ExitCode {
             settle();
             ev
         }
+        ("library", [sub, spec]) if sub == "add-share" => {
+            core.add_network_library(1, spec, &share_password());
+            let ev = wait();
+            settle();
+            ev
+        }
+        ("share-ls", [spec, rest @ ..]) if rest.len() <= 1 => {
+            let path = rest.first().map_or("/", |p| p.as_str());
+            core.browse_network(1, spec, &share_password(), path);
+            wait()
+        }
+        ("discover", []) => {
+            core.discover(1);
+            wait()
+        }
         ("library", [sub]) if sub == "list" => {
             core.libraries(1);
             wait()
@@ -277,11 +301,12 @@ fn main() -> ExitCode {
         Event::Libraries { libraries, .. } => {
             for l in libraries {
                 println!(
-                    "  {:>3}  {}  ({} files{})",
+                    "  {:>3}  {}  ({} files{}{})",
                     l.id,
                     l.root,
                     l.files,
-                    if l.scanning { ", scanning" } else { "" }
+                    if l.scanning { ", scanning" } else { "" },
+                    if l.online { "" } else { ", offline" }
                 );
             }
         }
@@ -336,6 +361,20 @@ fn main() -> ExitCode {
                     format!(": {message}")
                 }
             );
+        }
+        Event::Discovered { devices, .. } => {
+            if devices.is_empty() {
+                println!("no file servers announced themselves");
+            }
+            for d in devices {
+                println!(
+                    "  {:<8} {}:{}  {}",
+                    if d.tls { "webdavs" } else { &d.protocol },
+                    d.host,
+                    d.port,
+                    d.name
+                );
+            }
         }
         Event::Candidates { .. } | Event::LibraryChanged { .. } | Event::ScanState { .. } => {}
         Event::Error { kind, message, .. } => {

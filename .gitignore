@@ -1,5 +1,6 @@
 /build/
 /target/
+/crates/vfs-sftp/target/
 *.user
 /spike/**/build/
 /spike/**/target/
@@ -7,3 +8,4 @@
 /spike/libmpv-lgpl/build.log
 /spike/media/*.mkv
 /third_party/mpv/out/
+/tests/servers/fixtures/

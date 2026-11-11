@@ -1,0 +1,7 @@
+# NFSv3 and v4 in user space (NFS-Ganesha), no kernel modules needed.
+FROM ubuntu:24.04
+RUN apt-get update && apt-get install -y --no-install-recommends nfs-ganesha nfs-ganesha-vfs rpcbind dbus \
+    && rm -rf /var/lib/apt/lists/*
+COPY ganesha.conf /etc/ganesha/ganesha.conf
+EXPOSE 111 2049 20048
+CMD ["sh", "-c", "mkdir -p /run/dbus /var/run/ganesha && dbus-daemon --system --fork && rpcbind -w && exec ganesha.nfsd -F -L /dev/stdout -f /etc/ganesha/ganesha.conf"]

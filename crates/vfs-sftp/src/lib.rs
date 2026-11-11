@@ -1,0 +1,236 @@
+//! SFTP for Huehuecoyotl (separate crate, see crates/vfs/Cargo.toml). Pure Rust: `russh` + `russh-sftp`, pure Rust on the ring backend (SPEC 6 names these as
+//! the fallback when OpenDAL's SFTP does not fit; OpenDAL's needs the system `ssh` binary).
+//!
+//! Host keys: trust on first use. The first fingerprint is reported through
+//! [`RemoteSource::host_key`] and stored with the source; a different key later is refused.
+
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex as StdMutex};
+use std::time::{Duration, UNIX_EPOCH};
+
+use async_trait::async_trait;
+use bytes::Bytes;
+use russh::client;
+use russh::keys::HashAlg;
+use russh_sftp::client::SftpSession;
+use tokio::io::{AsyncReadExt, AsyncSeekExt};
+use tokio::sync::Mutex;
+
+use huehuecoyotl_vfs::remote::{RemoteConfig, RemoteSource, err, join, retryable};
+use huehuecoyotl_vfs::{Caps, Entry, Result, Source, VPath, VfsError};
+
+struct Handler {
+    expected: Option<String>,
+    seen: Arc<StdMutex<Option<String>>>,
+}
+
+impl client::Handler for Handler {
+    type Error = russh::Error;
+
+    async fn check_server_key(
+        &mut self,
+        key: &russh::keys::PublicKeyOrCertificate,
+    ) -> std::result::Result<bool, Self::Error> {
+        let fp = key.public_key().fingerprint(HashAlg::Sha256).to_string();
+        let ok = self.expected.as_ref().is_none_or(|e| *e == fp);
+        *self.seen.lock().unwrap() = Some(fp);
+        Ok(ok)
+    }
+}
+
+struct Conn {
+    _session: client::Handle<Handler>,
+    sftp: SftpSession,
+}
+
+pub struct SftpSource {
+    cfg: RemoteConfig,
+    conn: Mutex<Option<Arc<Conn>>>,
+    files: Mutex<HashMap<String, Arc<Mutex<russh_sftp::client::fs::File>>>>,
+    seen_key: Arc<StdMutex<Option<String>>>,
+}
+
+impl SftpSource {
+    pub fn new(cfg: RemoteConfig) -> Self {
+        Self {
+            cfg,
+            conn: Mutex::new(None),
+            files: Mutex::new(HashMap::new()),
+            seen_key: Arc::default(),
+        }
+    }
+
+    async fn conn(&self) -> Result<Arc<Conn>> {
+        let mut g = self.conn.lock().await;
+        if let Some(c) = g.as_ref() {
+            return Ok(c.clone());
+        }
+        let config = Arc::new(client::Config {
+            inactivity_timeout: Some(Duration::from_secs(300)),
+            ..Default::default()
+        });
+        let handler = Handler {
+            expected: self.cfg.host_key.clone(),
+            seen: self.seen_key.clone(),
+        };
+        let mut session = client::connect(config, (self.cfg.host.as_str(), self.cfg.port()), handler).await.map_err(|e| {
+            if self.cfg.host_key.is_some() && matches!(e, russh::Error::UnknownKey) {
+                VfsError::Auth("the server's host key changed; remove and re-add the source if this is expected".into())
+            } else {
+                err(e)
+            }
+        })?;
+        let auth = session
+            .authenticate_password(&self.cfg.user, &self.cfg.password)
+            .await
+            .map_err(err)?;
+        if !auth.success() {
+            return Err(VfsError::Auth("SFTP login failed".into()));
+        }
+        let channel = session.channel_open_session().await.map_err(err)?;
+        channel.request_subsystem(true, "sftp").await.map_err(err)?;
+        let sftp = SftpSession::new(channel.into_stream()).await.map_err(err)?;
+        let c = Arc::new(Conn {
+            _session: session,
+            sftp,
+        });
+        *g = Some(c.clone());
+        Ok(c)
+    }
+
+    async fn reset(&self) {
+        self.conn.lock().await.take();
+        self.files.lock().await.clear();
+    }
+
+    fn server_path(&self, p: &VPath) -> String {
+        join(&self.cfg.share, p)
+    }
+
+    async fn list_once(&self, dir: &VPath) -> Result<Vec<Entry>> {
+        let c = self.conn().await?;
+        let rd = c.sftp.read_dir(self.server_path(dir)).await.map_err(err)?;
+        let mut out = Vec::new();
+        for e in rd {
+            let name = e.file_name();
+            if name == "." || name == ".." || name.starts_with('.') {
+                continue;
+            }
+            let m = e.metadata();
+            let is_dir = m.is_dir();
+            let mtime = m
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+                .map_or(0, |d| d.as_secs() as i64);
+            out.push(Entry {
+                path: dir.join(&name),
+                name,
+                is_dir,
+                size: if is_dir { 0 } else { m.len() },
+                mtime,
+            });
+        }
+        Ok(out)
+    }
+
+    async fn stat_once(&self, path: &VPath) -> Result<Entry> {
+        let c = self.conn().await?;
+        let m = c.sftp.metadata(self.server_path(path)).await.map_err(err)?;
+        let mtime = m
+            .modified()
+            .ok()
+            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            .map_or(0, |d| d.as_secs() as i64);
+        Ok(Entry {
+            path: path.clone(),
+            name: path.file_name().to_string(),
+            is_dir: m.is_dir(),
+            size: m.len(),
+            mtime,
+        })
+    }
+
+    async fn read_once(&self, path: &VPath, offset: u64, len: u32) -> Result<Bytes> {
+        let key = path.to_string();
+        // Bind first: a guard in a `match` scrutinee lives for the whole match and would
+        // deadlock with the insert below.
+        let cached = self.files.lock().await.get(&key).cloned();
+        let file = match cached {
+            Some(f) => f,
+            None => {
+                let c = self.conn().await?;
+                let f = Arc::new(Mutex::new(
+                    c.sftp.open(self.server_path(path)).await.map_err(err)?,
+                ));
+                let mut files = self.files.lock().await;
+                if files.len() >= 8 {
+                    files.clear();
+                }
+                files.insert(key, f.clone());
+                f
+            }
+        };
+        let mut f = file.lock().await;
+        f.seek(std::io::SeekFrom::Start(offset))
+            .await
+            .map_err(err)?;
+        let mut buf = vec![0u8; len as usize];
+        let mut got = 0;
+        while got < buf.len() {
+            let n = f.read(&mut buf[got..]).await.map_err(err)?;
+            if n == 0 {
+                break;
+            }
+            got += n;
+        }
+        buf.truncate(got);
+        Ok(Bytes::from(buf))
+    }
+}
+
+#[async_trait]
+impl Source for SftpSource {
+    async fn list(&self, dir: &VPath) -> Result<Vec<Entry>> {
+        match self.list_once(dir).await {
+            Err(e) if retryable(&e) => {
+                self.reset().await;
+                self.list_once(dir).await
+            }
+            r => r,
+        }
+    }
+
+    async fn stat(&self, path: &VPath) -> Result<Entry> {
+        match self.stat_once(path).await {
+            Err(e) if retryable(&e) => {
+                self.reset().await;
+                self.stat_once(path).await
+            }
+            r => r,
+        }
+    }
+
+    async fn read_at(&self, path: &VPath, offset: u64, len: u32) -> Result<Bytes> {
+        match self.read_once(path, offset, len).await {
+            Err(e) if retryable(&e) => {
+                self.reset().await;
+                self.read_once(path, offset, len).await
+            }
+            r => r,
+        }
+    }
+
+    fn capabilities(&self) -> Caps {
+        Caps {
+            range_reads: true,
+            ..Default::default()
+        }
+    }
+}
+
+impl RemoteSource for SftpSource {
+    fn host_key(&self) -> Option<String> {
+        self.seen_key.lock().unwrap().clone()
+    }
+}

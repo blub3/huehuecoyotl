@@ -1,0 +1,7 @@
+# SMB 2/3 server for the conformance suite (SPEC 6, Testing).
+FROM ubuntu:24.04
+RUN apt-get update && apt-get install -y --no-install-recommends samba && rm -rf /var/lib/apt/lists/*
+RUN useradd -M -s /usr/sbin/nologin coyotl && (echo coyotl-test; echo coyotl-test) | smbpasswd -s -a coyotl
+COPY smb.conf /etc/samba/smb.conf
+EXPOSE 445
+CMD ["smbd", "--foreground", "--no-process-group", "--debug-stdout"]

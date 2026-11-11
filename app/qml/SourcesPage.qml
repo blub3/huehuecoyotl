@@ -4,8 +4,8 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Coyotl
 
-// Library folders (scanned into Movies and Shows) and plain browsing of this computer.
-// Network sources join this page in M3.
+// Library folders on this computer and on network shares (scanned into Movies and Shows),
+// and plain browsing of this computer.
 FocusScope {
     id: page
     readonly property bool isPlayer: false
@@ -20,7 +20,7 @@ FocusScope {
     // When the page receives focus but none of its controls has it, focus the first control.
     function focusFirst() {
         if (!page.activeFocus) return
-        for (const c of [addButton, rescanAll, folderList, placesList]) if (c.activeFocus) return
+        for (const c of [addButton, addShare, rescanAll, folderList, placesList]) if (c.activeFocus) return
         (folders.count > 0 ? folderList : addButton).forceActiveFocus()
     }
     onActiveFocusChanged: if (activeFocus) Qt.callLater(focusFirst)
@@ -49,17 +49,26 @@ FocusScope {
                     glyph: "+"
                     text: qsTr("Add folder")
                     primary: folders.count === 0
-                    KeyNavigation.right: rescanAll
+                    KeyNavigation.right: addShare
                     KeyNavigation.down: folders.count > 0 ? folderList : placesList
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: page.pickFolder()
+                }
+                FocusButton {
+                    id: addShare
+                    glyph: "+"
+                    text: qsTr("Add network share")
+                    KeyNavigation.left: addButton
+                    KeyNavigation.right: rescanAll
+                    KeyNavigation.down: folders.count > 0 ? folderList : placesList
+                    onClicked: Nav.open(Qt.resolvedUrl("NetworkSharePage.qml"), {})
                 }
                 FocusButton {
                     id: rescanAll
                     visible: folders.count > 0
                     text: Core.scanning ? qsTr("Scanning…") : qsTr("Rescan all")
                     enabled: !Core.scanning
-                    KeyNavigation.left: addButton
+                    KeyNavigation.left: addShare
                     KeyNavigation.down: folderList
                     onClicked: Core.rescan(0)
                 }
@@ -67,7 +76,7 @@ FocusScope {
             Label {
                 visible: folders.count === 0
                 Layout.fillWidth: true
-                text: qsTr("Add the folders that hold your movies and shows. They are scanned, matched with TMDB and shown under Movies and Shows.")
+                text: qsTr("Add the folders that hold your movies and shows, on this computer or on a network share (NAS). They are scanned, matched with TMDB and shown under Movies and Shows.")
                 color: Theme.textDim
                 wrapMode: Text.Wrap
             }
@@ -103,14 +112,25 @@ FocusScope {
                         anchors.fill: parent
                         anchors.leftMargin: 16; anchors.rightMargin: 10
                         spacing: 12
-                        Rectangle { Layout.preferredWidth: 26; Layout.preferredHeight: 20; radius: 4; color: Theme.accent }
+                        Rectangle {
+                            Layout.preferredWidth: 26; Layout.preferredHeight: 20; radius: 4
+                            color: row.model.online ? Theme.accent : Theme.textDim
+                            Text {
+                                anchors.centerIn: parent
+                                visible: row.model.kind !== "local"
+                                text: row.model.kind === "local" ? "" : row.model.kind.toUpperCase().slice(0, 3)
+                                color: Theme.bg; font.pixelSize: 9; font.bold: true
+                            }
+                        }
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 2
                             Label { text: row.model.name; color: Theme.text; font.pixelSize: Theme.fontBody }
                             Label {
                                 Layout.fillWidth: true
-                                text: row.model.root + "  ·  " + (row.model.scanning ? qsTr("scanning…") : qsTr("%n video(s)", "", row.model.files))
+                                text: row.model.root + "  ·  " + (row.model.scanning ? qsTr("scanning…")
+                                      : !row.model.online ? qsTr("offline")
+                                      : qsTr("%n video(s)", "", row.model.files))
                                 color: Theme.textDim; font.pixelSize: Theme.fontSmall; elide: Text.ElideMiddle
                             }
                         }
