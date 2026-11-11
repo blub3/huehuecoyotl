@@ -78,12 +78,14 @@ class MpvRenderer : public QQuickFramebufferObject::Renderer {
             {MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &gl},
             {MPV_RENDER_PARAM_ADVANCED_CONTROL, &advanced},
         };
+#if defined(Q_OS_LINUX)
         // Hardware-decoding interop needs the native display. The LGPL libmpv has no X11
         // support, so on X11 it falls back to the DRM device for VAAPI.
         if (auto *wl = qApp->nativeInterface<QNativeInterface::QWaylandApplication>())
             params.push_back({MPV_RENDER_PARAM_WL_DISPLAY, wl->display()});
         else if (auto *x11 = qApp->nativeInterface<QNativeInterface::QX11Application>())
             params.push_back({MPV_RENDER_PARAM_X11_DISPLAY, x11->display()});
+#endif
         params.push_back({MPV_RENDER_PARAM_INVALID, nullptr});
 
         if (mpv_render_context_create(&m_ctx, m_item->player()->handle(), params.data()) < 0)
