@@ -94,6 +94,8 @@ mod ffi {
         episode_no: i32,
         /// Local path of the pre-scaled poster or still; empty until downloaded.
         poster: String,
+        /// The larger 540 px grid tier; empty until it exists (then use `poster`).
+        poster_large: String,
         progress: f32,
         watched: bool,
         unwatched: i64,
@@ -334,6 +336,7 @@ fn summary(s: core::Summary) -> ffi::ItemSummary {
         season_no: s.season_no.unwrap_or(0) as i32,
         episode_no: s.episode_no.unwrap_or(0) as i32,
         poster: s.poster,
+        poster_large: s.poster_large,
         progress: s.progress,
         watched: s.watched,
         unwatched: s.unwatched,

@@ -278,7 +278,7 @@ CREATE VIRTUAL TABLE item_fts USING fts5(title, original_title, overview);
 2. Parse file and folder names into title, year, season, episode, resolution and codec tokens. Read `.nfo` files with explicit ids when present.
 3. Group files into items; several files can attach to one item.
 4. Match against the metadata provider. A low-confidence match goes to a "needs review" list instead of becoming a wrong poster.
-5. Fetch details and artwork. Downscale posters in Rust to the grid sizes the UI uses and keep the original for the detail page.
+5. Fetch details and artwork. Downscale posters in Rust to the grid sizes the UI uses and keep the original for the detail page. Grid thumbnails come in two tiers, 360 px (`poster_grid`) and 540 px (`poster_grid_l`), both made from one w780 download. For libraries from before the 540 px tier, a background `tiers` job makes it from the stored originals without network access; until then the grid uses the 360 px tier.
 6. Probe tracks and HDR flags lazily, on first play or when idle.
 
 Every step is a row in `job`: persisted, resumable after a restart, rate-limited per source, and prioritised so items on screen are processed first. The filename parser is tested against a large fixture corpus of real-world names; that corpus is the most valuable test asset in the project.
@@ -356,7 +356,8 @@ The UI is QML on top of a few C++ models and controllers: it holds no business l
 **Performance budgets**
 
 - Poster grids scroll without dropped frames at 60 Hz on integrated graphics with a library of 5,000 items.
-- Grids use `GridView` with delegate reuse and asynchronous image loading. QML never decodes a full-size poster in a grid; it loads the pre-scaled thumbnails the core wrote to disk.
+- Grids use `GridView` with delegate reuse and asynchronous image loading. QML never decodes a full-size poster in a grid; it loads the pre-scaled thumbnails the core wrote to disk, the smallest tier that covers the displayed size at the screen's scale factor.
+- Cover size depends on the display mode: Settings → Appearance has a size for the window (default Medium) and one for fullscreen (default Large), each Small, Medium or Large (140, 180 or 260 px target width). Grids derive their columns from the available width and the target, so cells fill the width exactly; text and spacing scale with the cover. Switching modes keeps the focused item focused and in view. The choice is stored in `ui.ini` in the data folder.
 - Cold start to an interactive Home screen in under two seconds from a warm disk cache.
 - These are measured by an automated scroll benchmark in CI, not asserted.
 
@@ -382,6 +383,8 @@ CMake is the top-level build. It compiles the C++ shell and QML, drives Cargo fo
 CMakeLists.txt       top-level build
 Cargo.toml           Rust workspace
 ```
+
+**Logo and icons.** The logo's master is `assets/logo/huehuecoyotl.png` (raster artwork, 1254 px). `tools/make-icons.py` generates every size from it: the hicolor icons for Linux and the Flatpak (16 to 512 px; there is no scalable SVG), the Windows `.ico`, the MSIX image assets and the 512 px image the UI scales to the screen's scale factor. Nothing is resized by hand. The logo is not under the Apache License 2.0; `assets/logo/LICENSE` states its terms.
 
 **libmpv bundle.** The Linux recipe builds in a container on the Ubuntu 24.04 base and ships libmpv with FFmpeg, libass, libplacebo and libwayland as shared libraries with an `$ORIGIN` rpath. libwayland is bundled because mpv 0.42 needs version 1.23 or newer and Ubuntu 24.04 has 1.22. Versions are pinned by tag and recorded by commit. The spike baseline is mpv 0.42.0, FFmpeg 8.1.3, libplacebo 7.387.0, libass 0.17.5 and libwayland 1.24.0.
 

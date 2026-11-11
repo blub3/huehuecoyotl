@@ -8,6 +8,8 @@ ItemDelegate {
     property string title
     property int year: 0
     property string poster
+    // The 540 px tier, when the core has made it; used when the 360 px one would be upscaled.
+    property string posterLarge
     property real progress: 0
     property bool watched: false
     property int unwatched: 0
@@ -15,15 +17,17 @@ ItemDelegate {
     property real posterWidth: 180
     property real posterRatio: 1.5
 
+    readonly property real textScale: Appearance.textScale(posterWidth)
+
     width: posterWidth
-    height: posterWidth * posterRatio + 54
+    height: posterWidth * posterRatio + 54 * textScale
     padding: 0
     focusPolicy: Qt.StrongFocus
     Accessible.name: title + (caption !== "" ? ", " + caption : "") + (watched ? ", " + qsTr("watched") : "")
 
     background: Item {}
     contentItem: Column {
-        spacing: 8
+        spacing: Math.round(8 * card.textScale)
         Rectangle {
             id: frame
             width: card.posterWidth
@@ -40,7 +44,7 @@ ItemDelegate {
                 visible: img.status !== Image.Ready
                 text: card.title
                 color: Theme.text
-                font.pixelSize: 17
+                font.pixelSize: Math.round(17 * card.textScale)
                 font.bold: true
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
@@ -48,7 +52,10 @@ ItemDelegate {
             Image {
                 id: img
                 anchors.fill: parent
-                source: card.poster
+                // The smallest tier that covers the displayed size; the 360 px one until the
+                // larger exists.
+                source: card.posterLarge !== "" && card.posterWidth * Screen.devicePixelRatio > 360
+                        ? card.posterLarge : card.poster
                 asynchronous: true
                 cache: true
                 fillMode: Image.PreserveAspectCrop
@@ -87,7 +94,7 @@ ItemDelegate {
             width: card.posterWidth
             text: card.title
             color: card.activeFocus ? Theme.text : Theme.textDim
-            font.pixelSize: 14
+            font.pixelSize: Math.round(14 * card.textScale)
             elide: Text.ElideRight
         }
         Label {
@@ -95,7 +102,7 @@ ItemDelegate {
             visible: card.caption !== ""
             text: card.caption
             color: Theme.textDim
-            font.pixelSize: 12
+            font.pixelSize: Math.round(12 * card.textScale)
             opacity: 0.8
         }
     }
