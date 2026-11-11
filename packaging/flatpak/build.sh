@@ -24,11 +24,15 @@ if command -v flatpak-builder >/dev/null; then fb=(flatpak-builder)
 # runtimes from them; FLATPAK_USER_DIR points them back at the real installation.
 else fb=(flatpak run --env=FLATPAK_USER_DIR="$HOME/.local/share/flatpak" --command=flatpak-builder org.flatpak.Builder); fi
 
-# --user: find the SDK in the per-user installation (and install there with --install).
-install=(--user)
-[ "${1:-}" = "--install" ] && install+=(--install)
+# --user: find the SDK in the per-user installation.
 cd "$here"
-"${fb[@]}" --force-clean --delete-build-dirs --repo=repo --state-dir=.flatpak-builder "${install[@]}" build-dir "$app.yml"
+"${fb[@]}" --user --force-clean --delete-build-dirs --repo=repo --state-dir=.flatpak-builder build-dir "$app.yml"
 mkdir -p "$root/build"
 flatpak build-bundle repo "$root/build/$app.flatpak" "$app" --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
 echo "bundle: build/$app.flatpak"
+# Installed with the host's flatpak, not flatpak-builder's --install: inside the sandboxed
+# builder that writes /app/bin/flatpak into the exported desktop entry, which then does not
+# start and is left out of the application menu.
+if [ "${1:-}" = "--install" ]; then
+  flatpak install --user --noninteractive --reinstall "$root/build/$app.flatpak"
+fi
