@@ -13,6 +13,46 @@ FocusScope {
     property string exportMessage: ""
     property bool exportFailed: false
 
+    // One cover-size setting: a label and Small / Medium / Large, moved through with the arrows.
+    component SizeChoice: RowLayout {
+        id: choice
+        property string label
+        property string value
+        signal picked(string key)
+        signal upRequested()
+        signal downRequested()
+        function focusSelected() {
+            const i = Appearance.sizes.findIndex(s => s.key === choice.value)
+            choiceButtons.itemAt(Math.max(0, i)).forceActiveFocus()
+        }
+        spacing: 10
+        Label { text: choice.label; color: Theme.text; Layout.preferredWidth: 240; wrapMode: Text.Wrap }
+        Repeater {
+            id: choiceButtons
+            model: Appearance.sizes
+            FocusButton {
+                id: sizeButton
+                required property var modelData
+                required property int index
+                text: modelData.label
+                primary: choice.value === modelData.key
+                Accessible.name: choice.label + ": " + modelData.label
+                Accessible.checkable: true
+                Accessible.checked: primary
+                onClicked: choice.picked(modelData.key)
+                Keys.onLeftPressed: {
+                    if (sizeButton.index === 0) Nav.focusRail()
+                    else choiceButtons.itemAt(sizeButton.index - 1).forceActiveFocus()
+                }
+                Keys.onRightPressed: {
+                    if (sizeButton.index < choiceButtons.count - 1) choiceButtons.itemAt(sizeButton.index + 1).forceActiveFocus()
+                }
+                Keys.onUpPressed: choice.upRequested()
+                Keys.onDownPressed: choice.downRequested()
+            }
+        }
+    }
+
     // When the page receives focus, hand it to its first control.
     function focusFirst() {
         if (!page.activeFocus) return
@@ -115,7 +155,7 @@ FocusScope {
                     id: reviewButton
                     text: qsTr("Review matches")
                     KeyNavigation.up: Core.hasTmdbKey ? (removeKey.visible ? removeKey : null) : keyField
-                    KeyNavigation.down: exportButton
+                    Keys.onDownPressed: windowSizes.focusSelected()
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: Nav.open(Qt.resolvedUrl("ReviewPage.qml"))
                 }
@@ -128,6 +168,25 @@ FocusScope {
                     text: qsTr("%1 failed (see the log)").arg(Core.failedJobs)
                     color: Theme.danger
                 }
+            }
+
+            // ---- Appearance ----------------------------------------------------------------
+            Label { text: qsTr("Appearance"); color: Theme.textDim; font.pixelSize: Theme.fontLarge; Layout.topMargin: 24 }
+            SizeChoice {
+                id: windowSizes
+                label: qsTr("Cover size in window")
+                value: Appearance.coverWindow
+                onPicked: (key) => Appearance.coverWindow = key
+                onUpRequested: reviewButton.forceActiveFocus()
+                onDownRequested: fullscreenSizes.focusSelected()
+            }
+            SizeChoice {
+                id: fullscreenSizes
+                label: qsTr("Cover size in fullscreen")
+                value: Appearance.coverFullscreen
+                onPicked: (key) => Appearance.coverFullscreen = key
+                onUpRequested: windowSizes.focusSelected()
+                onDownRequested: exportButton.forceActiveFocus()
             }
 
             // ---- Troubleshooting -----------------------------------------------------------
@@ -143,7 +202,7 @@ FocusScope {
                 FocusButton {
                     id: exportButton
                     text: qsTr("Export diagnostics")
-                    KeyNavigation.up: reviewButton
+                    Keys.onUpPressed: fullscreenSizes.focusSelected()
                     KeyNavigation.down: noticesButton
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: {
