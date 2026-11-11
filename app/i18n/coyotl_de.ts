@@ -2,6 +2,14 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="de" sourcelanguage="en">
 <context>
+    <name>AppLogo</name>
+    <message>
+        <location filename="../qml/AppLogo.qml" line="19"/>
+        <source>Huehuecoyotl logo</source>
+        <translation>Huehuecoyotl-Logo</translation>
+    </message>
+</context>
+<context>
     <name>Appearance</name>
     <message>
         <location filename="../qml/Appearance.qml" line="12"/>
@@ -239,33 +247,33 @@
 <context>
     <name>HomePage</name>
     <message>
-        <location filename="../qml/HomePage.qml" line="63"/>
+        <location filename="../qml/HomePage.qml" line="66"/>
         <source>Welcome to Huehuecoyotl</source>
         <translation>Willkommen bei Huehuecoyotl</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="68"/>
+        <location filename="../qml/HomePage.qml" line="72"/>
         <source>Add the folders with your movies and shows. They are scanned and sorted into Movies and Shows. With a free TMDB key you also get posters, descriptions and episode titles.</source>
         <translation>Füge die Ordner mit deinen Filmen und Serien hinzu. Sie werden durchsucht und unter Filme und Serien einsortiert. Mit einem kostenlosen TMDB-Schlüssel bekommst du außerdem Poster, Beschreibungen und Folgentitel.</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="77"/>
+        <location filename="../qml/HomePage.qml" line="81"/>
         <source>Add a folder</source>
         <translation>Ordner hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="85"/>
+        <location filename="../qml/HomePage.qml" line="89"/>
         <source>Set up TMDB</source>
         <translation>TMDB einrichten</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="96"/>
-        <location filename="../qml/HomePage.qml" line="110"/>
+        <location filename="../qml/HomePage.qml" line="100"/>
+        <location filename="../qml/HomePage.qml" line="114"/>
         <source>Continue watching</source>
         <translation>Weiterschauen</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="121"/>
+        <location filename="../qml/HomePage.qml" line="125"/>
         <source>%1 left</source>
         <translation>noch %1</translation>
     </message>
@@ -361,17 +369,17 @@
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="59"/>
+        <location filename="../qml/NavRail.qml" line="58"/>
         <source>Navigation</source>
         <translation>Navigation</translation>
     </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="116"/>
+        <location filename="../qml/NavRail.qml" line="115"/>
         <source>Scanning folders…</source>
         <translation>Ordner werden durchsucht …</translation>
     </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="116"/>
+        <location filename="../qml/NavRail.qml" line="115"/>
         <source>Updating library… %1</source>
         <translation>Bibliothek wird aktualisiert … %1</translation>
     </message>

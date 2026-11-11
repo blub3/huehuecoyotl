@@ -4,6 +4,7 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+- The Huehuecoyotl logo replaces the placeholder "H" in the sidebar and appears on the welcome card and in Settings → About (#1). All icon sizes, including the MSIX image assets, are generated from `assets/logo/huehuecoyotl.png`; the logo has its own licence (`assets/logo/LICENSE`).
 - Cover sizes for windowed and fullscreen layouts (#2): Settings → Appearance sets Small, Medium or Large for each mode (defaults Medium and Large). Grids and the "Recently added" row work out their columns from it, and the focused cover stays in view when switching modes. A sharper 540 px thumbnail tier is downloaded with new posters and made offline for existing libraries.
 
 ## 1.0.0 – 2026-11-11 (Linux)
