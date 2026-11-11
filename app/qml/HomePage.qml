@@ -27,9 +27,12 @@ FocusScope {
     }
 
     onActiveFocusChanged: if (activeFocus) { recent.refresh(); Qt.callLater(ensureFocus) }
-    Connections { target: recent; function onLoadingChanged() { if (!recent.loading) Qt.callLater(page.ensureFocus) } }
-    Connections { target: added; function onLoadingChanged() { if (!added.loading) Qt.callLater(page.ensureFocus) } }
-    Connections { target: folders; function onLoadingChanged() { if (!folders.loading) Qt.callLater(page.ensureFocus) } }
+    Connections { target: recent; function onLoadingChanged() { if (!recent.loading) { page.answered |= 1; Qt.callLater(page.ensureFocus) } } }
+    Connections { target: added; function onLoadingChanged() { if (!added.loading) { page.answered |= 2; Qt.callLater(page.ensureFocus) } } }
+    Connections { target: folders; function onLoadingChanged() { if (!folders.loading) { page.answered |= 4; Qt.callLater(page.ensureFocus) } } }
+    // All three rows have their first answer: Home is interactive (startup budget, SPEC 9).
+    property int answered: 0
+    onAnsweredChanged: if (answered === 7) Bench.homeReady()
     Connections { target: Core; function onItemChanged() { recent.refresh() } }
 
     Flickable {

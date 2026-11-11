@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 The Huehuecoyotl contributors -->
+<component type="desktop-application">
+  <id>io.github.blub3.Huehuecoyotl</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <name>Huehuecoyotl</name>
+  <summary>Play your films and series from folders and network shares</summary>
+  <summary xml:lang="de">Filme und Serien aus Ordnern und Netzwerkfreigaben abspielen</summary>
+  <developer id="io.github.blub3">
+    <name>The Huehuecoyotl contributors</name>
+  </developer>
+  <description>
+    <p>
+      Huehuecoyotl is a media player for the films and series you already own. Point it at
+      folders on your computer or on a NAS, and it builds a library with posters, descriptions
+      and episode lists, remembers where you stopped, and plays everything with libmpv.
+    </p>
+    <p xml:lang="de">
+      Huehuecoyotl ist eine Medienwiedergabe für die Filme und Serien, die du schon besitzt.
+      Gib Ordner auf deinem Rechner oder einem NAS an, und es baut eine Bibliothek mit Postern,
+      Beschreibungen und Episodenlisten, merkt sich, wo du aufgehört hast, und spielt alles mit
+      libmpv ab.
+    </p>
+    <ul>
+      <li>Libraries from local folders and SMB, NFS, WebDAV and FTP shares, found automatically on the network</li>
+      <li>Posters and descriptions from The Movie Database (needs a free personal API key)</li>
+      <li>Resume, watched state and "continue watching"</li>
+      <li>Hardware decoding, subtitles and audio tracks, chapters</li>
+      <li>Fully usable with keyboard or remote, in a window or fullscreen on the TV</li>
+      <li>No account, no server, no telemetry</li>
+    </ul>
+    <ul xml:lang="de">
+      <li>Bibliotheken aus lokalen Ordnern und SMB-, NFS-, WebDAV- und FTP-Freigaben, die im Netzwerk automatisch gefunden werden</li>
+      <li>Poster und Beschreibungen von The Movie Database (braucht einen kostenlosen persönlichen API-Schlüssel)</li>
+      <li>Fortsetzen, Gesehen-Status und „Weiterschauen“</li>
+      <li>Hardware-Dekodierung, Untertitel und Tonspuren, Kapitel</li>
+      <li>Vollständig mit Tastatur oder Fernbedienung bedienbar, im Fenster oder im Vollbild am Fernseher</li>
+      <li>Kein Konto, kein Server, keine Telemetrie</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.blub3.Huehuecoyotl.desktop</launchable>
+  <provides>
+    <binary>coyotl</binary>
+  </provides>
+  <url type="homepage">https://github.com/blub3/huehuecoyotl</url>
+  <url type="bugtracker">https://github.com/blub3/huehuecoyotl/issues</url>
+  <url type="vcs-browser">https://github.com/blub3/huehuecoyotl</url>
+  <url type="help">https://github.com/blub3/huehuecoyotl/blob/main/docs/user/README.md</url>
+  <url type="translate">https://github.com/blub3/huehuecoyotl/blob/main/CONTRIBUTING.md</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Your library on the home screen</caption>
+      <image>https://raw.githubusercontent.com/blub3/huehuecoyotl/main/docs/screenshots/home.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Adding a folder from a network share</caption>
+      <image>https://raw.githubusercontent.com/blub3/huehuecoyotl/main/docs/screenshots/network-share.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Playback with subtitles and the on-screen controls</caption>
+      <image>https://raw.githubusercontent.com/blub3/huehuecoyotl/main/docs/screenshots/player.png</image>
+    </screenshot>
+  </screenshots>
+  <branding>
+    <color type="primary" scheme_preference="light">#f3d39b</color>
+    <color type="primary" scheme_preference="dark">#5c3f0f</color>
+  </branding>
+  <content_rating type="oars-1.1"/>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Video</category>
+    <category>Player</category>
+  </categories>
+  <keywords>
+    <keyword>video</keyword>
+    <keyword>movie</keyword>
+    <keyword>series</keyword>
+    <keyword>NAS</keyword>
+    <keyword>mpv</keyword>
+  </keywords>
+  <releases>
+    <release version="0.1.0" date="2026-11-11" type="development">
+      <description>
+        <p>First development release: player, library, network shares.</p>
+      </description>
+    </release>
+  </releases>
+</component>

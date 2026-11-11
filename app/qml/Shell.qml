@@ -45,7 +45,10 @@ FocusScope {
     function focusRail() { rail.focusCurrent() }
     function focusContent() { Qt.callLater(() => { if (content.currentItem) content.currentItem.forceActiveFocus() }) }
 
-    Component.onCompleted: Nav.shell = shell
+    Component.onCompleted: {
+        Nav.shell = shell
+        if (Bench.mode === "scroll") shell.go("movies")
+    }
     // Returning from the player: give focus back to the page.
     StackView.onActivated: focusContent()
 

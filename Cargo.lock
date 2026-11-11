@@ -1500,6 +1500,7 @@ dependencies = [
  "image",
  "keyring",
  "mdns-sd",
+ "regex",
  "serde",
  "serde_json",
  "tempfile",
@@ -1524,6 +1525,7 @@ name = "huehuecoyotl-library"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
+ "image",
  "rusqlite",
  "tempfile",
  "thiserror 2.0.21",

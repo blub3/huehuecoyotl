@@ -35,6 +35,10 @@ FocusScope {
         onTriggered: if (page.active && !controls.menuOpen) page.hideOsd()
     }
     Connections {
+        target: Playback
+        function onLeaveRequested() { page.leave() }
+    }
+    Connections {
         target: page.player
         function onStateChanged() {
             if (page.player.state !== MpvPlayer.Playing) page.showOsd()

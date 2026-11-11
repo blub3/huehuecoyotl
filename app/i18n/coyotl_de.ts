@@ -27,29 +27,34 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="298"/>
+        <location filename="../src/corebridge.cpp" line="302"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="300"/>
+        <location filename="../src/corebridge.cpp" line="304"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="302"/>
+        <location filename="../src/corebridge.cpp" line="306"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="304"/>
+        <location filename="../src/corebridge.cpp" line="308"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="306"/>
+        <location filename="../src/corebridge.cpp" line="310"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
+    </message>
+    <message>
+        <location filename="../src/corebridge.cpp" line="457"/>
+        <source>The licence texts are missing from this build.</source>
+        <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
 </context>
 <context>
@@ -183,32 +188,32 @@
         <translation>Jahr</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="62"/>
+        <location filename="../qml/GridPage.qml" line="83"/>
         <source>Sort</source>
         <translation>Sortieren</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="72"/>
+        <location filename="../qml/GridPage.qml" line="93"/>
         <source>Unwatched</source>
         <translation>Ungesehen</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="72"/>
+        <location filename="../qml/GridPage.qml" line="93"/>
         <source>All</source>
         <translation>Alle</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="73"/>
+        <location filename="../qml/GridPage.qml" line="94"/>
         <source>Show only unwatched</source>
         <translation>Nur Ungesehenes zeigen</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="134"/>
+        <location filename="../qml/GridPage.qml" line="155"/>
         <source>Everything here is watched.</source>
         <translation>Hier ist alles gesehen.</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="141"/>
+        <location filename="../qml/GridPage.qml" line="162"/>
         <source>Add a folder</source>
         <translation>Ordner hinzufügen</translation>
     </message>
@@ -216,44 +221,44 @@
 <context>
     <name>HomePage</name>
     <message>
-        <location filename="../qml/HomePage.qml" line="60"/>
+        <location filename="../qml/HomePage.qml" line="63"/>
         <source>Welcome to Huehuecoyotl</source>
         <translation>Willkommen bei Huehuecoyotl</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="65"/>
+        <location filename="../qml/HomePage.qml" line="68"/>
         <source>Add the folders with your movies and shows. They are scanned and sorted into Movies and Shows. With a free TMDB key you also get posters, descriptions and episode titles.</source>
         <translation>Füge die Ordner mit deinen Filmen und Serien hinzu. Sie werden durchsucht und unter Filme und Serien einsortiert. Mit einem kostenlosen TMDB-Schlüssel bekommst du außerdem Poster, Beschreibungen und Folgentitel.</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="74"/>
+        <location filename="../qml/HomePage.qml" line="77"/>
         <source>Add a folder</source>
         <translation>Ordner hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="82"/>
+        <location filename="../qml/HomePage.qml" line="85"/>
         <source>Set up TMDB</source>
         <translation>TMDB einrichten</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="93"/>
-        <location filename="../qml/HomePage.qml" line="107"/>
+        <location filename="../qml/HomePage.qml" line="96"/>
+        <location filename="../qml/HomePage.qml" line="110"/>
         <source>Continue watching</source>
         <translation>Weiterschauen</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="118"/>
+        <location filename="../qml/HomePage.qml" line="121"/>
         <source>%1 left</source>
         <translation>noch %1</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="129"/>
-        <location filename="../qml/HomePage.qml" line="144"/>
+        <location filename="../qml/HomePage.qml" line="132"/>
+        <location filename="../qml/HomePage.qml" line="147"/>
         <source>Recently added</source>
         <translation>Zuletzt hinzugefügt</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="167"/>
+        <location filename="../qml/HomePage.qml" line="170"/>
         <source>Arrow keys to move · Enter to open · Esc to go back · F11 fullscreen</source>
         <translation>Pfeiltasten zum Bewegen · Enter zum Öffnen · Esc für zurück · F11 Vollbild</translation>
     </message>
@@ -535,6 +540,20 @@
     </message>
 </context>
 <context>
+    <name>NoticesPage</name>
+    <message>
+        <location filename="../qml/NoticesPage.qml" line="23"/>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location filename="../qml/NoticesPage.qml" line="24"/>
+        <location filename="../qml/NoticesPage.qml" line="44"/>
+        <source>Third-party licences</source>
+        <translation>Lizenzen von Drittanbietern</translation>
+    </message>
+</context>
+<context>
     <name>PlayerControls</name>
     <message>
         <location filename="../qml/PlayerControls.qml" line="25"/>
@@ -603,33 +622,33 @@
 <context>
     <name>PlayerPage</name>
     <message>
-        <location filename="../qml/PlayerPage.qml" line="116"/>
-        <location filename="../qml/PlayerPage.qml" line="197"/>
+        <location filename="../qml/PlayerPage.qml" line="120"/>
+        <location filename="../qml/PlayerPage.qml" line="201"/>
         <source>Back</source>
         <translation>Zurück</translation>
     </message>
     <message>
-        <location filename="../qml/PlayerPage.qml" line="148"/>
+        <location filename="../qml/PlayerPage.qml" line="152"/>
         <source>Loading</source>
         <translation>Wird geladen</translation>
     </message>
     <message>
-        <location filename="../qml/PlayerPage.qml" line="162"/>
+        <location filename="../qml/PlayerPage.qml" line="166"/>
         <source>Muted</source>
         <translation>Stumm</translation>
     </message>
     <message>
-        <location filename="../qml/PlayerPage.qml" line="162"/>
+        <location filename="../qml/PlayerPage.qml" line="166"/>
         <source>Volume %1%</source>
         <translation>Lautstärke %1%</translation>
     </message>
     <message>
-        <location filename="../qml/PlayerPage.qml" line="180"/>
+        <location filename="../qml/PlayerPage.qml" line="184"/>
         <source>Resumed at %1</source>
         <translation>Fortgesetzt bei %1</translation>
     </message>
     <message>
-        <location filename="../qml/PlayerPage.qml" line="181"/>
+        <location filename="../qml/PlayerPage.qml" line="185"/>
         <source>Start over</source>
         <translation>Von vorn</translation>
     </message>
@@ -691,82 +710,112 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="44"/>
+        <location filename="../qml/SettingsPage.qml" line="46"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="47"/>
+        <location filename="../qml/SettingsPage.qml" line="49"/>
         <source>Metadata</source>
         <translation>Metadaten</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="53"/>
+        <location filename="../qml/SettingsPage.qml" line="55"/>
         <source>A TMDB key is set through the COYOTL_TMDB_KEY environment variable.</source>
         <translation>Ein TMDB-Schlüssel ist über die Umgebungsvariable COYOTL_TMDB_KEY gesetzt.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="54"/>
+        <location filename="../qml/SettingsPage.qml" line="56"/>
         <source>Your TMDB key is stored in the system keystore. Posters and descriptions are downloaded automatically.</source>
         <translation>Dein TMDB-Schlüssel liegt im Schlüsselspeicher des Systems. Poster und Beschreibungen werden automatisch geladen.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="55"/>
+        <location filename="../qml/SettingsPage.qml" line="57"/>
         <source>Posters, descriptions and episode titles come from The Movie Database (TMDB). TMDB needs a free personal API key: create an account at themoviedb.org, open Settings → API, request a key for personal use, and paste the “API Key” or the “API Read Access Token” here. Without a key the app still plays everything and shows titles from the file names.</source>
         <translation>Poster, Beschreibungen und Folgentitel kommen von The Movie Database (TMDB). TMDB braucht einen kostenlosen persönlichen API-Schlüssel: Lege ein Konto auf themoviedb.org an, öffne Einstellungen → API, beantrage einen Schlüssel für die private Nutzung und füge hier den „API Key“ oder das „API Read Access Token“ ein. Ohne Schlüssel spielt die App trotzdem alles ab und zeigt die Titel aus den Dateinamen.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="71"/>
+        <location filename="../qml/SettingsPage.qml" line="73"/>
         <source>TMDB API key or read access token</source>
         <translation>TMDB-API-Schlüssel oder Read Access Token</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="75"/>
+        <location filename="../qml/SettingsPage.qml" line="77"/>
         <source>TMDB API key</source>
         <translation>TMDB-API-Schlüssel</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="91"/>
+        <location filename="../qml/SettingsPage.qml" line="93"/>
         <source>Checking…</source>
         <translation>Wird geprüft …</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="91"/>
+        <location filename="../qml/SettingsPage.qml" line="93"/>
         <source>Check and save</source>
         <translation>Prüfen und speichern</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="101"/>
+        <location filename="../qml/SettingsPage.qml" line="103"/>
         <source>Remove key</source>
         <translation>Schlüssel entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="114"/>
+        <location filename="../qml/SettingsPage.qml" line="116"/>
         <source>Review matches</source>
         <translation>Zuordnungen prüfen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="120"/>
+        <location filename="../qml/SettingsPage.qml" line="123"/>
         <source>%1 tasks queued</source>
         <translation>%1 Aufgaben in der Warteschlange</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="125"/>
+        <location filename="../qml/SettingsPage.qml" line="128"/>
         <source>%1 failed (see the log)</source>
         <translation>%1 fehlgeschlagen (siehe Protokoll)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="131"/>
+        <location filename="../qml/SettingsPage.qml" line="134"/>
+        <source>Troubleshooting</source>
+        <translation>Fehlerbehebung</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="139"/>
+        <source>If something does not work, export a diagnostics file and attach it to a bug report. It contains the app&apos;s log and version information. Server names, user names, addresses, keys and your home folder are removed.</source>
+        <translation>Wenn etwas nicht funktioniert, exportiere eine Diagnosedatei und hänge sie an einen Fehlerbericht an. Sie enthält das Protokoll der App und Versionsangaben. Servernamen, Benutzernamen, Adressen, Schlüssel und dein Benutzerordner werden entfernt.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="145"/>
+        <source>Export diagnostics</source>
+        <translation>Diagnose exportieren</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="152"/>
+        <source>Saved to %1</source>
+        <translation>Gespeichert unter %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="153"/>
+        <source>Export failed: %1</source>
+        <translation>Export fehlgeschlagen: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="166"/>
         <source>About</source>
         <translation>Über</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="136"/>
+        <location filename="../qml/SettingsPage.qml" line="171"/>
         <source>Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt, all used under the LGPL.</source>
         <translation>Huehuecoyotl %1 · Apache-Lizenz 2.0. Wiedergabe mit libmpv und FFmpeg, Oberfläche mit Qt, jeweils unter der LGPL.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="149"/>
+        <location filename="../qml/SettingsPage.qml" line="175"/>
+        <source>Third-party licences</source>
+        <translation>Lizenzen von Drittanbietern</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="191"/>
         <source>This product uses the TMDB API but is not endorsed or certified by TMDB.</source>
         <translation>Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.</translation>
     </message>
@@ -863,17 +912,27 @@
 <context>
     <name>main</name>
     <message>
-        <location filename="../src/main.cpp" line="42"/>
+        <location filename="../src/main.cpp" line="63"/>
         <source>Start in fullscreen.</source>
         <translation>Im Vollbild starten.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="43"/>
+        <location filename="../src/main.cpp" line="64"/>
         <source>Use this data folder.</source>
         <translation>Diesen Datenordner verwenden.</translation>
     </message>
     <message>
-        <location filename="../src/main.cpp" line="44"/>
+        <location filename="../src/main.cpp" line="65"/>
+        <source>Measure a performance budget and quit: startup or scroll.</source>
+        <translation>Ein Leistungsbudget messen und beenden: startup oder scroll.</translation>
+    </message>
+    <message>
+        <location filename="../src/main.cpp" line="66"/>
+        <source>Also write the benchmark result to this file.</source>
+        <translation>Das Messergebnis zusätzlich in diese Datei schreiben.</translation>
+    </message>
+    <message>
+        <location filename="../src/main.cpp" line="67"/>
         <source>Video file to play.</source>
         <translation>Abzuspielende Videodatei.</translation>
     </message>

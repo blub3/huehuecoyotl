@@ -209,6 +209,8 @@ mod ffi {
             sink: UniquePtr<EventSink>,
         ) -> Result<Box<Core>>;
         fn core_version() -> String;
+        /// Qt's log messages into the core's log file. level: 0 debug … 3 critical.
+        fn log_message(level: u8, category: &str, message: &str);
 
         fn browse(self: &Core, request_id: u64, path: &str);
         fn open_path(self: &Core, request_id: u64, path: &str);
@@ -260,6 +262,10 @@ mod ffi {
         );
         fn add_network_library(self: &Core, request_id: u64, spec_json: &str, password: &str);
         fn discover(self: &Core, request_id: u64);
+
+        // M4
+        /// Write a redacted diagnostics file; returns its size in bytes.
+        fn export_diagnostics(self: &Core, dest: &str, app_info: &str) -> Result<u64>;
     }
 
     unsafe extern "C++" {
@@ -602,6 +608,12 @@ fn core_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+fn log_message(level: u8, category: &str, message: &str) {
+    guard("log_message", || {
+        core::diagnostics::log_external(level, category, message)
+    });
+}
+
 impl Core {
     fn browse(&self, request_id: u64, path: &str) {
         guard("browse", || self.0.browse(request_id, path))
@@ -725,6 +737,15 @@ impl Core {
     }
     fn discover(&self, request_id: u64) {
         guard("discover", || self.0.discover(request_id))
+    }
+
+    fn export_diagnostics(&self, dest: &str, app_info: &str) -> Result<u64, String> {
+        catch_unwind(AssertUnwindSafe(|| {
+            self.0
+                .export_diagnostics(std::path::Path::new(dest), app_info)
+                .map_err(|e| e.to_string())
+        }))
+        .unwrap_or_else(|_| Err("internal error while exporting diagnostics".into()))
     }
 }
 

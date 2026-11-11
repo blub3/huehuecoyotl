@@ -37,6 +37,8 @@ class PlaybackController : public QObject {
     // Leave the player: saves progress and stops mpv.
     Q_INVOKABLE void stop();
     Q_INVOKABLE void startOver();
+    // Ask the player page to close (media keys, MPRIS Stop); it calls stop() itself.
+    void requestLeave() { emit leaveRequested(); }
 
   signals:
     void ticketChanged();
@@ -44,6 +46,7 @@ class PlaybackController : public QObject {
     // A ticket arrived and playback is starting: the UI shows the player.
     void started();
     void failed(const QString &message);
+    void leaveRequested();
 
   private:
     void onTicket(quint64 requestId, const QVariantMap &ticket);

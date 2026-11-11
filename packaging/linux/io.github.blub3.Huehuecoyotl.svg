@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Huehuecoyotl app icon: a geometric coyote head whose face holds a play button. -->
+  <rect x="4" y="4" width="120" height="120" rx="26" fill="#1b1f27"/>
+  <path d="M27 18 L52 50 L22 58 Z" fill="#e3a33b"/>
+  <path d="M101 18 L76 50 L106 58 Z" fill="#e3a33b"/>
+  <path d="M33 26 L45 46 L29 50 Z" fill="#a8701c"/>
+  <path d="M95 26 L83 46 L99 50 Z" fill="#a8701c"/>
+  <path d="M18 52 Q64 34 110 52 L64 114 Z" fill="#e3a33b"/>
+  <path d="M64 114 L50 95 L78 95 Z" fill="#c98a26"/>
+  <path d="M55 62 L55 88 L77 75 Z" fill="#1b1f27" stroke="#1b1f27" stroke-width="5" stroke-linejoin="round"/>
+</svg>

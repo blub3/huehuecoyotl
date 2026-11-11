@@ -45,6 +45,8 @@ class MpvPlayer : public QObject {
     ~MpvPlayer() override;
 
     mpv_handle *handle() const { return m_mpv; }
+    // mpv, FFmpeg and decoder settings for the diagnostics export.
+    QString versionInfo() const;
 
     State state() const { return m_state; }
     QString errorString() const { return m_error; }

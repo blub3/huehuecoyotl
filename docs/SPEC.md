@@ -414,6 +414,8 @@ Gates are the diamonds between milestones; a milestone is not finished until its
 - **M3 Network.** SMB, NFS, WebDAV, SFTP and FTP sources; discovery; keystore credentials; reconnect handling; the protocol conformance suite.
 - **M4 Release 1.0.** Direct mode with HDR passthrough on Windows; Flatpak and MSIX packages, signing, third-party notices, user documentation, translations, performance budgets met.
 
+**M4 status (Nov 11, 2026).** The Linux half is in place: Flatpak, MPRIS media keys, diagnostics export, third-party notices, user guide, German translation, and the startup and scroll budgets measured within limits on one machine. Everything on Windows (direct mode with HDR, MSIX, signing) waits on the Windows libmpv build. See the [M4 status](milestones/M4.md).
+
 **M3 status (Nov 11, 2026).** SMB, NFS, WebDAV and FTP libraries work end to end on Linux. SFTP is built but not linked into the app yet, and Windows servers are untested. See the [M3 status](milestones/M3.md).
 
 **M0 status (Nov 10, 2026).** First run on Linux, X11 and NVIDIA: the LGPL build, the embedded item and Samba streaming pass, and the direct mode design is drafted. Still open for the gate: everything on Windows (including HDR passthrough), Intel and AMD graphics, and Wayland. See the [M0 report](spike/M0-report.md).

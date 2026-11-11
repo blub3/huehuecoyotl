@@ -90,3 +90,13 @@ RUN git clone --depth 1 -b ${MPV_TAG} https://github.com/mpv-player/mpv.git \
 RUN for d in nv-codec-headers ffmpeg libass libplacebo wayland wayland-protocols mpv; do \
       printf '%-18s %s\n' "$d" "$(git -C $d rev-parse HEAD)"; done > ${PREFIX}/BUILDINFO.txt \
     && echo "SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH}" >> ${PREFIX}/BUILDINFO.txt
+
+# Licence texts of everything in the bundle, for the third-party notices (SPEC 10, step 6).
+RUN for d in nv-codec-headers ffmpeg libass libplacebo wayland mpv; do \
+      mkdir -p ${PREFIX}/share/licenses/$d \
+      && find $d -maxdepth 1 -type f \( -iname 'COPYING*' -o -iname 'LICENSE*' -o -iname 'LICENCE*' \
+           -o -iname 'NOTICE*' -o -iname 'AUTHORS*' -o -iname 'Copyright*' \) \
+           -exec cp {} ${PREFIX}/share/licenses/$d/ \; ; done \
+    && for s in libplacebo/3rdparty/*/; do n=$(basename $s); \
+         f=$(find $s -maxdepth 1 -type f \( -iname 'LICENSE*' -o -iname 'COPYING*' \) | head -1); \
+         [ -n "$f" ] && cp "$f" ${PREFIX}/share/licenses/libplacebo/3rdparty-$n-$(basename $f) || true; done

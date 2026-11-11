@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Name=Huehuecoyotl
+GenericName=Media Player
+GenericName[de]=Medienwiedergabe
+Comment=Play and browse your films and series from local folders and network shares
+Comment[de]=Filme und Serien aus lokalen Ordnern und Netzwerkfreigaben abspielen und durchsuchen
+Icon=io.github.blub3.Huehuecoyotl
+Exec=coyotl %f
+TryExec=coyotl
+Terminal=false
+Categories=AudioVideo;Video;Player;TV;Qt;
+Keywords=video;movie;film;series;tv;player;mpv;nas;smb;nfs;
+Keywords[de]=Video;Film;Serie;Fernsehen;Wiedergabe;mpv;NAS;SMB;NFS;
+MimeType=video/mp4;video/x-matroska;video/webm;video/quicktime;video/x-msvideo;video/mp2t;video/mpeg;video/ogg;video/x-m4v;video/x-flv;video/3gpp;
+StartupWMClass=coyotl
+SingleMainWindow=true

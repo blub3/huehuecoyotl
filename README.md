@@ -7,10 +7,12 @@ the living-room PC alike: everything works with a keyboard or remote.
 The name honours Huehuecoyotl, the dancing coyote of the Nahua tradition, patron of music,
 dance and storytelling. The command and config folder use the short form `coyotl`.
 
-**Status:** milestones M1 (player), M2 (library) and M3 (network shares) on Linux. See the [architecture specification](docs/SPEC.md)
-and the [M0 spike report](docs/spike/M0-report.md).
+**Status:** milestones M1 (player), M2 (library) and M3 (network shares) on Linux, M4 (release
+1.0) in progress: Flatpak, media keys, diagnostics, third-party notices and the performance
+budgets are in; Windows is not. See the [user guide](docs/user/README.md), the
+[architecture specification](docs/SPEC.md) and the [M4 status](docs/milestones/M4.md).
 
-## Features so far (M1–M3)
+## Features so far (M1–M4)
 
 - Embedded mpv video in Qt Quick with hardware decoding (`hwdec=auto-safe`) and display-synced timing
 - Browse local folders and mounted drives; open files from the command line
@@ -22,6 +24,8 @@ and the [M0 spike report](docs/spike/M0-report.md).
 - Library folders scanned into Movies and Shows; moves and renames keep watch state
 - TMDB metadata with posters, descriptions and episode titles (free personal API key, stored in the OS keystore); uncertain matches go to a review list
 - Poster grids that stay smooth with thousands of titles, detail pages, full-text search
+- Media keys and desktop media controls through MPRIS on Linux
+- Settings → Troubleshooting exports a redacted diagnostics file; Settings → About lists every third-party licence
 - Libraries on network shares: SMB 2/3, NFS, WebDAV and FTP, all in pure Rust (no Samba, no GPL). Servers are found on the local network, passwords go to the OS keystore, and playback streams straight to mpv with adaptive read-ahead and rides out short network drops. Offline shares keep their library entries.
 
 ## Building
@@ -47,6 +51,13 @@ Linux (Windows needs the Windows libmpv recipe, an open M0 item):
    build/app/coyotl
    ```
 
+Flatpak (needs `flatpak-builder` or `org.flatpak.Builder`, the KDE 6.11 SDK, the
+`rust-stable` SDK extension and `cargo-about`):
+
+```bash
+packaging/flatpak/build.sh --install
+```
+
 Distribution packagers can link a system libmpv with `-DCOYOTL_SYSTEM_MPV=ON`; if that libmpv
 is a GPL build, the package is GPL as a whole (SPEC section 3).
 
@@ -66,6 +77,20 @@ cmake --build build --target all_qmllint
 
 ```bash
 cargo deny check licenses bans sources
+```
+
+Performance budgets (SPEC 9) on a synthetic library of 5,000 movies:
+
+```bash
+cargo run --release -p huehuecoyotl-library --example bench_seed -- /tmp/bench 5000
+```
+
+```bash
+build/app/coyotl --data-dir /tmp/bench --benchmark startup
+```
+
+```bash
+build/app/coyotl --data-dir /tmp/bench --benchmark scroll
 ```
 
 The headless harness drives the same core API as the UI:

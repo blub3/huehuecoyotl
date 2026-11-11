@@ -507,3 +507,16 @@ void MpvPlayer::parseChapters(const mpv_node *list)
         }
     emit mediaChanged();
 }
+
+QString MpvPlayer::versionInfo() const
+{
+    QStringList out;
+    for (const char *name : {"mpv-version", "ffmpeg-version", "libass-version", "hwdec", "hwdec-current",
+                             "current-vo", "current-ao", "display-fps-override"}) {
+        char *v = m_mpv ? mpv_get_property_string(m_mpv, name) : nullptr;
+        out << QStringLiteral("%1 %2").arg(QLatin1String(name),
+                                           v ? QString::fromUtf8(v) : QStringLiteral("-"));
+        mpv_free(v);
+    }
+    return out.join('\n');
+}

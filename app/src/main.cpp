@@ -4,7 +4,9 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QLibraryInfo>
 #include <QLocale>
+#include <QOpenGLContext>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -14,10 +16,29 @@
 #include <QTimer>
 #include <QTranslator>
 
+#include "benchmark.h"
 #include "corebridge.h"
 #include "desktopintegration.h"
+#if defined(Q_OS_LINUX)
+#include "mpris.h"
+#endif
 #include "mpvplayer.h"
 #include "playbackcontroller.h"
+
+namespace {
+QtMessageHandler g_previousHandler = nullptr;
+
+// Qt's messages go to the core's rotating log file (SPEC 10: one file for both languages) and,
+// as before, to stderr.
+void forwardToCore(QtMsgType type, const QMessageLogContext &ctx, const QString &msg)
+{
+    const quint8 level = type == QtDebugMsg ? 0 : type == QtInfoMsg ? 1 : type == QtWarningMsg ? 2 : 3;
+    const QByteArray cat(ctx.category ? ctx.category : "default"), text = msg.toUtf8();
+    coyotl::core::log_message(level, rust::Str(cat.constData(), size_t(cat.size())),
+                              rust::Str(text.constData(), size_t(text.size())));
+    if (g_previousHandler) g_previousHandler(type, ctx, msg);
+}
+} // namespace
 
 int main(int argc, char *argv[])
 {
@@ -41,6 +62,13 @@ int main(int argc, char *argv[])
     cli.addVersionOption();
     cli.addOption({"fullscreen", QCoreApplication::translate("main", "Start in fullscreen.")});
     cli.addOption({"data-dir", QCoreApplication::translate("main", "Use this data folder."), "dir"});
+    cli.addOption(
+        {"benchmark",
+         QCoreApplication::translate("main", "Measure a performance budget and quit: startup or scroll."),
+         "name"});
+    cli.addOption({"benchmark-out",
+                   QCoreApplication::translate("main", "Also write the benchmark result to this file."),
+                   "file"});
     cli.addPositionalArgument("file", QCoreApplication::translate("main", "Video file to play."), "[file]");
     cli.process(app);
 
@@ -51,14 +79,34 @@ int main(int argc, char *argv[])
 
     // Metadata language follows the UI language, e.g. "de-DE" (TMDB falls back to English).
     const QString language = QLocale().name().replace('_', '-');
+    auto *bench = new Benchmark(cli.value("benchmark"), cli.value("benchmark-out"), &app);
+    bench->mark(QStringLiteral("main"));
     auto *core = new CoreBridge(dataDir, language, &app);
+    bench->mark(QStringLiteral("core"));
     if (!core->isOpen()) {
         qCritical("%s", qPrintable(core->openError()));
         return 1;
     }
+    g_previousHandler = qInstallMessageHandler(forwardToCore);
     auto *player = new MpvPlayer(&app);
+    bench->mark(QStringLiteral("mpv"));
+    core->setAppInfoProvider([player] {
+        QStringList info{QStringLiteral("app %1").arg(QCoreApplication::applicationVersion()),
+                         QStringLiteral("qt %1 (runtime %2)")
+                             .arg(QLatin1String(QT_VERSION_STR), QLibraryInfo::version().toString()),
+                         QStringLiteral("platform %1").arg(QGuiApplication::platformName())};
+        if (QOpenGLContext *gl = QOpenGLContext::globalShareContext())
+            info << QStringLiteral("opengl %1.%2")
+                        .arg(gl->format().majorVersion())
+                        .arg(gl->format().minorVersion());
+        info << player->versionInfo();
+        return info.join('\n');
+    });
     auto *playback = new PlaybackController(player, &app);
     new DesktopIntegration(player, &app);
+#if defined(Q_OS_LINUX)
+    registerMpris(&app, player, playback);
+#endif
 
     int rc = 0;
     {
@@ -66,6 +114,8 @@ int main(int argc, char *argv[])
         engine.setInitialProperties({{"startFullscreen", cli.isSet("fullscreen")}});
         engine.loadFromModule("Coyotl", "Main");
         if (engine.rootObjects().isEmpty()) return 1;
+        bench->mark(QStringLiteral("qml"));
+        if (auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first())) bench->attach(window);
 
         if (!cli.positionalArguments().isEmpty()) {
             const QString file = QFileInfo(cli.positionalArguments().first()).absoluteFilePath();
@@ -77,6 +127,7 @@ int main(int argc, char *argv[])
     }
     delete playback;
     delete player;
+    qInstallMessageHandler(g_previousHandler);
     delete core; // joins core threads
     return rc;
 }

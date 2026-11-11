@@ -1,0 +1,212 @@
+# Flatpak build of Huehuecoyotl (SPEC 10). Build locally with packaging/flatpak/build.sh,
+# which vendors the Rust crates and generates the third-party notices first.
+#
+# libmpv and its libraries are built here from the same pinned sources as the Docker recipe in
+# third_party/mpv (LGPL configuration: no --enable-gpl, mpv -Dgpl=false). Qt comes from the
+# KDE runtime.
+id: io.github.blub3.Huehuecoyotl
+runtime: org.kde.Platform
+runtime-version: '6.11'
+sdk: org.kde.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: coyotl
+rename-icon: io.github.blub3.Huehuecoyotl
+finish-args:
+  - --share=ipc
+  - --share=network            # network shares, TMDB, mDNS discovery
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --device=dri
+  # Library folders are picked inside the app, so it needs to read them directly.
+  - --filesystem=xdg-videos:ro
+  - --filesystem=home:ro
+  - --filesystem=/media:ro
+  - --filesystem=/mnt:ro
+  - --filesystem=/run/media:ro
+  - --filesystem=xdg-download  # "Export diagnostics"
+  - --talk-name=org.freedesktop.ScreenSaver
+  - --talk-name=org.freedesktop.secrets   # TMDB key and share passwords (Secret Service)
+  - --own-name=org.mpris.MediaPlayer2.coyotl
+  - --env=QT_QUICK_CONTROLS_STYLE=Basic
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/pkgconfig
+  - /share/aclocal
+  - /share/ffmpeg
+  - '*.la'
+  - '*.a'
+
+modules:
+  - name: nv-codec-headers
+    cleanup: ['*']
+    no-autogen: true
+    make-install-args: [PREFIX=/app]
+    sources:
+      - type: git
+        url: https://github.com/FFmpeg/nv-codec-headers.git
+        tag: n13.0.19.0
+        commit: e844e5b26f46bb77479f063029595293aa8f812d
+
+  # FFmpeg: LGPL v2.1+. Decoders, demuxers, parsers and filters only.
+  - name: ffmpeg
+    config-opts:
+      - --enable-shared
+      - --disable-static
+      - --disable-programs
+      - --disable-doc
+      - --disable-encoders
+      - --disable-muxers
+      - --disable-indevs
+      - --disable-outdevs
+      - --disable-autodetect
+      - --enable-zlib
+      - --enable-vaapi
+      - --enable-ffnvcodec
+      - --enable-nvdec
+      - --enable-cuvid
+      - --enable-network
+      - --enable-pic
+    post-install:
+      # Fail the build if the configuration ever turns GPL, non-free or LGPLv3.
+      - "! grep -E '^#define (CONFIG_GPL|CONFIG_NONFREE|CONFIG_VERSION3) 1' config.h"
+      - install -Dm644 -t /app/share/licenses/ffmpeg LICENSE.md COPYING.LGPLv2.1
+    sources:
+      - type: git
+        url: https://github.com/FFmpeg/FFmpeg.git
+        tag: n8.1.3
+        commit: 1041abdc962f4cc4f394aa8de9dc5236c0c3b9e7
+
+  - name: libass
+    config-opts: [--disable-static]
+    post-install:
+      - install -Dm644 -t /app/share/licenses/libass COPYING
+    sources:
+      - type: git
+        url: https://github.com/libass/libass.git
+        tag: 0.17.5
+        commit: 4a05d8127f525943ebf45fdc6497c9e665947f0d
+
+  - name: libplacebo
+    buildsystem: meson
+    config-opts:
+      - --libdir=lib
+      - -Dvulkan=disabled
+      - -Dopengl=enabled
+      - -Dshaderc=disabled
+      - -Dglslang=disabled
+      - -Dd3d11=disabled
+      - -Ddemos=false
+      - -Dtests=false
+      - -Dlcms=enabled
+      - -Dxxhash=disabled
+    post-install:
+      - install -Dm644 -t /app/share/licenses/libplacebo /run/build/libplacebo/LICENSE
+    sources:
+      - type: git
+        url: https://code.videolan.org/videolan/libplacebo.git
+        tag: v7.387.0
+        commit: 275f7dea27924cdd34ab2e6c20e448b6bc4fab65
+
+  # mpv: -Dgpl=false. meson refuses every GPL-only feature (x11, dvdnav, cdda, ...).
+  - name: mpv
+    buildsystem: meson
+    config-opts:
+      - --libdir=lib
+      - -Dgpl=false
+      - -Dlibmpv=true
+      - -Dcplayer=false
+      - -Dtests=false
+      - -Dlua=disabled
+      - -Djavascript=disabled
+      - -Dvulkan=disabled
+      - -Dx11=disabled
+      - -Dwayland=enabled
+      - -Degl=enabled
+      - -Dgl=enabled
+      - -Dvaapi=enabled
+      - -Dpulse=enabled
+      - -Dpipewire=enabled
+      - -Dalsa=enabled
+      - -Dlibarchive=disabled
+      - -Dlibbluray=disabled
+      - -Duchardet=disabled
+      - -Drubberband=disabled
+      - -Dzimg=disabled
+      - -Dlcms2=enabled
+      - -Dmanpage-build=disabled
+      - -Dhtml-build=disabled
+    post-install:
+      - install -Dm644 -t /app/share/licenses/mpv /run/build/mpv/LICENSE.LGPL /run/build/mpv/Copyright
+    sources:
+      - type: git
+        url: https://github.com/mpv-player/mpv.git
+        tag: v0.42.0
+        commit: b0841e8c4d156b8403dc1876c4cbd9011eb583f3
+
+  # The cxx bridge generator, built offline from the vendored crates so that Corrosion finds it
+  # on PATH instead of running `cargo install` (which needs the network). Build tool only.
+  - name: cxxbridge
+    buildsystem: simple
+    cleanup: ['*']
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/cxxbridge/cargo
+    build-commands:
+      - cargo install --offline --path "$(echo vendor/cxxbridge-cmd-*)" --root /app
+    sources:
+      - type: dir
+        path: generated/vendor
+        dest: vendor
+      - type: file
+        path: generated/cargo-config.toml
+        dest: cargo
+        dest-filename: config.toml
+
+  - name: coyotl
+    buildsystem: cmake-ninja
+    builddir: true
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/coyotl/cargo
+        CARGO_NET_OFFLINE: 'true'
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCOYOTL_BUILD_TESTS=OFF
+      - -DCOYOTL_LIBMPV_PREFIX=/app
+      - -DCOYOTL_NOTICES_FILE=/run/build/coyotl/THIRD_PARTY_NOTICES.txt
+      - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
+      - -DFETCHCONTENT_SOURCE_DIR_CORROSION=/run/build/coyotl/corrosion
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - .git
+          - build
+          - target
+          - spike
+          - third_party/mpv/out
+          - tests/servers/fixtures
+          - crates/vfs-sftp/target
+          - packaging/flatpak/.flatpak-builder
+          - packaging/flatpak/build-dir
+          - packaging/flatpak/repo
+      - type: git
+        url: https://github.com/corrosion-rs/corrosion.git
+        tag: v0.6.1
+        commit: 1499b14e4906a2890f5cee1547c8848db261753d
+        dest: corrosion
+      # Generated by build.sh: `cargo vendor` output and the matching cargo configuration.
+      - type: dir
+        path: generated/vendor
+        dest: vendor
+      - type: file
+        path: generated/cargo-config.toml
+        dest: cargo
+        dest-filename: config.toml
+      - type: file
+        path: generated/THIRD_PARTY_NOTICES.txt
