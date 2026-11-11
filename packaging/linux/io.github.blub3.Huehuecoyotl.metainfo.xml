@@ -87,9 +87,9 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
-    <release version="0.1.0" date="2026-11-11" type="development">
+    <release version="0.9.0" date="2026-11-11" type="development">
       <description>
-        <p>First development release: player, library, network shares.</p>
+        <p>Linux preview: player, library with TMDB metadata, and libraries on SMB, NFS, WebDAV and FTP shares.</p>
       </description>
     </release>
   </releases>
