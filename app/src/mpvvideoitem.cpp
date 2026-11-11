@@ -26,6 +26,9 @@ class MpvRenderer : public QQuickFramebufferObject::Renderer {
     ~MpvRenderer() override
     {
         // Render thread, GL context current. Must run before the mpv handle is destroyed.
+        // The window outlives the player page: without the disconnect its next frame would
+        // report a swap to the freed context (the crash after leaving the player).
+        QObject::disconnect(m_swapConnection);
         if (m_ctx) mpv_render_context_free(m_ctx);
     }
 
@@ -34,7 +37,7 @@ class MpvRenderer : public QQuickFramebufferObject::Renderer {
         // GUI thread is blocked here.
         if (!m_window && item->window()) {
             m_window = item->window();
-            QObject::connect(
+            m_swapConnection = QObject::connect(
                 m_window, &QQuickWindow::frameSwapped, m_window,
                 [this] {
                     if (m_ctx) mpv_render_context_report_swap(m_ctx);
@@ -90,13 +93,15 @@ class MpvRenderer : public QQuickFramebufferObject::Renderer {
 
         if (mpv_render_context_create(&m_ctx, m_item->player()->handle(), params.data()) < 0)
             qFatal("mpv_render_context_create failed");
+        // Called on an mpv thread. It goes to the player, which lives as long as the app: the
+        // item can already be deleted while this renderer still waits for the render thread.
         mpv_render_context_set_update_callback(
             m_ctx,
             [](void *ctx) {
-                QMetaObject::invokeMethod(static_cast<MpvVideoItem *>(ctx), &QQuickItem::update,
-                                          Qt::QueuedConnection);
+                auto *player = static_cast<MpvPlayer *>(ctx);
+                QMetaObject::invokeMethod(player, &MpvPlayer::frameReady, Qt::QueuedConnection);
             },
-            m_item);
+            m_item->player());
         QMetaObject::invokeMethod(m_item->player(), &MpvPlayer::renderReady, Qt::QueuedConnection);
     }
 
@@ -104,6 +109,7 @@ class MpvRenderer : public QQuickFramebufferObject::Renderer {
     QQuickWindow *m_window = nullptr;
     QScreen *m_screen = nullptr;
     mpv_render_context *m_ctx = nullptr;
+    QMetaObject::Connection m_swapConnection;
 };
 
 } // namespace
@@ -119,7 +125,9 @@ QQuickFramebufferObject::Renderer *MpvVideoItem::createRenderer() const
 void MpvVideoItem::setPlayer(MpvPlayer *p)
 {
     if (p == m_player) return;
+    disconnect(m_frameConnection);
     m_player = p;
+    if (m_player) m_frameConnection = connect(m_player, &MpvPlayer::frameReady, this, &QQuickItem::update);
     emit playerChanged();
     update();
 }

@@ -101,6 +101,8 @@ class MpvPlayer : public QObject {
     void setDisplayFps(double fps);
 
   signals:
+    // mpv has a new video frame for the embedded item (emitted on the GUI thread).
+    void frameReady();
     void stateChanged();
     void positionChanged();
     void durationChanged();

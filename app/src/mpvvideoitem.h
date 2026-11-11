@@ -20,4 +20,5 @@ class MpvVideoItem : public QQuickFramebufferObject {
 
   private:
     MpvPlayer *m_player = nullptr;
+    QMetaObject::Connection m_frameConnection;
 };
