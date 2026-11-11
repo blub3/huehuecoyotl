@@ -1,19 +1,21 @@
 [workspace]
 resolver = "3"
-members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "crates/scanner", "crates/metadata", "crates/cli"]
+exclude = ["crates/vfs-sftp"]
+members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "crates/scanner", "crates/metadata", "crates/stream", "crates/cli"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/blub3/huehuecoyotl"
-rust-version = "1.85"
+rust-version = "1.86"
 
 [workspace.dependencies]
 huehuecoyotl-core = { path = "crates/core" }
 huehuecoyotl-library = { path = "crates/library" }
 huehuecoyotl-vfs = { path = "crates/vfs" }
 huehuecoyotl-scanner = { path = "crates/scanner" }
+huehuecoyotl-stream = { path = "crates/stream" }
 huehuecoyotl-metadata = { path = "crates/metadata" }
 async-trait = "0.1"
 bytes = "1"

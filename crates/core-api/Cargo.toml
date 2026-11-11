@@ -14,6 +14,7 @@ doctest = false
 
 [dependencies]
 huehuecoyotl-core.workspace = true
+huehuecoyotl-stream.workspace = true
 cxx.workspace = true
 serde_json.workspace = true
 

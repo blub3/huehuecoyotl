@@ -2,9 +2,20 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en" sourcelanguage="en">
 <context>
+    <name>NetworkSharePage</name>
+    <message numerus="yes">
+        <location filename="../qml/NetworkSharePage.qml" line="107"/>
+        <source>%n video(s) in this folder</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>SourcesPage</name>
     <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="113"/>
+        <location filename="../qml/SourcesPage.qml" line="133"/>
         <source>%n video(s)</source>
         <translation type="unfinished">
             <numerusform></numerusform>

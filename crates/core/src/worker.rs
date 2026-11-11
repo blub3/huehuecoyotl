@@ -113,28 +113,51 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
 }
 
 async fn scan(inner: &Arc<Inner>, source_id: i64) -> Result<(), String> {
-    let root: Option<String> = inner
+    let row = inner
         .lib
-        .read(move |c| {
-            use huehuecoyotl_library::rusqlite::OptionalExtension;
-            Ok(
-                c.query_row("SELECT root FROM source WHERE id = ?1", [source_id], |r| {
-                    r.get(0)
-                })
-                .optional()?
-                .flatten(),
-            )
-        })
+        .read(move |c| catalog::source(c, source_id))
         .await
         .map_err(|e| e.to_string())?;
-    let Some(root) = root else { return Ok(()) }; // library was removed meanwhile
+    // The library was removed meanwhile.
+    let Some((kind, Some(root))) = row.map(|r| (r.kind, r.root)) else {
+        return Ok(());
+    };
+    let remote = if kind == "local" {
+        None
+    } else {
+        match inner.remote_source(source_id).await {
+            Ok(s) => Some(s),
+            // Offline or a changed password: report it, keep the data, try again later.
+            Err(e) => {
+                inner.sink.post(Event::ScanState {
+                    source_id,
+                    running: false,
+                    message: e.message,
+                });
+                return Ok(());
+            }
+        }
+    };
     inner.scanning.lock().unwrap().insert(source_id);
     inner.sink.post(Event::ScanState {
         source_id,
         running: true,
         message: String::new(),
     });
-    let res = scan_source(&inner.lib, &inner.local, source_id, &VPath::new(&root)).await;
+    let res = match &remote {
+        None => scan_source(&inner.lib, &inner.local, source_id, &VPath::new(&root)).await,
+        Some(src) => {
+            let root = if root.is_empty() {
+                "/".to_string()
+            } else {
+                root
+            };
+            scan_source(&inner.lib, &**src, source_id, &VPath::new(root)).await
+        }
+    };
+    if let Err(ScanError::Vfs(huehuecoyotl_vfs::VfsError::Unreachable(_))) = &res {
+        inner.set_online(source_id, false);
+    }
     inner.scanning.lock().unwrap().remove(&source_id);
     let (message, out) = match res {
         Ok(r) => {

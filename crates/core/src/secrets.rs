@@ -51,3 +51,68 @@ pub fn clear_tmdb_key() {
         let _ = e.delete_credential();
     }
 }
+
+// ---- network source passwords --------------------------------------------------------------
+
+/// Passwords kept for this session when the keystore is off or unavailable.
+fn memory() -> &'static std::sync::Mutex<std::collections::HashMap<String, String>> {
+    static M: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<String, String>>> =
+        std::sync::OnceLock::new();
+    M.get_or_init(Default::default)
+}
+
+fn keystore_disabled() -> bool {
+    std::env::var_os("COYOTL_DISABLE_KEYSTORE").is_some()
+}
+
+/// Blocking. `reference` is the source's `credential_ref`. Returns a user-facing warning when
+/// the password can only be kept until the app closes.
+pub fn store_password(reference: &str, password: &str) -> Result<(), String> {
+    memory()
+        .lock()
+        .unwrap()
+        .insert(reference.to_string(), password.to_string());
+    if keystore_disabled() {
+        return Ok(());
+    }
+    if password.is_empty() {
+        delete_password(reference);
+        return Ok(());
+    }
+    keyring::Entry::new(SERVICE, reference)
+        .and_then(|e| e.set_password(password))
+        .map_err(|e| {
+            format!(
+                "The system keystore is not available ({e}). The password works until the app closes."
+            )
+        })
+}
+
+/// Blocking. An empty string when nothing is stored (guest access, NFS).
+pub fn load_password(reference: &str) -> String {
+    if let Some(p) = memory().lock().unwrap().get(reference) {
+        return p.clone();
+    }
+    if keystore_disabled() {
+        return String::new();
+    }
+    let p = keyring::Entry::new(SERVICE, reference)
+        .and_then(|e| e.get_password())
+        .unwrap_or_default();
+    memory()
+        .lock()
+        .unwrap()
+        .insert(reference.to_string(), p.clone());
+    p
+}
+
+/// Blocking.
+pub fn delete_password(reference: &str) {
+    memory().lock().unwrap().remove(reference);
+    if keystore_disabled() {
+        return;
+    }
+    if let Ok(e) = keyring::Entry::new(SERVICE, reference) {
+        let _ = e.delete_credential();
+    }
+}

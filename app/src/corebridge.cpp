@@ -1,5 +1,8 @@
 #include "corebridge.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
+
 #include <QCoreApplication>
 #include <QLoggingCategory>
 #include <QMetaObject>
@@ -246,6 +249,36 @@ quint64 CoreBridge::clearTmdbKey()
     return id;
 }
 
+static QByteArray specJson(const QVariantMap &spec)
+{
+    QJsonObject o = QJsonObject::fromVariantMap(spec);
+    if (o.value("port").toInt() <= 0) o.remove("port");
+    return QJsonDocument(o).toJson(QJsonDocument::Compact);
+}
+
+quint64 CoreBridge::browseNetwork(const QVariantMap &spec, const QString &password, const QString &path)
+{
+    const quint64 id = nextId();
+    const QByteArray j = specJson(spec), pw = password.toUtf8(), p = path.toUtf8();
+    if (m_core) (*m_core)->browse_network(id, rs(j), rs(pw), rs(p));
+    return id;
+}
+
+quint64 CoreBridge::addNetworkLibrary(const QVariantMap &spec, const QString &password)
+{
+    const quint64 id = nextId();
+    const QByteArray j = specJson(spec), pw = password.toUtf8();
+    if (m_core) (*m_core)->add_network_library(id, rs(j), rs(pw));
+    return id;
+}
+
+quint64 CoreBridge::discover()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->discover(id);
+    return id;
+}
+
 void CoreBridge::reportProgress(quint64 ticket, qint64 positionMs, qint64 durationMs, int state)
 {
     if (m_core)
@@ -342,6 +375,8 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
         QVariantList libs;
         for (const auto &l : e.libraries)
             libs.append(QVariantMap{{"id", qlonglong(l.id)},
+                                    {"kind", qs(l.kind)},
+                                    {"online", l.online},
                                     {"name", qs(l.name)},
                                     {"root", qs(l.root)},
                                     {"files", qlonglong(l.files)},
@@ -376,6 +411,15 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
         m_hasKey = e.flag;
         m_keyFromEnv = e.flag2;
         emit keyStatusChanged(e.request_id, qs(e.message));
+    } else if (e.kind == K::Discovered) {
+        QVariantList servers;
+        for (const auto &d : e.servers)
+            servers.append(QVariantMap{{"name", qs(d.name)},
+                                       {"protocol", qs(d.protocol)},
+                                       {"host", qs(d.host)},
+                                       {"port", int(d.port)},
+                                       {"tls", d.tls}});
+        emit serversDiscovered(e.request_id, servers);
     } else if (e.kind == K::Error) {
         const int kind = int(e.error);
         qCWarning(lcCore) << "request" << e.request_id << "failed:" << qs(e.message);

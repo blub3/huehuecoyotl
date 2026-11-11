@@ -33,6 +33,7 @@ qt_add_qml_module(coyotl
     qml/FixMatchDialog.qml
     qml/SearchPage.qml
     qml/SourcesPage.qml
+    qml/NetworkSharePage.qml
     qml/SettingsPage.qml
     qml/ReviewPage.qml)
 

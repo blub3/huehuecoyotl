@@ -6,9 +6,13 @@
 #include <clocale>
 #include <cstring>
 #include <mpv/client.h>
+#include <mpv/stream_cb.h>
 #include <stdexcept>
 
 Q_LOGGING_CATEGORY(lcMpv, "coyotl.mpv")
+
+// Implemented in Rust (crates/stream), linked through the core-api static library.
+extern "C" int coyotl_stream_open(void *user_data, char *uri, mpv_stream_cb_info *info);
 
 namespace {
 
@@ -92,6 +96,9 @@ MpvPlayer::MpvPlayer(QObject *parent) : QObject(parent)
         opt(kv.section('=', 0, 0).toUtf8().constData(), kv.section('=', 1).toUtf8().constData());
 
     if (mpv_initialize(m_mpv) < 0) throw std::runtime_error("mpv_initialize failed");
+    // Network sources stream through the core (SPEC 5.3): coyotl://<source id>/<path>.
+    if (mpv_stream_cb_add_ro(m_mpv, "coyotl", nullptr, coyotl_stream_open) < 0)
+        qCWarning(lcMpv) << "registering the coyotl:// stream protocol failed";
     mpv_request_log_messages(m_mpv, "warn");
 
     mpv_observe_property(m_mpv, 0, "time-pos", MPV_FORMAT_DOUBLE);

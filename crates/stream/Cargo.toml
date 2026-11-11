@@ -1,0 +1,20 @@
+[package]
+name = "huehuecoyotl-stream"
+description = "mpv stream callbacks and read-ahead over any source"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+huehuecoyotl-vfs.workspace = true
+bytes.workspace = true
+percent-encoding = "2"
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+async-trait.workspace = true
+
+[lints]
+workspace = true

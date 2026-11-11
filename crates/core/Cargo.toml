@@ -11,7 +11,10 @@ huehuecoyotl-library.workspace = true
 huehuecoyotl-vfs.workspace = true
 huehuecoyotl-scanner.workspace = true
 huehuecoyotl-metadata.workspace = true
+huehuecoyotl-stream.workspace = true
 keyring = "4"
+mdns-sd = { version = "0.21", default-features = false }
+serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
@@ -22,6 +25,7 @@ tracing-subscriber.workspace = true
 async-trait.workspace = true
 bytes.workspace = true
 crossbeam-channel.workspace = true
+huehuecoyotl-stream.workspace = true
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 tempfile.workspace = true
 

@@ -1,0 +1,21 @@
+# Protocol test servers (SPEC 6 Testing, SPEC 10 CI step 3). Fixed addresses so tests need no
+# discovery. Start with tests/servers/up.sh, which also creates the fixture files.
+name: coyotl-test-servers
+networks:
+  test:
+    ipam:
+      config: [{ subnet: 172.29.0.0/24 }]
+services:
+  samba:
+    build: { context: ., dockerfile: Dockerfile.samba }
+    volumes: ["./fixtures:/media:ro"]
+    networks: { test: { ipv4_address: 172.29.0.10 } }
+  nfs:
+    build: { context: ., dockerfile: Dockerfile.nfs }
+    volumes: ["./fixtures:/media:ro"]
+    cap_add: [DAC_READ_SEARCH, SYS_RESOURCE]
+    networks: { test: { ipv4_address: 172.29.0.11 } }
+  rclone:
+    build: { context: ., dockerfile: Dockerfile.rclone }
+    volumes: ["./fixtures:/media:ro"]
+    networks: { test: { ipv4_address: 172.29.0.12 } }
