@@ -29,5 +29,6 @@ install=(--user)
 [ "${1:-}" = "--install" ] && install+=(--install)
 cd "$here"
 "${fb[@]}" --force-clean --delete-build-dirs --repo=repo --state-dir=.flatpak-builder "${install[@]}" build-dir "$app.yml"
+mkdir -p "$root/build"
 flatpak build-bundle repo "$root/build/$app.flatpak" "$app" --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
 echo "bundle: build/$app.flatpak"
