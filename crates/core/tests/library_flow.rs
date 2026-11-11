@@ -190,6 +190,9 @@ fn library_end_to_end() {
     assert_eq!(alien.year, Some(1979));
     let poster = image::open(&alien.poster).unwrap();
     assert_eq!(poster.width(), 360, "grid thumbnail is pre-scaled");
+    // The larger tier comes from the same download (never upscaled: the fake image is 500 px).
+    let large = image::open(&alien.poster_large).unwrap();
+    assert_eq!(large.width(), 500, "large grid tier made with the download");
 
     // The Thing has no year: two remakes -> review list, not a guess.
     let Event::Review { items: review, .. } = until(

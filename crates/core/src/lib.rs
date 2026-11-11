@@ -426,6 +426,13 @@ impl Core {
                 .lib
                 .write(|c| huehuecoyotl_library::jobs::recover(c))
                 .await;
+            // Larger grid thumbnails for libraries from before they existed (offline).
+            worker::enqueue_tiers(
+                &start,
+                huehuecoyotl_library::jobs::priority::BACKGROUND,
+                "tiers",
+            )
+            .await;
             // Catch up with changes made while the app was closed.
             if let Ok(libs) = start
                 .lib
