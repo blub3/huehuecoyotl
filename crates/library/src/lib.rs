@@ -1,6 +1,8 @@
 //! The library database (SPEC 7): SQLite in WAL mode, exactly one writer thread fed by a
 //! channel, and a small pool of read-only connections for UI queries (SPEC 4, threading).
 
+pub mod catalog;
+pub mod jobs;
 mod migrations;
 pub mod queries;
 

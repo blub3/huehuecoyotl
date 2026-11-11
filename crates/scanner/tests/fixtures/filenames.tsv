@@ -1,0 +1,110 @@
+# Filename parser corpus (SPEC 7: "the most valuable test asset in the project").
+# path (relative to the library root) <TAB> kind <TAB> title <TAB> year <TAB> season <TAB> episodes <TAB> part
+# kind: movie | episode | extra. Empty columns mean "none". Episodes are comma-separated.
+#
+# --- movies: folder + file, the common case
+Alien (1979)/Alien (1979).mkv	movie	Alien	1979
+Alien (1979)/Alien.1979.Directors.Cut.1080p.BluRay.x264.mkv	movie	Alien	1979
+Blade Runner 2049 (2017)/Blade.Runner.2049.2017.2160p.UHD.BluRay.REMUX.HDR.HEVC.Atmos-GROUP.mkv	movie	Blade Runner 2049	2017
+2001 A Space Odyssey (1968)/2001.A.Space.Odyssey.1968.1080p.mkv	movie	2001 A Space Odyssey	1968
+1917 (2019)/1917.2019.2160p.WEB-DL.DDP5.1.HDR.HEVC.mkv	movie	1917	2019
+Movies/The.Matrix.1999.1080p.BluRay.x264-SPARKS.mkv	movie	The Matrix	1999
+Movies/the_matrix_reloaded_2003_720p.mkv	movie	the matrix reloaded	2003
+Movies/Amélie (2001).mkv	movie	Amélie	2001
+Movies/Léon The Professional (1994) [1080p].mkv	movie	Léon The Professional	1994
+Movies/Spirited Away [2001] [BluRay] [1080p].mp4	movie	Spirited Away	2001
+Movies/Parasite.2019.KOREAN.1080p.WEBRip.x264.mkv	movie	Parasite	2019
+Movies/Dune Part Two 2024 2160p WEB-DL.mkv	movie	Dune Part Two	2024
+Movies/Mission Impossible - Dead Reckoning Part One (2023).mkv	movie	Mission Impossible - Dead Reckoning Part One	2023
+Movies/Spider-Man Into the Spider-Verse (2018).mkv	movie	Spider-Man Into the Spider-Verse	2018
+Movies/Mad.Max.Fury.Road.2015.BDRip.x265.10bit.mkv	movie	Mad Max Fury Road	2015
+Movies/Inception.2010.IMAX.1080p.mkv	movie	Inception	2010
+Movies/Gladiator.2000.EXTENDED.REMASTERED.1080p.BluRay.mkv	movie	Gladiator	2000
+Movies/Heat.1995.Remastered.2160p.mkv	movie	Heat	1995
+Movies/The Lord of the Rings The Fellowship of the Ring (2001) Extended Edition.mkv	movie	The Lord of the Rings The Fellowship of the Ring	2001
+Movies/Star.Wars.Episode.IV.A.New.Hope.1977.mkv	movie	Star Wars Episode IV A New Hope	1977
+Movies/WALL-E (2008).avi	movie	WALL-E	2008
+Movies/M3GAN.2022.1080p.mkv	movie	M3GAN	2022
+Movies/Se7en.1995.1080p.mkv	movie	Se7en	1995
+Movies/10.Cloverfield.Lane.2016.1080p.mkv	movie	10 Cloverfield Lane	2016
+Movies/Ocean's Eleven (2001).mkv	movie	Ocean's Eleven	2001
+Movies/Fast & Furious 6 (2013).mkv	movie	Fast & Furious 6	2013
+Movies/[GROUP] Your Name (2016) [BD 1080p].mkv	movie	Your Name	2016
+Movies/Akira.1988.REMASTERED.1080p.BluRay.x264.DTS-HD.MA.5.1-FGT.mkv	movie	Akira	1988
+Movies/Das.Boot.1981.GERMAN.DL.1080p.mkv	movie	Das Boot	1981
+Movies/Die.fabelhafte.Welt.der.Amelie.2001.German.AC3.mkv	movie	Die fabelhafte Welt der Amelie	2001
+Movies/Oppenheimer.2023.1080p.WEB.H264-NAISU.mkv	movie	Oppenheimer	2023
+Movies/Everything.Everywhere.All.at.Once.2022.2160p.mkv	movie	Everything Everywhere All at Once	2022
+Movies/The Thing 1982.mkv	movie	The Thing	1982
+Movies/Up.2009.mp4	movie	Up	2009
+Movies/Her (2013).m4v	movie	Her	2013
+# --- movies without a year in the file name: take it from the folder
+Arrival (2016)/arrival.1080p.mkv	movie	Arrival	2016
+Arrival (2016)/movie.mkv	movie	Arrival	2016
+Interstellar 2014/Interstellar.mkv	movie	Interstellar	2014
+# --- movies without any year
+Movies/Metropolis.mkv	movie	Metropolis
+Movies/Some Home Video.mp4	movie	Some Home Video
+# --- year-like titles must not lose their title
+Movies/2012 (2009).mkv	movie	2012	2009
+Movies/1984.1984.mkv	movie	1984	1984
+Movies/Blade Runner 2049.mkv	movie	Blade Runner 2049
+# --- multi-part movies
+Kill Bill (2003)/Kill.Bill.2003.cd1.avi	movie	Kill Bill	2003			1
+Kill Bill (2003)/Kill.Bill.2003.cd2.avi	movie	Kill Bill	2003			2
+The Godfather (1972)/The Godfather (1972) - part2.mkv	movie	The Godfather	1972			2
+Lawrence of Arabia (1962)/Lawrence of Arabia (1962) Disc 1.mkv	movie	Lawrence of Arabia	1962			1
+# --- extras and samples are not items
+Alien (1979)/Extras/Making of.mkv	extra
+Alien (1979)/Featurettes/Deleted Scene 1.mkv	extra
+Alien (1979)/alien-sample.mkv	extra
+Alien (1979)/Sample/sample.mkv	extra
+Alien (1979)/Alien (1979)-trailer.mkv	extra
+Breaking Bad/Season 01/Behind The Scenes/Interview.mkv	extra
+Prey.2022.2160p.UHD.Blu-Ray.HEVC.DV-GRP/BDMV/STREAM/00174.m2ts	movie	Prey	2022			
+Prey.2022.2160p.UHD.Blu-Ray.HEVC.DV-GRP/BDMV/STREAM/00800.m2ts	movie	Prey	2022			
+Prey.2022.2160p.UHD.Blu-Ray.HEVC.DV-GRP/BDMV/BACKUP/STREAM/00174.m2ts	extra					
+Movies/Metropolis (1927)/VIDEO_TS/VTS_01_1.VOB	movie	Metropolis	1927			
+The.Big.Short.2015.Bluray.1080p-Grym/The.Big.Short.Extras-Grym/Deleted.Scenes-Grym.mkv	extra					
+Heat (1995)/Behind The Scenes - Making Of/Part 1.mkv	extra					
+# --- TV: show folder / season folder / file
+Breaking Bad/Season 01/Breaking.Bad.S01E01.Pilot.1080p.mkv	episode	Breaking Bad		1	1
+Breaking Bad/Season 01/Breaking.Bad.S01E02.720p.mkv	episode	Breaking Bad		1	2
+Breaking Bad/Season 5/Breaking Bad - S05E16 - Felina.mkv	episode	Breaking Bad		5	16
+The Office (US)/Season 2/The.Office.US.S02E01.mkv	episode	The Office US		2	1
+Doctor Who (2005)/Season 1/Doctor.Who.2005.S01E01.Rose.mkv	episode	Doctor Who	2005	1	1
+Doctor Who (2005)/Season 1/Doctor Who (2005) - S01E02.mkv	episode	Doctor Who	2005	1	2
+Shows/Game.of.Thrones.S08E06.1080p.WEB.H264.mkv	episode	Game of Thrones		8	6
+Shows/game_of_thrones_s01e01.mkv	episode	game of thrones		1	1
+Shows/Friends.s10e17e18.mkv	episode	Friends		10	17,18
+Shows/Friends S10E17-E18.mkv	episode	Friends		10	17,18
+Shows/Friends.S10E17-18.mkv	episode	Friends		10	17,18
+Shows/Seinfeld 4x11.mkv	episode	Seinfeld		4	11
+Shows/Seinfeld.04x12.The.Airport.mkv	episode	Seinfeld		4	12
+Shows/The Mandalorian S01 E03.mkv	episode	The Mandalorian		1	3
+Shows/Dark.S01E01.GERMAN.1080p.mkv	episode	Dark		1	1
+Shows/Stranger Things - Season 4 Episode 9.mkv	episode	Stranger Things		4	9
+Shows/The.Expanse.S06E01.2160p.AMZN.WEB-DL.DDP5.1.HDR.HEVC.mkv	episode	The Expanse		6	1
+Shows/[SubsPlease] Frieren - S01E05 (1080p) [ABCD1234].mkv	episode	Frieren		1	5
+Shows/24.S02E03.mkv	episode	24		2	3
+Shows/9-1-1.S07E01.mkv	episode	9-1-1		7	1
+Shows/Battlestar.Galactica.2004.S01E01.mkv	episode	Battlestar Galactica	2004	1	1
+Shows/Sherlock.S02E01.A.Scandal.in.Belgravia.mkv	episode	Sherlock		2	1
+Shows/Star.Trek.The.Next.Generation.S03E15.mkv	episode	Star Trek The Next Generation		3	15
+# --- episode number only, season from the folder
+Firefly/Season 1/01 - Serenity.mkv	episode	Firefly		1	1
+Firefly/Season 1/02 The Train Job.mkv	episode	Firefly		1	2
+Firefly/Season 1/Episode 3.mkv	episode	Firefly		1	3
+Firefly/S01/E04.mkv	episode	Firefly		1	4
+Dark/Staffel 2/Dark - 05.mkv	episode	Dark		2	5
+Twin Peaks/Season 03/Twin Peaks - Part 8.mkv	episode	Twin Peaks		3	8
+# --- show name from the folder when the file name has none
+Severance/Season 1/S01E01.mkv	episode	Severance		1	1
+Severance/S01E02 - Half Loop.mkv	episode	Severance		1	2
+Better Call Saul (2015)/Season 1/1x01.mkv	episode	Better Call Saul	2015	1	1
+# --- specials
+Doctor Who (2005)/Specials/Doctor.Who.2005.S00E01.mkv	episode	Doctor Who	2005	0	1
+Doctor Who (2005)/Season 0/S00E02.mkv	episode	Doctor Who	2005	0	2
+# --- Windows-style separators and odd casing
+Shows\\Lost\\Season 1\\LOST.S01E01.mkv	episode	LOST		1	1
+MOVIES/ALIENS.1986.MKV	movie	ALIENS	1986

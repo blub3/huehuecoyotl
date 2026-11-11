@@ -26,7 +26,7 @@ ApplicationWindow {
         id: stack
         anchors.fill: parent
         focus: true
-        initialItem: HomePage {}
+        initialItem: Shell {}
         // Instant transitions: they feel faster on a TV and avoid video re-layout mid-animation.
         pushEnter: null; pushExit: null; popEnter: null; popExit: null
     }

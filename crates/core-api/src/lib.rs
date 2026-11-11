@@ -4,6 +4,9 @@
 //! Every call returns at once; answers arrive through `EventSink::post`, which the C++ side
 //! implements by queueing onto the Qt GUI thread. No panic unwinds into C++ (rule 7).
 
+// browse_items mirrors the core's paged query; cxx generates matching glue.
+#![allow(clippy::too_many_arguments)]
+
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use huehuecoyotl_core as core;
@@ -17,6 +20,14 @@ mod ffi {
         ContinueWatching,
         ItemChanged,
         Error,
+        Page,
+        Detail,
+        Libraries,
+        Review,
+        Candidates,
+        ScanState,
+        LibraryChanged,
+        KeyStatus,
     }
 
     #[derive(Debug)]
@@ -71,6 +82,77 @@ mod ffi {
         sub_off: bool,
     }
 
+    /// One grid tile or list row. Numbers are 0 when unknown.
+    #[derive(Clone, Debug, Default)]
+    struct ItemSummary {
+        id: i64,
+        kind: String,
+        title: String,
+        year: i32,
+        season_no: i32,
+        episode_no: i32,
+        /// Local path of the pre-scaled poster or still; empty until downloaded.
+        poster: String,
+        progress: f32,
+        watched: bool,
+        unwatched: i64,
+        overview: String,
+    }
+
+    #[derive(Clone, Debug, Default)]
+    struct FileRef {
+        path: String,
+        size: i64,
+    }
+
+    #[derive(Clone, Debug, Default)]
+    struct ItemDetail {
+        item: ItemSummary,
+        original_title: String,
+        /// -1 when unknown.
+        rating: f64,
+        runtime_min: i32,
+        genres: Vec<String>,
+        cast: Vec<String>,
+        backdrop: String,
+        poster_full: String,
+        match_state: String,
+        tmdb_id: i64,
+        parent_title: String,
+        files: Vec<FileRef>,
+        position_ms: u64,
+        children: Vec<ItemSummary>,
+        /// Zero or one entry: the episode "Play" starts for shows and seasons.
+        next_up: Vec<ItemSummary>,
+    }
+
+    #[derive(Clone, Debug, Default)]
+    struct LibraryFolder {
+        id: i64,
+        name: String,
+        root: String,
+        files: i64,
+        last_scan_ms: i64,
+        scanning: bool,
+    }
+
+    #[derive(Clone, Debug, Default)]
+    struct MatchCandidate {
+        provider_id: i64,
+        title: String,
+        year: i32,
+        score: f64,
+        /// Small remote poster (TMDB image CDN); empty if none.
+        poster_url: String,
+        overview: String,
+    }
+
+    #[derive(Clone, Debug, Default)]
+    struct ReviewEntry {
+        item: ItemSummary,
+        candidates: Vec<MatchCandidate>,
+    }
+
     /// One event type for everything; `kind` says which fields are meaningful.
     #[derive(Clone, Debug)]
     struct CoreEvent {
@@ -84,11 +166,31 @@ mod ffi {
         recent: Vec<RecentItem>,
         error: ErrorKind,
         message: String,
+        // M2
+        total: u32,
+        offset: u32,
+        items: Vec<ItemSummary>,
+        detail: ItemDetail,
+        libraries: Vec<LibraryFolder>,
+        review: Vec<ReviewEntry>,
+        candidates: Vec<MatchCandidate>,
+        source_id: i64,
+        /// ScanState: running. KeyStatus: a key is set.
+        flag: bool,
+        /// KeyStatus: the key comes from the environment.
+        flag2: bool,
+        /// LibraryChanged: queued and failed jobs.
+        queued: i64,
+        failed: i64,
     }
 
     extern "Rust" {
         type Core;
-        fn core_open(data_dir: &str, sink: UniquePtr<EventSink>) -> Result<Box<Core>>;
+        fn core_open(
+            data_dir: &str,
+            language: &str,
+            sink: UniquePtr<EventSink>,
+        ) -> Result<Box<Core>>;
         fn core_version() -> String;
 
         fn browse(self: &Core, request_id: u64, path: &str);
@@ -105,6 +207,31 @@ mod ffi {
         fn continue_watching(self: &Core, request_id: u64, limit: u32);
         fn set_watched(self: &Core, item_id: i64, watched: bool);
         fn cancel(self: &Core, request_id: u64);
+
+        // M2: library
+        fn libraries(self: &Core, request_id: u64);
+        fn add_library(self: &Core, request_id: u64, path: &str);
+        fn remove_library(self: &Core, request_id: u64, source_id: i64);
+        fn rescan(self: &Core, source_id: i64);
+        fn browse_items(
+            self: &Core,
+            request_id: u64,
+            kind: &str,
+            parent: i64,
+            sort: &str,
+            unwatched_only: bool,
+            offset: u32,
+            limit: u32,
+        );
+        fn recently_added(self: &Core, request_id: u64, limit: u32);
+        fn search(self: &Core, request_id: u64, text: &str);
+        fn item_detail(self: &Core, request_id: u64, item_id: i64);
+        fn review(self: &Core, request_id: u64);
+        fn find_matches(self: &Core, request_id: u64, item_id: i64, title: &str, year: u16);
+        fn choose_match(self: &Core, item_id: i64, provider_id: i64);
+        fn key_status(self: &Core, request_id: u64);
+        fn set_tmdb_key(self: &Core, request_id: u64, key: &str);
+        fn clear_tmdb_key(self: &Core, request_id: u64);
     }
 
     unsafe extern "C++" {
@@ -131,6 +258,8 @@ impl CxxSink {
     }
 }
 
+const TMDB_THUMB: &str = "https://image.tmdb.org/t/p/w185";
+
 fn event(kind: ffi::EventKind, request_id: u64) -> ffi::CoreEvent {
     ffi::CoreEvent {
         kind,
@@ -143,10 +272,92 @@ fn event(kind: ffi::EventKind, request_id: u64) -> ffi::CoreEvent {
         recent: Vec::new(),
         error: ffi::ErrorKind::None,
         message: String::new(),
+        total: 0,
+        offset: 0,
+        items: Vec::new(),
+        detail: ffi::ItemDetail::default(),
+        libraries: Vec::new(),
+        review: Vec::new(),
+        candidates: Vec::new(),
+        source_id: 0,
+        flag: false,
+        flag2: false,
+        queued: 0,
+        failed: 0,
+    }
+}
+
+fn summary(s: core::Summary) -> ffi::ItemSummary {
+    ffi::ItemSummary {
+        id: s.id,
+        kind: s.kind,
+        title: s.title,
+        year: s.year.unwrap_or(0) as i32,
+        season_no: s.season_no.unwrap_or(0) as i32,
+        episode_no: s.episode_no.unwrap_or(0) as i32,
+        poster: s.poster,
+        progress: s.progress,
+        watched: s.watched,
+        unwatched: s.unwatched,
+        overview: s.overview,
+    }
+}
+
+fn candidate(c: core::CandidateRow) -> ffi::MatchCandidate {
+    ffi::MatchCandidate {
+        provider_id: c.provider_id,
+        title: c.title,
+        year: c.year.map_or(0, i32::from),
+        score: c.score,
+        poster_url: c
+            .poster_path
+            .map(|p| format!("{TMDB_THUMB}{p}"))
+            .unwrap_or_default(),
+        overview: c.overview,
+    }
+}
+
+fn strings(v: &serde_json::Value, key: &str) -> Vec<String> {
+    v[key]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn detail(d: core::Detail) -> ffi::ItemDetail {
+    let meta: serde_json::Value = serde_json::from_str(&d.meta_json).unwrap_or_default();
+    ffi::ItemDetail {
+        genres: strings(&meta, "genres"),
+        cast: strings(&meta, "cast"),
+        item: summary(d.item),
+        original_title: d.original_title,
+        rating: d.rating.unwrap_or(-1.0),
+        runtime_min: d.runtime_min.unwrap_or(0) as i32,
+        backdrop: d.backdrop,
+        poster_full: d.poster_full,
+        match_state: d.match_state,
+        tmdb_id: d.tmdb_id.unwrap_or(0),
+        parent_title: d.parent_title,
+        files: d
+            .files
+            .into_iter()
+            .map(|f| ffi::FileRef {
+                path: f.path,
+                size: f.size,
+            })
+            .collect(),
+        position_ms: d.position_ms,
+        children: d.children.into_iter().map(summary).collect(),
+        next_up: d.next_up.into_iter().map(summary).collect(),
     }
 }
 
 fn convert(e: core::Event) -> ffi::CoreEvent {
+    use ffi::EventKind as K;
     match e {
         core::Event::Folder {
             request_id,
@@ -168,7 +379,7 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                     watched: e.watched,
                 })
                 .collect(),
-            ..event(ffi::EventKind::Folder, request_id)
+            ..event(K::Folder, request_id)
         },
         core::Event::Playback {
             request_id,
@@ -195,7 +406,7 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                 sub_langs: t.sub_langs.join(","),
                 sub_off: t.prefs.sub_off,
             },
-            ..event(ffi::EventKind::Playback, request_id)
+            ..event(K::Playback, request_id)
         },
         core::Event::ContinueWatching { request_id, items } => ffi::CoreEvent {
             recent: items
@@ -208,11 +419,11 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                     duration_ms: r.duration_ms,
                 })
                 .collect(),
-            ..event(ffi::EventKind::ContinueWatching, request_id)
+            ..event(K::ContinueWatching, request_id)
         },
         core::Event::ItemChanged { item_id } => ffi::CoreEvent {
             item_id,
-            ..event(ffi::EventKind::ItemChanged, 0)
+            ..event(K::ItemChanged, 0)
         },
         core::Event::Error {
             request_id,
@@ -227,7 +438,88 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                 core::ErrorKind::Internal => ffi::ErrorKind::Internal,
             },
             message,
-            ..event(ffi::EventKind::Error, request_id)
+            ..event(K::Error, request_id)
+        },
+        core::Event::Page {
+            request_id,
+            total,
+            offset,
+            items,
+        } => ffi::CoreEvent {
+            total,
+            offset,
+            items: items.into_iter().map(summary).collect(),
+            ..event(K::Page, request_id)
+        },
+        core::Event::Detail {
+            request_id,
+            detail: d,
+        } => ffi::CoreEvent {
+            item_id: d.item.id,
+            detail: detail(*d),
+            ..event(K::Detail, request_id)
+        },
+        core::Event::Libraries {
+            request_id,
+            libraries,
+        } => ffi::CoreEvent {
+            libraries: libraries
+                .into_iter()
+                .map(|l| ffi::LibraryFolder {
+                    id: l.id,
+                    name: l.name,
+                    root: l.root,
+                    files: l.files,
+                    last_scan_ms: l.last_scan_ms,
+                    scanning: l.scanning,
+                })
+                .collect(),
+            ..event(K::Libraries, request_id)
+        },
+        core::Event::Review { request_id, items } => ffi::CoreEvent {
+            review: items
+                .into_iter()
+                .map(|r| ffi::ReviewEntry {
+                    item: summary(r.item),
+                    candidates: r.candidates.into_iter().map(candidate).collect(),
+                })
+                .collect(),
+            ..event(K::Review, request_id)
+        },
+        core::Event::Candidates {
+            request_id,
+            item_id,
+            candidates,
+        } => ffi::CoreEvent {
+            item_id,
+            candidates: candidates.into_iter().map(candidate).collect(),
+            ..event(K::Candidates, request_id)
+        },
+        core::Event::ScanState {
+            source_id,
+            running,
+            message,
+        } => ffi::CoreEvent {
+            source_id,
+            flag: running,
+            message,
+            ..event(K::ScanState, 0)
+        },
+        core::Event::LibraryChanged { queued, failed } => ffi::CoreEvent {
+            queued,
+            failed,
+            ..event(K::LibraryChanged, 0)
+        },
+        core::Event::KeyStatus {
+            request_id,
+            has_key,
+            from_env,
+            message,
+        } => ffi::CoreEvent {
+            flag: has_key,
+            flag2: from_env,
+            message,
+            ..event(K::KeyStatus, request_id)
         },
     }
 }
@@ -239,12 +531,20 @@ fn guard(what: &str, f: impl FnOnce()) {
     }
 }
 
-fn core_open(data_dir: &str, sink: cxx::UniquePtr<ffi::EventSink>) -> Result<Box<Core>, String> {
+fn core_open(
+    data_dir: &str,
+    language: &str,
+    sink: cxx::UniquePtr<ffi::EventSink>,
+) -> Result<Box<Core>, String> {
     let sink = CxxSink(sink);
     catch_unwind(AssertUnwindSafe(|| {
-        core::Core::open(std::path::Path::new(data_dir), move |e: core::Event| {
-            sink.post(&convert(e));
-        })
+        core::Core::open(
+            std::path::Path::new(data_dir),
+            language,
+            move |e: core::Event| {
+                sink.post(&convert(e));
+            },
+        )
         .map(|c| Box::new(Core(c)))
         .map_err(|e| e.to_string())
     }))
@@ -297,5 +597,73 @@ impl Core {
     }
     fn cancel(&self, request_id: u64) {
         guard("cancel", || self.0.cancel(request_id))
+    }
+    fn libraries(&self, request_id: u64) {
+        guard("libraries", || self.0.libraries(request_id))
+    }
+    fn add_library(&self, request_id: u64, path: &str) {
+        guard("add_library", || self.0.add_library(request_id, path))
+    }
+    fn remove_library(&self, request_id: u64, source_id: i64) {
+        guard("remove_library", || {
+            self.0.remove_library(request_id, source_id)
+        })
+    }
+    fn rescan(&self, source_id: i64) {
+        guard("rescan", || self.0.rescan(source_id))
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn browse_items(
+        &self,
+        request_id: u64,
+        kind: &str,
+        parent: i64,
+        sort: &str,
+        unwatched_only: bool,
+        offset: u32,
+        limit: u32,
+    ) {
+        guard("browse_items", || {
+            self.0.browse_items(
+                request_id,
+                kind,
+                parent,
+                sort,
+                unwatched_only,
+                offset,
+                limit,
+            )
+        })
+    }
+    fn recently_added(&self, request_id: u64, limit: u32) {
+        guard("recently_added", || {
+            self.0.recently_added(request_id, limit)
+        })
+    }
+    fn search(&self, request_id: u64, text: &str) {
+        guard("search", || self.0.search(request_id, text))
+    }
+    fn item_detail(&self, request_id: u64, item_id: i64) {
+        guard("item_detail", || self.0.item_detail(request_id, item_id))
+    }
+    fn review(&self, request_id: u64) {
+        guard("review", || self.0.review(request_id))
+    }
+    fn find_matches(&self, request_id: u64, item_id: i64, title: &str, year: u16) {
+        guard("find_matches", || {
+            self.0.find_matches(request_id, item_id, title, year)
+        })
+    }
+    fn choose_match(&self, item_id: i64, provider_id: i64) {
+        guard("choose_match", || self.0.choose_match(item_id, provider_id))
+    }
+    fn key_status(&self, request_id: u64) {
+        guard("key_status", || self.0.key_status(request_id))
+    }
+    fn set_tmdb_key(&self, request_id: u64, key: &str) {
+        guard("set_tmdb_key", || self.0.set_tmdb_key(request_id, key))
+    }
+    fn clear_tmdb_key(&self, request_id: u64) {
+        guard("clear_tmdb_key", || self.0.clear_tmdb_key(request_id))
     }
 }

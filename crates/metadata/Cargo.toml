@@ -1,0 +1,27 @@
+[package]
+name = "huehuecoyotl-metadata"
+description = "Metadata provider trait, TMDB client, matching and artwork scaling"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+bytes.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+# rustls on the ring provider (aws-lc-rs needs CMake/NASM on Windows and brings the OpenSSL
+# licence); certificates from the OS store via rustls-platform-verifier.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "json", "http2", "query"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+
+[dev-dependencies]
+wiremock = "0.6"
+
+[lints]
+workspace = true

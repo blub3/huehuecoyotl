@@ -107,13 +107,19 @@ pub fn ensure_local_video(c: &mut Connection, path: &str, size: u64, mtime: i64)
     Ok(item_id)
 }
 
+/// Title for the player: episodes read "Show · S1E2 · Episode title".
 pub fn item_title(c: &Connection, item_id: i64) -> Result<Option<String>> {
-    Ok(
-        c.query_row("SELECT title FROM item WHERE id = ?1", [item_id], |r| {
-            r.get(0)
-        })
-        .optional()?,
-    )
+    Ok(c
+        .query_row(
+            "SELECT CASE WHEN i.kind = 'episode'
+                    THEN coalesce(sh.title || ' · ', '') || 'S' || coalesce(i.season_no, 0) || 'E' || coalesce(i.episode_no, 0) || ' · ' || i.title
+                    ELSE i.title END
+             FROM item i LEFT JOIN item se ON se.id = i.parent_id LEFT JOIN item sh ON sh.id = se.parent_id
+             WHERE i.id = ?1",
+            [item_id],
+            |r| r.get(0),
+        )
+        .optional()?)
 }
 
 pub fn playstate(c: &Connection, item_id: i64) -> Result<PlayState> {
@@ -180,13 +186,17 @@ pub fn set_watched(c: &mut Connection, item_id: i64, watched: bool) -> Result<()
 
 /// Started but unfinished items, most recent first.
 pub fn continue_watching(c: &Connection, limit: u32) -> Result<Vec<RecentRow>> {
-    let mut st = c.prepare(
-        "SELECT i.id, i.title, f.path, p.position_ms, p.duration_ms
+    let mut st = c.prepare(&format!(
+        "SELECT i.id, CASE WHEN i.kind = 'episode' THEN coalesce(sh.title || ' · ', '') || 'S' || i.season_no || 'E' || i.episode_no || ' ' || i.title ELSE i.title END,
+                {abs}, p.position_ms, p.duration_ms
          FROM playstate p JOIN item i ON i.id = p.item_id
          JOIN file f ON f.id = (SELECT min(id) FROM file WHERE item_id = i.id)
+         JOIN source s ON s.id = f.source_id
+         LEFT JOIN item se ON se.id = i.parent_id LEFT JOIN item sh ON sh.id = se.parent_id
          WHERE p.profile_id = ?1 AND p.watched = 0 AND p.position_ms > 0
          ORDER BY p.updated_at DESC LIMIT ?2",
-    )?;
+        abs = crate::catalog::ABS_PATH_SQL
+    ))?;
     let rows = st.query_map(params![DEFAULT_PROFILE, limit], |r| {
         Ok(RecentRow {
             item_id: r.get(0)?,

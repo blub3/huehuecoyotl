@@ -4,64 +4,95 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Coyotl
 
+// Home: continue watching, recently added, and a first-run guide while the library is empty.
 FocusScope {
     id: page
     readonly property bool isPlayer: false
 
     ContinueWatchingModel { id: recent }
-    FolderModel { id: places; path: "" }
+    RecentlyAddedModel { id: added }
+    LibraryFoldersModel { id: folders }
 
-    function openFolder(path) {
-        StackView.view.push(Qt.resolvedUrl("BrowserPage.qml"), { startPath: path })
-    }
+    readonly property bool firstRun: !folders.loading && folders.count === 0
 
     // Keyboard and remote users must always have a focused item on this page.
     function ensureFocus() {
-        if (StackView.status !== StackView.Active) return
-        if (recentList.activeFocus && recent.count > 0) return
-        if (placesList.activeFocus && places.count > 0) return
+        if (!page.activeFocus) return
+        for (const v of [recentList, addedList, setupButton, keyButton])
+            if (v.activeFocus) return
         if (recent.count > 0) recentList.forceActiveFocus()
-        else placesList.forceActiveFocus()
+        else if (added.count > 0) addedList.forceActiveFocus()
+        else if (page.firstRun) setupButton.forceActiveFocus()
+        else Nav.focusRail()
     }
 
-    StackView.onActivated: { recent.refresh(); ensureFocus() }
-    Connections { target: recent; function onLoadingChanged() { if (!recent.loading) page.ensureFocus() } }
-    Connections { target: places; function onLoadingChanged() { if (!places.loading) page.ensureFocus() } }
+    onActiveFocusChanged: if (activeFocus) { recent.refresh(); Qt.callLater(ensureFocus) }
+    Connections { target: recent; function onLoadingChanged() { if (!recent.loading) Qt.callLater(page.ensureFocus) } }
+    Connections { target: added; function onLoadingChanged() { if (!added.loading) Qt.callLater(page.ensureFocus) } }
+    Connections { target: folders; function onLoadingChanged() { if (!folders.loading) Qt.callLater(page.ensureFocus) } }
+    Connections { target: Core; function onItemChanged() { recent.refresh() } }
 
     Flickable {
+        id: flick
         anchors.fill: parent
         contentHeight: column.implicitHeight + 64
         clip: true
 
         ColumnLayout {
             id: column
-            x: 48
-            y: 40
-            width: parent.width - 96
-            spacing: 18
+            x: 40
+            y: 36
+            width: parent.width - 80
+            spacing: 16
 
-            RowLayout {
-                spacing: 14
-                Rectangle {
-                    Layout.preferredWidth: 44; Layout.preferredHeight: 44; radius: 22
-                    color: Theme.accent
-                    Label { anchors.centerIn: parent; text: "H"; color: Theme.bg; font.pixelSize: 24; font.bold: true }
-                }
-                Label {
-                    text: "Huehuecoyotl"
-                    color: Theme.text
-                    font.pixelSize: Theme.fontTitle
-                    font.bold: true
-                    Accessible.role: Accessible.Heading
+            // ---- first run --------------------------------------------------------------------
+            Rectangle {
+                visible: page.firstRun
+                Layout.fillWidth: true
+                Layout.preferredHeight: welcome.implicitHeight + 56
+                radius: Theme.radius
+                color: Theme.surface
+                ColumnLayout {
+                    id: welcome
+                    anchors.fill: parent
+                    anchors.margins: 28
+                    spacing: 12
+                    Label { text: qsTr("Welcome to Huehuecoyotl"); color: Theme.text; font.pixelSize: Theme.fontTitle; font.bold: true }
+                    Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        color: Theme.textDim
+                        text: qsTr("Add the folders with your movies and shows. They are scanned and sorted into Movies and Shows. With a free TMDB key you also get posters, descriptions and episode titles.")
+                    }
+                    RowLayout {
+                        spacing: 12
+                        Layout.topMargin: 8
+                        FocusButton {
+                            id: setupButton
+                            primary: true
+                            glyph: "+"
+                            text: qsTr("Add a folder")
+                            KeyNavigation.right: keyButton
+                            Keys.onLeftPressed: Nav.focusRail()
+                            onClicked: Nav.go("sources")
+                        }
+                        FocusButton {
+                            id: keyButton
+                            visible: !Core.hasTmdbKey
+                            text: qsTr("Set up TMDB")
+                            KeyNavigation.left: setupButton
+                            onClicked: Nav.go("settings")
+                        }
+                    }
                 }
             }
 
+            // ---- continue watching --------------------------------------------------------
             Label {
                 visible: recent.count > 0
                 text: qsTr("Continue watching")
                 color: Theme.textDim
                 font.pixelSize: Theme.fontLarge
-                Layout.topMargin: 12
             }
             ListView {
                 id: recentList
@@ -70,14 +101,13 @@ FocusScope {
                 Layout.preferredHeight: 190
                 orientation: ListView.Horizontal
                 spacing: 18
-                clip: false
                 model: recent
-                focus: recent.count > 0
                 keyNavigationEnabled: true
-                highlightFollowsCurrentItem: true
                 Accessible.role: Accessible.List
                 Accessible.name: qsTr("Continue watching")
-                KeyNavigation.down: placesList
+                KeyNavigation.down: added.count > 0 ? addedList : null
+                Keys.onLeftPressed: (e) => { if (currentIndex === 0) Nav.focusRail(); else e.accepted = false }
+                onActiveFocusChanged: if (activeFocus) flick.contentY = 0
                 delegate: PosterTile {
                     id: card
                     required property var model
@@ -93,50 +123,42 @@ FocusScope {
                 }
             }
 
+            // ---- recently added -----------------------------------------------------------
             Label {
-                text: qsTr("Browse")
+                visible: added.count > 0
+                text: qsTr("Recently added")
                 color: Theme.textDim
                 font.pixelSize: Theme.fontLarge
-                Layout.topMargin: 12
+                Layout.topMargin: 8
             }
             ListView {
-                id: placesList
+                id: addedList
+                visible: added.count > 0
                 Layout.fillWidth: true
-                Layout.preferredHeight: contentHeight
-                interactive: false
-                spacing: 6
-                model: places
-                focus: recent.count === 0
+                Layout.preferredHeight: 340
+                orientation: ListView.Horizontal
+                spacing: 22
+                model: added
                 keyNavigationEnabled: true
                 Accessible.role: Accessible.List
-                Accessible.name: qsTr("Places")
+                Accessible.name: qsTr("Recently added")
                 KeyNavigation.up: recent.count > 0 ? recentList : null
-                delegate: ItemDelegate {
-                    id: place
-                    required property int index
-                    required property string name
-                    required property string path
-                    width: ListView.view.width
-                    height: 56
+                Keys.onLeftPressed: (e) => { if (currentIndex === 0) Nav.focusRail(); else e.accepted = false }
+                onActiveFocusChanged: if (activeFocus) flick.contentY = Math.max(0, y - 60)
+                delegate: PosterCard {
+                    id: tile
+                    required property var model
+                    y: 8
                     focus: ListView.isCurrentItem
-                    focusPolicy: Qt.StrongFocus
-                    Accessible.name: place.name
-                    onClicked: page.openFolder(place.path)
-                    Keys.onReturnPressed: page.openFolder(place.path)
-                    Keys.onEnterPressed: page.openFolder(place.path)
-                    Keys.onRightPressed: page.openFolder(place.path)
-                    background: Rectangle {
-                        radius: Theme.radius
-                        color: place.activeFocus || place.hovered ? Theme.surfaceHi : Theme.surface
-                        border.width: place.activeFocus ? Theme.focusWidth : 0
-                        border.color: Theme.focus
-                    }
-                    contentItem: RowLayout {
-                        spacing: 14
-                        Rectangle { Layout.preferredWidth: 26; Layout.preferredHeight: 20; radius: 4; color: Theme.accent; opacity: 0.85 }
-                        Label { text: place.name; color: Theme.text; font.pixelSize: Theme.fontBody; Layout.fillWidth: true; elide: Text.ElideRight }
-                        Label { text: place.path; color: Theme.textDim; font.pixelSize: Theme.fontSmall; elide: Text.ElideMiddle; Layout.maximumWidth: 420 }
-                    }
+                    title: model.title
+                    year: model.year
+                    poster: model.poster
+                    progress: model.progress
+                    watched: model.watched
+                    unwatched: Number(model.unwatched)
+                    onClicked: Nav.openItem(tile.model.id)
+                    Keys.onReturnPressed: Nav.openItem(tile.model.id)
+                    Keys.onEnterPressed: Nav.openItem(tile.model.id)
                 }
             }
 
