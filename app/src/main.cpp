@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QIcon>
 #include <QLibraryInfo>
 #include <QLocale>
 #include <QOpenGLContext>
@@ -51,6 +52,12 @@ int main(int argc, char *argv[])
     app.setApplicationDisplayName("Huehuecoyotl");
     app.setApplicationVersion(QStringLiteral(COYOTL_VERSION));
     app.setDesktopFileName("io.github.blub3.Huehuecoyotl");
+    {
+        QIcon icon;
+        for (int n : {32, 64, 256})
+            icon.addFile(QStringLiteral(":/icons/%1x%1/apps/io.github.blub3.Huehuecoyotl.png").arg(n));
+        app.setWindowIcon(icon);
+    }
     QQuickStyle::setStyle("Basic");
 
     QTranslator translator;

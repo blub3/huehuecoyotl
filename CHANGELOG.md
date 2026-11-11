@@ -4,6 +4,8 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+- New app icon (a coyote with a drum and rattle), installed as PNG sizes from 16 to 512 px for Linux and the Flatpak, set as the window icon, and embedded in `coyotl.exe` on Windows. `tools/make-icons.py` regenerates every size from `packaging/icons/source.webp`.
+
 ## 0.9.0 – 2026-11-11 (Linux preview)
 
 First release, for Linux only, as a Flatpak bundle. Windows and HDR follow in 1.0.
