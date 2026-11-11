@@ -3,6 +3,9 @@
 //!
 //! Host keys: trust on first use. The first fingerprint is reported through
 //! [`RemoteSource::host_key`] and stored with the source; a different key later is refused.
+//!
+//! Login with a password, or with a private key file (`RemoteConfig::key_file`, OpenSSH format;
+//! Ed25519 and ECDSA, since RSA support is not built in) whose passphrase is the `password`.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex as StdMutex};
@@ -43,6 +46,38 @@ struct Conn {
     sftp: SftpSession,
 }
 
+/// Read a private key file; `~/` is the home folder. Errors name the problem, never the
+/// passphrase.
+fn load_key(file: &str, passphrase: &str) -> Result<russh::keys::PrivateKey> {
+    let path = match file.strip_prefix("~/") {
+        Some(rest) => std::env::home_dir()
+            .map(|h| h.join(rest))
+            .unwrap_or_else(|| file.into()),
+        None => file.into(),
+    };
+    let pass = (!passphrase.is_empty()).then_some(passphrase);
+    russh::keys::load_secret_key(&path, pass).map_err(|e| match e {
+        russh::keys::Error::KeyIsEncrypted => {
+            VfsError::Auth("the key file needs its passphrase".into())
+        }
+        russh::keys::Error::IO(e) => {
+            VfsError::NotFound(format!("the key file cannot be read: {e}"))
+        }
+        russh::keys::Error::UnsupportedKeyType { .. } => VfsError::Unsupported(
+            "this key type is not supported; use an Ed25519 or ECDSA key".into(),
+        ),
+        _ => VfsError::Auth("the key file could not be opened (wrong passphrase?)".into()),
+    })
+}
+
+/// Connect and check that the root can be listed (the SFTP counterpart of
+/// `huehuecoyotl_vfs::remote::connect`, which cannot depend on this crate).
+pub async fn connect(cfg: RemoteConfig) -> Result<Arc<dyn RemoteSource>> {
+    let src = Arc::new(SftpSource::new(cfg));
+    src.list(&VPath::new("/")).await?;
+    Ok(src)
+}
+
 pub struct SftpSource {
     cfg: RemoteConfig,
     conn: Mutex<Option<Arc<Conn>>>,
@@ -80,12 +115,28 @@ impl SftpSource {
                 err(e)
             }
         })?;
-        let auth = session
-            .authenticate_password(&self.cfg.user, &self.cfg.password)
-            .await
-            .map_err(err)?;
+        let auth = match &self.cfg.key_file {
+            Some(file) => {
+                let key = load_key(file, &self.cfg.password)?;
+                session
+                    .authenticate_publickey(
+                        &self.cfg.user,
+                        russh::keys::PrivateKeyWithHashAlg::new(Arc::new(key), None),
+                    )
+                    .await
+                    .map_err(err)?
+            }
+            None => session
+                .authenticate_password(&self.cfg.user, &self.cfg.password)
+                .await
+                .map_err(err)?,
+        };
         if !auth.success() {
-            return Err(VfsError::Auth("SFTP login failed".into()));
+            return Err(VfsError::Auth(if self.cfg.key_file.is_some() {
+                "SFTP login with the key file failed".into()
+            } else {
+                "SFTP login failed".into()
+            }));
         }
         let channel = session.channel_open_session().await.map_err(err)?;
         channel.request_subsystem(true, "sftp").await.map_err(err)?;

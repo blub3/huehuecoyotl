@@ -9,6 +9,7 @@ rust-version.workspace = true
 [dependencies]
 huehuecoyotl-library.workspace = true
 huehuecoyotl-vfs.workspace = true
+huehuecoyotl-vfs-sftp.workspace = true
 huehuecoyotl-scanner.workspace = true
 huehuecoyotl-metadata.workspace = true
 huehuecoyotl-stream.workspace = true

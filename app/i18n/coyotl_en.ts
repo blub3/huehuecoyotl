@@ -4,7 +4,7 @@
 <context>
     <name>NetworkSharePage</name>
     <message numerus="yes">
-        <location filename="../qml/NetworkSharePage.qml" line="107"/>
+        <location filename="../qml/NetworkSharePage.qml" line="113"/>
         <source>%n video(s) in this folder</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -15,7 +15,7 @@
 <context>
     <name>SourcesPage</name>
     <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="133"/>
+        <location filename="../qml/SourcesPage.qml" line="134"/>
         <source>%n video(s)</source>
         <translation type="unfinished">
             <numerusform></numerusform>
