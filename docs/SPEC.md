@@ -1,6 +1,8 @@
-# Huehuecoyotl – Architecture Specification v1.1
+# Huehuecoyotl – Architecture Specification v1.2
 
-Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run
+Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release
+
+**Changes in v1.2:** 1.0 is released for Linux on Nov 11, 2026. Windows moves to version 1.1 with its own milestone, M5: the Windows build, direct mode with HDR passthrough, MSIX and winget, code signing and Windows media keys. SFTP in the app moves to 1.1 as well (sections 2, 11, 12).
 
 **Changes in v1.1** (from the [M0 spike report](spike/M0-report.md)): Qt OpenGL added to the module allowlist (section 3); direct mode limited to Windows for LGPL builds (5.2); playback rules for the embedded item and the `coyotl://` protocol (5.3, 5.4); adaptive read-ahead after seeks (5.4); libmpv bundle contents and pinned versions (10); M0 status, one new open decision and an updated risk (11, 12).
 
@@ -24,19 +26,21 @@ Missing from the draft and added here: licensing, credential storage, the scanne
 
 ## 2. Scope and design principles
 
-Version 1.0 is a desktop player for Windows and Linux with local and network playback, a scanned library and TMDB metadata. Mobile and TV platforms are out of scope.
+Huehuecoyotl is a desktop player for Windows and Linux with local and network playback, a scanned library and TMDB metadata. Version 1.0 is the Linux release; version 1.1 adds Windows. Mobile and TV platforms are out of scope.
 
 | Tier | Platforms | Status |
 | --- | --- | --- |
-| 1 | Windows 10/11 x64, Linux x64 (Wayland and X11) | Built, tested and released from the first milestone |
+| 1 | Linux x64 (Wayland and X11) | Released with 1.0 |
+| 1 | Windows 10/11 x64 | Built in CI since M4; released with 1.1 |
 | 2 | macOS (universal), Linux arm64, Windows arm64 | Compiles in CI; released after 1.0 |
 
 **Feature staging**
 
 | Stage | Features |
 | --- | --- |
-| 1.0 | Playback of common containers and codecs with hardware decoding; embedded and sidecar subtitles; audio track selection; resume and watched state; library scan; TMDB matching for movies and series; SMB, NFS, WebDAV, SFTP and FTP sources; keyboard, mouse and remote-style navigation; HDR passthrough on Windows through direct mode |
-| After 1.0 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
+| 1.0 (Linux, released) | Playback of common containers and codecs with hardware decoding; embedded and sidecar subtitles; audio track selection; resume and watched state; library scan; TMDB matching for movies and series; SMB, NFS, WebDAV and FTP sources; keyboard, mouse and remote-style navigation; MPRIS media keys; Flatpak |
+| 1.1 (Windows) | The Windows build; HDR passthrough on Windows through direct mode; MSIX and winget packages; code signing; Windows media keys (SMTC); SFTP sources on both platforms |
+| After 1.1 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
 | Non-goals | Phones, tablets and TV boxes; DRM streaming services; transcoding or acting as a media server; SMB1; cloud accounts run by the project |
 
 **Principles**
@@ -400,11 +404,11 @@ Updates are delivered by Flathub, winget or the Store; 1.0 ships no updater of i
 
 ## 11. Roadmap
 
-Five milestones lead to 1.0, and the first is a throwaway spike that tests the two riskiest assumptions before any product code exists. No dates are set until the spike is done. All design decisions except the Windows video path (section 12) are made; this version is the baseline for implementation.
+Five milestones led to 1.0 and a sixth leads to 1.1. The first is a throwaway spike that tests the two riskiest assumptions before any product code exists. No dates are set until the spike is done. All design decisions except the Windows video path (section 12) are made; this version is the baseline for implementation.
 
 &#91;embedded content: roadmap · 5 milestones, 4 gates\]
 
-Gates are the diamonds between milestones; a milestone is not finished until its gate passes on both Windows and Linux.
+Gates are the diamonds between milestones. Until v1.2 every gate had to pass on both Windows and Linux; since 1.0 shipped for Linux alone, the Windows parts of the M0 to M4 gates are carried by the M5 gate.
 
 **What each milestone delivers**
 
@@ -412,15 +416,18 @@ Gates are the diamonds between milestones; a milestone is not finished until its
 - **M1 Player.** C++ shell, `MpvPlayer`, embedded video; open local files and folders; full player controls; subtitles and audio tracks; resume; keyboard and remote navigation; the `cxx` bridge, the core skeleton and CI in place.
 - **M2 Library.** Scanner, filename parser with its fixture corpus, job queue, TMDB matching with a review list, poster grids, detail pages, search, watched state.
 - **M3 Network.** SMB, NFS, WebDAV, SFTP and FTP sources; discovery; keystore credentials; reconnect handling; the protocol conformance suite.
-- **M4 Release 1.0.** Direct mode with HDR passthrough on Windows; Flatpak and MSIX packages, signing, third-party notices, user documentation, translations, performance budgets met.
+- **M4 Release 1.0 (Linux).** Flatpak package, media keys, third-party notices, user documentation, translations, performance budgets met.
+- **M5 Release 1.1 (Windows).** The Windows parts of the M0 to M4 gates (first run on Windows, Windows servers, Intel and AMD graphics); direct mode with HDR passthrough; MSIX and winget packages; code signing; SMTC media keys; SFTP in the app.
 
-**M4 status (Nov 11, 2026).** The Linux half is in place: Flatpak, MPRIS media keys, diagnostics export, third-party notices, user guide, German translation, and the startup and scroll budgets measured within limits on one machine. Everything on Windows (direct mode with HDR, MSIX, signing) waits on the Windows libmpv build. See the [M4 status](milestones/M4.md).
+**M5 status (Nov 11, 2026).** Not started. The Windows LGPL libmpv bundle and the app build in CI, and a portable package exists, but it has not been run on Windows yet ([first-run checklist](testing/windows-first-run.md)).
+
+**M4 status (Nov 11, 2026): released as 1.0.0 for Linux.** Flatpak, MPRIS media keys, diagnostics export, third-party notices, user guide, German translation, and the startup and scroll budgets measured within limits on one machine; used without errors by the maintainer. See the [M4 status](milestones/M4.md).
 
 **M3 status (Nov 11, 2026).** SMB, NFS, WebDAV and FTP libraries work end to end on Linux. SFTP is built but not linked into the app yet, and Windows servers are untested. See the [M3 status](milestones/M3.md).
 
 **M0 status (Nov 10, 2026).** First run on Linux, X11 and NVIDIA: the LGPL build, the embedded item and Samba streaming pass, and the direct mode design is drafted. Still open for the gate: everything on Windows (including HDR passthrough), Intel and AMD graphics, and Wayland. See the [M0 report](spike/M0-report.md).
 
-After 1.0, in rough priority order: direct mode on Linux (which needs one of the routes in 5.6, since the LGPL build has no X11 backend), macOS, media-server sources, watch-state sync.
+After 1.1, in rough priority order: direct mode on Linux (which needs one of the routes in 5.6, since the LGPL build has no X11 backend), macOS, media-server sources, watch-state sync.
 
 ## 12. Risks and open decisions
 
@@ -429,7 +436,7 @@ The two video paths are the risk that could still change the architecture, so bo
 | Risk | Why it matters | Mitigation |
 | --- | --- | --- |
 | Embedded video needs an OpenGL scene graph | It forces OpenGL on Windows, where Qt defaults to Direct3D, and driver quality varies | Spike across Intel, AMD and NVIDIA; mpvqt as a proven reference; direct mode as a second path. On Windows, direct mode for all playback would remove the risk there (open decision below). |
-| HDR direct mode | Two stacked windows are fiddly (focus, resize, stacking), mpv cannot embed on Wayland, and another Qt and mpv project cited HDR as a reason to rewrite | Prototype in the spike; Windows only in 1.0. HDR is committed for 1.0, so a problem here moves the release date, not the scope |
+| HDR direct mode | Two stacked windows are fiddly (focus, resize, stacking), mpv cannot embed on Wayland, and another Qt and mpv project cited HDR as a reason to rewrite | Prototype in the spike; Windows only. HDR is committed for 1.1, so a problem here moves the 1.1 release date, not the scope |
 | Two languages | Contributors need C++ and Rust, and the bridge adds friction | Keep the C++ layer thin and free of logic; stable `cxx` instead of a pre-1.0 binding |
 | SMB and NFS crates below 1.0 | NAS playback is the main use case | Conformance suite; pinned versions; C-library fallbacks behind the same trait |
 | Licence contamination | One GPL crate or GPL-only Qt module changes the licence of every binary | `cargo-deny`, the Qt module allowlist and build assertions in CI |
@@ -442,7 +449,8 @@ The two video paths are the risk that could still change the architecture, so bo
 
 - [x] Project name: Huehuecoyotl, with `coyotl` as the short form (see below)
 - [x] Video item: own implementation, with mpvqt as a reference only (section 5.1)
-- [x] Direct mode and HDR passthrough on Windows ship in 1.0 (section 5.2)
+- [x] Direct mode and HDR passthrough on Windows ship in 1.1 with the Windows release (section 5.2; moved from 1.0 in v1.2)
+- [x] 1.0 ships for Linux alone; Windows follows as 1.1 (v1.2)
 - [x] Direct mode on Wayland: embedded mode in 1.0, a separate mpv window as a later opt-in (section 5.6)
 - [x] TMDB key policy: user-supplied only, entered in the Settings menu
 - [x] Governance: DCO, Contributor Covenant and CI-only releases (section 13)

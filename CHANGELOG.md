@@ -4,6 +4,16 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+## 1.0.0 – 2026-11-11 (Linux)
+
+First stable release, for Linux, as a Flatpak bundle. Windows follows in 1.1 (milestone M5).
+
+Known limitations: no Windows release yet; SFTP shares are not in the app; Windows servers,
+FTPS and integrated graphics are untested; no gamepad support; the Flatpak bundle is unsigned
+and not on Flathub.
+
+- Fixed: the app crashed after leaving the player and moving around the menu. The video renderer stayed connected to the window after it was freed.
+- Fixed: `packaging/flatpak/build.sh --install` wrote a desktop entry that pointed at the sandboxed builder's `flatpak`, so the app was missing from the application menu.
 - New app icon (a coyote with a drum and rattle), installed as PNG sizes from 16 to 512 px for Linux and the Flatpak, set as the window icon, and embedded in `coyotl.exe` on Windows. `tools/make-icons.py` regenerates every size from `packaging/icons/source.webp`.
 
 ## 0.9.0 – 2026-11-11 (Linux preview)
