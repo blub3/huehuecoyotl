@@ -38,11 +38,13 @@ file() { printf '\n----- %s -----\n\n' "$2"; cat "$1"; }
   fi
   lic="$mpv/share/licenses"
   if [ -d "$lic" ]; then
-    for f in mpv/Copyright mpv/LICENSE.LGPL ffmpeg/LICENSE.md ffmpeg/COPYING.LGPLv2.1 libass/COPYING \
-             libplacebo/LICENSE libplacebo/3rdparty-glad-LICENSE libplacebo/3rdparty-fast_float-LICENSE-MIT \
-             libplacebo/3rdparty-Vulkan-Headers-LICENSE.md wayland/COPYING; do
-      [ -f "$lic/$f" ] && file "$lic/$f" "$f"
-    done
+    # Every licence file the recipe collected. The GPL texts that FFmpeg and mpv carry for their
+    # GPL configurations do not apply to these LGPL builds and are left out.
+    while IFS= read -r f; do
+      rel="${f#"$lic"/}"
+      case "$(basename "$f")" in *LGPL*|*lgpl*) ;; *GPL*) continue ;; esac
+      file "$f" "$rel"
+    done < <(find "$lic" -type f | LC_ALL=C sort)
     # nv-codec-headers (MIT) carries its licence only in the header comments.
     hdr="$mpv/include/ffnvcodec/dynlink_loader.h"
     if [ -f "$hdr" ]; then printf '\n----- nv-codec-headers (MIT) -----\n\n'; sed -n '1,/\*\//p' "$hdr"; fi

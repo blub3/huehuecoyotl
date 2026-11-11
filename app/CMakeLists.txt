@@ -47,7 +47,7 @@ find_program(COYOTL_CARGO_ABOUT cargo-about)
 set(_notices ${CMAKE_CURRENT_BINARY_DIR}/notices/THIRD_PARTY_NOTICES.txt)
 if(COYOTL_NOTICES_FILE)
   configure_file(${COYOTL_NOTICES_FILE} ${_notices} COPYONLY)
-elseif(COYOTL_CARGO_ABOUT AND NOT COYOTL_SYSTEM_MPV)
+elseif(COYOTL_CARGO_ABOUT AND NOT COYOTL_SYSTEM_MPV AND NOT WIN32)
   add_custom_command(OUTPUT ${_notices}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/notices
     COMMAND ${CMAKE_SOURCE_DIR}/tools/notices.sh ${_notices} ${COYOTL_LIBMPV_PREFIX}
@@ -83,6 +83,15 @@ endif()
 coyotl_check_qt_modules(coyotl)
 
 install(TARGETS coyotl BUNDLE DESTINATION . RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+if(WIN32 AND NOT COYOTL_SYSTEM_MPV)
+  # The libmpv bundle's DLLs live next to coyotl.exe: copied into the build tree so it runs
+  # from there, and installed with it. windeployqt adds Qt's own DLLs at packaging time.
+  file(GLOB _mpv_dlls "${COYOTL_LIBMPV_PREFIX}/bin/*.dll")
+  add_custom_command(TARGET coyotl POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${_mpv_dlls} $<TARGET_FILE_DIR:coyotl>
+    VERBATIM)
+  install(FILES ${_mpv_dlls} DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
 if(UNIX AND NOT APPLE)
   set(_appid io.github.blub3.Huehuecoyotl)
   set(_pkg ${CMAKE_SOURCE_DIR}/packaging/linux)
