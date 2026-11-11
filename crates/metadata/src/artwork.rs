@@ -8,6 +8,9 @@ use std::io::Cursor;
 /// Grid thumbnail width in pixels: covers a 180 px tile at 2× scale.
 pub const GRID_WIDTH: u32 = 360;
 
+/// The larger grid tier, role `poster_grid_l`: covers the large cover size (260 px) at 2× scale.
+pub const GRID_LARGE_WIDTH: u32 = 540;
+
 /// Decode any supported image and re-encode it as a JPEG no wider than `max_width`.
 /// CPU-bound: call from `spawn_blocking`.
 pub fn scale_to_jpeg(data: &[u8], max_width: u32) -> Result<(Vec<u8>, u32, u32), String> {

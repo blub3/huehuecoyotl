@@ -16,6 +16,7 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include <QTranslator>
+#include <QUrl>
 
 #include "benchmark.h"
 #include "corebridge.h"
@@ -118,7 +119,10 @@ int main(int argc, char *argv[])
     int rc = 0;
     {
         QQmlApplicationEngine engine;
-        engine.setInitialProperties({{"startFullscreen", cli.isSet("fullscreen")}});
+        engine.setInitialProperties(
+            {{"startFullscreen", cli.isSet("fullscreen")},
+             // UI preferences live next to the library, so --data-dir keeps test runs apart.
+             {"settingsFile", QUrl::fromLocalFile(QDir(dataDir).filePath(QStringLiteral("ui.ini")))}});
         engine.loadFromModule("Coyotl", "Main");
         if (engine.rootObjects().isEmpty()) return 1;
         bench->mark(QStringLiteral("qml"));

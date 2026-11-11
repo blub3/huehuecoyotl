@@ -45,11 +45,17 @@ QString fileUrl(const rust::String &path)
 
 QVariantMap summaryMap(const coyotl::core::ItemSummary &s)
 {
-    return {{"id", qlonglong(s.id)},       {"kind", qs(s.kind)},
-            {"title", qs(s.title)},        {"year", s.year},
-            {"seasonNo", s.season_no},     {"episodeNo", s.episode_no},
-            {"poster", fileUrl(s.poster)}, {"progress", s.progress},
-            {"watched", s.watched},        {"unwatched", qlonglong(s.unwatched)},
+    return {{"id", qlonglong(s.id)},
+            {"kind", qs(s.kind)},
+            {"title", qs(s.title)},
+            {"year", s.year},
+            {"seasonNo", s.season_no},
+            {"episodeNo", s.episode_no},
+            {"poster", fileUrl(s.poster)},
+            {"posterLarge", fileUrl(s.poster_large)},
+            {"progress", s.progress},
+            {"watched", s.watched},
+            {"unwatched", qlonglong(s.unwatched)},
             {"overview", qs(s.overview)}};
 }
 

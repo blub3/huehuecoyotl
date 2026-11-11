@@ -11,4 +11,7 @@ also shown in the app under Settings → About):
   - FFmpeg, LGPL configuration (LGPLv2.1+)      https://ffmpeg.org
   - libass (ISC), libplacebo (LGPLv2.1+), libwayland (MIT)
 
+The Huehuecoyotl logo (assets/logo and the icons generated from it) is not covered by the
+Apache License 2.0; see assets/logo/LICENSE.
+
 This product uses the TMDB API but is not endorsed or certified by TMDB.
