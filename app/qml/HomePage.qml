@@ -60,7 +60,11 @@ FocusScope {
                     anchors.fill: parent
                     anchors.margins: 28
                     spacing: 12
-                    Label { text: qsTr("Welcome to Huehuecoyotl"); color: Theme.text; font.pixelSize: Theme.fontTitle; font.bold: true }
+                    RowLayout {
+                        spacing: 16
+                        AppLogo { size: 64; Layout.preferredWidth: 64; Layout.preferredHeight: 64 }
+                        Label { text: qsTr("Welcome to Huehuecoyotl"); color: Theme.text; font.pixelSize: Theme.fontTitle; font.bold: true }
+                    }
                     Label {
                         Layout.fillWidth: true
                         wrapMode: Text.Wrap

@@ -223,11 +223,15 @@ FocusScope {
 
             // ---- About ---------------------------------------------------------------------
             Label { text: qsTr("About"); color: Theme.textDim; font.pixelSize: Theme.fontLarge; Layout.topMargin: 24 }
-            Label {
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                color: Theme.text
-                text: qsTr("Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt, all used under the LGPL.").arg(Qt.application.version)
+            RowLayout {
+                spacing: 18
+                AppLogo { size: 96; Layout.preferredWidth: 96; Layout.preferredHeight: 96 }
+                Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    color: Theme.text
+                    text: qsTr("Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt, all used under the LGPL.").arg(Qt.application.version)
+                }
             }
             FocusButton {
                 id: noticesButton

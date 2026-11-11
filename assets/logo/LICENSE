@@ -1,0 +1,14 @@
+Huehuecoyotl logo
+Copyright 2026 the Huehuecoyotl maintainer (see MAINTAINERS). All rights reserved.
+
+The logo in this folder and every image generated from it by tools/make-icons.py
+(packaging/icons/ and packaging/windows/msix/Assets/) are NOT covered by the Apache License 2.0
+that applies to the source code of Huehuecoyotl.
+
+You may:
+  - redistribute these images unmodified as part of Huehuecoyotl and its packages, including
+    packages built by others from unmodified sources;
+  - show them to refer to the Huehuecoyotl project.
+
+Any other use needs written permission from the maintainer, in particular using the logo for
+another product, or for a modified version of the app distributed under a different name.
