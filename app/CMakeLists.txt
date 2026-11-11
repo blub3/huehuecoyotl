@@ -8,7 +8,7 @@ qt_add_executable(coyotl WIN32 MACOSX_BUNDLE
   src/desktopintegration.h src/desktopintegration.cpp
   src/benchmark.h src/benchmark.cpp)
 
-set_source_files_properties(qml/Theme.qml qml/Nav.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(qml/Theme.qml qml/Nav.qml qml/Appearance.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(coyotl
   URI Coyotl
   VERSION 1.0
@@ -23,6 +23,7 @@ qt_add_qml_module(coyotl
     qml/FocusButton.qml
     qml/PosterTile.qml
     qml/Toast.qml
+    qml/Appearance.qml
     qml/Nav.qml
     qml/NavRail.qml
     qml/Shell.qml
