@@ -47,6 +47,7 @@ jobs:
   # (Samba, NFS-Ganesha, rclone for WebDAV and SFTP, vsftpd), plus the network library flow.
   protocols:
     runs-on: ubuntu-24.04
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -55,17 +56,20 @@ jobs:
       - name: Start the test servers
         run: tests/servers/up.sh
       - name: Conformance (SMB, NFS, WebDAV, FTP) and the network library flow
-        env: { COYOTL_TEST_SERVERS: "1", COYOTL_DISABLE_KEYSTORE: "1" }
+        timeout-minutes: 20
+        env: { COYOTL_TEST_SERVERS: "1", COYOTL_DISABLE_KEYSTORE: "1", RUST_LOG: "info" }
+        # One thread: each test's name is printed before it runs, so a hang shows where.
         run: |
-          cargo test -p huehuecoyotl-vfs --test conformance
-          cargo test -p huehuecoyotl-core --test network_flow
+          cargo test -p huehuecoyotl-vfs --test conformance -- --test-threads=1 --nocapture
+          cargo test -p huehuecoyotl-core --test network_flow -- --test-threads=1 --nocapture
       - name: SFTP (separate crate until smb's crypto dependencies are released)
+        timeout-minutes: 15
         env: { COYOTL_TEST_SERVERS: "1" }
         run: |
           cargo clippy --manifest-path crates/vfs-sftp/Cargo.toml --all-targets -- -D warnings
           cargo test --manifest-path crates/vfs-sftp/Cargo.toml
       - name: Server logs
-        if: failure()
+        if: failure() || cancelled()
         run: docker compose -f tests/servers/compose.yaml logs --tail 100
 
   licences:

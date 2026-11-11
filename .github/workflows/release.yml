@@ -76,4 +76,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
             --title "Huehuecoyotl ${GITHUB_REF_NAME#v}" \
-            --notes "See CHANGELOG.md. Checksums are in SHA256SUMS." dist/*
+            --notes-file .github/release-notes.md dist/*

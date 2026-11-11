@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(Huehuecoyotl VERSION 0.1.0 DESCRIPTION "Desktop media player" LANGUAGES CXX)
+project(Huehuecoyotl VERSION 0.9.0 DESCRIPTION "Desktop media player" LANGUAGES CXX)
 include(GNUInstallDirs)
 
 set(CMAKE_CXX_STANDARD 20)

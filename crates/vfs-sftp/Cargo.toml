@@ -1,7 +1,7 @@
 [package]
 name = "huehuecoyotl-vfs-sftp"
 description = "SFTP source (kept out of the workspace until smb and russh share their crypto crates)"
-version = "0.1.0"
+version = "0.9.0"
 edition = "2024"
 license = "Apache-2.0"
 publish = false
