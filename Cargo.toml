@@ -1,7 +1,6 @@
 [workspace]
 resolver = "3"
-exclude = ["crates/vfs-sftp"]
-members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "crates/scanner", "crates/metadata", "crates/stream", "crates/cli"]
+members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "crates/vfs-sftp", "crates/scanner", "crates/metadata", "crates/stream", "crates/cli"]
 
 [workspace.package]
 version = "1.0.0"
@@ -14,6 +13,7 @@ rust-version = "1.86"
 huehuecoyotl-core = { path = "crates/core" }
 huehuecoyotl-library = { path = "crates/library" }
 huehuecoyotl-vfs = { path = "crates/vfs" }
+huehuecoyotl-vfs-sftp = { path = "crates/vfs-sftp" }
 huehuecoyotl-scanner = { path = "crates/scanner" }
 huehuecoyotl-stream = { path = "crates/stream" }
 huehuecoyotl-metadata = { path = "crates/metadata" }
@@ -36,3 +36,10 @@ unsafe_op_in_unsafe_fn = "deny"
 [profile.release]
 debug = 1
 panic = "unwind"   # the bridge catches panics (SPEC 8, rule 7)
+
+# smb 0.12.1 pins sspi 0.21.3, which pins pre-release RustCrypto crates that clash with russh
+# (SFTP). third_party/smb is the published crate with only sspi raised to 0.23.1, as in the
+# unmerged upstream fix afiffon/smb-rs#189. tools/check-smb-patch.sh verifies that in CI.
+# Remove this once smb releases with the newer sspi.
+[patch.crates-io]
+smb = { path = "third_party/smb" }

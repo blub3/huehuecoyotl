@@ -52,22 +52,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: ". -> target\ncrates/vfs-sftp -> target" }
+        with: { workspaces: ". -> target" }
       - name: Start the test servers
         run: tests/servers/up.sh
-      - name: Conformance (SMB, NFS, WebDAV, FTP) and the network library flow
+      - name: Conformance (SMB, NFS, WebDAV, FTP, SFTP) and the network library flow
         timeout-minutes: 20
         env: { COYOTL_TEST_SERVERS: "1", COYOTL_DISABLE_KEYSTORE: "1", RUST_LOG: "info" }
         # One thread: each test's name is printed before it runs, so a hang shows where.
         run: |
           cargo test -p huehuecoyotl-vfs --test conformance -- --test-threads=1 --nocapture
+          cargo test -p huehuecoyotl-vfs-sftp -- --test-threads=1 --nocapture
           cargo test -p huehuecoyotl-core --test network_flow -- --test-threads=1 --nocapture
-      - name: SFTP (separate crate until smb's crypto dependencies are released)
-        timeout-minutes: 15
-        env: { COYOTL_TEST_SERVERS: "1" }
-        run: |
-          cargo clippy --manifest-path crates/vfs-sftp/Cargo.toml --all-targets -- -D warnings
-          cargo test --manifest-path crates/vfs-sftp/Cargo.toml
       - name: Server logs
         if: failure() || cancelled()
         run: docker compose -f tests/servers/compose.yaml logs --tail 100
@@ -78,6 +73,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: EmbarkStudios/cargo-deny-action@v2
         with: { command: check licenses bans sources advisories }
+      - name: third_party/smb is the published crate with only the sspi version changed
+        run: tools/check-smb-patch.sh
 
   libmpv-linux:
     runs-on: ubuntu-24.04

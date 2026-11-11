@@ -268,6 +268,11 @@ quint64 CoreBridge::browseNetwork(const QVariantMap &spec, const QString &passwo
     return id;
 }
 
+QString CoreBridge::networkHostKey() const
+{
+    return m_core ? qs((*m_core)->network_host_key()) : QString();
+}
+
 quint64 CoreBridge::addNetworkLibrary(const QVariantMap &spec, const QString &password)
 {
     const quint64 id = nextId();

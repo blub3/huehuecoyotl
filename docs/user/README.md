@@ -52,8 +52,9 @@ Open **Sources** and choose **Add network share**.
 
 1. Servers that announce themselves on your network (most NAS systems) appear at the top.
    Choose one to fill in the form, or enter the details yourself.
-2. Choose the protocol: **SMB** (Windows shares, Samba, most NAS), **NFS**, **WebDAV** or
-   **FTP**. Your NAS's settings tell you which ones it offers; SMB is the usual choice.
+2. Choose the protocol: **SMB** (Windows shares, Samba, most NAS), **NFS**, **WebDAV**,
+   **FTP** or **SFTP** (any server you can reach with SSH). Your NAS's settings tell you which
+   ones it offers; SMB is the usual choice.
 3. Enter the server name or address, the share name (for SMB and NFS, for example `media`),
    and your user name and password if the share needs them.
 4. Choose **Connect**. If it works, the share's folders appear. Open the folder with your
@@ -71,6 +72,13 @@ Notes for some servers:
 - **NFS** shares must allow connections from unprivileged ports (the `insecure` export option),
   because the app does not run as root.
 - **WebDAV** over HTTPS: tick **HTTPS**.
+- **SFTP**: log in with your password, or with an SSH key: enter the key file (for example
+  `~/.ssh/id_ed25519`) and, if the key has one, its passphrase in the password field. Ed25519
+  and ECDSA keys work; RSA keys do not. After **Connect** the server's key fingerprint is shown:
+  compare it with the one on the server (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`)
+  before adding the library. The app remembers that key and refuses the server if it later
+  presents a different one; remove and re-add the library if the server's key really changed.
+  The base folder is optional (empty is the server's starting folder, usually your home).
 - Windows PCs that do not announce themselves do not appear in the list; enter their name or
   address by hand.
 
