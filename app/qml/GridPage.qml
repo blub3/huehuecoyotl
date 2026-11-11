@@ -106,8 +106,15 @@ FocusScope {
             clip: true
             focus: true
             model: lib
-            cellWidth: 206
-            cellHeight: 346
+            // Columns follow from the width and the cover size (issue #2); the cells share the
+            // width exactly, so no column is cut off at the edge.
+            readonly property real gap: Math.round(26 * Appearance.textScale(Appearance.coverWidth))
+            readonly property int columns: Math.max(1, Math.floor((width - leftMargin) / (Appearance.coverWidth + gap)))
+            readonly property real posterWidth: Math.floor((width - leftMargin) / columns) - gap
+            cellWidth: posterWidth + gap
+            cellHeight: Appearance.cardHeight(posterWidth) + gap
+            // Keep the focused card in view when the size changes (window and fullscreen).
+            onCellWidthChanged: Qt.callLater(() => { if (currentIndex >= 0) positionViewAtIndex(currentIndex, GridView.Contain) })
             // Room for the focused card's scale-up and ring inside the clip.
             topMargin: 14
             leftMargin: 10
@@ -120,7 +127,6 @@ FocusScope {
             Accessible.name: page.heading
             ScrollBar.vertical: ScrollBar {}
 
-            readonly property int columns: Math.max(1, Math.floor(width / cellWidth))
             Keys.onLeftPressed: (e) => { if (currentIndex % columns === 0) Nav.focusRail(); else e.accepted = false }
             Keys.onUpPressed: (e) => { if (currentIndex < columns) sortButton.forceActiveFocus(); else e.accepted = false }
 
@@ -131,6 +137,8 @@ FocusScope {
                 title: model.title
                 year: model.year
                 poster: model.poster
+                posterLarge: model.posterLarge ?? ""
+                posterWidth: grid.posterWidth
                 progress: model.progress
                 watched: model.watched
                 unwatched: Number(model.unwatched)

@@ -14,7 +14,7 @@ use serde_json::json;
 
 use crate::{Event, Inner};
 
-pub const SCAN_KINDS: &[&str] = &["scan"];
+pub const SCAN_KINDS: &[&str] = &["scan", "tiers"];
 pub const META_KINDS: &[&str] = &["match", "details", "artwork"];
 
 enum Outcome {
@@ -81,6 +81,7 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
     let v: serde_json::Value = serde_json::from_str(payload).unwrap_or_default();
     let res = match kind {
         "scan" => scan(inner, v["source_id"].as_i64().unwrap_or(0)).await,
+        "tiers" => large_tiers(inner).await,
         "match" | "details" | "artwork" => {
             let Some(p) = inner.provider() else {
                 return Outcome::Defer(300);
@@ -410,7 +411,8 @@ async fn details(
 fn sizes(role: &str) -> (&'static str, u32) {
     match role {
         "poster" => ("w780", 780),
-        "poster_grid" => ("w342", artwork::GRID_WIDTH),
+        // Fetched at w780 so the larger grid tier can be made from the same download.
+        "poster_grid" => ("w780", artwork::GRID_WIDTH),
         "backdrop" => ("w1280", 1280),
         _ => ("w300", 400), // stills
     }
@@ -427,9 +429,22 @@ async fn fetch_artwork(
         .read(move |c| catalog::pending_artwork(c, item))
         .await
         .map_err(db)?;
+    // The full poster and the grid thumbnail usually share one image: download it once.
+    let mut fetched: std::collections::HashMap<(String, &str), Arc<[u8]>> = Default::default();
     for (owner, role, remote) in pending {
         let (size, width) = sizes(&role);
-        let bytes = p.image(&remote, size).await?;
+        let bytes = match fetched.get(&(remote.clone(), size)) {
+            Some(b) => b.clone(),
+            None => {
+                let b: Arc<[u8]> = Arc::from(&p.image(&remote, size).await?[..]);
+                fetched.insert((remote.clone(), size), b.clone());
+                b
+            }
+        };
+        if role == "poster_grid" {
+            let b = bytes.clone();
+            write_large_tier(inner, owner, move || Ok(b.to_vec())).await;
+        }
         let scaled = tokio::task::spawn_blocking(move || artwork::scale_to_jpeg(&bytes, width))
             .await
             .map_err(|e| MetaError::Other(e.to_string()))?;
@@ -458,6 +473,99 @@ async fn fetch_artwork(
     }
     inner.sink.post(Event::ItemChanged { item_id: item });
     Ok(())
+}
+
+/// Writes the `poster_grid_l` tier of an item from a full-size image. Failures are logged and
+/// skipped: the grid then keeps using the 360 px tier.
+async fn write_large_tier(
+    inner: &Arc<Inner>,
+    item: i64,
+    source: impl FnOnce() -> std::io::Result<Vec<u8>> + Send + 'static,
+) -> bool {
+    let file = inner
+        .data_dir
+        .join("artwork")
+        .join(item.to_string())
+        .join("poster_grid_l.jpg");
+    let target = file.clone();
+    let made = tokio::task::spawn_blocking(move || -> Result<(u32, u32), String> {
+        let data = source().map_err(|e| e.to_string())?;
+        let (jpg, w, h) = artwork::scale_to_jpeg(&data, artwork::GRID_LARGE_WIDTH)?;
+        if let Some(dir) = target.parent() {
+            std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+        }
+        std::fs::write(&target, jpg).map_err(|e| e.to_string())?;
+        Ok((w, h))
+    })
+    .await;
+    let (w, h) = match made {
+        Ok(Ok(size)) => size,
+        Ok(Err(e)) => {
+            tracing::warn!(item, "large grid tier not written: {e}");
+            return false;
+        }
+        Err(e) => {
+            tracing::warn!(item, "large grid tier not written: {e}");
+            return false;
+        }
+    };
+    let local = VPath::new(file.to_string_lossy()).to_string();
+    match inner
+        .lib
+        .write(move |c| catalog::set_artwork_tier(c, item, "poster_grid_l", &local, w, h))
+        .await
+    {
+        Ok(()) => true,
+        Err(e) => {
+            tracing::warn!(item, "large grid tier not recorded: {e}");
+            false
+        }
+    }
+}
+
+/// Number of tiers one `tiers` job makes before it re-queues itself, so scans are not held up.
+const TIER_BATCH: u32 = 100;
+
+/// Background job (no network): makes the 540 px grid tier from downloaded full-size posters for
+/// libraries created before it existed. Until a tier exists the grid shows the 360 px one.
+async fn large_tiers(inner: &Arc<Inner>) -> Result<(), String> {
+    let todo = inner
+        .lib
+        .read(|c| catalog::missing_large_tiers(c, TIER_BATCH))
+        .await
+        .map_err(|e| e.to_string())?;
+    let full = todo.len() as u32 == TIER_BATCH;
+    let last = todo.last().map_or(0, |t| t.0);
+    let mut made = 0;
+    for (item, original) in todo {
+        let path = std::path::PathBuf::from(original);
+        // An unreadable original is skipped; the item keeps the 360 px tier.
+        if write_large_tier(inner, item, move || std::fs::read(path)).await {
+            made += 1;
+        }
+    }
+    if made > 0 {
+        tracing::info!(made, "large grid tiers written");
+    }
+    if full && made > 0 {
+        // Its own key: the running job still holds "tiers", and a merged entry would be
+        // completed with it.
+        enqueue_tiers(inner, jobs::priority::BACKGROUND, &format!("tiers:{last}")).await;
+    }
+    Ok(())
+}
+
+/// Queue the `tiers` job, deduplicated by `key`.
+pub async fn enqueue_tiers(inner: &Arc<Inner>, prio: i64, key: &str) {
+    let key = key.to_string();
+    let r = inner
+        .lib
+        .write(move |c| jobs::enqueue(c, "tiers", "{}", prio, Some(&key)))
+        .await;
+    match r {
+        Ok(_) => inner.wake.notify_waiters(),
+        Err(e) => tracing::error!("queueing the tiers job failed: {e}"),
+    }
 }
 
 /// Mark a whole show or season (or one item) watched or unwatched.

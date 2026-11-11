@@ -138,10 +138,12 @@ FocusScope {
                 id: addedList
                 visible: added.count > 0
                 Layout.fillWidth: true
-                Layout.preferredHeight: 340
+                Layout.preferredHeight: Appearance.cardHeight(Appearance.coverWidth) + 16
                 orientation: ListView.Horizontal
-                spacing: 22
+                spacing: Math.round(22 * Appearance.textScale(Appearance.coverWidth))
                 model: added
+                // Keep the focused card in view when the cover size changes.
+                onSpacingChanged: Qt.callLater(() => { if (currentIndex >= 0) positionViewAtIndex(currentIndex, ListView.Contain) })
                 keyNavigationEnabled: true
                 Accessible.role: Accessible.List
                 Accessible.name: qsTr("Recently added")
@@ -156,6 +158,8 @@ FocusScope {
                     title: model.title
                     year: model.year
                     poster: model.poster
+                    posterLarge: model.posterLarge ?? ""
+                    posterWidth: Appearance.coverWidth
                     progress: model.progress
                     watched: model.watched
                     unwatched: Number(model.unwatched)

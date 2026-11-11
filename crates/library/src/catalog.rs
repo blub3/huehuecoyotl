@@ -225,6 +225,8 @@ pub struct Summary {
     pub season_no: Option<i64>,
     pub episode_no: Option<i64>,
     pub poster: String,
+    /// The 540 px grid tier (`poster_grid_l`); empty until it exists, then QML may prefer it.
+    pub poster_large: String,
     pub progress: f32,
     pub watched: bool,
     /// Shows and seasons: episodes not yet watched.
@@ -262,7 +264,8 @@ const SUMMARY_COLS: &str = "i.id, i.kind, i.title, i.year, i.season_no, i.episod
            WHERE e.parent_id = i.id AND coalesce(pe.watched, 0) = 0
              AND EXISTS (SELECT 1 FROM file f WHERE f.item_id = e.id))
          ELSE 0 END,
-    coalesce(i.overview, '')";
+    coalesce(i.overview, ''),
+    (SELECT local_path FROM artwork a WHERE a.item_id = i.id AND a.role = 'poster_grid_l' AND local_path IS NOT NULL LIMIT 1)";
 
 fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
     let st = PlayState {
@@ -278,6 +281,7 @@ fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
         season_no: r.get(4)?,
         episode_no: r.get(5)?,
         poster: r.get::<_, Option<String>>(6)?.unwrap_or_default(),
+        poster_large: r.get::<_, Option<String>>(12)?.unwrap_or_default(),
         progress: st.progress(),
         watched: st.watched,
         unwatched: r.get(10)?,
@@ -770,6 +774,13 @@ pub fn set_artwork(c: &Connection, item: i64, role: &str, remote: Option<&str>) 
         (Some(cur), Some(r)) if cur.as_deref() == Some(r) => {}
         (Some(_), r) => {
             c.execute("UPDATE artwork SET remote_path = ?3, local_path = NULL WHERE item_id = ?1 AND role = ?2", params![item, role, r])?;
+            if role == "poster_grid" {
+                // The larger tier was made from the old image.
+                c.execute(
+                    "DELETE FROM artwork WHERE item_id = ?1 AND role = 'poster_grid_l'",
+                    [item],
+                )?;
+            }
         }
         (None, Some(r)) => {
             c.execute(
@@ -807,6 +818,40 @@ pub fn set_artwork_local(
         params![item, role, local, w, h],
     )?;
     Ok(())
+}
+
+/// Record a locally generated image tier (no remote of its own), replacing an older one.
+pub fn set_artwork_tier(
+    c: &Connection,
+    item: i64,
+    role: &str,
+    local: &str,
+    w: u32,
+    h: u32,
+) -> Result<()> {
+    c.execute(
+        "DELETE FROM artwork WHERE item_id = ?1 AND role = ?2",
+        params![item, role],
+    )?;
+    c.execute(
+        "INSERT INTO artwork(item_id, role, local_path, width, height) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![item, role, local, w, h],
+    )?;
+    Ok(())
+}
+
+/// Items with a grid thumbnail but no `poster_grid_l` tier yet, and a downloaded full-size
+/// poster to make it from (offline): (item, local path of the full-size poster).
+pub fn missing_large_tiers(c: &Connection, limit: u32) -> Result<Vec<(i64, String)>> {
+    let mut st = c.prepare(
+        "SELECT g.item_id, p.local_path FROM artwork g
+         JOIN artwork p ON p.item_id = g.item_id AND p.role = 'poster' AND p.local_path IS NOT NULL
+         WHERE g.role = 'poster_grid' AND g.local_path IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM artwork l WHERE l.item_id = g.item_id AND l.role = 'poster_grid_l')
+         ORDER BY g.item_id LIMIT ?1",
+    )?;
+    let rows = st.query_map([limit], |r| Ok((r.get(0)?, r.get(1)?)))?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
 /// Seasons and episodes of a show, for applying season details: (season item, season_no,
@@ -912,6 +957,51 @@ mod tests {
                 .unwrap(),
             0
         );
+    }
+
+    #[test]
+    fn large_grid_tier_is_listed_made_and_dropped_with_its_image() {
+        let mut c = db();
+        let lib = add_library(&c, "Media", "/m").unwrap();
+        c.execute_batch(&format!(
+            "INSERT INTO item(id, kind, title, sort_title, added_at) VALUES (1,'movie','Alien','alien',1), (2,'season','Season 1','s',2);
+             INSERT INTO file(source_id, path, size, item_id) VALUES ({lib},'Alien.mkv',5,1);"
+        ))
+        .unwrap();
+        for (item, role) in [(1, "poster"), (1, "poster_grid"), (2, "poster_grid")] {
+            set_artwork(&c, item, role, Some("/a.jpg")).unwrap();
+            set_artwork_local(&c, item, role, &format!("/d/{item}/{role}.jpg"), 360, 540).unwrap();
+        }
+        // The season has no full-size original, so it cannot get the tier offline.
+        assert_eq!(
+            missing_large_tiers(&c, 10).unwrap(),
+            vec![(1, "/d/1/poster.jpg".to_string())]
+        );
+
+        let one = |c: &mut Connection| {
+            let q = Query {
+                kind: "movie".into(),
+                parent: None,
+                sort: Sort::Title,
+                unwatched_only: false,
+                offset: 0,
+                limit: 10,
+            };
+            browse(c, &q).unwrap().1.remove(0)
+        };
+        assert_eq!(one(&mut c).poster_large, "");
+        set_artwork_tier(&c, 1, "poster_grid_l", "/d/1/poster_grid_l.jpg", 540, 810).unwrap();
+        set_artwork_tier(&c, 1, "poster_grid_l", "/d/1/poster_grid_l.jpg", 540, 810).unwrap();
+        let s = one(&mut c);
+        assert_eq!(
+            (s.poster.as_str(), s.poster_large.as_str()),
+            ("/d/1/poster_grid.jpg", "/d/1/poster_grid_l.jpg")
+        );
+        assert!(missing_large_tiers(&c, 10).unwrap().is_empty());
+
+        // A new poster drops the tier made from the old one.
+        set_artwork(&c, 1, "poster_grid", Some("/b.jpg")).unwrap();
+        assert_eq!(one(&mut c).poster_large, "");
     }
 
     #[test]
