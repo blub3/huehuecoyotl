@@ -22,8 +22,11 @@ pub struct Parsed {
     pub episodes: Vec<u16>,
     /// cd1 / part 2 / disc 1 of a multi-file movie.
     pub part: Option<u16>,
-    /// The show folder (for episodes), if the layout has one. Used to group episodes.
-    pub show_folder: Option<String>,
+    /// Episodes: the show's name and year, from the show folder above any season, release or
+    /// per-episode folder, else from such a folder, else from the file name (issue #32).
+    /// Grouping uses this, never a season or release folder itself.
+    pub show_title: Option<String>,
+    pub show_year: Option<u16>,
     pub resolution: Option<String>,
     pub hdr: bool,
 }
@@ -383,6 +386,62 @@ fn season_folder(name: &str) -> Option<u16> {
         .flatten()
 }
 
+/// A folder that holds one season or one episode rather than a whole show: "Season 1",
+/// "Specials", a release folder ("Show.S01.2160p.WEB-DL", "Show Season 2 1080p") or a
+/// per-episode folder ("Show.S02E01.Title.1080p"). Returns the title and year in front of the
+/// season or episode marker (empty when there is none) and the season number.
+fn season_or_episode_folder(name: &str) -> Option<(String, Option<u16>, Option<u16>)> {
+    if let Some(s) = season_folder(name) {
+        return Some((String::new(), None, Some(s)));
+    }
+    let w = words(name);
+    if let Some(m) = find_episode(&w) {
+        let (t, y) = title_and_year(&w[..m.start]);
+        return Some((t, y, m.season));
+    }
+    let toks: Vec<&str> = w.split(' ').collect();
+    let short_season = |t: &str| {
+        let n = t.strip_prefix(['s', 'S'])?;
+        (!n.is_empty() && n.len() <= 2 && n.bytes().all(|b| b.is_ascii_digit()))
+            .then(|| num(n))
+            .flatten()
+    };
+    for (i, t) in toks.iter().enumerate() {
+        let l = t.to_ascii_lowercase();
+        // "S01", "S01-S03", "S01-03"
+        let season = short_season(&l)
+            .or_else(|| short_season(l.split_once('-')?.0))
+            .or_else(|| {
+                matches!(l.as_str(), "season" | "staffel" | "saison" | "temporada")
+                    .then(|| toks.get(i + 1).and_then(|n| num(n)))
+                    .flatten()
+            });
+        if let Some(s) = season {
+            let (t, y) = if i == 0 {
+                (String::new(), None)
+            } else {
+                title_and_year(&toks[..i].join(" "))
+            };
+            return Some((t, y, Some(s)));
+        }
+    }
+    None
+}
+
+/// Two titles share a word (ignoring articles): "Star Wars Andor" and "Andor" do, a category
+/// folder "Kids" and "Example Show" do not.
+fn related(a: &str, b: &str) -> bool {
+    let set = |s: &str| -> Vec<String> {
+        s.to_lowercase()
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|w| !w.is_empty() && !matches!(*w, "the" | "a" | "an" | "der" | "die" | "das"))
+            .map(str::to_string)
+            .collect()
+    };
+    let b = set(b);
+    set(a).iter().any(|w| b.contains(w))
+}
+
 /// An episode number on its own: "01 - Serenity", "Episode 3", "E04", "Dark - 05", "Part 8".
 fn bare_episode(w: &str) -> Option<u16> {
     let toks: Vec<&str> = w.split(' ').collect();
@@ -501,7 +560,8 @@ pub fn parse(relative_path: &str) -> Parsed {
         season: None,
         episodes: vec![],
         part: None,
-        show_folder: None,
+        show_title: None,
+        show_year: None,
         resolution: resolution(&w),
         hdr: {
             let l = w.to_ascii_lowercase();
@@ -542,15 +602,24 @@ pub fn parse(relative_path: &str) -> Parsed {
         return p;
     }
 
-    // Folder layout: [.../]Show/Season N/file or [.../]Show/file
-    let season_idx = folders.iter().rposition(|f| season_folder(f).is_some());
-    let folder_season = season_idx.and_then(|i| season_folder(folders[i]));
-    let show_folder = match season_idx {
-        Some(i) if i > 0 => Some(folders[i - 1]),
-        Some(_) => None,
-        None => folders.last().copied(),
+    // Folder layout, from the file upwards: season, release and per-episode folders
+    // ("Season 1", "Show.S01.2160p.WEB", "Show.S02E01.Title.1080p"), then the show folder.
+    let mut folder_season = None;
+    let mut release: Option<(String, Option<u16>)> = None;
+    let mut show_folder: Option<&str> = None;
+    for f in folders.iter().rev() {
+        if let Some((t, y, s)) = season_or_episode_folder(f) {
+            folder_season = folder_season.or(s);
+            if release.is_none() && !t.is_empty() {
+                release = Some((t, y));
+            }
+            continue;
+        }
+        if !GENERIC_FOLDERS.contains(&words(f).to_ascii_lowercase().as_str()) {
+            show_folder = Some(f);
+        }
+        break;
     }
-    .filter(|f| !GENERIC_FOLDERS.contains(&words(f).to_ascii_lowercase().as_str()));
 
     if let Some(m) = find_episode(&w) {
         p.kind = Kind::Episode;
@@ -566,15 +635,30 @@ pub fn parse(relative_path: &str) -> Parsed {
     }
 
     if p.kind == Kind::Episode {
-        p.show_folder = show_folder.map(str::to_string);
+        let folder = show_folder.map(|f| title_and_year(&words(f)));
+        // A folder that shares no word with the episode's own title is a category ("Kids").
+        let named = (!p.title.is_empty())
+            .then(|| p.title.clone())
+            .or_else(|| release.as_ref().map(|r| r.0.clone()));
+        let folder =
+            folder.filter(|(t, _)| !t.is_empty() && named.as_deref().is_none_or(|n| related(t, n)));
+        let (show, year) = match (&folder, &release) {
+            (Some((t, y)), r) => (t.clone(), y.or(r.as_ref().and_then(|r| r.1))),
+            (None, Some((t, y))) => (t.clone(), *y),
+            (None, None) => (p.title.clone(), p.year),
+        };
+        if !show.is_empty() {
+            p.show_title = Some(show);
+            p.show_year = year.or(p.year);
+        }
         if p.season.is_none() {
             p.season = folder_season;
         }
         if p.title.is_empty() {
-            if let Some(f) = show_folder {
-                let (t, y) = title_and_year(&words(f));
-                p.title = t;
-                p.year = p.year.or(y);
+            // "Show/Season 1/01 - Pilot.mkv": the file has no show name of its own.
+            if let Some(t) = &p.show_title {
+                p.title = t.clone();
+                p.year = p.year.or(p.show_year);
             }
         } else if p.year.is_none() {
             // "Doctor Who (2005)/Season 1/S01E01.mkv" style years live on the show folder

@@ -1,9 +1,18 @@
 //! Numbered schema migrations (SPEC 7). Index `i` brings `user_version` from `i` to `i + 1`.
-//! Never edit a migration that has been released; add a new one.
+//! Never edit a migration that has been released; add a new one. A migration is SQL, or a Rust
+//! function for repairs that need logic; each runs in its own transaction.
 
-pub const MIGRATIONS: &[&str] = &[
+use rusqlite::Transaction;
+
+pub enum Migration {
+    Sql(&'static str),
+    Rust(fn(&Transaction) -> crate::Result<()>),
+}
+
+pub const MIGRATIONS: &[Migration] = &[
     // 1: initial schema
-    r#"
+    Migration::Sql(
+        r#"
 CREATE TABLE source   (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, name TEXT NOT NULL,
                        config_json TEXT NOT NULL DEFAULT '{}', credential_ref TEXT);
 
@@ -55,8 +64,10 @@ CREATE VIRTUAL TABLE item_fts USING fts5(title, original_title, overview);
 -- Source 1 is the local file system; paths are absolute OS paths with '/' separators.
 INSERT INTO source(id, kind, name) VALUES (1, 'local', 'This computer');
 "#,
+    ),
     // 2: library folders, item metadata columns, grouping keys, match candidates, job dedupe
-    r#"
+    Migration::Sql(
+        r#"
 -- Library folders: local sources with a root. Source 1 stays the ad-hoc "this computer" source.
 ALTER TABLE source ADD COLUMN root TEXT;
 ALTER TABLE source ADD COLUMN last_scan INTEGER;
@@ -83,9 +94,15 @@ ALTER TABLE job ADD COLUMN dedupe TEXT;
 ALTER TABLE job ADD COLUMN last_error TEXT;
 CREATE UNIQUE INDEX job_dedupe ON job(dedupe) WHERE state IN ('queued', 'running');
 "#,
+    ),
     // 3: every poster lookup in the summary queries filters artwork by item; without this index
     // "recently added" scanned the whole artwork table once per item (1.2 s at 5,000 movies).
-    r#"
+    Migration::Sql(
+        r#"
 CREATE INDEX artwork_item ON artwork(item_id, role);
 "#,
+    ),
+    // 4 (issue #32): one item per TMDB show or movie. Merges the duplicates that 1.0 and 1.1
+    // created, then makes the TMDB id unique and queues the offline regroup of shows.
+    Migration::Rust(crate::merge::migration_4),
 ];
