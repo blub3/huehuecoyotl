@@ -5,16 +5,18 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use huehuecoyotl_library::{catalog, jobs, queries};
-use huehuecoyotl_metadata::matching::{Decision, decide};
-use huehuecoyotl_metadata::{MediaType, MetaError, MetadataProvider, artwork};
-use huehuecoyotl_scanner::scan::{ScanError, scan_source};
+use huehuecoyotl_library::{catalog, jobs, merge, queries};
+use huehuecoyotl_metadata::matching::{
+    Decision, PLAUSIBLE, decide, filter_country, fits_structure, search_queries, split_country,
+};
+use huehuecoyotl_metadata::{Candidate, MediaType, MetaError, MetadataProvider, artwork};
+use huehuecoyotl_scanner::scan::{ScanError, regroup_shows, scan_source};
 use huehuecoyotl_vfs::VPath;
 use serde_json::json;
 
 use crate::{Event, Inner};
 
-pub const SCAN_KINDS: &[&str] = &["scan", "tiers"];
+pub const SCAN_KINDS: &[&str] = &["scan", "tiers", "regroup"];
 pub const META_KINDS: &[&str] = &["match", "details", "artwork"];
 
 enum Outcome {
@@ -82,6 +84,7 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
     let res = match kind {
         "scan" => scan(inner, v["source_id"].as_i64().unwrap_or(0)).await,
         "tiers" => large_tiers(inner).await,
+        "regroup" => regroup(inner).await,
         "match" | "details" | "artwork" => {
             let Some(p) = inner.provider() else {
                 return Outcome::Defer(300);
@@ -236,8 +239,22 @@ async fn match_item(
         }
         return Ok(());
     }
-    let mut cands = p.search(ty, &t.title, t.year).await?;
-    let (decision, scores) = decide(&mut cands, &t.title, t.year);
+    let on_disk = if ty == MediaType::Show {
+        inner
+            .lib
+            .read(move |c| catalog::show_structure(c, item))
+            .await
+            .map_err(|e| MetaError::Other(e.to_string()))?
+            .into_iter()
+            .map(|(_, season, eps)| {
+                let max = eps.iter().map(|(_, e)| *e).max().unwrap_or(0);
+                (season as u16, max as u16)
+            })
+            .collect()
+    } else {
+        vec![]
+    };
+    let (decision, cands, scores) = find_match(p, ty, &t.title, t.year, &on_disk).await?;
     tracing::info!(item, title = %t.title, ?decision, "matched");
     let rows: Vec<catalog::CandidateRow> = cands
         .iter()
@@ -273,6 +290,65 @@ async fn match_item(
     }
     inner.sink.post(Event::ItemChanged { item_id: item });
     Ok(())
+}
+
+/// At most this many search queries per item (the title, then shorter parts of it).
+const MAX_QUERIES: usize = 3;
+/// At most this many candidates' details are fetched to settle an ambiguous show.
+const MAX_STRUCTURE_CHECKS: usize = 3;
+
+/// Search the provider for an item and decide. For shows (issue #32):
+/// - a country suffix ("Example Show US") becomes an origin-country filter;
+/// - when the title finds nothing usable, shorter leading parts are tried, still scored against
+///   the full title, so punctuation differences ("Show The Return" / "Show: The Return") match;
+/// - when several candidates fit the title, the seasons and episodes on disk (`on_disk`:
+///   season, highest episode) decide; if exactly one candidate can hold them, it is the match,
+///   otherwise the show goes to the review list.
+pub async fn find_match(
+    p: &dyn MetadataProvider,
+    ty: MediaType,
+    title: &str,
+    year: Option<u16>,
+    on_disk: &[(u16, u16)],
+) -> Result<(Decision, Vec<Candidate>, Vec<f64>), MetaError> {
+    if ty == MediaType::Movie {
+        let mut cands = p.search(ty, title, year).await?;
+        let (d, scores) = decide(&mut cands, title, year);
+        return Ok((d, cands, scores));
+    }
+    let (base, country) = split_country(title);
+    let mut best = (Decision::Unmatched, Vec::new(), Vec::new());
+    for q in search_queries(&base).into_iter().take(MAX_QUERIES) {
+        let mut cands = p.search(ty, &q, year).await?;
+        filter_country(&mut cands, country);
+        let (d, scores) = decide(&mut cands, &base, year);
+        let found = d != Decision::Unmatched;
+        if found || best.1.is_empty() {
+            best = (d, cands, scores);
+        }
+        if found {
+            break;
+        }
+    }
+    let (mut decision, mut cands, mut scores) = best;
+    if decision == Decision::NeedsReview && on_disk.iter().any(|(s, _)| *s > 0) {
+        let mut fitting = Vec::new();
+        for (i, c) in cands.iter().enumerate().take(MAX_STRUCTURE_CHECKS) {
+            if scores[i] < PLAUSIBLE {
+                break;
+            }
+            let d = p.details(ty, c.id).await?;
+            if fits_structure(&d.seasons, on_disk) {
+                fitting.push(i);
+            }
+        }
+        if let [only] = fitting[..] {
+            cands.swap(0, only);
+            scores.swap(0, only);
+            decision = Decision::Matched;
+        }
+    }
+    Ok((decision, cands, scores))
 }
 
 pub(crate) async fn enqueue_details(inner: &Arc<Inner>, item: i64, tmdb_id: i64, prio: i64) {
@@ -311,6 +387,13 @@ async fn details(
         return Ok(());
     };
     let d = p.details(ty, tmdb_id).await?;
+    // The TMDB id is the identity (issue #32): if another movie or show already has it, the
+    // two become one item, and the details go to the survivor.
+    let item = inner
+        .lib
+        .write(move |c| merge::claim_tmdb(c, item, tmdb_id))
+        .await
+        .map_err(db)?;
     let meta = json!({ "genres": d.genres, "cast": d.cast }).to_string();
     let update = catalog::MetaUpdate {
         tmdb_id: Some(tmdb_id),
@@ -521,6 +604,37 @@ async fn write_large_tier(
             false
         }
     }
+}
+
+/// Background job queued by migration 4 (issue #32, no network): give every show the key the
+/// current parser derives and merge the duplicates older versions created. Shows whose title
+/// changed and that have no match yet are matched again.
+async fn regroup(inner: &Arc<Inner>) -> Result<(), String> {
+    let report = inner
+        .lib
+        .write(|c| {
+            let tx = c.transaction()?;
+            let report = regroup_shows(&tx)
+                .map_err(|e| huehuecoyotl_library::DbError::Other(e.to_string()))?;
+            for id in &report.rematch {
+                jobs::enqueue(
+                    &tx,
+                    "match",
+                    &json!({ "item_id": id }).to_string(),
+                    jobs::priority::NORMAL,
+                    Some(&format!("match:{id}")),
+                )?;
+            }
+            tx.commit()?;
+            Ok(report)
+        })
+        .await
+        .map_err(|e| e.to_string())?;
+    if !report.rematch.is_empty() {
+        inner.wake.notify_waiters();
+    }
+    // The job loop reports the library change (grids re-query) after every job.
+    Ok(())
 }
 
 /// Number of tiers one `tiers` job makes before it re-queues itself, so scans are not held up.

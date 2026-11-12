@@ -70,6 +70,7 @@ impl MetadataProvider for Fake {
                 season_no: 1,
                 name: "Season 1".into(),
                 poster_path: None,
+                episode_count: 2,
             }],
             ..Default::default()
         })
