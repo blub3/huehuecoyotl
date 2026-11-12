@@ -31,6 +31,7 @@ pub use huehuecoyotl_library::catalog::{CandidateRow, Detail, FileInfo, Summary}
 pub use network::{Discovered, NetworkSpec};
 pub use queries::TrackPref;
 use secrets::KeySource;
+pub use worker::find_match;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LibraryInfo {

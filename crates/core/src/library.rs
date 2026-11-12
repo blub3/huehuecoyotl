@@ -290,14 +290,17 @@ impl Core {
     pub fn choose_match(&self, item_id: i64, provider_id: i64) {
         let inner = self.inner.clone();
         self.rt.spawn(async move {
-            if let Err(e) = inner
+            let item_id = match inner
                 .lib
                 .write(move |c| catalog::lock(c, item_id, Some(provider_id)))
                 .await
             {
-                tracing::error!("locking match failed: {e}");
-                return;
-            }
+                Ok(id) => id,
+                Err(e) => {
+                    tracing::error!("locking match failed: {e}");
+                    return;
+                }
+            };
             worker::enqueue_details(&inner, item_id, provider_id, jobs::priority::USER).await;
             inner.mark_changed();
         });

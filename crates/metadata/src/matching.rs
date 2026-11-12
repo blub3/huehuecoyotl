@@ -157,6 +157,79 @@ pub fn decide(cands: &mut [Candidate], title: &str, year: Option<u16>) -> (Decis
     (d, scores)
 }
 
+/// Country suffixes in show folder names and the TMDB origin country they mean ("The Office
+/// US" is the American show). TMDB writes the United Kingdom as GB.
+const COUNTRY_SUFFIXES: &[(&str, &str)] = &[
+    ("us", "US"),
+    ("usa", "US"),
+    ("uk", "GB"),
+    ("gb", "GB"),
+    ("au", "AU"),
+    ("nz", "NZ"),
+    ("ca", "CA"),
+    ("ie", "IE"),
+];
+
+/// Split a show title into the title to search for and an origin-country filter:
+/// "Example Show US" -> ("Example Show", Some("US")). A one-word title keeps its word.
+pub fn split_country(title: &str) -> (String, Option<&'static str>) {
+    let t = title.trim();
+    if let Some((head, last)) = t.rsplit_once(' ') {
+        let l = last
+            .trim_matches(|c: char| !c.is_alphanumeric())
+            .to_lowercase();
+        if let Some((_, iso)) = COUNTRY_SUFFIXES.iter().find(|(s, _)| *s == l) {
+            if !head.trim().is_empty() {
+                return (head.trim().to_string(), Some(iso));
+            }
+        }
+    }
+    (t.to_string(), None)
+}
+
+/// Search queries for a title, most specific first: the title with punctuation as spaces, then
+/// shorter leading parts down to two words. Search engines miss "Example Show The Return" for
+/// "Example Show: The Return" less often than one might think, but when they do, "Example
+/// Show" finds it, and scoring against the full title (where punctuation never counts) picks it.
+pub fn search_queries(title: &str) -> Vec<String> {
+    let words: Vec<String> = norm(title)
+        .split(' ')
+        .filter(|w| !w.is_empty())
+        .map(str::to_string)
+        .collect();
+    let mut out = vec![title.trim().to_string()];
+    for n in (2..words.len()).rev() {
+        let q = words[..n].join(" ");
+        if !out.contains(&q) {
+            out.push(q);
+        }
+    }
+    out
+}
+
+/// Keep the candidates from `country` when there are any (the US and the UK show of one title).
+pub fn filter_country(cands: &mut Vec<Candidate>, country: Option<&str>) {
+    if let Some(cc) = country {
+        if cands
+            .iter()
+            .any(|c| c.origin_country.iter().any(|o| o == cc))
+        {
+            cands.retain(|c| c.origin_country.iter().any(|o| o == cc));
+        }
+    }
+}
+
+/// Whether a show's seasons on TMDB can hold the episodes on disk: every season number on disk
+/// exists there, and no episode number is beyond that season's episode count. `on_disk` is
+/// (season, highest episode number); specials (season 0) are not compared.
+pub fn fits_structure(seasons: &[crate::SeasonRef], on_disk: &[(u16, u16)]) -> bool {
+    on_disk.iter().filter(|(s, _)| *s > 0).all(|(s, max_ep)| {
+        seasons
+            .iter()
+            .any(|r| r.season_no == *s && (r.episode_count == 0 || *max_ep <= r.episode_count))
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -169,6 +242,59 @@ mod tests {
             popularity: pop,
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn country_suffix_queries_and_structure() {
+        assert_eq!(
+            split_country("Example Show US"),
+            ("Example Show".into(), Some("US"))
+        );
+        assert_eq!(
+            split_country("Example Show UK"),
+            ("Example Show".into(), Some("GB"))
+        );
+        assert_eq!(split_country("Us"), ("Us".into(), None));
+        assert_eq!(split_country("Example Show"), ("Example Show".into(), None));
+        assert_eq!(
+            search_queries("Example Show The Return"),
+            [
+                "Example Show The Return",
+                "example show the",
+                "example show"
+            ]
+        );
+        // The title with and without the colon is the same title for scoring.
+        assert_eq!(
+            similarity("Example Show The Return", "Example Show: The Return"),
+            1.0
+        );
+
+        let mut cands = vec![
+            Candidate {
+                id: 1,
+                origin_country: vec!["GB".into()],
+                ..Default::default()
+            },
+            Candidate {
+                id: 2,
+                origin_country: vec!["US".into()],
+                ..Default::default()
+            },
+        ];
+        filter_country(&mut cands, Some("US"));
+        assert_eq!(cands.iter().map(|c| c.id).collect::<Vec<_>>(), [2]);
+
+        let s = |n: u16, eps: u16| crate::SeasonRef {
+            season_no: n,
+            episode_count: eps,
+            ..Default::default()
+        };
+        let seventies = [s(1, 13)];
+        let remake = [s(1, 13), s(2, 20), s(3, 20), s(4, 20)];
+        let disk = [(0, 1), (1, 13), (3, 18)];
+        assert!(!fits_structure(&seventies, &disk));
+        assert!(fits_structure(&remake, &disk));
     }
 
     #[test]

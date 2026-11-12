@@ -755,10 +755,16 @@ fn sort_key(t: &str) -> String {
 }
 
 /// The user picked a match (or typed a title): pin it so rescans never overwrite it.
-pub fn lock(c: &Connection, id: i64, tmdb_id: Option<i64>) -> Result<()> {
+/// The user's choice: lock the item to `tmdb_id`. If another item already has that id, the two
+/// are merged first (issue #32). Returns the item that now carries the choice.
+pub fn lock(c: &Connection, id: i64, tmdb_id: Option<i64>) -> Result<i64> {
+    let id = match tmdb_id {
+        Some(t) => crate::merge::claim_tmdb(c, id, t)?,
+        None => id,
+    };
     c.execute("UPDATE item SET locked = 1, tmdb_id = coalesce(?2, tmdb_id), match_state = 'matched' WHERE id = ?1", params![id, tmdb_id])?;
     c.execute("DELETE FROM match_candidate WHERE item_id = ?1", [id])?;
-    Ok(())
+    Ok(id)
 }
 
 /// Record a remote image for an item; the artwork job downloads it.

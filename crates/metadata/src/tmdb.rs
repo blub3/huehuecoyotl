@@ -147,6 +147,15 @@ impl Tmdb {
             overview: s(v, "overview"),
             poster_path: opt_s(v, "poster_path"),
             popularity: v.get("popularity").and_then(Value::as_f64).unwrap_or(0.0),
+            origin_country: v["origin_country"]
+                .as_array()
+                .map(|a| {
+                    a.iter()
+                        .filter_map(Value::as_str)
+                        .map(str::to_string)
+                        .collect()
+                })
+                .unwrap_or_default(),
         }
     }
 
@@ -246,6 +255,10 @@ impl MetadataProvider for Tmdb {
                                 as u16,
                             name: s(x, "name"),
                             poster_path: opt_s(x, "poster_path"),
+                            episode_count: x
+                                .get("episode_count")
+                                .and_then(Value::as_u64)
+                                .unwrap_or(0) as u16,
                         })
                         .collect()
                 })
@@ -389,7 +402,7 @@ mod tests {
                 "name": "Breaking Bad", "original_name": "Breaking Bad", "first_air_date": "2008-01-20",
                 "overview": "", "vote_average": 8.9, "episode_run_time": [47], "genres": [{"name": "Drama"}],
                 "external_ids": {"imdb_id": "tt0903747"}, "credits": {"cast": [{"name": "Bryan Cranston"}]},
-                "seasons": [{"season_number": 1, "name": "Staffel 1", "poster_path": "/s1.jpg"}]
+                "seasons": [{"season_number": 1, "name": "Staffel 1", "poster_path": "/s1.jpg", "episode_count": 7}]
             })))
             .mount(&srv).await;
         Mock::given(path("/tv/1396"))
@@ -408,6 +421,7 @@ mod tests {
         );
         assert_eq!(d.cast, ["Bryan Cranston"]);
         assert_eq!(d.seasons[0].name, "Staffel 1");
+        assert_eq!(d.seasons[0].episode_count, 7);
     }
 
     #[tokio::test]
