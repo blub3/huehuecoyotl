@@ -522,6 +522,11 @@ fn group(tx: &Transaction, p: &Parsed, now: i64) -> rusqlite::Result<(i64, Optio
             )?
         }
     };
+    // A season or episode only TMDB knew so far now has a file.
+    tx.execute(
+        "UPDATE item SET virtual = 0 WHERE id IN (?1, ?2) AND virtual != 0",
+        params![season, episode],
+    )?;
     tx.execute(
         "UPDATE item SET added_at = ?2 WHERE id = ?1",
         params![show, now],
@@ -529,8 +534,6 @@ fn group(tx: &Transaction, p: &Parsed, now: i64) -> rusqlite::Result<(i64, Optio
     Ok((episode, created))
 }
 
-/// Remove items that lost their last file. Items with play state are kept (a drive may come
-/// back), but stay invisible in grids, which only list items with files.
 /// What [`regroup_shows`] did.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RegroupReport {
@@ -675,15 +678,19 @@ pub fn regroup_shows(c: &Connection) -> Result<RegroupReport, DbError> {
     Ok(report)
 }
 
+/// Remove items that lost their last file. Items with play state are kept (a drive may come
+/// back), but stay invisible in grids, which only list items with files. Seasons and episodes
+/// only TMDB knows (`virtual`) stay while their show has anything from the scanner.
 fn prune(tx: &Transaction) -> rusqlite::Result<()> {
     tx.execute_batch(
-        "DELETE FROM item WHERE kind IN ('movie','episode')
+        "DELETE FROM item WHERE kind IN ('movie','episode') AND virtual = 0
            AND NOT EXISTS (SELECT 1 FROM file f WHERE f.item_id = item.id)
            AND NOT EXISTS (SELECT 1 FROM playstate p WHERE p.item_id = item.id);
-         DELETE FROM item WHERE kind = 'season'
-           AND NOT EXISTS (SELECT 1 FROM item e WHERE e.parent_id = item.id);
          DELETE FROM item WHERE kind = 'show'
-           AND NOT EXISTS (SELECT 1 FROM item s WHERE s.parent_id = item.id);
+           AND NOT EXISTS (SELECT 1 FROM item s JOIN item e ON e.parent_id = s.id
+                           WHERE s.parent_id = item.id AND e.virtual = 0);
+         DELETE FROM item WHERE kind = 'season' AND virtual = 0
+           AND NOT EXISTS (SELECT 1 FROM item e WHERE e.parent_id = item.id);
          DELETE FROM item_fts WHERE rowid NOT IN (SELECT id FROM item);",
     )
 }
@@ -1028,6 +1035,60 @@ mod tests {
             )
             .await,
             2
+        );
+    }
+
+    /// Episodes only TMDB knows survive rescans, become real when their file appears, and go
+    /// with the show once nothing of it is on disk any more.
+    #[tokio::test]
+    async fn virtual_episodes_survive_rescans_and_turn_real() {
+        let (d, lib, sid, root) = setup().await;
+        let m = d.path().join("media");
+        touch(&m, "Firefly/Season 1/Firefly.S01E01.mkv", 10);
+        scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        let virtual_ep: i64 = lib
+            .write(|c| {
+                let season: i64 =
+                    c.query_row("SELECT id FROM item WHERE kind = 'season'", [], |r| {
+                        r.get(0)
+                    })?;
+                huehuecoyotl_library::catalog::ensure_episode(c, season, 2, "The Train Job")
+            })
+            .await
+            .unwrap();
+        scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        assert_eq!(
+            count(&lib, "SELECT count(*) FROM item WHERE kind = 'episode'").await,
+            2,
+            "kept by the rescan"
+        );
+        touch(&m, "Firefly/Season 1/Firefly.S01E02.mkv", 11);
+        scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        let (item, virt): (i64, i64) = lib
+            .read(|c| {
+                Ok(c.query_row(
+                    "SELECT i.id, i.virtual FROM file f JOIN item i ON i.id = f.item_id WHERE f.path LIKE '%S01E02%'",
+                    [],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )?)
+            })
+            .await
+            .unwrap();
+        assert_eq!(
+            (item, virt),
+            (virtual_ep, 0),
+            "the file joins the TMDB episode"
+        );
+        std::fs::remove_dir_all(m.join("Firefly")).unwrap();
+        touch(&m, "Other (2001).mkv", 3); // keep the folder from looking unreachable
+        scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        assert_eq!(
+            count(
+                &lib,
+                "SELECT count(*) FROM item WHERE kind IN ('show', 'season', 'episode')"
+            )
+            .await,
+            0
         );
     }
 

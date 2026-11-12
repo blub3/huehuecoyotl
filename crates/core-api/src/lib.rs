@@ -100,6 +100,10 @@ mod ffi {
         watched: bool,
         unwatched: i64,
         overview: String,
+        /// Episodes and seasons: in the library (false: only TMDB knows it; not playable).
+        on_disk: bool,
+        /// 0 when unknown.
+        runtime_min: i32,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -341,6 +345,8 @@ fn summary(s: core::Summary) -> ffi::ItemSummary {
         watched: s.watched,
         unwatched: s.unwatched,
         overview: s.overview,
+        on_disk: s.on_disk,
+        runtime_min: s.runtime_min.unwrap_or(0) as i32,
     }
 }
 
