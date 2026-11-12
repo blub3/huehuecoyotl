@@ -4,6 +4,16 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+## 1.1.0 – 2026-11-12 (Linux)
+
+Linux release as a Flatpak bundle. The Windows release follows without a version number yet.
+
+Known limitations: no Windows release; FTPS, Windows servers and integrated graphics are untested;
+no gamepad support; the Flatpak bundle is unsigned and not on Flathub. Built locally rather than
+by CI (GitHub Actions was unavailable).
+
+- Development builds show their commit, e.g. "1.1.0 (development build 7870d67)" in Settings → About and `1.1.0-dev+7870d67` for `coyotl --version`; only the tagged release shows the plain version.
+
 - Show page (#32): one page per show with a season switcher (tabs, or a list for many seasons) and the selected season's episodes, including the ones TMDB knows but your library does not have (dimmed). The main button plays the next episode, resumes a started one, or offers "Play again". Mark episodes, seasons or the whole show watched; left/right switch seasons, up/down move through episodes, W marks watched.
 
 - Fixed: shows appeared many times in the Shows grid, once per season release folder or even once per episode (#32). The scanner now names a show after the folder above season, release and per-episode folders (or the release name), and the TMDB id is unique per show and movie. Existing libraries are repaired on upgrade without network access: duplicates are merged, watch state is kept. Show matching now handles punctuation differences, country suffixes ("US", "UK"), folder years, and titles used by several shows (decided by the seasons and episodes on disk).
