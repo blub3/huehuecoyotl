@@ -4,8 +4,11 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Coyotl
 
-// Detail page for a movie, show, season or episode. Shows list their seasons; seasons list
-// their episodes. Re-queries when the item or the library changes.
+// Detail page for a movie, show, season or episode. A show (issue #32) has a season switcher
+// (tabs, or a list for many seasons) above the selected season's episodes, including episodes
+// only TMDB knows (dimmed). Seasons list their episodes. Re-queries when the library changes.
+// Keys on a show: left/right switch seasons, up/down move through episodes, W marks the focused
+// episode or (on the season tabs) the whole season watched or unwatched.
 FocusScope {
     id: page
     readonly property bool isPlayer: false
@@ -16,9 +19,31 @@ FocusScope {
     readonly property var childItems: d.children || []
     readonly property bool loaded: d.id !== undefined
 
+    // Show page: the seasons (specials last), the selected one and its episodes.
+    readonly property var seasons: kind === "show" ? childItems : []
+    property int seasonIndex: -1
+    property var seasonD: ({})
+    property var seasonRequest: 0
+    readonly property var season: seasonIndex >= 0 && seasonIndex < seasons.length ? seasons[seasonIndex] : null
+    readonly property var episodes: kind === "show" ? (seasonD.children || []) : (kind === "season" ? childItems : [])
+    readonly property bool manySeasons: seasons.length > 8
+
     function load() { request = Core.itemDetail(itemId) }
+    function selectSeason(i) {
+        if (seasons.length === 0) return
+        seasonIndex = Math.max(0, Math.min(i, seasons.length - 1))
+        seasonRequest = Core.itemDetail(seasons[seasonIndex].id)
+    }
+    // Opens on the season that holds the next episode.
+    function initialSeason() {
+        const n = d.nextUp
+        let i = n ? seasons.findIndex(s => s.seasonNo === n.seasonNo) : -1
+        if (i < 0) i = seasons.findIndex(s => s.onDisk)
+        return Math.max(0, i)
+    }
+    function seasonBar() { return manySeasons ? seasonPicker : seasonTabs }
     function childView() {
-        if (kind === "show" && seasonRow.count > 0) return seasonRow
+        if (kind === "show" && seasons.length > 0) return seasonBar()
         if (kind === "season" && episodeList.count > 0) return episodeList
         return null
     }
@@ -42,8 +67,11 @@ FocusScope {
     }
     function playLabel() {
         if (kind === "show" || kind === "season") {
-            if (!d.nextUp) return qsTr("Play")
-            return qsTr("Play S%1 E%2").arg(d.nextUp.seasonNo).arg(d.nextUp.episodeNo)
+            const n = d.nextUp
+            if (!n) return qsTr("Play")
+            if (n.watched) return qsTr("Play again")
+            if (n.progress > 0) return qsTr("Resume S%1 E%2").arg(n.seasonNo).arg(n.episodeNo)
+            return qsTr("Play S%1 E%2").arg(n.seasonNo).arg(n.episodeNo)
         }
         return d.positionMs > 0 && !d.watched ? qsTr("Resume from %1").arg(Theme.time(d.positionMs / 1000)) : qsTr("Play")
     }
@@ -54,9 +82,20 @@ FocusScope {
     Connections {
         target: Core
         function onDetailReady(requestId, detail) {
+            // A reload of the same list keeps the focused episode (marking one watched reloads it).
+            const keep = episodeList.currentIndex
+            if (requestId === page.seasonRequest) {
+                const same = page.seasonD.id === detail.id
+                page.seasonD = detail
+                if (same) episodeList.currentIndex = Math.min(keep, episodeList.count - 1)
+                return
+            }
             if (requestId !== page.request) return
             const first = !page.loaded
             page.d = detail
+            if (page.kind === "season" && !first) episodeList.currentIndex = Math.min(keep, episodeList.count - 1)
+            if (page.kind === "show")
+                page.selectSeason(first || page.seasonIndex < 0 ? page.initialSeason() : page.seasonIndex)
             if (first) playButton.forceActiveFocus()
         }
         function onItemChanged(id) { if (id === page.itemId || page.kind === "show" || page.kind === "season") page.load() }
@@ -225,111 +264,156 @@ FocusScope {
                     Layout.topMargin: 12
                 }
 
-                // Shows: season posters in a row.
-                ListView {
-                    id: seasonRow
-                    visible: page.kind === "show" && count > 0
+                // Show: the season switcher. Tabs, or one button with a list for many seasons.
+                RowLayout {
+                    visible: page.kind === "show" && page.seasons.length > 0
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 330
-                    orientation: ListView.Horizontal
-                    spacing: 22
-                    model: page.kind === "show" ? page.childItems : []
-                    keyNavigationEnabled: true
-                    Keys.onUpPressed: playButton.forceActiveFocus()
-                    Keys.onLeftPressed: (e) => { if (currentIndex === 0) Nav.focusRail(); else e.accepted = false }
-                    onActiveFocusChanged: if (activeFocus) flick.contentY = Math.min(Math.max(0, y - 40), Math.max(0, flick.contentHeight - flick.height))
-                    delegate: PosterCard {
-                        id: seasonCard
-                        required property var modelData
-                        y: 8
-                        focus: ListView.isCurrentItem
-                        posterWidth: 170
-                        title: modelData.title
-                        poster: modelData.poster
-                        unwatched: Number(modelData.unwatched)
-                        watched: Number(modelData.unwatched) === 0
-                        caption: ""
-                        onClicked: Nav.openItem(seasonCard.modelData.id)
-                        Keys.onReturnPressed: Nav.openItem(seasonCard.modelData.id)
-                        Keys.onEnterPressed: Nav.openItem(seasonCard.modelData.id)
+                    spacing: 12
+                    ListView {
+                        id: seasonTabs
+                        visible: !page.manySeasons
+                        Layout.preferredWidth: Math.min(contentWidth, col.width - seasonWatched.width - 24)
+                        Layout.preferredHeight: 48
+                        orientation: ListView.Horizontal
+                        spacing: 8
+                        clip: true
+                        interactive: false
+                        model: page.manySeasons ? [] : page.seasons
+                        currentIndex: page.seasonIndex
+                        Accessible.role: Accessible.PageTabList
+                        Accessible.name: qsTr("Seasons")
+                        Keys.onLeftPressed: page.seasonIndex === 0 ? Nav.focusRail() : page.selectSeason(page.seasonIndex - 1)
+                        Keys.onRightPressed: {
+                            if (page.seasonIndex < page.seasons.length - 1) page.selectSeason(page.seasonIndex + 1)
+                            else seasonWatched.forceActiveFocus()
+                        }
+                        Keys.onPressed: (e) => { if (e.key === Qt.Key_W) { seasonWatched.toggle(); e.accepted = true } }
+                        Keys.onUpPressed: playButton.forceActiveFocus()
+                        Keys.onDownPressed: if (episodeList.count > 0) episodeList.forceActiveFocus()
+                        onActiveFocusChanged: if (activeFocus) page.reveal(this)
+                        delegate: FocusButton {
+                            id: tab
+                            required property var modelData
+                            required property int index
+                            text: modelData.title
+                            primary: index === page.seasonIndex
+                            focus: ListView.isCurrentItem
+                            focusPolicy: Qt.NoFocus
+                            opacity: modelData.onDisk ? 1 : 0.5
+                            Accessible.role: Accessible.PageTab
+                            Accessible.name: modelData.title + (modelData.onDisk ? "" : ", " + qsTr("not in your library"))
+                            Accessible.selected: index === page.seasonIndex
+                            onClicked: page.selectSeason(index)
+                        }
+                    }
+                    FocusButton {
+                        id: seasonPicker
+                        visible: page.manySeasons
+                        text: (page.season ? page.season.title : "") + "  ▾"
+                        tip: qsTr("Choose a season")
+                        Keys.onLeftPressed: page.seasonIndex === 0 ? Nav.focusRail() : page.selectSeason(page.seasonIndex - 1)
+                        Keys.onRightPressed: {
+                            if (page.seasonIndex < page.seasons.length - 1) page.selectSeason(page.seasonIndex + 1)
+                            else seasonWatched.forceActiveFocus()
+                        }
+                        Keys.onPressed: (e) => { if (e.key === Qt.Key_W) { seasonWatched.toggle(); e.accepted = true } }
+                        Keys.onUpPressed: playButton.forceActiveFocus()
+                        Keys.onDownPressed: if (episodeList.count > 0) episodeList.forceActiveFocus()
+                        onActiveFocusChanged: if (activeFocus) page.reveal(this)
+                        onClicked: seasonMenu.open()
+                    }
+                    Item { Layout.fillWidth: true }
+                    FocusButton {
+                        id: seasonWatched
+                        readonly property bool done: page.season !== null && page.season.onDisk && Number(page.season.unwatched) === 0
+                        visible: page.season !== null && page.season.onDisk
+                        text: done ? qsTr("Mark season unwatched") : qsTr("Mark season watched")
+                        Keys.onLeftPressed: page.seasonBar().forceActiveFocus()
+                        Keys.onUpPressed: playButton.forceActiveFocus()
+                        Keys.onDownPressed: if (episodeList.count > 0) episodeList.forceActiveFocus()
+                        // W on the season tabs does the same.
+                        function toggle() { if (visible) Core.setWatched(page.season.id, !done) }
+                        onClicked: toggle()
                     }
                 }
 
-                // Seasons: episode rows.
+                // The episodes of the selected season (show) or of this season (season page).
                 ListView {
                     id: episodeList
-                    visible: page.kind === "season" && count > 0
+                    visible: (page.kind === "season" || page.kind === "show") && count > 0
                     Layout.fillWidth: true
                     Layout.preferredHeight: contentHeight
                     interactive: false
                     spacing: 8
-                    model: page.kind === "season" ? page.childItems : []
+                    model: page.episodes
                     keyNavigationEnabled: true
-                    Keys.onUpPressed: (e) => { if (currentIndex === 0) playButton.forceActiveFocus(); else e.accepted = false }
-                    Keys.onLeftPressed: Nav.focusRail()
+                    Keys.onUpPressed: (e) => {
+                        if (currentIndex > 0) { e.accepted = false; return }
+                        if (page.kind === "show") page.seasonBar().forceActiveFocus()
+                        else playButton.forceActiveFocus()
+                    }
+                    Keys.onLeftPressed: {
+                        if (page.kind === "show" && page.seasonIndex > 0) { page.selectSeason(page.seasonIndex - 1); currentIndex = 0 }
+                        else Nav.focusRail()
+                    }
+                    Keys.onRightPressed: {
+                        if (page.kind === "show" && page.seasonIndex < page.seasons.length - 1) { page.selectSeason(page.seasonIndex + 1); currentIndex = 0 }
+                    }
                     onCurrentIndexChanged: if (activeFocus && currentItem) page.reveal(currentItem)
                     onActiveFocusChanged: if (activeFocus && currentItem) page.reveal(currentItem)
-                    delegate: ItemDelegate {
-                        id: ep
+                    delegate: EpisodeRow {
                         required property var modelData
                         width: episodeList.width
-                        height: 112
+                        ep: modelData
                         focus: ListView.isCurrentItem
-                        focusPolicy: Qt.StrongFocus
-                        Accessible.name: qsTr("Episode %1, %2").arg(modelData.episodeNo).arg(modelData.title)
-                        onClicked: Playback.openItem(ep.modelData.id)
-                        Keys.onReturnPressed: Playback.openItem(ep.modelData.id)
-                        Keys.onEnterPressed: Playback.openItem(ep.modelData.id)
-                        Keys.onPressed: (e) => {
-                            if (e.key === Qt.Key_W) { Core.setWatched(ep.modelData.id, !ep.modelData.watched); e.accepted = true }
-                            else if (e.key === Qt.Key_I) { Nav.openItem(ep.modelData.id); e.accepted = true }
-                        }
-                        background: Rectangle {
-                            radius: Theme.radius
-                            color: ep.activeFocus ? Theme.surfaceHi : ep.hovered ? Theme.surface : "transparent"
-                            border.width: ep.activeFocus ? Theme.focusWidth : 0
-                            border.color: Theme.focus
-                        }
-                        contentItem: RowLayout {
-                            spacing: 18
-                            Rectangle {
-                                Layout.preferredWidth: 160; Layout.preferredHeight: 90
-                                radius: 6; clip: true
-                                color: Theme.surfaceHi
-                                Label { anchors.centerIn: parent; text: ep.modelData.episodeNo; color: Theme.textDim; font.pixelSize: 26; visible: still.status !== Image.Ready }
-                                Image { id: still; anchors.fill: parent; source: ep.modelData.poster; asynchronous: true; fillMode: Image.PreserveAspectCrop; sourceSize.width: 320 }
-                                Rectangle {
-                                    visible: ep.modelData.progress > 0 && !ep.modelData.watched
-                                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                                    height: 4; color: "#80000000"
-                                    Rectangle { width: parent.width * ep.modelData.progress; height: 4; color: Theme.accent }
-                                }
-                            }
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 4
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: ep.modelData.episodeNo + ". " + ep.modelData.title
-                                    color: ep.modelData.watched ? Theme.textDim : Theme.text
-                                    font.pixelSize: Theme.fontBody
-                                    font.bold: true
-                                    elide: Text.ElideRight
-                                }
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: ep.modelData.overview
-                                    color: Theme.textDim
-                                    font.pixelSize: Theme.fontSmall
-                                    wrapMode: Text.Wrap
-                                    maximumLineCount: 2
-                                    elide: Text.ElideRight
-                                }
-                            }
-                            Label { visible: ep.modelData.watched; text: "✓"; color: Theme.accent; font.pixelSize: 20 }
-                        }
+                        onPlay: Playback.openItem(modelData.id)
+                        onInfo: Nav.openItem(modelData.id)
+                        onToggleWatched: Core.setWatched(modelData.id, !modelData.watched)
                     }
                 }
+            }
+        }
+    }
+
+    // Many seasons: the list behind the season button.
+    Popup {
+        id: seasonMenu
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 360
+        height: Math.min(480, seasonMenuList.contentHeight + 24)
+        modal: true
+        padding: 12
+        background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
+        onOpened: { seasonMenuList.currentIndex = page.seasonIndex; seasonMenuList.forceActiveFocus() }
+        onClosed: seasonPicker.forceActiveFocus()
+        ListView {
+            id: seasonMenuList
+            anchors.fill: parent
+            clip: true
+            model: page.seasons
+            keyNavigationEnabled: true
+            Accessible.role: Accessible.List
+            Accessible.name: qsTr("Seasons")
+            delegate: ItemDelegate {
+                id: menuRow
+                required property var modelData
+                required property int index
+                width: seasonMenuList.width
+                focus: ListView.isCurrentItem
+                opacity: modelData.onDisk ? 1 : 0.5
+                text: modelData.title
+                highlighted: index === page.seasonIndex
+                contentItem: Label { text: menuRow.text; color: Theme.text; font.bold: menuRow.highlighted }
+                background: Rectangle {
+                    color: menuRow.activeFocus ? Theme.surfaceHi : "transparent"
+                    radius: 6
+                    border.width: menuRow.activeFocus ? Theme.focusWidth : 0
+                    border.color: Theme.focus
+                }
+                onClicked: { page.selectSeason(index); seasonMenu.close() }
+                Keys.onReturnPressed: clicked()
+                Keys.onEnterPressed: clicked()
             }
         }
     }

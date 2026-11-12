@@ -232,6 +232,10 @@ pub struct Summary {
     /// Shows and seasons: episodes not yet watched.
     pub unwatched: i64,
     pub overview: String,
+    /// Episodes: a file is in the library. Seasons: at least one episode is. Episodes and
+    /// seasons only TMDB knows are shown dimmed and cannot be played.
+    pub on_disk: bool,
+    pub runtime_min: Option<u32>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -265,7 +269,12 @@ const SUMMARY_COLS: &str = "i.id, i.kind, i.title, i.year, i.season_no, i.episod
              AND EXISTS (SELECT 1 FROM file f WHERE f.item_id = e.id))
          ELSE 0 END,
     coalesce(i.overview, ''),
-    (SELECT local_path FROM artwork a WHERE a.item_id = i.id AND a.role = 'poster_grid_l' AND local_path IS NOT NULL LIMIT 1)";
+    (SELECT local_path FROM artwork a WHERE a.item_id = i.id AND a.role = 'poster_grid_l' AND local_path IS NOT NULL LIMIT 1),
+    CASE i.kind
+      WHEN 'show' THEN 1
+      WHEN 'season' THEN EXISTS (SELECT 1 FROM item e JOIN file f ON f.item_id = e.id WHERE e.parent_id = i.id)
+      ELSE EXISTS (SELECT 1 FROM file f WHERE f.item_id = i.id) END,
+    i.runtime_min";
 
 fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
     let st = PlayState {
@@ -282,6 +291,8 @@ fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
         episode_no: r.get(5)?,
         poster: r.get::<_, Option<String>>(6)?.unwrap_or_default(),
         poster_large: r.get::<_, Option<String>>(12)?.unwrap_or_default(),
+        on_disk: r.get(13)?,
+        runtime_min: r.get(14)?,
         progress: st.progress(),
         watched: st.watched,
         unwatched: r.get(10)?,
@@ -463,20 +474,7 @@ pub fn detail(c: &Connection, id: i64) -> Result<Option<Detail>> {
     };
     let position_ms = crate::queries::playstate(c, id)?.position_ms;
     let children = match item.kind.as_str() {
-        "show" | "season" => {
-            browse(
-                c,
-                &Query {
-                    kind: String::new(),
-                    parent: Some(id),
-                    sort: Sort::Title,
-                    unwatched_only: false,
-                    offset: 0,
-                    limit: 1000,
-                },
-            )?
-            .1
-        }
+        "show" | "season" => children(c, id)?,
         _ => vec![],
     };
     let next_up = match item.kind.as_str() {
@@ -501,8 +499,22 @@ pub fn detail(c: &Connection, id: i64) -> Result<Option<Detail>> {
     }))
 }
 
+/// Seasons of a show or episodes of a season for the show page, including the ones only TMDB
+/// knows (`on_disk` false), regular seasons first and specials last.
+pub fn children(c: &Connection, id: i64) -> Result<Vec<Summary>> {
+    let mut st = c.prepare(&format!(
+        "SELECT {SUMMARY_COLS} FROM item i
+         LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = {DEFAULT_PROFILE}
+         WHERE i.parent_id = ?1
+         ORDER BY coalesce(i.season_no, 0) = 0 AND i.kind = 'season', i.season_no, i.episode_no"
+    ))?;
+    let rows = st.query_map([id], summary)?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
 /// The episode to play next: the most recently started unfinished one, else the first unwatched
-/// (regular seasons before specials).
+/// (regular seasons before specials). When everything on disk is watched, the first episode, so
+/// the page offers "Play again" (the summary says `watched`).
 fn next_up(c: &Connection, id: i64, kind: &str) -> Result<Option<Summary>> {
     let scope = if kind == "show" {
         "e.parent_id IN (SELECT id FROM item WHERE parent_id = ?1)"
@@ -517,7 +529,17 @@ fn next_up(c: &Connection, id: i64, kind: &str) -> Result<Option<Summary>> {
                   coalesce(i.season_no, 0) = 0, i.season_no, i.episode_no LIMIT 1",
         cols = SUMMARY_COLS
     );
-    Ok(c.query_row(&sql, [id], summary).optional()?)
+    if let Some(s) = c.query_row(&sql, [id], summary).optional()? {
+        return Ok(Some(s));
+    }
+    let again = format!(
+        "SELECT {cols} FROM item i LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = {DEFAULT_PROFILE}
+         WHERE i.id IN (SELECT e.id FROM item e WHERE {scope})
+           AND EXISTS (SELECT 1 FROM file f WHERE f.item_id = i.id)
+         ORDER BY coalesce(i.season_no, 0) = 0, i.season_no, i.episode_no LIMIT 1",
+        cols = SUMMARY_COLS
+    );
+    Ok(c.query_row(&again, [id], summary).optional()?)
 }
 
 /// Absolute path of the best file of a playable item (the largest version).
@@ -860,20 +882,68 @@ pub fn missing_large_tiers(c: &Connection, limit: u32) -> Result<Vec<(i64, Strin
     Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
+/// A season TMDB knows but the library has no file of: created as a virtual item (shown dimmed
+/// on the show page). Returns the existing season when there is one.
+pub fn ensure_season(c: &Connection, show: i64, season_no: i64, title: &str) -> Result<i64> {
+    if let Some(id) = c
+        .query_row(
+            "SELECT id FROM item WHERE parent_id = ?1 AND kind = 'season' AND season_no = ?2",
+            params![show, season_no],
+            |r| r.get(0),
+        )
+        .optional()?
+    {
+        return Ok(id);
+    }
+    c.execute(
+        "INSERT INTO item(kind, parent_id, title, sort_title, season_no, match_state, virtual)
+         VALUES ('season', ?1, ?2, ?3, ?4, 'matched', 1)",
+        params![show, title, sort_key(title), season_no],
+    )?;
+    Ok(c.last_insert_rowid())
+}
+
+/// An episode TMDB knows that is not on disk, as a virtual item. Returns the existing one.
+pub fn ensure_episode(c: &Connection, season: i64, episode_no: i64, title: &str) -> Result<i64> {
+    if let Some(id) = c
+        .query_row(
+            "SELECT id FROM item WHERE parent_id = ?1 AND kind = 'episode' AND episode_no = ?2",
+            params![season, episode_no],
+            |r| r.get(0),
+        )
+        .optional()?
+    {
+        return Ok(id);
+    }
+    let season_no: Option<i64> =
+        c.query_row("SELECT season_no FROM item WHERE id = ?1", [season], |r| {
+            r.get(0)
+        })?;
+    c.execute(
+        "INSERT INTO item(kind, parent_id, title, sort_title, season_no, episode_no, match_state, virtual)
+         VALUES ('episode', ?1, ?2, ?3, ?4, ?5, 'matched', 1)",
+        params![season, title, sort_key(title), season_no, episode_no],
+    )?;
+    Ok(c.last_insert_rowid())
+}
+
 /// Seasons and episodes of a show, for applying season details: (season item, season_no,
 /// [(episode item, episode_no)]).
 /// (season item, season_no, [(episode item, episode_no)])
 pub type ShowStructure = Vec<(i64, i64, Vec<(i64, i64)>)>;
 
-pub fn show_structure(c: &Connection, show: i64) -> Result<ShowStructure> {
+/// `on_disk_only`: only seasons and episodes from the scanner, not the ones only TMDB knows
+/// (matching compares those with a candidate's seasons).
+pub fn show_structure(c: &Connection, show: i64, on_disk_only: bool) -> Result<ShowStructure> {
+    let real = if on_disk_only { " AND virtual = 0" } else { "" };
     let seasons: Vec<(i64, i64)> = {
-        let mut st = c.prepare("SELECT id, coalesce(season_no, 0) FROM item WHERE parent_id = ?1 AND kind = 'season' ORDER BY season_no")?;
+        let mut st = c.prepare(&format!("SELECT id, coalesce(season_no, 0) FROM item WHERE parent_id = ?1 AND kind = 'season'{real} ORDER BY season_no"))?;
         st.query_map([show], |r| Ok((r.get(0)?, r.get(1)?)))?
             .collect::<rusqlite::Result<_>>()?
     };
     let mut out = Vec::new();
     for (sid, no) in seasons {
-        let mut st = c.prepare("SELECT id, coalesce(episode_no, 0) FROM item WHERE parent_id = ?1 AND kind = 'episode'")?;
+        let mut st = c.prepare(&format!("SELECT id, coalesce(episode_no, 0) FROM item WHERE parent_id = ?1 AND kind = 'episode'{real}"))?;
         let eps = st
             .query_map([sid], |r| Ok((r.get(0)?, r.get(1)?)))?
             .collect::<rusqlite::Result<_>>()?;
@@ -1008,6 +1078,67 @@ mod tests {
         // A new poster drops the tier made from the old one.
         set_artwork(&c, 1, "poster_grid", Some("/b.jpg")).unwrap();
         assert_eq!(one(&mut c).poster_large, "");
+    }
+
+    /// Issue #32, show page: seasons with specials last, episodes TMDB knows but the library
+    /// has not (`on_disk` false), and the main button in its four cases.
+    #[test]
+    fn show_page_children_and_next_episode() {
+        let mut c = db();
+        let lib = add_library(&c, "Media", "/m").unwrap();
+        c.execute_batch(&format!(
+            "INSERT INTO item(id, kind, title) VALUES (1, 'show', 'Show');
+             INSERT INTO item(id, kind, parent_id, title, season_no) VALUES (10, 'season', 1, 'Specials', 0), (11, 'season', 1, 'Season 1', 1), (12, 'season', 1, 'Season 2', 2);
+             INSERT INTO item(id, kind, parent_id, title, season_no, episode_no, runtime_min) VALUES
+               (100, 'episode', 10, 'Special', 0, 1, 30),
+               (111, 'episode', 11, 'One', 1, 1, 44), (112, 'episode', 11, 'Two', 1, 2, 45),
+               (121, 'episode', 12, 'Three', 2, 1, 46);
+             INSERT INTO file(source_id, path, size, item_id) VALUES ({lib}, 's0e1', 1, 100), ({lib}, 's1e1', 1, 111), ({lib}, 's1e2', 1, 112), ({lib}, 's2e1', 1, 121);"
+        ))
+        .unwrap();
+        // TMDB knows S02E02 and a third season the library does not have.
+        let s3 = ensure_season(&c, 1, 3, "Season 3").unwrap();
+        ensure_episode(&c, s3, 1, "Later").unwrap();
+        ensure_episode(&c, 12, 2, "Four").unwrap();
+        assert_eq!(ensure_season(&c, 1, 3, "again").unwrap(), s3, "idempotent");
+
+        let seasons = children(&c, 1).unwrap();
+        let order: Vec<_> = seasons.iter().map(|s| (s.season_no, s.on_disk)).collect();
+        assert_eq!(
+            order,
+            [
+                (Some(1), true),
+                (Some(2), true),
+                (Some(3), false),
+                (Some(0), true)
+            ],
+            "specials last, season 3 not on disk"
+        );
+        let eps = children(&c, 12).unwrap();
+        let rows: Vec<_> = eps
+            .iter()
+            .map(|e| (e.episode_no, e.on_disk, e.runtime_min))
+            .collect();
+        assert_eq!(rows, [(Some(1), true, Some(46)), (Some(2), false, None)]);
+
+        let next = |c: &Connection| {
+            let d = detail(c, 1).unwrap().unwrap();
+            let n = d.next_up.unwrap();
+            (n.id, n.watched)
+        };
+        // Nothing watched: S01E01.
+        assert_eq!(next(&c), (111, false));
+        // One episode half watched: resume it.
+        crate::queries::save_progress(&mut c, 112, 600_000, 2_700_000, false).unwrap();
+        assert_eq!(next(&c), (112, false));
+        // Season 1 finished: the next season.
+        crate::queries::set_watched(&mut c, 111, true).unwrap();
+        crate::queries::set_watched(&mut c, 112, true).unwrap();
+        assert_eq!(next(&c), (121, false));
+        // Everything on disk watched: start again at S01E01 (the page says "Play again").
+        crate::queries::set_watched(&mut c, 121, true).unwrap();
+        crate::queries::set_watched(&mut c, 100, true).unwrap();
+        assert_eq!(next(&c), (111, true));
     }
 
     #[test]

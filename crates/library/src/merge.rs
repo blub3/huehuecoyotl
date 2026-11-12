@@ -214,6 +214,19 @@ pub fn merge_into(c: &Connection, keep: i64, drop: i64) -> Result<()> {
          WHERE id = ?1",
         params![keep, drop],
     )?;
+    // A real episode merged into one only TMDB knew makes it real. (Migration 4 merges before
+    // migration 5 adds the column, so it may not exist yet.)
+    let has_virtual: bool = c.query_row(
+        "SELECT count(*) > 0 FROM pragma_table_info('item') WHERE name = 'virtual'",
+        [],
+        |r| r.get(0),
+    )?;
+    if has_virtual {
+        c.execute(
+            "UPDATE item SET virtual = min(virtual, (SELECT virtual FROM item WHERE id = ?2)) WHERE id = ?1",
+            params![keep, drop],
+        )?;
+    }
     // The merged item's grouping keys now lead to the survivor.
     c.execute(
         "UPDATE OR IGNORE group_alias SET item_id = ?1 WHERE item_id = ?2",
