@@ -30,6 +30,11 @@ crossbeam-channel.workspace = true
 huehuecoyotl-stream.workspace = true
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 tempfile.workspace = true
+wiremock = "0.6"
+
+[features]
+# Tests against the real TMDB API (needs COYOTL_TMDB_KEY): cargo test --features live-tmdb
+live-tmdb = []
 
 [lints]
 workspace = true

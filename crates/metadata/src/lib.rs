@@ -23,6 +23,8 @@ pub struct Candidate {
     pub overview: String,
     pub poster_path: Option<String>,
     pub popularity: f64,
+    /// Shows: ISO 3166 countries of origin ("US", "GB"); empty for movies.
+    pub origin_country: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -30,6 +32,7 @@ pub struct SeasonRef {
     pub season_no: u16,
     pub name: String,
     pub poster_path: Option<String>,
+    pub episode_count: u16,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

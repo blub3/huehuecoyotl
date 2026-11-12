@@ -3,6 +3,7 @@
 
 pub mod catalog;
 pub mod jobs;
+pub mod merge;
 mod migrations;
 pub mod queries;
 
@@ -13,7 +14,7 @@ use crossbeam_channel::{Receiver, Sender, bounded, unbounded};
 use rusqlite::{Connection, OpenFlags};
 use tokio::sync::oneshot;
 
-pub use migrations::MIGRATIONS;
+pub use migrations::{MIGRATIONS, Migration};
 pub use rusqlite;
 
 pub const LOCAL_SOURCE_ID: i64 = 1;
@@ -58,7 +59,10 @@ pub fn migrate(c: &mut Connection) -> Result<usize> {
     }
     while v < MIGRATIONS.len() {
         let tx = c.transaction()?;
-        tx.execute_batch(MIGRATIONS[v])?;
+        match &MIGRATIONS[v] {
+            Migration::Sql(sql) => tx.execute_batch(sql)?,
+            Migration::Rust(f) => f(&tx)?,
+        }
         tx.pragma_update(None, "user_version", (v + 1) as i64)?;
         tx.commit()?;
         v += 1;
