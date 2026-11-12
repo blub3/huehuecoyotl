@@ -84,7 +84,33 @@ qt_add_translations(coyotl TS_FILE_DIR ${CMAKE_SOURCE_DIR}/app/i18n TS_FILE_BASE
                     LUPDATE_OPTIONS -no-obsolete)
 
 target_include_directories(coyotl PRIVATE src)
-target_compile_definitions(coyotl PRIVATE COYOTL_VERSION="${PROJECT_VERSION}")
+# Version shown in the app: "1.1.0" for a build of the commit tagged v1.1.0 (a release), else
+# "1.1.0-dev+<commit>" so a development build is never mistaken for the release. Without a .git
+# folder (the Flatpak build) packaging/flatpak/build.sh writes the commit into BUILD_ID.
+set(_build "")
+if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+  find_package(Git QUIET)
+  if(GIT_FOUND)
+    execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --exact-match --match "v${PROJECT_VERSION}" HEAD
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} RESULT_VARIABLE _tagged OUTPUT_QUIET ERROR_QUIET)
+    if(NOT _tagged EQUAL 0)
+      execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short=7 HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                      OUTPUT_VARIABLE _build OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    endif()
+    # Configure again when the commit changes, so the label follows it.
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+                 "${CMAKE_SOURCE_DIR}/.git/HEAD" "${CMAKE_SOURCE_DIR}/.git/logs/HEAD")
+  endif()
+elseif(EXISTS "${CMAKE_SOURCE_DIR}/BUILD_ID")
+  file(STRINGS "${CMAKE_SOURCE_DIR}/BUILD_ID" _build LIMIT_COUNT 1)
+endif()
+if(_build)
+  set(COYOTL_APP_VERSION "${PROJECT_VERSION}-dev+${_build}")
+else()
+  set(COYOTL_APP_VERSION "${PROJECT_VERSION}")
+endif()
+message(STATUS "Huehuecoyotl version: ${COYOTL_APP_VERSION}")
+target_compile_definitions(coyotl PRIVATE COYOTL_VERSION="${COYOTL_APP_VERSION}")
 target_link_libraries(coyotl PRIVATE
   Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::Qml Qt6::Quick Qt6::QuickControls2
   coyotl_bridge libmpv)
