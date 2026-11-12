@@ -105,4 +105,12 @@ CREATE INDEX artwork_item ON artwork(item_id, role);
     // 4 (issue #32): one item per TMDB show or movie. Merges the duplicates that 1.0 and 1.1
     // created, then makes the TMDB id unique and queues the offline regroup of shows.
     Migration::Rust(crate::merge::migration_4),
+    // 5 (issue #32, show page): seasons and episodes TMDB knows that are not on disk. They are
+    // shown dimmed and cannot be played; a scan that finds their file turns them into normal
+    // items, and pruning keeps them while the show has anything on disk.
+    Migration::Sql(
+        r#"
+ALTER TABLE item ADD COLUMN virtual INTEGER NOT NULL DEFAULT 0;
+"#,
+    ),
 ];

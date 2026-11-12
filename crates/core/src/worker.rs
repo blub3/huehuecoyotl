@@ -242,7 +242,7 @@ async fn match_item(
     let on_disk = if ty == MediaType::Show {
         inner
             .lib
-            .read(move |c| catalog::show_structure(c, item))
+            .read(move |c| catalog::show_structure(c, item, true))
             .await
             .map_err(|e| MetaError::Other(e.to_string()))?
             .into_iter()
@@ -421,12 +421,28 @@ async fn details(
         .map_err(db)?;
 
     if ty == MediaType::Show {
+        // Every season TMDB lists, also the ones not on disk: the show page shows them dimmed.
+        let tmdb_seasons: Vec<(i64, String)> = d
+            .seasons
+            .iter()
+            .map(|s| (i64::from(s.season_no), s.name.clone()))
+            .collect();
         let structure = inner
             .lib
-            .read(move |c| catalog::show_structure(c, item))
+            .write(move |c| {
+                for (no, name) in &tmdb_seasons {
+                    let title = if name.is_empty() {
+                        format!("Season {no}")
+                    } else {
+                        name.clone()
+                    };
+                    catalog::ensure_season(c, item, *no, &title)?;
+                }
+                catalog::show_structure(c, item, false)
+            })
             .await
             .map_err(db)?;
-        for (season_item, season_no, episodes) in structure {
+        for (season_item, season_no, _) in structure {
             let s = match p.season(tmdb_id, season_no as u16).await {
                 Ok(s) => s,
                 Err(MetaError::NotFound) => continue,
@@ -438,12 +454,14 @@ async fn details(
                 overview: Some(s.overview.clone()),
                 ..Default::default()
             };
-            let eps: Vec<(i64, catalog::MetaUpdate, Option<String>)> = episodes
+            // Every episode TMDB lists; the ones not on disk become virtual items.
+            let eps: Vec<(i64, String, catalog::MetaUpdate, Option<String>)> = s
+                .episodes
                 .iter()
-                .filter_map(|(eid, no)| {
-                    let e = s.episodes.iter().find(|e| i64::from(e.episode_no) == *no)?;
-                    Some((
-                        *eid,
+                .map(|e| {
+                    (
+                        i64::from(e.episode_no),
+                        e.title.clone(),
                         catalog::MetaUpdate {
                             title: Some(e.title.clone()).filter(|t| !t.is_empty()),
                             overview: Some(e.overview.clone()),
@@ -454,7 +472,7 @@ async fn details(
                             ..Default::default()
                         },
                         e.still_path.clone(),
-                    ))
+                    )
                 })
                 .collect();
             inner
@@ -462,9 +480,15 @@ async fn details(
                 .write(move |c| {
                     catalog::apply_meta(c, season_item, &season_update)?;
                     catalog::set_artwork(c, season_item, "poster_grid", season_poster.as_deref())?;
-                    for (eid, u, still) in &eps {
-                        catalog::apply_meta(c, *eid, u)?;
-                        catalog::set_artwork(c, *eid, "still", still.as_deref())?;
+                    for (no, title, u, still) in &eps {
+                        let title = if title.is_empty() {
+                            format!("Episode {no}")
+                        } else {
+                            title.clone()
+                        };
+                        let eid = catalog::ensure_episode(c, season_item, *no, &title)?;
+                        catalog::apply_meta(c, eid, u)?;
+                        catalog::set_artwork(c, eid, "still", still.as_deref())?;
                     }
                     Ok(())
                 })
