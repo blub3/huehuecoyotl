@@ -25,6 +25,14 @@ if command -v flatpak-builder >/dev/null; then fb=(flatpak-builder)
 else fb=(flatpak run --env=FLATPAK_USER_DIR="$HOME/.local/share/flatpak" --command=flatpak-builder org.flatpak.Builder); fi
 
 # --user: find the SDK in the per-user installation.
+# The Flatpak build has no .git folder: the commit goes into BUILD_ID for the app's version
+# (empty for the commit tagged v<version>, a release; see app/CMakeLists.txt).
+version=$(sed -n 's/^project(Huehuecoyotl VERSION \([0-9.]*\).*/\1/p' "$root/CMakeLists.txt")
+if git -C "$root" describe --tags --exact-match --match "v$version" HEAD >/dev/null 2>&1; then
+  : > "$root/BUILD_ID"
+else
+  git -C "$root" rev-parse --short=7 HEAD > "$root/BUILD_ID"
+fi
 cd "$here"
 "${fb[@]}" --user --force-clean --delete-build-dirs --repo=repo --state-dir=.flatpak-builder build-dir "$app.yml"
 mkdir -p "$root/build"
