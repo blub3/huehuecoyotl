@@ -1,6 +1,8 @@
-# Huehuecoyotl – Architecture Specification v1.3
+# Huehuecoyotl – Architecture Specification v1.4
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
+
+**Changes in v1.4:** 1.1 is released for Linux on Nov 12, 2026: SFTP, the logo, cover sizes per display mode, one item per show with the repair of older libraries, and the show page (#32). The Windows release has no version number yet (GitHub milestone "Windows"): it needs GitHub Actions minutes or a Windows build machine for its packages (sections 2, 11).
 
 **Changes in v1.3:** HDR passthrough on Windows (direct mode) leaves 1.1 and is postponed without a planned version (milestone "Unknown"), because no Windows PC with an HDR display is available for its tests. Until then Windows plays HDR10 tone-mapped in embedded mode, like Linux (sections 2, 5.2, 11, 12).
 
@@ -28,7 +30,7 @@ Missing from the draft and added here: licensing, credential storage, the scanne
 
 ## 2. Scope and design principles
 
-Huehuecoyotl is a desktop player for Windows and Linux with local and network playback, a scanned library and TMDB metadata. Version 1.0 is the Linux release; version 1.1 adds Windows. Mobile and TV platforms are out of scope.
+Huehuecoyotl is a desktop player for Windows and Linux with local and network playback, a scanned library and TMDB metadata. Versions 1.0 and 1.1 are released for Linux; the Windows release follows without a version number yet. Mobile and TV platforms are out of scope.
 
 | Tier | Platforms | Status |
 | --- | --- | --- |
@@ -41,7 +43,8 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | Stage | Features |
 | --- | --- |
 | 1.0 (Linux, released) | Playback of common containers and codecs with hardware decoding; embedded and sidecar subtitles; audio track selection; resume and watched state; library scan; TMDB matching for movies and series; SMB, NFS, WebDAV and FTP sources; keyboard, mouse and remote-style navigation; MPRIS media keys; Flatpak |
-| 1.1 (Windows) | The Windows build; MSIX and winget packages; code signing; Windows media keys (SMTC); SFTP sources on both platforms; the logo; cover sizes per display mode |
+| 1.1 (Linux, released) | SFTP sources; the logo; cover sizes per display mode; one item per show, with the repair of libraries from older versions; the show page with season switching and episodes not on disk |
+| Windows (no version yet) | The Windows build; MSIX and winget packages; code signing; Windows media keys (SMTC) |
 | Unscheduled | HDR passthrough on Windows through direct mode (needs a Windows PC with an HDR display for tests W1–W8) |
 | After 1.1 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
 | Non-goals | Phones, tablets and TV boxes; DRM streaming services; transcoding or acting as a media server; SMB1; cloud accounts run by the project |
@@ -426,9 +429,11 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 - **M2 Library.** Scanner, filename parser with its fixture corpus, job queue, TMDB matching with a review list, poster grids, detail pages, search, watched state.
 - **M3 Network.** SMB, NFS, WebDAV, SFTP and FTP sources; discovery; keystore credentials; reconnect handling; the protocol conformance suite.
 - **M4 Release 1.0 (Linux).** Flatpak package, media keys, third-party notices, user documentation, translations, performance budgets met.
-- **M5 Release 1.1 (Windows).** The Windows parts of the M0 to M4 gates (first run on Windows, Windows servers, Intel and AMD graphics); MSIX and winget packages; code signing; SMTC media keys; SFTP in the app. Direct mode with HDR passthrough was part of M5 until v1.3 and is now unscheduled.
+- **M5 Windows release** (was "Release 1.1" until v1.4). The Windows parts of the M0 to M4 gates (first run on Windows, Windows servers, Intel and AMD graphics); MSIX and winget packages; code signing; SMTC media keys; SFTP in the app. Direct mode with HDR passthrough was part of M5 until v1.3 and is now unscheduled.
 
-**M5 status (Nov 11, 2026).** In progress. The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). Merged for 1.1: SFTP, the logo and cover sizes. Open: Windows packages in the release workflow, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
+**M5 status (Nov 12, 2026).** Paused: GitHub Actions has no minutes left, and the Windows build needs it (or a Windows build machine). The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). The Windows release workflow is ready in PR #31 but untested. Open: that PR, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
+
+**1.1 (Nov 12, 2026): released for Linux.** SFTP, the logo, cover sizes, one item per show (with the repair of older libraries) and the show page. Built and checked locally, since GitHub Actions was unavailable.
 
 **M4 status (Nov 11, 2026): released as 1.0.0 for Linux.** Flatpak, MPRIS media keys, diagnostics export, third-party notices, user guide, German translation, and the startup and scroll budgets measured within limits on one machine; used without errors by the maintainer. See the [M4 status](milestones/M4.md).
 
