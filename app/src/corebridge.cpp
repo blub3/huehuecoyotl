@@ -56,7 +56,9 @@ QVariantMap summaryMap(const coyotl::core::ItemSummary &s)
             {"progress", s.progress},
             {"watched", s.watched},
             {"unwatched", qlonglong(s.unwatched)},
-            {"overview", qs(s.overview)}};
+            {"overview", qs(s.overview)},
+            {"onDisk", s.on_disk},
+            {"runtimeMin", s.runtime_min}};
 }
 
 QVariantList summaries(const rust::Vec<coyotl::core::ItemSummary> &v)

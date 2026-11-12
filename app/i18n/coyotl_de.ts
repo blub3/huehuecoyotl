@@ -53,32 +53,32 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="313"/>
+        <location filename="../src/corebridge.cpp" line="315"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="315"/>
+        <location filename="../src/corebridge.cpp" line="317"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="317"/>
+        <location filename="../src/corebridge.cpp" line="319"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="319"/>
+        <location filename="../src/corebridge.cpp" line="321"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="321"/>
+        <location filename="../src/corebridge.cpp" line="323"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="469"/>
+        <location filename="../src/corebridge.cpp" line="471"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -94,76 +94,141 @@
 <context>
     <name>DetailPage</name>
     <message>
-        <location filename="../qml/DetailPage.qml" line="38"/>
+        <location filename="../qml/DetailPage.qml" line="63"/>
         <source>%1 min</source>
         <translation>%1 Min.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="45"/>
-        <location filename="../qml/DetailPage.qml" line="48"/>
-        <location filename="../qml/DetailPage.qml" line="194"/>
+        <location filename="../qml/DetailPage.qml" line="71"/>
+        <location filename="../qml/DetailPage.qml" line="76"/>
+        <location filename="../qml/DetailPage.qml" line="233"/>
         <source>Play</source>
         <translation>Abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="46"/>
+        <location filename="../qml/DetailPage.qml" line="72"/>
+        <source>Play again</source>
+        <translation>Erneut abspielen</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="73"/>
+        <source>Resume S%1 E%2</source>
+        <translation>S%1 E%2 fortsetzen</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="74"/>
         <source>Play S%1 E%2</source>
         <translation>S%1 F%2 abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="48"/>
+        <location filename="../qml/DetailPage.qml" line="76"/>
         <source>Resume from %1</source>
         <translation>Fortsetzen bei %1</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="140"/>
+        <location filename="../qml/DetailPage.qml" line="179"/>
         <source>%1 · Season %2, Episode %3</source>
         <translation>%1 · Staffel %2, Folge %3</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="161"/>
+        <location filename="../qml/DetailPage.qml" line="200"/>
         <source>Several matches are possible. Choose the right one with “Fix match”.</source>
         <translation>Mehrere Treffer sind möglich. Wähle mit „Zuordnung korrigieren“ den richtigen.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="161"/>
+        <location filename="../qml/DetailPage.qml" line="200"/>
         <source>Not matched yet: titles come from the file names.</source>
         <translation>Noch nicht zugeordnet: Die Titel stammen aus den Dateinamen.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="180"/>
+        <location filename="../qml/DetailPage.qml" line="219"/>
         <source>With %1</source>
         <translation>Mit %1</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="202"/>
+        <location filename="../qml/DetailPage.qml" line="241"/>
         <source>Mark unwatched</source>
         <translation>Als ungesehen markieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="202"/>
+        <location filename="../qml/DetailPage.qml" line="241"/>
         <source>Mark watched</source>
         <translation>Als gesehen markieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="211"/>
+        <location filename="../qml/DetailPage.qml" line="250"/>
         <source>Fix match</source>
         <translation>Zuordnung korrigieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="222"/>
+        <location filename="../qml/DetailPage.qml" line="261"/>
+        <location filename="../qml/DetailPage.qml" line="284"/>
+        <location filename="../qml/DetailPage.qml" line="397"/>
         <source>Seasons</source>
         <translation>Staffeln</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="222"/>
+        <location filename="../qml/DetailPage.qml" line="261"/>
         <source>Episodes</source>
         <translation>Folgen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="279"/>
+        <location filename="../qml/DetailPage.qml" line="304"/>
+        <source>not in your library</source>
+        <translation>nicht in deiner Bibliothek</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="313"/>
+        <source>Choose a season</source>
+        <translation>Staffel wählen</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="330"/>
+        <source>Mark season unwatched</source>
+        <translation>Staffel als ungesehen markieren</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="330"/>
+        <source>Mark season watched</source>
+        <translation>Staffel als gesehen markieren</translation>
+    </message>
+</context>
+<context>
+    <name>EpisodeRow</name>
+    <message>
+        <location filename="../qml/EpisodeRow.qml" line="18"/>
         <source>Episode %1, %2</source>
         <translation>Folge %1, %2</translation>
+    </message>
+    <message>
+        <location filename="../qml/EpisodeRow.qml" line="19"/>
+        <source>not in your library</source>
+        <translation>nicht in deiner Bibliothek</translation>
+    </message>
+    <message>
+        <location filename="../qml/EpisodeRow.qml" line="20"/>
+        <source>watched</source>
+        <translation>gesehen</translation>
+    </message>
+    <message>
+        <location filename="../qml/EpisodeRow.qml" line="80"/>
+        <source>%1 min</source>
+        <translation>%1 Min.</translation>
+    </message>
+    <message>
+        <location filename="../qml/EpisodeRow.qml" line="88"/>
+        <source>Not in your library</source>
+        <translation>Nicht in deiner Bibliothek</translation>
+    </message>
+    <message>
+        <location filename="../qml/EpisodeRow.qml" line="108"/>
+        <source>Mark unwatched</source>
+        <translation>Als ungesehen markieren</translation>
+    </message>
+    <message>
+        <location filename="../qml/EpisodeRow.qml" line="108"/>
+        <source>Mark watched</source>
+        <translation>Als gesehen markieren</translation>
     </message>
 </context>
 <context>
@@ -587,7 +652,7 @@
     <message>
         <location filename="../qml/NetworkSharePage.qml" line="380"/>
         <source>Compare it with the server&apos;s own fingerprint before adding (on the server: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Adding the library trusts this key; if the server later presents a different key, the connection is refused.</source>
-        <translation>Vergleichen Sie ihn vor dem Hinzufügen mit dem Fingerabdruck auf dem Server (dort: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Mit dem Hinzufügen wird diesem Schlüssel vertraut; zeigt der Server später einen anderen, wird die Verbindung abgelehnt.</translation>
+        <translation>Vergleiche ihn vor dem Hinzufügen mit dem Fingerabdruck auf dem Server (dort: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Mit dem Hinzufügen wird diesem Schlüssel vertraut; zeigt der Server später einen anderen, wird die Verbindung abgelehnt.</translation>
     </message>
     <message>
         <location filename="../qml/NetworkSharePage.qml" line="386"/>
