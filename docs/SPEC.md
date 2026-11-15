@@ -75,7 +75,7 @@ Apache 2.0 for the project's own code is workable if Qt, libmpv and FFmpeg are u
 
 **LGPL obligations for official builds** ([Qt's summary](https://www.qt.io/faq/3.7.-what-are-my-obligations-when-using-qt-under-the-lgpl))
 
-- Ship Qt, libmpv and FFmpeg as replaceable shared libraries, never statically linked.
+- Ship Qt, libmpv and FFmpeg as replaceable shared libraries, never statically linked. The media probe (section 7) uses the same FFmpeg libraries from the Rust core: it loads them at runtime (`libloading`, ISC) with bindings generated for the shipped major version, so nothing new is shipped and nothing links FFmpeg statically.
 - Include the licence texts and make the exact sources and build recipes available under the project's own control, not only as links to upstream.
 - Users must be able to run the app against their own modified build of those libraries. On desktop systems, ordinary shared libraries satisfy this.
 
@@ -255,7 +255,7 @@ CREATE TABLE file     (id INTEGER PRIMARY KEY,
                        source_id INTEGER REFERENCES source(id),
                        path TEXT, size INTEGER, mtime INTEGER,
                        fingerprint BLOB,          -- size + hash of first and last 64 KiB
-                       probe_json TEXT,           -- tracks, resolution, HDR, duration
+                       probe_json TEXT,           -- tracks, resolution, HDR, bit rates (crates/probe)
                        item_id INTEGER REFERENCES item(id),
                        last_seen_scan INTEGER,
                        UNIQUE (source_id, path));
@@ -285,7 +285,7 @@ CREATE VIRTUAL TABLE item_fts USING fts5(title, original_title, overview);
 3. Group files into items; several files can attach to one item. A show is named by the folder above any season, release or per-episode folder ("Show/Season 1/…", "Show/Show.S01.2160p.WEB/…", "Show.S02E01.Title/…"); without such a folder, by the title in front of the season marker of a release folder, else by the file name. A folder that shares no word with the episode's own title is a category, not the show. Episodes group by a show key: the normalised title without a leading article; a country suffix ("US", "UK") stays in the key, and the year is compared separately (an unknown year matches any). When items are merged, their old keys stay in `group_alias`, so later scans find the surviving item.
 4. Match against the metadata provider. A low-confidence match goes to a "needs review" list instead of becoming a wrong poster. For shows, a country suffix becomes an origin-country filter, shorter leading parts of the title are searched when the title finds nothing, and when several shows fit the title, the seasons and episodes on disk decide (a show with three seasons on disk cannot be a one-season show). After matching, the TMDB id is the identity: at most one top-level movie and one show per TMDB id (a unique index); an item that would take an id another item already has is merged into it, keeping both items' files and the newer watch state per episode. A user's locked choice always wins.
 5. Fetch details and artwork; for shows, every season and episode TMDB lists, also the ones not on disk (virtual items for the show page). Downscale posters in Rust to the grid sizes the UI uses and keep the original for the detail page. Grid thumbnails come in two tiers, 360 px (`poster_grid`) and 540 px (`poster_grid_l`), both made from one w780 download. For libraries from before the 540 px tier, a background `tiers` job makes it from the stored originals without network access; until then the grid uses the 360 px tier.
-6. Probe tracks and HDR flags lazily, on first play or when idle.
+6. Probe tracks and HDR flags when idle (issue #33): a low-priority `probe` job with its own worker analyses every library file with FFmpeg's libavformat in the Rust core (`crates/probe`). It reads through the file's `Source`, so network shares work like local folders, and only the start of a file plus what the container points at, capped at 24 MiB per file (a test asserts the bytes read). The result is `file.probe_json` with a schema version; changed files lose it in the scan and are probed again, as are files with an older schema. A file FFmpeg cannot read gets an entry with the error and is not retried until it changes; "Analyse now" moves a file to the front. When a file is played, what mpv reports (`track-list`, `video-params`) fills in files without a usable probe. Bit rates come from the stream or Matroska's statistics tags; the overall rate is size over duration, and a video rate derived from it minus the audio is marked as estimated. Atmos and DTS:X are shown only when FFmpeg's profile signals them. `coyotl-cli probe FILE` prints the result.
 
 Libraries scanned before 1.1.1 are repaired by migration 4 (TMDB duplicates merged) and the `regroup` job, which derives every show's key again from its file paths, without network access or rescanning, and re-keys or merges the shows; shows whose title changed and that have no match are matched again. `crates/scanner/examples/regroup.rs` runs the same repair on a copy of a database and reports the counts.
 
@@ -386,6 +386,7 @@ CMake is the top-level build. It compiles the C++ shell and QML, drives Cargo fo
 /crates/metadata     provider trait, TMDB client, artwork cache
 /crates/vfs          Source trait and protocol backends (Cargo features)
 /crates/stream       mpv stream callbacks and read-ahead
+/crates/probe        media probe: FFmpeg's libavformat loaded at runtime, generated bindings
 /crates/cli          headless harness for tests and debugging
 /third_party/mpv     build recipes for LGPL libmpv, FFmpeg and their bundled libraries
 /tests/servers       containers: Samba, NFS, WebDAV, SFTP, FTP
@@ -394,6 +395,8 @@ Cargo.toml           Rust workspace
 ```
 
 **Logo and icons.** The logo's master is `assets/logo/huehuecoyotl.png` (raster artwork, 1254 px). `tools/make-icons.py` generates every size from it: the hicolor icons for Linux and the Flatpak (16 to 512 px; there is no scalable SVG), the Windows `.ico`, the MSIX image assets and the 512 px image the UI scales to the screen's scale factor. Nothing is resized by hand. The logo is not under the Apache License 2.0; `assets/logo/LICENSE` states its terms.
+
+**FFmpeg bindings for the probe.** `crates/probe/src/ffi_types.rs` holds the FFmpeg types the probe reads, generated once by `tools/gen-ffmpeg-bindings.sh` (bindgen) from the headers of the libmpv bundle and committed, so builds need neither libclang nor FFmpeg headers. The functions are looked up at runtime from the libraries the app already loaded with libmpv; a library with another major version is refused, and then the playback fallback fills in. Regenerate the file when FFmpeg's major version changes.
 
 **libmpv bundle.** The Linux recipe builds in a container on the Ubuntu 24.04 base and ships libmpv with FFmpeg, libass, libplacebo and libwayland as shared libraries with an `$ORIGIN` rpath. libwayland is bundled because mpv 0.42 needs version 1.23 or newer and Ubuntu 24.04 has 1.22. Versions are pinned by tag and recorded by commit. The spike baseline is mpv 0.42.0, FFmpeg 8.1.3, libplacebo 7.387.0, libass 0.17.5 and libwayland 1.24.0.
 

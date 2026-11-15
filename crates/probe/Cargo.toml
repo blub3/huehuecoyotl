@@ -1,0 +1,20 @@
+[package]
+name = "huehuecoyotl-probe"
+description = "Media probe: codecs, HDR, tracks and bit rates through FFmpeg's libavformat, loaded at runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# Loads the FFmpeg libraries the app already ships with libmpv (no link-time dependency).
+libloading = "0.9"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

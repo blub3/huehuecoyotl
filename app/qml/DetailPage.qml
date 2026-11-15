@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Coyotl
+import "MediaInfo.js" as MediaInfo
 
 // Detail page for a movie, show, season or episode. A show (issue #32) has a season switcher
 // (tabs, or a list for many seasons) above the selected season's episodes, including episodes
@@ -45,8 +46,17 @@ FocusScope {
     function childView() {
         if (kind === "show" && seasons.length > 0) return seasonBar()
         if (kind === "season" && episodeList.count > 0) return episodeList
+        if (hasFiles) return detailsToggle
         return null
     }
+
+    // Movies and episodes (issue #33): the file the page describes and its probe data.
+    property int fileIndex: 0
+    readonly property var files: d.files || []
+    readonly property bool hasFiles: (kind === "movie" || kind === "episode") && files.length > 0
+    readonly property var file: hasFiles ? files[Math.min(fileIndex, files.length - 1)] : null
+    readonly property var info: file && file.probe ? file.probe : null
+    property bool detailsOpen: false
     // Keep the focused episode row inside the visible part of the page.
     function reveal(item) {
         const p = item.mapToItem(flick.contentItem, 0, 0)
@@ -195,6 +205,36 @@ FocusScope {
                             color: Theme.textDim
                             font.pixelSize: Theme.fontBody
                         }
+                        // "4K · HDR10 · HEVC 10-bit · TrueHD Atmos 7.1 · 3 subtitles" and badges.
+                        RowLayout {
+                            visible: page.hasFiles && page.info !== null && !page.info.error
+                            spacing: 8
+                            Repeater {
+                                model: page.info ? MediaInfo.badges(page.info) : []
+                                Rectangle {
+                                    required property string modelData
+                                    implicitWidth: badgeText.implicitWidth + 12
+                                    implicitHeight: 22
+                                    radius: 4
+                                    color: "transparent"
+                                    border.width: 1
+                                    border.color: Theme.textDim
+                                    Label {
+                                        id: badgeText
+                                        anchors.centerIn: parent
+                                        text: parent.modelData
+                                        color: Theme.text
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                    }
+                                }
+                            }
+                            Label {
+                                text: page.info ? MediaInfo.summary(page.info) : ""
+                                color: Theme.textDim
+                                font.pixelSize: Theme.fontSmall
+                            }
+                        }
                         Label {
                             visible: (page.kind === "movie" || page.kind === "show") && (page.d.matchState === "needs_review" || page.d.matchState === "unmatched")
                             text: page.d.matchState === "needs_review" ? qsTr("Several matches are possible. Choose the right one with “Fix match”.") : qsTr("Not matched yet: titles come from the file names.")
@@ -251,6 +291,71 @@ FocusScope {
                                 KeyNavigation.left: watchedButton
                                 KeyNavigation.down: page.childView()
                                 onClicked: fixDialog.openFor(page.itemId, page.d.title, page.d.year)
+                            }
+                        }
+                    }
+                }
+
+                // Technical details (issue #33): collapsible, from the selected file's probe data.
+                RowLayout {
+                    visible: page.hasFiles
+                    spacing: 12
+                    Layout.topMargin: 12
+                    FocusButton {
+                        id: detailsToggle
+                        glyph: page.detailsOpen ? "▾" : "▸"
+                        text: qsTr("Technical details")
+                        Keys.onUpPressed: playButton.forceActiveFocus()
+                        Keys.onLeftPressed: Nav.focusRail()
+                        KeyNavigation.right: analyseButton.visible ? analyseButton : null
+                        onActiveFocusChanged: if (activeFocus) page.reveal(this)
+                        onClicked: {
+                            page.detailsOpen = !page.detailsOpen
+                            if (page.detailsOpen) Qt.callLater(() => page.reveal(detailsPanel))
+                        }
+                    }
+                    Label {
+                        visible: page.info === null || page.info.error !== undefined
+                        text: page.info === null ? qsTr("Analysing…") : qsTr("This file could not be analysed.")
+                        color: Theme.textDim
+                        font.pixelSize: Theme.fontSmall
+                    }
+                    FocusButton {
+                        id: analyseButton
+                        visible: page.info === null || page.info.error !== undefined
+                        text: qsTr("Analyse now")
+                        KeyNavigation.left: detailsToggle
+                        Keys.onUpPressed: playButton.forceActiveFocus()
+                        onClicked: Core.probeNow(page.file.id)
+                    }
+                }
+                GridLayout {
+                    id: detailsPanel
+                    visible: page.hasFiles && page.detailsOpen && page.info !== null && !page.info.error
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: 1100
+                    columns: Math.max(1, Math.min(3, Math.floor(width / 340)))
+                    columnSpacing: 32
+                    rowSpacing: 18
+                    Repeater {
+                        model: page.info && !page.info.error ? MediaInfo.groups(page.file, page.info) : []
+                        ColumnLayout {
+                            id: group
+                            required property var modelData
+                            Layout.alignment: Qt.AlignTop
+                            Layout.fillWidth: true
+                            spacing: 4
+                            Label { text: group.modelData.title; color: Theme.accent; font.pixelSize: Theme.fontBody; font.bold: true }
+                            Repeater {
+                                model: group.modelData.rows
+                                RowLayout {
+                                    id: line
+                                    required property var modelData
+                                    spacing: 10
+                                    Layout.fillWidth: true
+                                    Label { text: line.modelData[0]; color: Theme.textDim; font.pixelSize: Theme.fontSmall; Layout.preferredWidth: 130 }
+                                    Label { text: line.modelData[1]; color: Theme.text; font.pixelSize: Theme.fontSmall; Layout.fillWidth: true; wrapMode: Text.WrapAnywhere }
+                                }
                             }
                         }
                     }

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "crates/vfs-sftp", "crates/scanner", "crates/metadata", "crates/stream", "crates/cli"]
+members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "crates/vfs-sftp", "crates/probe", "crates/scanner", "crates/metadata", "crates/stream", "crates/cli"]
 
 [workspace.package]
 version = "1.1.0"
@@ -14,6 +14,7 @@ huehuecoyotl-core = { path = "crates/core" }
 huehuecoyotl-library = { path = "crates/library" }
 huehuecoyotl-vfs = { path = "crates/vfs" }
 huehuecoyotl-vfs-sftp = { path = "crates/vfs-sftp" }
+huehuecoyotl-probe = { path = "crates/probe" }
 huehuecoyotl-scanner = { path = "crates/scanner" }
 huehuecoyotl-stream = { path = "crates/stream" }
 huehuecoyotl-metadata = { path = "crates/metadata" }

@@ -508,6 +508,25 @@ void MpvPlayer::parseChapters(const mpv_node *list)
     emit mediaChanged();
 }
 
+QString MpvPlayer::mediaInfoJson() const
+{
+    // mpv formats node properties (track-list, video-params) as JSON strings.
+    QStringList parts;
+    for (const char *name : {"track-list", "video-params", "file-format", "duration", "file-size"}) {
+        char *v = m_mpv ? mpv_get_property_string(m_mpv, name) : nullptr;
+        if (!v) continue;
+        const QString raw = QString::fromUtf8(v);
+        mpv_free(v);
+        const bool json = raw.startsWith('[') || raw.startsWith('{');
+        const bool number = !json && !raw.isEmpty() && (raw.at(0).isDigit());
+        parts << QStringLiteral("\"%1\": %2")
+                     .arg(QLatin1String(name),
+                          json || number ? raw
+                                         : QStringLiteral("\"%1\"").arg(QString(raw).replace('"', "'")));
+    }
+    return QStringLiteral("{%1}").arg(parts.join(QStringLiteral(", ")));
+}
+
 QString MpvPlayer::versionInfo() const
 {
     QStringList out;

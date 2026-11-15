@@ -47,6 +47,9 @@ class MpvPlayer : public QObject {
     mpv_handle *handle() const { return m_mpv; }
     // mpv, FFmpeg and decoder settings for the diagnostics export.
     QString versionInfo() const;
+    // Issue #33: what mpv knows about the open file (track-list, video-params, file-format,
+    // duration, file-size) as one JSON object, for the core's technical details.
+    QString mediaInfoJson() const;
 
     State state() const { return m_state; }
     QString errorString() const { return m_error; }

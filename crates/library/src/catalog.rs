@@ -371,8 +371,17 @@ pub fn recently_added(c: &Connection, limit: u32) -> Result<Vec<Summary>> {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FileInfo {
+    pub id: i64,
     pub path: String,
     pub size: i64,
+    pub source_id: i64,
+    pub source_name: String,
+    /// local, smb, nfs, webdav, ftp, sftp
+    pub source_kind: String,
+    /// The media probe's result (issue #33), "" until the file is analysed.
+    pub probe_json: String,
+    /// Set by the core: whether the file's source can be reached right now.
+    pub online: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -462,12 +471,19 @@ pub fn detail(c: &Connection, id: i64) -> Result<Option<Detail>> {
     };
     let files = {
         let mut st = c.prepare(&format!(
-            "SELECT {ABS_PATH_SQL}, coalesce(f.size, 0) FROM file f JOIN source s ON s.id = f.source_id WHERE f.item_id = ?1 ORDER BY f.size DESC"
+            "SELECT {ABS_PATH_SQL}, coalesce(f.size, 0), f.id, s.id, s.name, s.kind, coalesce(f.probe_json, '')
+             FROM file f JOIN source s ON s.id = f.source_id WHERE f.item_id = ?1 ORDER BY f.size DESC"
         ))?;
         st.query_map([id], |r| {
             Ok(FileInfo {
                 path: r.get(0)?,
                 size: r.get(1)?,
+                id: r.get(2)?,
+                source_id: r.get(3)?,
+                source_name: r.get(4)?,
+                source_kind: r.get(5)?,
+                probe_json: r.get(6)?,
+                online: true,
             })
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?
@@ -573,6 +589,75 @@ pub fn playable_files(c: &Connection, item_id: i64) -> Result<Vec<PlayableFile>>
         })
     })?;
     Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+// ---- media probe (issue #33) --------------------------------------------------------------------
+
+/// Library files without probe data, or with data of an older schema (re-probed in the
+/// background). Changed files lose their data in the scan, so they come back here too.
+pub fn files_to_probe(c: &Connection, schema: u32) -> Result<Vec<i64>> {
+    let mut st = c.prepare(
+        "SELECT f.id FROM file f JOIN source s ON s.id = f.source_id
+         WHERE f.item_id IS NOT NULL AND s.root IS NOT NULL
+           AND (f.probe_json IS NULL OR coalesce(json_extract(f.probe_json, '$.schema'), 0) < ?1)
+         ORDER BY f.id",
+    )?;
+    let rows = st.query_map([schema], |r| r.get(0))?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+/// Where a file is: (source id, source kind, absolute path in the source, size, item).
+pub type ProbeTarget = (i64, String, String, u64, i64);
+
+pub fn probe_target(c: &Connection, file_id: i64) -> Result<Option<ProbeTarget>> {
+    Ok(c.query_row(
+        &format!(
+            "SELECT f.source_id, s.kind, {ABS_PATH_SQL}, coalesce(f.size, 0), f.item_id
+             FROM file f JOIN source s ON s.id = f.source_id WHERE f.id = ?1 AND f.item_id IS NOT NULL"
+        ),
+        [file_id],
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get::<_, i64>(3)? as u64, r.get(4)?)),
+    )
+    .optional()?)
+}
+
+/// The library file at an absolute path (in a given source, or in any).
+pub fn file_for_path(c: &Connection, source: Option<i64>, abs_path: &str) -> Result<Option<i64>> {
+    Ok(c.query_row(
+        &format!(
+            "SELECT f.id FROM file f JOIN source s ON s.id = f.source_id
+             WHERE {ABS_PATH_SQL} = ?2 AND (?1 IS NULL OR f.source_id = ?1) LIMIT 1"
+        ),
+        params![source, abs_path],
+        |r| r.get(0),
+    )
+    .optional()?)
+}
+
+/// A file's probe JSON, if any.
+pub fn probe_json(c: &Connection, file_id: i64) -> Result<Option<String>> {
+    Ok(c.query_row(
+        "SELECT probe_json FROM file WHERE id = ?1",
+        [file_id],
+        |r| r.get(0),
+    )
+    .optional()?
+    .flatten())
+}
+
+/// Store a probe result. Returns the file's item.
+pub fn set_probe(c: &Connection, file_id: i64, json: &str) -> Result<Option<i64>> {
+    c.execute(
+        "UPDATE file SET probe_json = ?2 WHERE id = ?1",
+        params![file_id, json],
+    )?;
+    Ok(
+        c.query_row("SELECT item_id FROM file WHERE id = ?1", [file_id], |r| {
+            r.get(0)
+        })
+        .optional()?
+        .flatten(),
+    )
 }
 
 // ---- matching and metadata writes ---------------------------------------------------------------

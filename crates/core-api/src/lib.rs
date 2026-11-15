@@ -108,8 +108,14 @@ mod ffi {
 
     #[derive(Clone, Debug, Default)]
     struct FileRef {
+        id: i64,
         path: String,
         size: i64,
+        source_name: String,
+        source_kind: String,
+        /// The media probe's JSON (issue #33), "" until analysed.
+        probe_json: String,
+        online: bool,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -222,6 +228,8 @@ mod ffi {
         fn open_path(self: &Core, request_id: u64, path: &str);
         fn open_item(self: &Core, request_id: u64, item_id: i64);
         fn report_progress(self: &Core, ticket: u64, position_ms: u64, duration_ms: u64, state: u8);
+        /// Issue #33: mpv's view of the playing file (JSON), the fallback for technical details.
+        fn report_media_info(self: &Core, ticket: u64, mpv_json: &str);
         fn set_track_pref(
             self: &Core,
             ticket: u64,
@@ -251,6 +259,8 @@ mod ffi {
         fn recently_added(self: &Core, request_id: u64, limit: u32);
         fn search(self: &Core, request_id: u64, text: &str);
         fn item_detail(self: &Core, request_id: u64, item_id: i64);
+        /// Issue #33: analyse this file before the others.
+        fn probe_now(self: &Core, file_id: i64);
         fn review(self: &Core, request_id: u64);
         fn find_matches(self: &Core, request_id: u64, item_id: i64, title: &str, year: u16);
         fn choose_match(self: &Core, item_id: i64, provider_id: i64);
@@ -393,8 +403,13 @@ fn detail(d: core::Detail) -> ffi::ItemDetail {
             .files
             .into_iter()
             .map(|f| ffi::FileRef {
+                id: f.id,
                 path: f.path,
                 size: f.size,
+                source_name: f.source_name,
+                source_kind: f.source_kind,
+                probe_json: f.probe_json,
+                online: f.online,
             })
             .collect(),
         position_ms: d.position_ms,
@@ -636,6 +651,11 @@ impl Core {
     fn open_item(&self, request_id: u64, item_id: i64) {
         guard("open_item", || self.0.open_item(request_id, item_id))
     }
+    fn report_media_info(&self, ticket: u64, mpv_json: &str) {
+        guard("report_media_info", || {
+            self.0.report_media_info(ticket, mpv_json)
+        })
+    }
     fn report_progress(&self, ticket: u64, position_ms: u64, duration_ms: u64, state: u8) {
         guard("report_progress", || {
             self.0.report_progress(
@@ -713,6 +733,9 @@ impl Core {
     }
     fn search(&self, request_id: u64, text: &str) {
         guard("search", || self.0.search(request_id, text))
+    }
+    fn probe_now(&self, file_id: i64) {
+        guard("probe_now", || self.0.probe_now(file_id))
     }
     fn item_detail(&self, request_id: u64, item_id: i64) {
         guard("item_detail", || self.0.item_detail(request_id, item_id))

@@ -206,13 +206,24 @@ impl Core {
         });
     }
 
+    /// "Analyse now" (issue #33): probe this file before the others.
+    pub fn probe_now(&self, file_id: i64) {
+        let inner = self.inner.clone();
+        self.rt
+            .spawn(async move { crate::probe::probe_now(&inner, file_id).await });
+    }
+
     pub fn item_detail(&self, request_id: u64, item_id: i64) {
         self.spawn(request_id, move |inner| async move {
             let d = inner.lib.read(move |c| catalog::detail(c, item_id)).await?;
-            let d = d.ok_or_else(|| CoreError {
+            let mut d = d.ok_or_else(|| CoreError {
                 kind: ErrorKind::NotFound,
                 message: format!("item {item_id}"),
             })?;
+            let offline = inner.offline.lock().unwrap().clone();
+            for f in &mut d.files {
+                f.online = !offline.contains(&f.source_id);
+            }
             let _ = inner
                 .lib
                 .write(move |c| jobs::bump_items(c, &[item_id]))

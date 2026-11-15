@@ -265,6 +265,14 @@ pub(crate) async fn prepare_remote(
         })
         .await?;
     inner.tickets.lock().unwrap().insert(ticket_id, item_id);
+    let p3 = vp.to_string();
+    if let Ok(Some(file)) = inner
+        .lib
+        .read(move |c| catalog::file_for_path(c, Some(source_id), &p3))
+        .await
+    {
+        inner.ticket_files.lock().unwrap().insert(ticket_id, file);
+    }
     Ok(Ticket {
         ticket: ticket_id,
         item_id,
