@@ -125,4 +125,46 @@ CREATE TABLE file_state(file_id INTEGER NOT NULL REFERENCES file(id) ON DELETE C
                         PRIMARY KEY (file_id, profile_id));
 "#,
     ),
+    // 7 (issue #3): offline copies. A row per copied file: the main file of a "Save" or a
+    // "Save as…", plus its sidecar subtitles and the other parts of a multi-part file, which
+    // point at it through `main_id`. Small key/value settings owned by the core.
+    Migration::Sql(
+        r#"
+CREATE TABLE local_copy(id INTEGER PRIMARY KEY,
+                        kind TEXT NOT NULL DEFAULT 'saved' CHECK (kind IN ('saved','export')),
+                        main_id INTEGER REFERENCES local_copy(id) ON DELETE CASCADE,
+                        file_id INTEGER REFERENCES file(id) ON DELETE SET NULL,
+                        item_id INTEGER REFERENCES item(id) ON DELETE SET NULL,
+                        source_id INTEGER NOT NULL,
+                        source_path TEXT NOT NULL,
+                        src_mtime INTEGER,
+                        path TEXT NOT NULL,
+                        size INTEGER NOT NULL DEFAULT 0,
+                        bytes_done INTEGER NOT NULL DEFAULT 0,
+                        state TEXT NOT NULL DEFAULT 'queued'
+                          CHECK (state IN ('queued','running','paused','done','failed','outdated')),
+                        error TEXT,
+                        error_kind TEXT,
+                        created_at INTEGER NOT NULL,
+                        completed_at INTEGER);
+CREATE INDEX local_copy_file ON local_copy(file_id);
+CREATE INDEX local_copy_item ON local_copy(item_id);
+CREATE INDEX local_copy_main ON local_copy(main_id);
+
+-- A source file that changed in place, or disappeared, makes its saved copy outdated.
+CREATE TRIGGER local_copy_changed AFTER UPDATE OF size, mtime ON file
+  WHEN OLD.path = NEW.path AND (OLD.size IS NOT NEW.size OR OLD.mtime IS NOT NEW.mtime)
+BEGIN
+  UPDATE local_copy SET state = 'outdated'
+   WHERE file_id = NEW.id AND kind = 'saved' AND state = 'done';
+END;
+CREATE TRIGGER local_copy_gone BEFORE DELETE ON file
+BEGIN
+  UPDATE local_copy SET state = 'outdated'
+   WHERE file_id = OLD.id AND kind = 'saved' AND state = 'done';
+END;
+
+CREATE TABLE setting(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+"#,
+    ),
 ];

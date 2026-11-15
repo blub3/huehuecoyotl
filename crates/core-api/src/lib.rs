@@ -29,6 +29,8 @@ mod ffi {
         LibraryChanged,
         KeyStatus,
         Discovered,
+        Downloads,
+        DownloadProgress,
     }
 
     #[derive(Debug)]
@@ -39,6 +41,8 @@ mod ffi {
         NotFound,
         Unsupported,
         Internal,
+        /// Issue #3: not enough free space for a copy.
+        NoSpace,
     }
 
     #[derive(Clone, Debug)]
@@ -186,6 +190,28 @@ mod ffi {
         candidates: Vec<MatchCandidate>,
     }
 
+    /// Issue #3: a saved copy or an export (a main file, with its subtitles and parts summed).
+    #[derive(Clone, Debug, Default)]
+    struct DownloadEntry {
+        id: i64,
+        /// The row the Downloads screen shows (progress events of subtitles and parts).
+        main_id: i64,
+        /// saved | export
+        kind: String,
+        item_id: i64,
+        file_id: i64,
+        title: String,
+        path: String,
+        /// queued, running, paused, done, failed, outdated; `removed` in a progress event.
+        state: String,
+        bytes_done: u64,
+        size: u64,
+        /// auth, unreachable, not_found, unsupported, internal, no_space
+        error_kind: String,
+        error: String,
+        completed_at: i64,
+    }
+
     /// One event type for everything; `kind` says which fields are meaningful.
     #[derive(Clone, Debug)]
     struct CoreEvent {
@@ -217,6 +243,10 @@ mod ffi {
         failed: i64,
         // M3
         servers: Vec<DiscoveredServer>,
+        // 1.5: Downloads (the list; `path` is the storage folder) and DownloadProgress.
+        downloads: Vec<DownloadEntry>,
+        download: DownloadEntry,
+        used_bytes: u64,
     }
 
     extern "Rust" {
@@ -295,6 +325,22 @@ mod ffi {
         // M4
         /// Write a redacted diagnostics file; returns its size in bytes.
         fn export_diagnostics(self: &Core, dest: &str, app_info: &str) -> Result<u64>;
+
+        // 1.5: offline copies (issues #3, #4, #5). Answers are Downloads events.
+        /// Save a movie or episode (`file_id` picks a version, 0 = the largest network file),
+        /// or every episode of a season or show.
+        fn save_item(self: &Core, request_id: u64, item_id: i64, file_id: i64);
+        /// Save as…: copy one file to `dest` (the caller has asked about overwriting).
+        fn export_file(self: &Core, request_id: u64, file_id: i64, dest: &str);
+        fn pause_download(self: &Core, id: i64);
+        fn resume_download(self: &Core, id: i64);
+        /// Cancel or delete a copy (local files only; the source file stays).
+        fn delete_download(self: &Core, request_id: u64, id: i64);
+        fn delete_saved_item(self: &Core, request_id: u64, item_id: i64);
+        fn delete_all_saved(self: &Core, request_id: u64);
+        fn downloads(self: &Core, request_id: u64);
+        /// Where new saved copies go ("" = the default folder in the data directory).
+        fn set_storage_dir(self: &Core, request_id: u64, path: &str);
     }
 
     unsafe extern "C++" {
@@ -348,6 +394,27 @@ fn event(kind: ffi::EventKind, request_id: u64) -> ffi::CoreEvent {
         queued: 0,
         failed: 0,
         servers: Vec::new(),
+        downloads: Vec::new(),
+        download: ffi::DownloadEntry::default(),
+        used_bytes: 0,
+    }
+}
+
+fn download_entry(d: core::DownloadInfo) -> ffi::DownloadEntry {
+    ffi::DownloadEntry {
+        id: d.id,
+        main_id: d.id,
+        kind: d.kind,
+        item_id: d.item_id,
+        file_id: d.file_id,
+        title: d.title,
+        path: d.path,
+        state: d.state,
+        bytes_done: d.bytes_done,
+        size: d.size,
+        error_kind: d.error_kind,
+        error: d.error,
+        completed_at: d.completed_at,
     }
 }
 
@@ -512,6 +579,7 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                 core::ErrorKind::NotFound => ffi::ErrorKind::NotFound,
                 core::ErrorKind::Unsupported => ffi::ErrorKind::Unsupported,
                 core::ErrorKind::Internal => ffi::ErrorKind::Internal,
+                core::ErrorKind::NoSpace => ffi::ErrorKind::NoSpace,
             },
             message,
             ..event(K::Error, request_id)
@@ -615,6 +683,41 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                 .collect(),
             ..event(K::Discovered, request_id)
         },
+        core::Event::Downloads {
+            request_id,
+            items,
+            used_bytes,
+            storage_dir,
+        } => ffi::CoreEvent {
+            downloads: items.into_iter().map(download_entry).collect(),
+            used_bytes,
+            path: storage_dir,
+            ..event(K::Downloads, request_id)
+        },
+        core::Event::DownloadProgress {
+            id,
+            main_id,
+            item_id,
+            state,
+            bytes_done,
+            size,
+            error_kind,
+            error,
+        } => ffi::CoreEvent {
+            item_id,
+            download: ffi::DownloadEntry {
+                id,
+                main_id,
+                item_id,
+                state,
+                bytes_done,
+                size,
+                error_kind,
+                error,
+                ..Default::default()
+            },
+            ..event(K::DownloadProgress, 0)
+        },
     }
 }
 
@@ -656,6 +759,41 @@ fn log_message(level: u8, category: &str, message: &str) {
 }
 
 impl Core {
+    fn save_item(&self, request_id: u64, item_id: i64, file_id: i64) {
+        guard("save_item", || {
+            self.0.save_item(request_id, item_id, file_id)
+        })
+    }
+    fn export_file(&self, request_id: u64, file_id: i64, dest: &str) {
+        guard("export_file", || {
+            self.0.export_file(request_id, file_id, dest)
+        })
+    }
+    fn pause_download(&self, id: i64) {
+        guard("pause_download", || self.0.pause_download(id))
+    }
+    fn resume_download(&self, id: i64) {
+        guard("resume_download", || self.0.resume_download(id))
+    }
+    fn delete_download(&self, request_id: u64, id: i64) {
+        guard("delete_download", || self.0.delete_download(request_id, id))
+    }
+    fn delete_saved_item(&self, request_id: u64, item_id: i64) {
+        guard("delete_saved_item", || {
+            self.0.delete_saved_item(request_id, item_id)
+        })
+    }
+    fn delete_all_saved(&self, request_id: u64) {
+        guard("delete_all_saved", || self.0.delete_all_saved(request_id))
+    }
+    fn downloads(&self, request_id: u64) {
+        guard("downloads", || self.0.downloads(request_id))
+    }
+    fn set_storage_dir(&self, request_id: u64, path: &str) {
+        guard("set_storage_dir", || {
+            self.0.set_storage_dir(request_id, path)
+        })
+    }
     fn browse(&self, request_id: u64, path: &str) {
         guard("browse", || self.0.browse(request_id, path))
     }

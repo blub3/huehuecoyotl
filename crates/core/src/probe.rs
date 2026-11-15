@@ -99,14 +99,11 @@ pub(crate) async fn run(inner: &Arc<Inner>, file_id: i64) -> Result<(), String> 
     let Some((source_id, kind, path, size, _)) = target else {
         return Ok(()); // the file is gone
     };
-    let src: Arc<dyn Source> = if kind == "local" {
-        Arc::new(huehuecoyotl_vfs::LocalSource)
-    } else {
-        inner
-            .remote_source(source_id)
-            .await
-            .map_err(|e| e.to_string())?
-    };
+    // Playback reads outrank the probe's (SPEC 6, connection handling).
+    let src = inner
+        .background_source(source_id, &kind)
+        .await
+        .map_err(|e| e.to_string())?;
     let name = path.rsplit('/').next().unwrap_or(&path).to_string();
     let mut reader = SourceReader {
         src,

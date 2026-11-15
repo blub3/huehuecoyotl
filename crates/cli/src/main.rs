@@ -8,6 +8,8 @@
 //!   coyotl-cli [--data-dir DIR] library add PATH | library list | rescan
 //!   coyotl-cli [--data-dir DIR] movies | shows | search TEXT | detail ID | review
 //!   coyotl-cli [--data-dir DIR] key KEY        (validates and stores the TMDB key)
+//!   coyotl-cli [--data-dir DIR] download ITEM [FILE] | downloads list | downloads delete ID
+//!   coyotl-cli [--data-dir DIR] downloads pause ID | downloads resume ID | storage [DIR]
 //!
 //! Commands that start background work (library add, rescan) wait until the job queue is
 //! empty, so the harness can scan and match a library headless.
@@ -43,6 +45,8 @@ fn usage() -> ExitCode {
          \x20      | library add PATH | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | review | key KEY\n\
          \x20      | probe FILE (technical details as JSON; FFmpeg from COYOTL_FFMPEG_DIR or the system)\n\
+         \x20      | download ITEM [FILE] (save offline copies and wait for them) | downloads list\n\
+         \x20      | downloads delete|pause|resume ID | storage [DIR] (where saved copies go)\n\
          network shares: SPEC_JSON is {{\"protocol\":\"smb\",\"host\":\"nas\",\"share\":\"media\",\"user\":\"me\",\"path\":\"/Movies\"}};\n\
          the password comes from COYOTL_SHARE_PASSWORD (never from the command line)"
     );
@@ -86,6 +90,42 @@ fn probe(path: &Path) -> ExitCode {
     }
 }
 
+/// After `download`: print progress until no copy is queued or running, then the list.
+fn follow_downloads(core: &Core, rx: &crossbeam_channel::Receiver<Event>) -> Event {
+    let mut last_print = std::time::Instant::now();
+    let mut req = 100;
+    loop {
+        match rx.recv_timeout(Duration::from_millis(1000)) {
+            Ok(Event::DownloadProgress {
+                id,
+                main_id,
+                state,
+                bytes_done,
+                size,
+                ..
+            }) if id == main_id => {
+                if last_print.elapsed() >= Duration::from_secs(1) || state != "running" {
+                    last_print = std::time::Instant::now();
+                    let pct = (bytes_done * 100).checked_div(size).unwrap_or(100);
+                    eprintln!("  copy {id}: {state} {pct}% ({bytes_done} of {size} bytes)");
+                }
+                continue;
+            }
+            Ok(Event::Downloads { items, .. })
+                if items
+                    .iter()
+                    .any(|d| d.state == "queued" || d.state == "running") =>
+            {
+                std::thread::sleep(Duration::from_millis(500));
+            }
+            Ok(e @ Event::Downloads { .. }) => return e,
+            Ok(_) | Err(_) => {}
+        }
+        req += 1;
+        core.downloads(req);
+    }
+}
+
 fn main() -> ExitCode {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     let data_dir = match args.iter().position(|a| a == "--data-dir") {
@@ -120,7 +160,10 @@ fn main() -> ExitCode {
             .recv_timeout(Duration::from_secs(60))
             .expect("no answer from core")
         {
-            Event::ItemChanged { .. } | Event::LibraryChanged { .. } | Event::ScanState { .. } => {
+            Event::ItemChanged { .. }
+            | Event::LibraryChanged { .. }
+            | Event::ScanState { .. }
+            | Event::DownloadProgress { .. } => {
                 continue;
             }
             e => break e,
@@ -299,6 +342,45 @@ fn main() -> ExitCode {
             core.set_tmdb_key(1, key);
             wait()
         }
+        ("download", [item, rest @ ..]) if rest.len() <= 1 => {
+            let (Ok(item), Ok(file)) = (
+                item.parse(),
+                rest.first().map_or(Ok(0), |f| f.parse::<i64>()),
+            ) else {
+                return usage();
+            };
+            core.save_item(1, item, file);
+            match wait() {
+                Event::Downloads { .. } => follow_downloads(&core, &rx),
+                e => e,
+            }
+        }
+        ("downloads", [sub]) if sub == "list" => {
+            core.downloads(1);
+            wait()
+        }
+        ("downloads", [sub, id]) if ["delete", "pause", "resume"].contains(&sub.as_str()) => {
+            let Ok(id) = id.parse() else { return usage() };
+            match sub.as_str() {
+                "delete" => core.delete_download(1, id),
+                "pause" => {
+                    core.pause_download(id);
+                    core.downloads(1);
+                }
+                _ => {
+                    core.resume_download(id);
+                    core.downloads(1);
+                }
+            }
+            wait()
+        }
+        ("storage", rest) if rest.len() <= 1 => {
+            match rest.first() {
+                Some(d) => core.set_storage_dir(1, d),
+                None => core.downloads(1),
+            }
+            wait()
+        }
         _ => return usage(),
     };
 
@@ -430,7 +512,43 @@ fn main() -> ExitCode {
                 );
             }
         }
-        Event::Candidates { .. } | Event::LibraryChanged { .. } | Event::ScanState { .. } => {}
+        Event::Downloads {
+            items,
+            used_bytes,
+            storage_dir,
+            ..
+        } => {
+            println!(
+                "storage: {storage_dir} ({} MB used)",
+                used_bytes / 1_000_000
+            );
+            let mut failed = false;
+            for d in items {
+                let pct = (d.bytes_done * 100).checked_div(d.size).unwrap_or(100);
+                println!(
+                    "{:>5}  {:<6} {:<9} {:>3}%  {}  {}{}",
+                    d.id,
+                    d.kind,
+                    d.state,
+                    pct,
+                    d.title,
+                    d.path,
+                    if d.error.is_empty() {
+                        String::new()
+                    } else {
+                        format!("  [{}: {}]", d.error_kind, d.error)
+                    }
+                );
+                failed |= d.state == "failed";
+            }
+            if failed {
+                return ExitCode::FAILURE;
+            }
+        }
+        Event::Candidates { .. }
+        | Event::LibraryChanged { .. }
+        | Event::ScanState { .. }
+        | Event::DownloadProgress { .. } => {}
         Event::Error { kind, message, .. } => {
             eprintln!("error ({kind:?}): {message}");
             return ExitCode::FAILURE;

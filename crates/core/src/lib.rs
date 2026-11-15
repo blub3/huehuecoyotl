@@ -6,6 +6,7 @@
 //! cancelled; errors carry an [`ErrorKind`]; panics never escape a task.
 
 pub mod diagnostics;
+mod download;
 pub mod lang;
 mod library;
 mod network;
@@ -28,6 +29,7 @@ use tokio::runtime::Runtime;
 use tokio::sync::Notify;
 use tokio::task::AbortHandle;
 
+pub use download::{DownloadInfo, available_space};
 pub use huehuecoyotl_library::catalog::{CandidateRow, Detail, FileInfo, Summary};
 pub use network::{Discovered, NetworkSpec};
 pub use queries::TrackPref;
@@ -62,6 +64,8 @@ pub enum ErrorKind {
     NotFound,
     Unsupported,
     Internal,
+    /// Not enough free space on the drive a copy is written to (issue #3).
+    NoSpace,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -243,6 +247,26 @@ pub enum Event {
         kind: ErrorKind,
         message: String,
     },
+    /// Saved copies and exports (issue #3), with the space saved copies use.
+    Downloads {
+        request_id: u64,
+        items: Vec<DownloadInfo>,
+        used_bytes: u64,
+        storage_dir: String,
+    },
+    /// One copied file moved on (at most twice a second while it runs), changed state
+    /// (queued, running, paused, done, failed, outdated) or was removed (`removed`).
+    /// `main_id` is the row the Downloads screen shows; subtitles and parts count towards it.
+    DownloadProgress {
+        id: i64,
+        main_id: i64,
+        item_id: i64,
+        state: String,
+        bytes_done: u64,
+        size: u64,
+        error_kind: String,
+        error: String,
+    },
 }
 
 pub trait EventSink: Send + Sync + 'static {
@@ -278,6 +302,10 @@ struct Inner {
     offline: Mutex<HashSet<i64>>,
     /// The "add network share" dialog's connection: (settings key, source).
     probe: Mutex<Option<(String, Arc<dyn RemoteSource>)>>,
+    /// Read priorities per source (issue #3): playback before downloads and probes.
+    gates: Mutex<HashMap<i64, Arc<download::Gate>>>,
+    /// Pause and cancel of the copies that are running, by `local_copy` id.
+    downloads: Mutex<HashMap<i64, Arc<download::Ctl>>>,
 }
 
 impl Inner {
@@ -408,6 +436,8 @@ impl Core {
             remotes: Mutex::default(),
             offline: Mutex::default(),
             probe: Mutex::default(),
+            gates: Mutex::default(),
+            downloads: Mutex::default(),
         });
         // mpv's demuxer threads open coyotl:// URLs through this (SPEC 5.3).
         let weak = Arc::downgrade(&inner);
@@ -416,13 +446,15 @@ impl Core {
                 .upgrade()
                 .ok_or_else(|| VfsError::Internal("core closed".into()))?;
             huehuecoyotl_stream::block_on(inner.remote_source(id))
-                .map(|s| s as Arc<dyn Source>)
+                .map(|s| {
+                    Arc::new(download::Prioritised::playback(s, inner.gate(id))) as Arc<dyn Source>
+                })
                 .map_err(|e| match e.kind {
                     ErrorKind::Auth => VfsError::Auth(e.message),
                     ErrorKind::Unreachable => VfsError::Unreachable(e.message),
                     ErrorKind::NotFound => VfsError::NotFound(e.message),
                     ErrorKind::Unsupported => VfsError::Unsupported(e.message),
-                    ErrorKind::Internal => VfsError::Internal(e.message),
+                    ErrorKind::Internal | ErrorKind::NoSpace => VfsError::Internal(e.message),
                 })
         }));
         let start = inner.clone();
@@ -467,7 +499,10 @@ impl Core {
                     Err(e) => tracing::error!("TMDB client: {e}"),
                 }
             }
+            // Offline copies: clean up after the last session and continue unfinished ones.
+            download::startup(&start).await;
             worker::spawn_workers(&start);
+            download::spawn_worker(&start);
             network::spawn_reconnect(&start);
         });
         Ok(Self {
@@ -618,16 +653,35 @@ impl Core {
                     if let Some(f) = only {
                         files.retain(|p| p.file_id == f);
                     }
-                    Ok(files)
+                    // Issue #4: a complete, current saved copy plays instead of the network file.
+                    let mut out = Vec::new();
+                    for f in files {
+                        let saved = if f.kind == "local" {
+                            None
+                        } else {
+                            huehuecoyotl_library::copies::usable_path(c, f.file_id)?
+                        };
+                        out.push((f, saved, id));
+                    }
+                    // Files on this computer first, then saved copies, then network files.
+                    out.sort_by_key(|(f, saved, _)| (f.kind != "local", saved.is_none()));
+                    Ok(out)
                 })
                 .await?;
-            // Local copies first, then network copies.
             let mut last =
                 CoreError::new(ErrorKind::NotFound, format!("item {item_id} has no file"));
             let mut ticket = None;
-            for f in files {
+            for (f, saved, played) in files {
                 // A source marked offline is tried anyway: the user asked, and it may be back.
-                let r = if f.kind == "local" {
+                let r = if let Some(path) = saved {
+                    match prepare_copy(&inner, &path, played, f.file_id, ticket_id).await {
+                        Ok(t) => Ok(t),
+                        // The copy went missing: fall back to the network file.
+                        Err(_) => {
+                            network::prepare_remote(&inner, f.source_id, &f.path, ticket_id).await
+                        }
+                    }
+                } else if f.kind == "local" {
                     prepare_local(&inner, &f.path, ticket_id).await
                 } else {
                     network::prepare_remote(&inner, f.source_id, &f.path, ticket_id).await
@@ -868,6 +922,58 @@ async fn prepare_local(inner: &Arc<Inner>, path: &str, ticket_id: u64) -> CResul
         url: vp.to_string(),
         is_network: false,
         resume_ms,
+        subtitles,
+        audio_langs: lang::variants(&prefs.audio_lang),
+        sub_langs: lang::variants(&prefs.sub_lang),
+        prefs,
+    })
+}
+
+/// Prepare a saved copy (issue #4) of a library file: a local file, but the item, its watch
+/// state and its version's resume position are the library file's.
+async fn prepare_copy(
+    inner: &Arc<Inner>,
+    path: &str,
+    item_id: i64,
+    file_id: i64,
+    ticket_id: u64,
+) -> CResult<Ticket> {
+    let vp = VPath::new(path);
+    let entry = inner.local.stat(&vp).await?;
+    let siblings = match vp.parent() {
+        Some(dir) => inner.local.list(&dir).await.unwrap_or_default(),
+        None => vec![],
+    };
+    let subtitles = find_sidecar_subtitles(&entry.name, &siblings)
+        .into_iter()
+        .map(|e| sidecar(&entry.name, &e.name, e.path.to_string()))
+        .collect();
+    let (title, state, prefs, resume) = inner
+        .lib
+        .read(move |c| {
+            let dur = catalog::file_duration_ms(c, file_id)?;
+            Ok((
+                queries::item_title(c, item_id)?,
+                queries::playstate(c, item_id)?,
+                queries::track_pref(c, item_id)?,
+                queries::resume_for(c, item_id, file_id, dur),
+            ))
+        })
+        .await?;
+    inner.tickets.lock().unwrap().insert(ticket_id, item_id);
+    inner
+        .ticket_files
+        .lock()
+        .unwrap()
+        .insert(ticket_id, file_id);
+    let fallback = if state.watched { 0 } else { state.position_ms };
+    Ok(Ticket {
+        ticket: ticket_id,
+        item_id,
+        title: title.unwrap_or_else(|| entry.name.clone()),
+        url: vp.to_string(),
+        is_network: false,
+        resume_ms: resume.unwrap_or(fallback),
         subtitles,
         audio_langs: lang::variants(&prefs.audio_lang),
         sub_langs: lang::variants(&prefs.sub_lang),

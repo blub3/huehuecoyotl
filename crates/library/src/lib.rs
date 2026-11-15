@@ -2,6 +2,7 @@
 //! channel, and a small pool of read-only connections for UI queries (SPEC 4, threading).
 
 pub mod catalog;
+pub mod copies;
 pub mod jobs;
 pub mod merge;
 mod migrations;

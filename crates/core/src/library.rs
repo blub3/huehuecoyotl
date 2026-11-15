@@ -102,6 +102,8 @@ impl Core {
                 .lib
                 .read(move |c| catalog::source(c, source_id))
                 .await?;
+            // Saved copies of its files go with it (issue #3).
+            crate::download::delete_saved(&inner, Some(source_id)).await?;
             inner
                 .lib
                 .write(move |c| catalog::remove_library(c, source_id))

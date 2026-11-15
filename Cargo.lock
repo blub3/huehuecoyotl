@@ -1609,6 +1609,7 @@ dependencies = [
  "huehuecoyotl-vfs-sftp",
  "image",
  "keyring",
+ "libc",
  "mdns-sd",
  "regex",
  "serde",
@@ -1618,6 +1619,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "windows-sys 0.61.2",
  "wiremock",
 ]
 
