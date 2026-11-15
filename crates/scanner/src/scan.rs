@@ -1092,6 +1092,58 @@ mod tests {
         );
     }
 
+    /// Issue #34: a version split off by "This is a different movie" stays split after a rescan.
+    #[tokio::test]
+    async fn split_versions_stay_split() {
+        let (d, lib, sid, root) = setup().await;
+        let m = d.path().join("media");
+        touch(&m, "Movies/Alien (1979)/Alien.1979.2160p.mkv", 10);
+        touch(
+            &m,
+            "Movies/Alien (1979)/Alien.1979.Directors.Cut.1080p.mkv",
+            11,
+        );
+        scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        assert_eq!(
+            count(&lib, "SELECT count(*) FROM item WHERE kind = 'movie'").await,
+            1
+        );
+        let split = lib
+            .write(|c| {
+                let f: i64 = c.query_row(
+                    "SELECT id FROM file WHERE path LIKE '%Directors%'",
+                    [],
+                    |r| r.get(0),
+                )?;
+                huehuecoyotl_library::catalog::split_file(
+                    c,
+                    f,
+                    "Alien (Director's Cut)",
+                    Some(1979),
+                )
+            })
+            .await
+            .unwrap();
+        for _ in 0..2 {
+            scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        }
+        assert_eq!(
+            count(&lib, "SELECT count(*) FROM item WHERE kind = 'movie'").await,
+            2
+        );
+        let (item, locked, state): (i64, i64, String) = lib
+            .read(|c| {
+                Ok(c.query_row(
+                    "SELECT i.id, i.locked, i.match_state FROM file f JOIN item i ON i.id = f.item_id WHERE f.path LIKE '%Directors%'",
+                    [],
+                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                )?)
+            })
+            .await
+            .unwrap();
+        assert_eq!((item, locked, state.as_str()), (split, 1, "needs_review"));
+    }
+
     #[tokio::test]
     async fn better_parser_rules_regroup_unmatched_items() {
         let (d, lib, sid, root) = setup().await;

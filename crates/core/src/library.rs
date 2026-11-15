@@ -206,6 +206,50 @@ impl Core {
         });
     }
 
+    /// "This is a different movie" (issue #34): the version becomes its own item, locked against
+    /// regrouping and sent to the review list. Answers with the new item's detail.
+    pub fn split_file(&self, request_id: u64, file_id: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let (new, old) = inner
+                .lib
+                .write(move |c| {
+                    let (path, old): (String, i64) = c.query_row(
+                        "SELECT path, item_id FROM file WHERE id = ?1",
+                        [file_id],
+                        |r| Ok((r.get(0)?, r.get(1)?)),
+                    )?;
+                    let p = huehuecoyotl_scanner::parse::parse(&path);
+                    let title = if p.title.is_empty() {
+                        path.clone()
+                    } else {
+                        p.title.clone()
+                    };
+                    let new = catalog::split_file(c, file_id, &title, p.year)?;
+                    jobs::enqueue(
+                        c,
+                        "match",
+                        &serde_json::json!({ "item_id": new }).to_string(),
+                        jobs::priority::USER,
+                        Some(&format!("match:{new}")),
+                    )?;
+                    Ok((new, old))
+                })
+                .await?;
+            inner.wake.notify_waiters();
+            inner.sink.post(Event::ItemChanged { item_id: old });
+            inner.mark_changed();
+            let d = inner
+                .lib
+                .read(move |c| catalog::detail(c, new))
+                .await?
+                .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("item {new}")))?;
+            Ok(Event::Detail {
+                request_id,
+                detail: Box::new(d),
+            })
+        });
+    }
+
     /// "Analyse now" (issue #33): probe this file before the others.
     pub fn probe_now(&self, file_id: i64) {
         let inner = self.inner.clone();
@@ -223,6 +267,8 @@ impl Core {
             let offline = inner.offline.lock().unwrap().clone();
             for f in &mut d.files {
                 f.online = !offline.contains(&f.source_id);
+                let name = f.path.rsplit('/').next().unwrap_or(&f.path);
+                f.edition = huehuecoyotl_scanner::parse::edition(name).unwrap_or_default();
             }
             let _ = inner
                 .lib

@@ -186,6 +186,9 @@ pub fn classify(msg: &str) -> fn(String) -> VfsError {
         "RESET",
         "BROKEN PIPE",
         "UNREACHABLE",
+        // A switched-off NAS: the network answers that the host is gone (EHOSTUNREACH).
+        "NO ROUTE",
+        "HOST IS DOWN",
         "EOF",
         "DISCONNECT",
         "CLOSED",
@@ -210,6 +213,17 @@ pub fn retryable(e: &VfsError) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_switched_off_server_is_unreachable() {
+        for m in [
+            "Transport error: IO Error: No route to host (os error 113)",
+            "Host is down (os error 112)",
+            "Connection refused",
+        ] {
+            assert!(matches!(err(m), VfsError::Unreachable(_)), "{m}");
+        }
+    }
 
     #[test]
     fn paths_and_urls() {

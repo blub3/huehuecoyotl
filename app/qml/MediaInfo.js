@@ -170,3 +170,91 @@ function groups(file, info) {
     })
     return out
 }
+
+// ---- versions (issue #34) -----------------------------------------------------------------
+
+// Resolution and HDR from the file name, until the file is analysed.
+function nameTokens(path) {
+    const n = (path || "").split("/").pop().toLowerCase()
+    let res = ""
+    if (/(2160p|\b4k\b|\buhd\b)/.test(n)) res = "2160p"
+    else if (/1080[pi]/.test(n)) res = "1080p"
+    else if (/720p/.test(n)) res = "720p"
+    else if (/(576p|480p)/.test(n)) res = n.indexOf("576p") >= 0 ? "576p" : "480p"
+    let h = ""
+    if (/(\bdv\b|\bdovi\b|dolby.?vision)/.test(n)) h = "Dolby Vision"
+    else if (/hdr10(\+|plus)/.test(n)) h = "HDR10+"
+    else if (/\bhdr(10)?\b/.test(n)) h = "HDR10"
+    else if (/\bhlg\b/.test(n)) h = "HLG"
+    return { resolution: res, hdr: h }
+}
+
+function lines(v) {
+    if (!v) return ""
+    if (v.width >= 3200 || v.height >= 2000) return "2160p"
+    if (v.width >= 1800 || v.height >= 1000) return "1080p"
+    if (v.width >= 1200 || v.height >= 700) return "720p"
+    return v.height > 0 ? v.height + "p" : ""
+}
+
+// "Director's Cut · 2160p · Dolby Vision · HEVC · TrueHD Atmos · 61 GB · NAS"
+function versionLabel(file) {
+    const info = file.probe && !file.probe.error ? file.probe : null
+    const v = info && info.video && info.video.length ? info.video[0] : null
+    const names = nameTokens(file.path)
+    const a = mainAudio(info)
+    const codecs = { hevc: "HEVC", h264: "H.264", av1: "AV1", vp9: "VP9", mpeg2video: "MPEG-2", vc1: "VC-1" }
+    const parts = [
+        file.edition || "",
+        v ? lines(v) : names.resolution,
+        v ? (v.hdr || "") : names.hdr,
+        v ? (codecs[v.codec] || (v.codec || "").toUpperCase()) : "",
+        a ? audioFormat(a) : "",
+        size(file.size),
+        file.sourceName || ""
+    ]
+    return parts.filter(p => p !== "").join(" · ")
+}
+
+// For "Highest quality": pixels, then HDR, then bit rate (the size when unknown).
+function qualityKey(file) {
+    const info = file.probe && !file.probe.error ? file.probe : null
+    const v = info && info.video && info.video.length ? info.video[0] : null
+    const names = nameTokens(file.path)
+    const fromName = { "2160p": 3840 * 2160, "1080p": 1920 * 1080, "720p": 1280 * 720, "576p": 720 * 576, "480p": 720 * 480 }
+    const px = v ? v.width * v.height : (fromName[names.resolution] || 0)
+    const hdr = (v ? !!v.hdr : names.hdr !== "") ? 1 : 0
+    const rate = info && info.bitrate ? info.bitrate.bps : 0
+    return [px, hdr, rate || file.size || 0]
+}
+
+function better(a, b) {
+    const ka = qualityKey(a), kb = qualityKey(b)
+    for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] > kb[i]
+    return false
+}
+
+// Which version the page opens with: the one played last when it can be reached, else the
+// best reachable one by `preference` ("quality" or "smallest"); offline ones only when nothing
+// else is left.
+function preselect(files, lastFileId, preference) {
+    if (!files || files.length === 0) return 0
+    const last = files.findIndex(f => f.id === lastFileId && f.online)
+    if (last >= 0) return last
+    let best = -1
+    files.forEach((f, i) => {
+        if (!f.online) return
+        if (best < 0) { best = i; return }
+        const b = files[best]
+        const pick = preference === "smallest" ? f.size < b.size : better(f, b)
+        if (pick) best = i
+    })
+    return best >= 0 ? best : 0
+}
+
+// Same cut as the item's last played one (durations within 2 %): they share the resume point.
+function sameCut(itemMs, file) {
+    const ms = file && file.probe && file.probe.duration_ms ? file.probe.duration_ms : 0
+    if (!itemMs || !ms) return true
+    return Math.abs(itemMs - ms) / Math.max(itemMs, ms) < 0.02
+}

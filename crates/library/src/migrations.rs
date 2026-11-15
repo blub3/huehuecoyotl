@@ -113,4 +113,16 @@ CREATE INDEX artwork_item ON artwork(item_id, role);
 ALTER TABLE item ADD COLUMN virtual INTEGER NOT NULL DEFAULT 0;
 "#,
     ),
+    // 6 (issue #34): several versions of one movie or episode. The version played last, and a
+    // resume position per version for editions of a different length (a director's cut).
+    Migration::Sql(
+        r#"
+ALTER TABLE playstate ADD COLUMN last_file_id INTEGER;
+CREATE TABLE file_state(file_id INTEGER NOT NULL REFERENCES file(id) ON DELETE CASCADE,
+                        profile_id INTEGER NOT NULL DEFAULT 1,
+                        position_ms INTEGER NOT NULL DEFAULT 0, duration_ms INTEGER NOT NULL DEFAULT 0,
+                        updated_at INTEGER NOT NULL,
+                        PRIMARY KEY (file_id, profile_id));
+"#,
+    ),
 ];

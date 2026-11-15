@@ -7,6 +7,9 @@ QtObject {
     property string coverWindow: "medium"
     property string coverFullscreen: "large"
     property bool fullscreen: false
+    // Issue #34, Settings → Playback: which version of a movie is preselected when none was
+    // played yet: "quality" (resolution, then HDR, then bit rate) or "smallest" (slow networks).
+    property string preferredVersion: "quality"
 
     readonly property var sizes: [
         { key: "small", label: qsTr("Small"), width: 140 },

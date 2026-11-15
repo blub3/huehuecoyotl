@@ -63,6 +63,12 @@ void PlaybackController::openPath(const QString &path)
     emit busyChanged();
 }
 
+void PlaybackController::openItemFile(qint64 itemId, qint64 fileId)
+{
+    m_pendingRequest = CoreBridge::instance()->openItemFile(itemId, fileId);
+    emit busyChanged();
+}
+
 void PlaybackController::openItem(qint64 itemId)
 {
     m_pendingRequest = CoreBridge::instance()->openItem(itemId);

@@ -12,17 +12,17 @@
 <context>
     <name>Appearance</name>
     <message>
-        <location filename="../qml/Appearance.qml" line="12"/>
+        <location filename="../qml/Appearance.qml" line="15"/>
         <source>Small</source>
         <translation>Klein</translation>
     </message>
     <message>
-        <location filename="../qml/Appearance.qml" line="13"/>
+        <location filename="../qml/Appearance.qml" line="16"/>
         <source>Medium</source>
         <translation>Mittel</translation>
     </message>
     <message>
-        <location filename="../qml/Appearance.qml" line="14"/>
+        <location filename="../qml/Appearance.qml" line="17"/>
         <source>Large</source>
         <translation>Groß</translation>
     </message>
@@ -53,32 +53,32 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="326"/>
+        <location filename="../src/corebridge.cpp" line="340"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="328"/>
+        <location filename="../src/corebridge.cpp" line="342"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="330"/>
+        <location filename="../src/corebridge.cpp" line="344"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="332"/>
+        <location filename="../src/corebridge.cpp" line="346"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="334"/>
+        <location filename="../src/corebridge.cpp" line="348"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="493"/>
+        <location filename="../src/corebridge.cpp" line="512"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -94,123 +94,183 @@
 <context>
     <name>DetailPage</name>
     <message>
-        <location filename="../qml/DetailPage.qml" line="73"/>
+        <location filename="../qml/DetailPage.qml" line="90"/>
         <source>%1 min</source>
         <translation>%1 Min.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="81"/>
-        <location filename="../qml/DetailPage.qml" line="86"/>
-        <location filename="../qml/DetailPage.qml" line="273"/>
+        <location filename="../qml/DetailPage.qml" line="98"/>
+        <location filename="../qml/DetailPage.qml" line="104"/>
+        <location filename="../qml/DetailPage.qml" line="339"/>
         <source>Play</source>
         <translation>Abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="82"/>
+        <location filename="../qml/DetailPage.qml" line="99"/>
         <source>Play again</source>
         <translation>Erneut abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="83"/>
+        <location filename="../qml/DetailPage.qml" line="100"/>
         <source>Resume S%1 E%2</source>
         <translation>S%1 E%2 fortsetzen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="84"/>
+        <location filename="../qml/DetailPage.qml" line="101"/>
         <source>Play S%1 E%2</source>
         <translation>S%1 F%2 abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="86"/>
+        <location filename="../qml/DetailPage.qml" line="104"/>
         <source>Resume from %1</source>
         <translation>Fortsetzen bei %1</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="189"/>
+        <location filename="../qml/DetailPage.qml" line="123"/>
+        <source>“%1” is now a separate entry. Choose its match under Settings → Review matches.</source>
+        <translation>„%1“ ist jetzt ein eigener Eintrag. Wähle die Zuordnung unter Einstellungen → Zuordnungen prüfen.</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="215"/>
         <source>%1 · Season %2, Episode %3</source>
         <translation>%1 · Staffel %2, Folge %3</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="240"/>
+        <location filename="../qml/DetailPage.qml" line="266"/>
         <source>Several matches are possible. Choose the right one with “Fix match”.</source>
         <translation>Mehrere Treffer sind möglich. Wähle mit „Zuordnung korrigieren“ den richtigen.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="240"/>
+        <location filename="../qml/DetailPage.qml" line="266"/>
         <source>Not matched yet: titles come from the file names.</source>
         <translation>Noch nicht zugeordnet: Die Titel stammen aus den Dateinamen.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="259"/>
+        <location filename="../qml/DetailPage.qml" line="285"/>
         <source>With %1</source>
         <translation>Mit %1</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="281"/>
+        <location filename="../qml/DetailPage.qml" line="296"/>
+        <source>Version</source>
+        <translation>Version</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="300"/>
+        <source>Choose a version</source>
+        <translation>Version wählen</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="302"/>
+        <source>Version: %1</source>
+        <translation>Version: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="311"/>
+        <source>This is a different movie</source>
+        <translation>Das ist ein anderer Film</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="320"/>
+        <source>This version&apos;s source cannot be reached right now.</source>
+        <translation>Die Quelle dieser Version ist gerade nicht erreichbar.</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="326"/>
+        <source>Resume not available for this version (a different cut).</source>
+        <translation>Fortsetzen ist für diese Version nicht möglich (andere Schnittfassung).</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="349"/>
         <source>Mark unwatched</source>
         <translation>Als ungesehen markieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="281"/>
+        <location filename="../qml/DetailPage.qml" line="349"/>
         <source>Mark watched</source>
         <translation>Als gesehen markieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="290"/>
+        <location filename="../qml/DetailPage.qml" line="358"/>
         <source>Fix match</source>
         <translation>Zuordnung korrigieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="307"/>
+        <location filename="../qml/DetailPage.qml" line="375"/>
         <source>Technical details</source>
         <translation>Technische Details</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="319"/>
+        <location filename="../qml/DetailPage.qml" line="387"/>
         <source>Analysing…</source>
         <translation>Wird analysiert …</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="319"/>
+        <location filename="../qml/DetailPage.qml" line="387"/>
         <source>This file could not be analysed.</source>
         <translation>Diese Datei konnte nicht analysiert werden.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="326"/>
+        <location filename="../qml/DetailPage.qml" line="394"/>
         <source>Analyse now</source>
         <translation>Jetzt analysieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="366"/>
-        <location filename="../qml/DetailPage.qml" line="389"/>
-        <location filename="../qml/DetailPage.qml" line="502"/>
+        <location filename="../qml/DetailPage.qml" line="434"/>
+        <location filename="../qml/DetailPage.qml" line="457"/>
+        <location filename="../qml/DetailPage.qml" line="570"/>
         <source>Seasons</source>
         <translation>Staffeln</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="366"/>
+        <location filename="../qml/DetailPage.qml" line="434"/>
         <source>Episodes</source>
         <translation>Folgen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="409"/>
+        <location filename="../qml/DetailPage.qml" line="477"/>
         <source>not in your library</source>
         <translation>nicht in deiner Bibliothek</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="418"/>
+        <location filename="../qml/DetailPage.qml" line="486"/>
         <source>Choose a season</source>
         <translation>Staffel wählen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="435"/>
+        <location filename="../qml/DetailPage.qml" line="503"/>
         <source>Mark season unwatched</source>
         <translation>Staffel als ungesehen markieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="435"/>
+        <location filename="../qml/DetailPage.qml" line="503"/>
         <source>Mark season watched</source>
         <translation>Staffel als gesehen markieren</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="615"/>
+        <source>Versions</source>
+        <translation>Versionen</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="624"/>
+        <source>offline</source>
+        <translation>offline</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="663"/>
+        <source>Move “%1” into its own entry? It will not be merged with this movie again, and you can choose its match under Settings → Review matches.</source>
+        <translation>„%1“ in einen eigenen Eintrag verschieben? Er wird nicht wieder mit diesem Film zusammengeführt, und du kannst die Zuordnung unter Einstellungen → Zuordnungen prüfen wählen.</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="669"/>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="676"/>
+        <source>Move to its own entry</source>
+        <translation>In eigenen Eintrag verschieben</translation>
     </message>
 </context>
 <context>
@@ -1175,132 +1235,157 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="86"/>
+        <location filename="../qml/SettingsPage.qml" line="87"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="89"/>
+        <location filename="../qml/SettingsPage.qml" line="90"/>
         <source>Metadata</source>
         <translation>Metadaten</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="95"/>
+        <location filename="../qml/SettingsPage.qml" line="96"/>
         <source>A TMDB key is set through the COYOTL_TMDB_KEY environment variable.</source>
         <translation>Ein TMDB-Schlüssel ist über die Umgebungsvariable COYOTL_TMDB_KEY gesetzt.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="96"/>
+        <location filename="../qml/SettingsPage.qml" line="97"/>
         <source>Your TMDB key is stored in the system keystore. Posters and descriptions are downloaded automatically.</source>
         <translation>Dein TMDB-Schlüssel liegt im Schlüsselspeicher des Systems. Poster und Beschreibungen werden automatisch geladen.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="97"/>
+        <location filename="../qml/SettingsPage.qml" line="98"/>
         <source>Posters, descriptions and episode titles come from The Movie Database (TMDB). TMDB needs a free personal API key: create an account at themoviedb.org, open Settings → API, request a key for personal use, and paste the “API Key” or the “API Read Access Token” here. Without a key the app still plays everything and shows titles from the file names.</source>
         <translation>Poster, Beschreibungen und Folgentitel kommen von The Movie Database (TMDB). TMDB braucht einen kostenlosen persönlichen API-Schlüssel: Lege ein Konto auf themoviedb.org an, öffne Einstellungen → API, beantrage einen Schlüssel für die private Nutzung und füge hier den „API Key“ oder das „API Read Access Token“ ein. Ohne Schlüssel spielt die App trotzdem alles ab und zeigt die Titel aus den Dateinamen.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="113"/>
+        <location filename="../qml/SettingsPage.qml" line="114"/>
         <source>TMDB API key or read access token</source>
         <translation>TMDB-API-Schlüssel oder Read Access Token</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="117"/>
+        <location filename="../qml/SettingsPage.qml" line="118"/>
         <source>TMDB API key</source>
         <translation>TMDB-API-Schlüssel</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="133"/>
+        <location filename="../qml/SettingsPage.qml" line="134"/>
         <source>Checking…</source>
         <translation>Wird geprüft …</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="133"/>
+        <location filename="../qml/SettingsPage.qml" line="134"/>
         <source>Check and save</source>
         <translation>Prüfen und speichern</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="143"/>
+        <location filename="../qml/SettingsPage.qml" line="144"/>
         <source>Remove key</source>
         <translation>Schlüssel entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="156"/>
+        <location filename="../qml/SettingsPage.qml" line="157"/>
         <source>Review matches</source>
         <translation>Zuordnungen prüfen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="163"/>
+        <location filename="../qml/SettingsPage.qml" line="164"/>
         <source>%1 tasks queued</source>
         <translation>%1 Aufgaben in der Warteschlange</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="168"/>
+        <location filename="../qml/SettingsPage.qml" line="169"/>
         <source>%1 failed (see the log)</source>
         <translation>%1 fehlgeschlagen (siehe Protokoll)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="174"/>
+        <location filename="../qml/SettingsPage.qml" line="175"/>
         <source>Appearance</source>
         <translation>Darstellung</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="177"/>
+        <location filename="../qml/SettingsPage.qml" line="178"/>
         <source>Cover size in window</source>
         <translation>Covergröße im Fenster</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="185"/>
+        <location filename="../qml/SettingsPage.qml" line="186"/>
         <source>Cover size in fullscreen</source>
         <translation>Covergröße im Vollbild</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="193"/>
+        <location filename="../qml/SettingsPage.qml" line="194"/>
+        <source>Playback</source>
+        <translation>Wiedergabe</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="197"/>
+        <source>Preferred version</source>
+        <translation>Bevorzugte Version</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="198"/>
+        <source>Highest quality</source>
+        <translation>Höchste Qualität</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="198"/>
+        <source>Smallest file</source>
+        <translation>Kleinste Datei</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="209"/>
+        <source>When a movie exists in several versions and none was played yet. “Smallest file” helps on slow networks.</source>
+        <translation>Wenn ein Film in mehreren Versionen vorliegt und noch keine abgespielt wurde. „Kleinste Datei“ hilft bei langsamen Netzwerken.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="213"/>
         <source>Troubleshooting</source>
         <translation>Fehlerbehebung</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="198"/>
+        <location filename="../qml/SettingsPage.qml" line="218"/>
         <source>If something does not work, export a diagnostics file and attach it to a bug report. It contains the app&apos;s log and version information. Server names, user names, addresses, keys and your home folder are removed.</source>
         <translation>Wenn etwas nicht funktioniert, exportiere eine Diagnosedatei und hänge sie an einen Fehlerbericht an. Sie enthält das Protokoll der App und Versionsangaben. Servernamen, Benutzernamen, Adressen, Schlüssel und dein Benutzerordner werden entfernt.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="204"/>
+        <location filename="../qml/SettingsPage.qml" line="224"/>
         <source>Export diagnostics</source>
         <translation>Diagnose exportieren</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="211"/>
+        <location filename="../qml/SettingsPage.qml" line="231"/>
         <source>Saved to %1</source>
         <translation>Gespeichert unter %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="212"/>
+        <location filename="../qml/SettingsPage.qml" line="232"/>
         <source>Export failed: %1</source>
         <translation>Export fehlgeschlagen: %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="225"/>
+        <location filename="../qml/SettingsPage.qml" line="245"/>
         <source>About</source>
         <translation>Über</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="235"/>
+        <location filename="../qml/SettingsPage.qml" line="255"/>
         <source>Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt, all used under the LGPL.</source>
         <translation>Huehuecoyotl %1 · Apache-Lizenz 2.0. Wiedergabe mit libmpv und FFmpeg, Oberfläche mit Qt, jeweils unter der LGPL.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="236"/>
+        <location filename="../qml/SettingsPage.qml" line="256"/>
         <source>%1 (development build %2)</source>
         <translation>%1 (Entwicklungsversion %2)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="241"/>
+        <location filename="../qml/SettingsPage.qml" line="261"/>
         <source>Third-party licences</source>
         <translation>Lizenzen von Drittanbietern</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="257"/>
+        <location filename="../qml/SettingsPage.qml" line="277"/>
         <source>This product uses the TMDB API but is not endorsed or certified by TMDB.</source>
         <translation>Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.</translation>
     </message>

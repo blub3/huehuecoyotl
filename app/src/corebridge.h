@@ -46,6 +46,10 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 browse(const QString &path);
     Q_INVOKABLE quint64 openPath(const QString &path);
     Q_INVOKABLE quint64 openItem(qint64 itemId);
+    // Issue #34: one version of a movie or episode; and "This is a different movie" (answers
+    // with detailReady for the new item).
+    Q_INVOKABLE quint64 openItemFile(qint64 itemId, qint64 fileId);
+    Q_INVOKABLE quint64 splitFile(qint64 fileId);
     Q_INVOKABLE quint64 continueWatching(int limit = 20);
     Q_INVOKABLE void setWatched(qint64 itemId, bool watched);
     Q_INVOKABLE void cancel(quint64 requestId);
