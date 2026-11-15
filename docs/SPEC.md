@@ -230,7 +230,7 @@ If a pure-Rust client proves unreliable, the C libraries libsmb2 and libnfs can 
 
 **Connection handling**
 
-- One connection pool per source with a concurrency cap; playback reads outrank scanner reads.
+- One connection per source, reconnected transparently. Reads are scheduled per source: playback reads outrank background reads (downloads and the media probe), which wait while playback is reading (at most two seconds at a time, so they never starve) and share a cap of two reads in flight per source.
 - Exponential backoff on failures, with an offline state the UI can show per source.
 - Files are stored as source id plus relative path, so a changed server address does not orphan the library.
 
@@ -274,6 +274,14 @@ CREATE TABLE playstate(item_id INTEGER, profile_id INTEGER,
 CREATE TABLE job      (id INTEGER PRIMARY KEY, kind TEXT, payload_json TEXT,
                        priority INTEGER, state TEXT, attempts INTEGER, run_after INTEGER);
 
+CREATE TABLE local_copy(id INTEGER PRIMARY KEY, kind TEXT,  -- saved | export
+                       main_id INTEGER,            -- subtitles and other parts point at the main file
+                       file_id INTEGER REFERENCES file(id), item_id INTEGER REFERENCES item(id),
+                       source_id INTEGER, source_path TEXT, src_mtime INTEGER,
+                       path TEXT, size INTEGER, bytes_done INTEGER,
+                       state TEXT,                 -- queued | running | paused | done | failed | outdated
+                       error TEXT, error_kind TEXT, created_at INTEGER, completed_at INTEGER);
+
 CREATE VIRTUAL TABLE item_fts USING fts5(title, original_title, overview);
 ```
 
@@ -289,6 +297,18 @@ CREATE VIRTUAL TABLE item_fts USING fts5(title, original_title, overview);
 4. Match against the metadata provider. A low-confidence match goes to a "needs review" list instead of becoming a wrong poster. For shows, a country suffix becomes an origin-country filter, shorter leading parts of the title are searched when the title finds nothing, and when several shows fit the title, the seasons and episodes on disk decide (a show with three seasons on disk cannot be a one-season show). After matching, the TMDB id is the identity: at most one top-level movie and one show per TMDB id (a unique index); an item that would take an id another item already has is merged into it, keeping both items' files and the newer watch state per episode. A user's locked choice always wins.
 5. Fetch details and artwork; for shows, every season and episode TMDB lists, also the ones not on disk (virtual items for the show page). Downscale posters in Rust to the grid sizes the UI uses and keep the original for the detail page. Grid thumbnails come in two tiers, 360 px (`poster_grid`) and 540 px (`poster_grid_l`), both made from one w780 download. For libraries from before the 540 px tier, a background `tiers` job makes it from the stored originals without network access; until then the grid uses the 360 px tier.
 6. Probe tracks and HDR flags when idle (issue #33): a low-priority `probe` job with its own worker analyses every library file with FFmpeg's libavformat in the Rust core (`crates/probe`). It reads through the file's `Source`, so network shares work like local folders, and only the start of a file plus what the container points at, capped at 24 MiB per file (a test asserts the bytes read). The result is `file.probe_json` with a schema version; changed files lose it in the scan and are probed again, as are files with an older schema. A file FFmpeg cannot read gets an entry with the error and is not retried until it changes; "Analyse now" moves a file to the front. When a file is played, what mpv reports (`track-list`, `video-params`) fills in files without a usable probe. Bit rates come from the stream or Matroska's statistics tags; the overall rate is size over duration, and a video rate derived from it minus the audio is marked as estimated. Atmos and DTS:X are shown only when FFmpeg's profile signals them. `coyotl-cli probe FILE` prints the result.
+
+**Offline copies (1.5, issue #3).** "Save" keeps a copy of a network file in storage the app manages; "Save as…" writes one to a place the user picks. Both run on one engine in the core:
+
+- Each copied file is a `local_copy` row (migration 7) and a `download` job with its own worker, two at a time. A copy is persisted, survives a restart and can be paused, resumed and cancelled by id.
+- Data is read with `Source::read_at` in 1 MiB chunks, so every protocol works, and written to `<name>.part`. A failed read is retried with backoff (about 90 s) and continues from the last written byte; after a restart the `.part` file's length is where the copy continues. When the copy is complete, its size and fingerprint are checked against the library's before the file is renamed.
+- Sidecar subtitles and the other parts of a multi-part file are rows of their own that point at the main file's row. A season or a show becomes one copy per episode (the largest network version of each).
+- Managed storage is `Saved` in the data directory, or a folder chosen in the settings (the `setting` table, key `storage_dir`), laid out as `Title (Year)/original file name` and `Show (Year)/Season 01/original file name`.
+- Free space is checked before a copy starts and every 64 MiB, keeping 32 MiB in reserve. Running out of space is the `NoSpace` error category and removes the `.part` file.
+- A source file that changed in place (size or modification time) or disappeared makes its saved copy `outdated` (triggers on `file`). Playback uses a complete copy that is not outdated in place of the network file, and keeps the item's watch state.
+- Deleting a copy removes its local files and rows, never the file on the source. Removing a library deletes its saved copies.
+- At start-up, exports of the last session are forgotten (their `.part` files removed), unfinished copies are queued again, a saved copy whose file has gone is marked failed, and `.part` files in managed storage that no row knows are removed.
+- Progress reaches the UI as `DownloadProgress` events, at most twice a second per file. `coyotl-cli download ITEM [FILE]`, `downloads list|delete|pause|resume ID` and `storage [DIR]` drive the engine headless.
 
 Libraries scanned before 1.1.1 are repaired by migration 4 (TMDB duplicates merged) and the `regroup` job, which derives every show's key again from its file paths, without network access or rescanning, and re-keys or merges the shows; shows whose title changed and that have no match are matched again. `crates/scanner/examples/regroup.rs` runs the same repair on a copy of a database and reports the counts.
 
@@ -341,7 +361,7 @@ mod ffi {
 3. Queries are paged and return view models sized for one screen, not database rows.
 4. Change events carry ids, not payloads. Models invalidate and re-query, which keeps one source of truth.
 5. Any request can be cancelled by id.
-6. Errors carry a typed category the UI can present: Auth, Unreachable, NotFound, Unsupported, Internal.
+6. Errors carry a typed category the UI can present: Auth, Unreachable, NotFound, Unsupported, Internal, NoSpace (a copy does not fit on the drive, since 1.5).
 7. No panic may unwind across the boundary; the facade converts panics into `Internal` errors.
 8. The mpv stream callbacks are plain `extern "C"` functions outside this bridge, because mpv calls them, not Qt.
 
