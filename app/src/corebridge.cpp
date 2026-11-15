@@ -214,6 +214,11 @@ quint64 CoreBridge::search(const QString &text)
     return id;
 }
 
+void CoreBridge::probeNow(qint64 fileId)
+{
+    if (m_core) (*m_core)->probe_now(fileId);
+}
+
 quint64 CoreBridge::itemDetail(qint64 itemId)
 {
     const quint64 id = nextId();
@@ -296,6 +301,12 @@ quint64 CoreBridge::discover()
     return id;
 }
 
+void CoreBridge::reportMediaInfo(quint64 ticket, const QString &mpvJson)
+{
+    const QByteArray j = mpvJson.toUtf8();
+    if (m_core) (*m_core)->report_media_info(ticket, rs(j));
+}
+
 void CoreBridge::reportProgress(quint64 ticket, qint64 positionMs, qint64 durationMs, int state)
 {
     if (m_core)
@@ -371,7 +382,19 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
         const auto &d = e.detail;
         QVariantList files;
         for (const auto &f : d.files)
-            files.append(QVariantMap{{"path", qs(f.path)}, {"size", qlonglong(f.size)}});
+            files.append(QVariantMap{
+                {"id", qlonglong(f.id)},
+                {"path", qs(f.path)},
+                {"size", qlonglong(f.size)},
+                {"sourceName", qs(f.source_name)},
+                {"sourceKind", qs(f.source_kind)},
+                {"online", f.online},
+                // The probe as an object for QML (null until the file is analysed).
+                {"probe", f.probe_json.empty()
+                              ? QVariant()
+                              : QJsonDocument::fromJson(QByteArray::fromStdString(std::string(f.probe_json)))
+                                    .object()
+                                    .toVariantMap()}});
         QVariantMap m = summaryMap(d.item);
         m.insert({{"originalTitle", qs(d.original_title)},
                   {"rating", d.rating},

@@ -27,7 +27,12 @@ enum Outcome {
 }
 
 pub fn spawn_workers(inner: &Arc<Inner>) {
-    for (kinds, needs_provider) in [(SCAN_KINDS, false), (META_KINDS, true)] {
+    // Probes have their own worker, so analysing files never holds up scans or metadata.
+    for (kinds, needs_provider) in [
+        (SCAN_KINDS, false),
+        (META_KINDS, true),
+        (crate::probe::PROBE_KINDS, false),
+    ] {
         let inner = inner.clone();
         tokio::spawn(async move {
             loop {
@@ -85,6 +90,7 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
         "scan" => scan(inner, v["source_id"].as_i64().unwrap_or(0)).await,
         "tiers" => large_tiers(inner).await,
         "regroup" => regroup(inner).await,
+        "probe" => crate::probe::run(inner, v["file_id"].as_i64().unwrap_or(0)).await,
         "match" | "details" | "artwork" => {
             let Some(p) = inner.provider() else {
                 return Outcome::Defer(300);
@@ -189,6 +195,8 @@ async fn scan(inner: &Arc<Inner>, source_id: i64) -> Result<(), String> {
                 })
                 .await;
             inner.wake.notify_waiters();
+            // New and changed files get their technical details in the background.
+            crate::probe::enqueue_unprobed(inner).await;
             (
                 format!(
                     "{} files, {} new, {} removed",

@@ -26,6 +26,7 @@ qt_add_qml_module(coyotl
     qml/AppLogo.qml
     qml/Appearance.qml
     qml/EpisodeRow.qml
+    qml/MediaInfo.js
     qml/Nav.qml
     qml/NavRail.qml
     qml/Shell.qml

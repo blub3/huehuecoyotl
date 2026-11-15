@@ -2,13 +2,24 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en" sourcelanguage="en">
 <context>
+    <name>MediaInfo</name>
+    <message numerus="yes">
+        <location filename="../qml/MediaInfo.js" line="92"/>
+        <source>%n subtitle(s)</source>
+        <translation>
+            <numerusform>%n subtitle</numerusform>
+            <numerusform>%n subtitles</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>NetworkSharePage</name>
     <message numerus="yes">
         <location filename="../qml/NetworkSharePage.qml" line="113"/>
         <source>%n video(s) in this folder</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>%n video in this folder</numerusform>
+            <numerusform>%n videos in this folder</numerusform>
         </translation>
     </message>
 </context>
@@ -17,9 +28,9 @@
     <message numerus="yes">
         <location filename="../qml/SourcesPage.qml" line="134"/>
         <source>%n video(s)</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>%n video</numerusform>
+            <numerusform>%n videos</numerusform>
         </translation>
     </message>
 </context>

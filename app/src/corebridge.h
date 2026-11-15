@@ -60,6 +60,8 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 recentlyAdded(int limit = 20);
     Q_INVOKABLE quint64 search(const QString &text);
     Q_INVOKABLE quint64 itemDetail(qint64 itemId);
+    // Issue #33: analyse this file before the others ("Analyse now").
+    Q_INVOKABLE void probeNow(qint64 fileId);
     Q_INVOKABLE quint64 review();
     Q_INVOKABLE quint64 findMatches(qint64 itemId, const QString &title, int year);
     Q_INVOKABLE void chooseMatch(qint64 itemId, qint64 providerId);
@@ -91,6 +93,7 @@ class CoreBridge : public QObject {
     int failedJobs() const { return m_failed; }
 
     void reportProgress(quint64 ticket, qint64 positionMs, qint64 durationMs, int state);
+    void reportMediaInfo(quint64 ticket, const QString &mpvJson);
     void setTrackPref(quint64 ticket, const QString &audioLang, const QString &subLang, bool subOff);
 
     static QString errorText(int kind, const QString &message);

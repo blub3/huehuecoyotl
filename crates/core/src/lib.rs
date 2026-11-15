@@ -9,6 +9,7 @@ pub mod diagnostics;
 pub mod lang;
 mod library;
 mod network;
+mod probe;
 pub mod secrets;
 mod worker;
 
@@ -17,7 +18,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
-use huehuecoyotl_library::{DbError, Library, queries};
+use huehuecoyotl_library::{DbError, Library, catalog, queries};
 use huehuecoyotl_metadata::MetadataProvider;
 use huehuecoyotl_vfs::{
     LocalSource, MediaKind, RemoteSource, Source, VPath, VfsError, find_sidecar_subtitles,
@@ -260,6 +261,9 @@ struct Inner {
     sink: Box<dyn EventSink>,
     tasks: Mutex<HashMap<u64, AbortHandle>>,
     tickets: Mutex<HashMap<u64, i64>>,
+    /// The library file a ticket plays (issue #33: what mpv reports during playback fills in
+    /// the file's technical details when the probe could not).
+    ticket_files: Mutex<HashMap<u64, i64>>,
     data_dir: PathBuf,
     /// BCP-47 UI language for metadata ("de-DE").
     language: String,
@@ -389,6 +393,7 @@ impl Core {
             sink: Box::new(sink),
             tasks: Mutex::default(),
             tickets: Mutex::default(),
+            ticket_files: Mutex::default(),
             data_dir: data_dir.to_path_buf(),
             language: if language.is_empty() {
                 "en-US".into()
@@ -427,6 +432,8 @@ impl Core {
                 .lib
                 .write(|c| huehuecoyotl_library::jobs::recover(c))
                 .await;
+            // Technical details of files not analysed yet (low priority, its own worker).
+            probe::enqueue_unprobed(&start).await;
             // Larger grid thumbnails for libraries from before they existed (offline).
             worker::enqueue_tiers(
                 &start,
@@ -658,6 +665,47 @@ impl Core {
         }
     }
 
+    /// What mpv reports about the playing file (issue #33 fallback): stored as the file's
+    /// technical details when it has none, or only an error or older mpv data.
+    pub fn report_media_info(&self, ticket: u64, mpv_json: &str) {
+        let Some(file_id) = self
+            .inner
+            .ticket_files
+            .lock()
+            .unwrap()
+            .get(&ticket)
+            .copied()
+        else {
+            return;
+        };
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(mpv_json) else {
+            return;
+        };
+        let inner = self.inner.clone();
+        self.rt.spawn(async move {
+            let r = inner
+                .lib
+                .write(move |c| {
+                    let current = catalog::probe_json(c, file_id)?.and_then(|j| {
+                        serde_json::from_str::<huehuecoyotl_probe::ProbeInfo>(&j).ok()
+                    });
+                    let replace = current.is_none_or(|p| p.error.is_some() || p.source == "mpv");
+                    if !replace {
+                        return Ok(None);
+                    }
+                    let info = huehuecoyotl_probe::from_mpv(&v);
+                    let json = serde_json::to_string(&info).unwrap_or_default();
+                    catalog::set_probe(c, file_id, &json)
+                })
+                .await;
+            match r {
+                Ok(Some(item_id)) => inner.sink.post(Event::ItemChanged { item_id }),
+                Ok(None) => {}
+                Err(e) => tracing::error!(file_id, "storing media info failed: {e}"),
+            }
+        });
+    }
+
     pub fn set_track_pref(&self, ticket: u64, mut pref: TrackPref) {
         pref.audio_lang = lang::normalize(&pref.audio_lang);
         pref.sub_lang = lang::normalize(&pref.sub_lang);
@@ -763,6 +811,14 @@ async fn prepare_local(inner: &Arc<Inner>, path: &str, ticket_id: u64) -> CResul
         })
         .await?;
     inner.tickets.lock().unwrap().insert(ticket_id, item_id);
+    let p3 = vp.to_string();
+    if let Ok(Some(file)) = inner
+        .lib
+        .read(move |c| huehuecoyotl_library::catalog::file_for_path(c, None, &p3))
+        .await
+    {
+        inner.ticket_files.lock().unwrap().insert(ticket_id, file);
+    }
     Ok(Ticket {
         ticket: ticket_id,
         item_id,

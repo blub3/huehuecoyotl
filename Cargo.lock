@@ -1589,6 +1589,8 @@ version = "1.1.0"
 dependencies = [
  "crossbeam-channel",
  "huehuecoyotl-core",
+ "huehuecoyotl-probe",
+ "serde_json",
 ]
 
 [[package]]
@@ -1600,6 +1602,7 @@ dependencies = [
  "crossbeam-channel",
  "huehuecoyotl-library",
  "huehuecoyotl-metadata",
+ "huehuecoyotl-probe",
  "huehuecoyotl-scanner",
  "huehuecoyotl-stream",
  "huehuecoyotl-vfs",
@@ -1656,6 +1659,17 @@ dependencies = [
  "tokio",
  "tracing",
  "wiremock",
+]
+
+[[package]]
+name = "huehuecoyotl-probe"
+version = "1.1.0"
+dependencies = [
+ "libloading",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -2139,6 +2153,16 @@ name = "libc"
 version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
+
+[[package]]
+name = "libloading"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1832accd5a4ca2795ace4d05d15c4039be15b62d3b950eff99746a990e3cc10"
+dependencies = [
+ "cfg-if",
+ "windows-link",
+]
 
 [[package]]
 name = "libsqlite3-sys"

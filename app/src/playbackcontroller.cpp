@@ -31,6 +31,15 @@ PlaybackController::PlaybackController(MpvPlayer *player, QObject *parent) : QOb
             emit failed(m_lastError);
         }
     });
+    // Issue #33: once the first frames are out (video-params set), tell the core what mpv sees;
+    // it fills in the technical details of files the probe could not analyse.
+    connect(m_player, &MpvPlayer::fileLoaded, this, [this] {
+        const quint64 ticket = m_ticket.value("ticket").toULongLong();
+        QTimer::singleShot(4000, this, [this, ticket] {
+            if (ticket != 0 && m_ticket.value("ticket").toULongLong() == ticket)
+                CoreBridge::instance()->reportMediaInfo(ticket, m_player->mediaInfoJson());
+        });
+    });
     connect(m_player, &MpvPlayer::userChangedTracks, this, [this] {
         // Track ids update asynchronously; read the languages once mpv has applied the change.
         QTimer::singleShot(300, this, &PlaybackController::rememberTracks);

@@ -42,10 +42,48 @@ fn usage() -> ExitCode {
         "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent\n\
          \x20      | library add PATH | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | review | key KEY\n\
+         \x20      | probe FILE (technical details as JSON; FFmpeg from COYOTL_FFMPEG_DIR or the system)\n\
          network shares: SPEC_JSON is {{\"protocol\":\"smb\",\"host\":\"nas\",\"share\":\"media\",\"user\":\"me\",\"path\":\"/Movies\"}};\n\
          the password comes from COYOTL_SHARE_PASSWORD (never from the command line)"
     );
     ExitCode::from(2)
+}
+
+/// `probe FILE`: what the media probe reads from a file, as JSON, and how many bytes it took.
+fn probe(path: &Path) -> ExitCode {
+    let size = match std::fs::metadata(path) {
+        Ok(m) => m.len(),
+        Err(e) => {
+            eprintln!("{}: {e}", path.display());
+            return ExitCode::FAILURE;
+        }
+    };
+    let name = path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let mut r = match std::fs::File::open(path) {
+        Ok(f) => huehuecoyotl_probe::FileReader(f),
+        Err(e) => {
+            eprintln!("{}: {e}", path.display());
+            return ExitCode::FAILURE;
+        }
+    };
+    match huehuecoyotl_probe::probe(&mut r, size, &name) {
+        Ok(p) => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&p.info).unwrap_or_default()
+            );
+            eprintln!("read {} of {size} bytes", p.bytes_read);
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("error: {e}");
+            ExitCode::FAILURE
+        }
+    }
 }
 
 fn main() -> ExitCode {
@@ -61,6 +99,10 @@ fn main() -> ExitCode {
     let Some(cmd) = args.first().cloned() else {
         return usage();
     };
+    // The media probe needs no library: it reads one local file.
+    if let ("probe", [file]) = (cmd.as_str(), &args[1..]) {
+        return probe(Path::new(file));
+    }
 
     let (tx, rx) = unbounded();
     let core = match Core::open(&data_dir, "en-US", move |e| {
