@@ -4,6 +4,13 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+## 1.2.0 – 2026-11-15 (Linux)
+
+Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled).
+
+Known limitations: no Windows release; a real Dolby Vision file has not been tested; episodes
+with several versions use the movie code path without their own test library.
+
 - Versions (#34): a movie or episode with several files has a version selector with labels such as "Director's Cut · 2160p · Dolby Vision · HEVC · TrueHD Atmos · 61 GB · NAS". The page preselects the version played last, else the highest quality (or the smallest file, Settings → Playback). Offline versions are listed but cannot be played. Versions of the same cut share the resume point; another cut keeps its own. "This is a different movie" splits a wrongly merged version into its own entry.
 - Fixed: a switched-off server answering "No route to host" was not marked offline.
 

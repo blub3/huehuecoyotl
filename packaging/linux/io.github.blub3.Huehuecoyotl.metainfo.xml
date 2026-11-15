@@ -87,6 +87,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="1.2.0" date="2026-11-15" type="stable">
+      <description>
+        <p>Technical details for every movie and episode (resolution, HDR, codecs, audio and subtitle tracks, bit rates), analysed in the background, also on network shares; and a choice between several versions of the same movie.</p>
+      </description>
+    </release>
     <release version="1.1.0" date="2026-11-12" type="stable">
       <description>
         <p>SFTP network shares, a page per show with season switching, each show listed once (libraries from older versions are repaired automatically), cover sizes for window and fullscreen, and the new logo.</p>
