@@ -53,14 +53,22 @@ ApplicationWindow {
         property string coverWindow: "medium"
         property string coverFullscreen: "large"
     }
+    Settings {
+        id: playbackPrefs
+        location: win.settingsFile
+        category: "playback"
+        property string preferredVersion: "quality"
+    }
     Component.onCompleted: {
         Appearance.coverWindow = prefs.coverWindow
         Appearance.coverFullscreen = prefs.coverFullscreen
+        Appearance.preferredVersion = playbackPrefs.preferredVersion
     }
     Connections {
         target: Appearance
         function onCoverWindowChanged() { prefs.coverWindow = Appearance.coverWindow }
         function onCoverFullscreenChanged() { prefs.coverFullscreen = Appearance.coverFullscreen }
+        function onPreferredVersionChanged() { playbackPrefs.preferredVersion = Appearance.preferredVersion }
     }
     Binding { target: Appearance; property: "fullscreen"; value: win.visibility === Window.FullScreen }
 

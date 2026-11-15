@@ -34,6 +34,8 @@ class PlaybackController : public QObject {
 
     Q_INVOKABLE void openPath(const QString &path);
     Q_INVOKABLE void openItem(qint64 itemId);
+    // Issue #34: a chosen version of a movie or episode.
+    Q_INVOKABLE void openItemFile(qint64 itemId, qint64 fileId);
     // Leave the player: saves progress and stops mpv.
     Q_INVOKABLE void stop();
     Q_INVOKABLE void startOver();

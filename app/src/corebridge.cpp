@@ -139,6 +139,20 @@ quint64 CoreBridge::openPath(const QString &path)
     return id;
 }
 
+quint64 CoreBridge::openItemFile(qint64 itemId, qint64 fileId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->open_item_file(id, itemId, fileId);
+    return id;
+}
+
+quint64 CoreBridge::splitFile(qint64 fileId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->split_file(id, fileId);
+    return id;
+}
+
 quint64 CoreBridge::openItem(qint64 itemId)
 {
     const quint64 id = nextId();
@@ -389,6 +403,8 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                 {"sourceName", qs(f.source_name)},
                 {"sourceKind", qs(f.source_kind)},
                 {"online", f.online},
+                {"edition", qs(f.edition)},
+                {"positionMs", qulonglong(f.position_ms)},
                 // The probe as an object for QML (null until the file is analysed).
                 {"probe", f.probe_json.empty()
                               ? QVariant()
@@ -408,6 +424,8 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                   {"parentTitle", qs(d.parent_title)},
                   {"files", files},
                   {"positionMs", qulonglong(d.position_ms)},
+                  {"durationMs", qulonglong(d.duration_ms)},
+                  {"lastFileId", qlonglong(d.last_file_id)},
                   {"children", summaries(d.children)},
                   {"nextUp", d.next_up.empty() ? QVariant() : QVariant(summaryMap(d.next_up[0]))}});
         emit detailReady(e.request_id, m);

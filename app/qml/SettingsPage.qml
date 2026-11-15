@@ -18,18 +18,19 @@ FocusScope {
         id: choice
         property string label
         property string value
+        property var options: Appearance.sizes
         signal picked(string key)
         signal upRequested()
         signal downRequested()
         function focusSelected() {
-            const i = Appearance.sizes.findIndex(s => s.key === choice.value)
+            const i = choice.options.findIndex(s => s.key === choice.value)
             choiceButtons.itemAt(Math.max(0, i)).forceActiveFocus()
         }
         spacing: 10
         Label { text: choice.label; color: Theme.text; Layout.preferredWidth: 240; wrapMode: Text.Wrap }
         Repeater {
             id: choiceButtons
-            model: Appearance.sizes
+            model: choice.options
             FocusButton {
                 id: sizeButton
                 required property var modelData
@@ -186,7 +187,26 @@ FocusScope {
                 value: Appearance.coverFullscreen
                 onPicked: (key) => Appearance.coverFullscreen = key
                 onUpRequested: windowSizes.focusSelected()
+                onDownRequested: versionChoice.focusSelected()
+            }
+
+            // ---- Playback ------------------------------------------------------------------
+            Label { text: qsTr("Playback"); color: Theme.textDim; font.pixelSize: Theme.fontLarge; Layout.topMargin: 24 }
+            SizeChoice {
+                id: versionChoice
+                label: qsTr("Preferred version")
+                options: [{ key: "quality", label: qsTr("Highest quality") }, { key: "smallest", label: qsTr("Smallest file") }]
+                value: Appearance.preferredVersion
+                onPicked: (key) => Appearance.preferredVersion = key
+                onUpRequested: fullscreenSizes.focusSelected()
                 onDownRequested: exportButton.forceActiveFocus()
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.textDim
+                font.pixelSize: Theme.fontSmall
+                text: qsTr("When a movie exists in several versions and none was played yet. “Smallest file” helps on slow networks.")
             }
 
             // ---- Troubleshooting -----------------------------------------------------------
@@ -202,7 +222,7 @@ FocusScope {
                 FocusButton {
                     id: exportButton
                     text: qsTr("Export diagnostics")
-                    Keys.onUpPressed: fullscreenSizes.focusSelected()
+                    Keys.onUpPressed: versionChoice.focusSelected()
                     KeyNavigation.down: noticesButton
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: {

@@ -593,7 +593,16 @@ impl Core {
     }
 
     /// Prepare a known item for playback. Shows and seasons play their next-up episode.
+    /// Issue #34: play one version (file) of a movie or episode.
+    pub fn open_item_file(&self, request_id: u64, item_id: i64, file_id: i64) {
+        self.open_files(request_id, item_id, Some(file_id));
+    }
+
     pub fn open_item(&self, request_id: u64, item_id: i64) {
+        self.open_files(request_id, item_id, None);
+    }
+
+    fn open_files(&self, request_id: u64, item_id: i64, only: Option<i64>) {
         let ticket_id = self.next_ticket.fetch_add(1, Ordering::Relaxed);
         self.spawn(request_id, move |inner| async move {
             let files = inner
@@ -605,7 +614,11 @@ impl Core {
                             id = n.id;
                         }
                     }
-                    huehuecoyotl_library::catalog::playable_files(c, id)
+                    let mut files = huehuecoyotl_library::catalog::playable_files(c, id)?;
+                    if let Some(f) = only {
+                        files.retain(|p| p.file_id == f);
+                    }
+                    Ok(files)
                 })
                 .await?;
             // Local copies first, then network copies.
@@ -648,11 +661,21 @@ impl Core {
             return; // nothing meaningful to store yet
         }
         let ended = state == PlayerState::Ended;
-        // Queued from here, in call order, onto the single writer.
-        let fut = self
+        // Issue #34: a known version keeps its own position when it is another cut.
+        let file = self
             .inner
-            .lib
-            .submit(move |c| queries::save_progress(c, item_id, position_ms, duration_ms, ended));
+            .ticket_files
+            .lock()
+            .unwrap()
+            .get(&ticket)
+            .copied();
+        // Queued from here, in call order, onto the single writer.
+        let fut = self.inner.lib.submit(move |c| match file {
+            Some(f) => {
+                queries::save_version_progress(c, item_id, f, position_ms, duration_ms, ended)
+            }
+            None => queries::save_progress(c, item_id, position_ms, duration_ms, ended),
+        });
         let sink_inner = self.inner.clone();
         self.rt.spawn(async move {
             match fut.await {
@@ -819,13 +842,32 @@ async fn prepare_local(inner: &Arc<Inner>, path: &str, ticket_id: u64) -> CResul
     {
         inner.ticket_files.lock().unwrap().insert(ticket_id, file);
     }
+    // Issue #34: a version of another cut resumes from its own position.
+    let file = inner.ticket_files.lock().unwrap().get(&ticket_id).copied();
+    let resume_ms = match file {
+        Some(f) => inner
+            .lib
+            .read(move |c| {
+                let dur = catalog::file_duration_ms(c, f)?;
+                queries::resume_for(c, item_id, f, dur)
+            })
+            .await
+            .unwrap_or(if state.watched { 0 } else { state.position_ms }),
+        None => {
+            if state.watched {
+                0
+            } else {
+                state.position_ms
+            }
+        }
+    };
     Ok(Ticket {
         ticket: ticket_id,
         item_id,
         title: title.unwrap_or_else(|| entry.name.clone()),
         url: vp.to_string(),
         is_network: false,
-        resume_ms: if state.watched { 0 } else { state.position_ms },
+        resume_ms,
         subtitles,
         audio_langs: lang::variants(&prefs.audio_lang),
         sub_langs: lang::variants(&prefs.sub_lang),

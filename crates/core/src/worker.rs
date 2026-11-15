@@ -244,7 +244,31 @@ async fn match_item(
     if t.locked {
         if let Some(id) = t.tmdb_id {
             enqueue_details(inner, item, id, jobs::priority::NORMAL).await;
+            return Ok(());
         }
+        // Locked without a match: a version split off by the user (issue #34). Offer the
+        // candidates in the review list, never match it on its own.
+        let mut cands = p.search(ty, &t.title, t.year).await?;
+        let (_, scores) = decide(&mut cands, &t.title, t.year);
+        let rows: Vec<catalog::CandidateRow> = cands
+            .iter()
+            .zip(scores)
+            .take(8)
+            .map(|(c, s)| catalog::CandidateRow {
+                provider_id: c.id,
+                title: c.title.clone(),
+                year: c.year,
+                score: s,
+                poster_path: c.poster_path.clone(),
+                overview: c.overview.clone(),
+            })
+            .collect();
+        inner
+            .lib
+            .write(move |c| catalog::set_match_state(c, item, "needs_review", &rows))
+            .await
+            .map_err(|e| MetaError::Other(e.to_string()))?;
+        inner.sink.post(Event::ItemChanged { item_id: item });
         return Ok(());
     }
     let on_disk = if ty == MediaType::Show {

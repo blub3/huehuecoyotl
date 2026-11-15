@@ -50,8 +50,24 @@ FocusScope {
         return null
     }
 
-    // Movies and episodes (issue #33): the file the page describes and its probe data.
+    // Movies and episodes (issue #33): the file the page describes and its probe data. With
+    // several versions (issue #34) the selector sets it; the choice survives reloads.
     property int fileIndex: 0
+    property var selectedFileId: 0
+    property var splitRequest: 0
+    readonly property bool manyVersions: hasFiles && files.length > 1
+    // Resume belongs to the movie, unless this version is another cut (durations > 2 % apart).
+    readonly property bool sharedResume: !hasFiles || MediaInfo.sameCut(d.durationMs || 0, file)
+    readonly property real resumeMs: hasFiles && !sharedResume ? (file.positionMs || 0) : (d.positionMs || 0)
+    function pickVersion() {
+        const keep = files.findIndex(f => f.id === selectedFileId)
+        fileIndex = keep >= 0 ? keep : MediaInfo.preselect(files, d.lastFileId || 0, Appearance.preferredVersion)
+        selectedFileId = files.length ? files[fileIndex].id : 0
+    }
+    function chooseVersion(i) {
+        fileIndex = i
+        selectedFileId = files[i].id
+    }
     readonly property var files: d.files || []
     readonly property bool hasFiles: (kind === "movie" || kind === "episode") && files.length > 0
     readonly property var file: hasFiles ? files[Math.min(fileIndex, files.length - 1)] : null
@@ -65,7 +81,8 @@ FocusScope {
             flick.contentY = Math.min(p.y + item.height - flick.height + 40, Math.max(0, flick.contentHeight - flick.height))
     }
     function play() {
-        Playback.openItem(d.nextUp ? d.nextUp.id : itemId)
+        if (hasFiles && file) Playback.openItemFile(itemId, file.id)
+        else Playback.openItem(d.nextUp ? d.nextUp.id : itemId)
     }
     function metaLine() {
         const parts = []
@@ -83,7 +100,8 @@ FocusScope {
             if (n.progress > 0) return qsTr("Resume S%1 E%2").arg(n.seasonNo).arg(n.episodeNo)
             return qsTr("Play S%1 E%2").arg(n.seasonNo).arg(n.episodeNo)
         }
-        return d.positionMs > 0 && !d.watched ? qsTr("Resume from %1").arg(Theme.time(d.positionMs / 1000)) : qsTr("Play")
+        const pos = d.watched && sharedResume ? 0 : resumeMs
+        return pos > 0 ? qsTr("Resume from %1").arg(Theme.time(pos / 1000)) : qsTr("Play")
     }
 
     Component.onCompleted: load()
@@ -100,9 +118,17 @@ FocusScope {
                 if (same) episodeList.currentIndex = Math.min(keep, episodeList.count - 1)
                 return
             }
+            if (requestId === page.splitRequest) {
+                // The version is now its own entry; this page shows the remaining versions.
+                (page.Window.window as Main).showError(qsTr("“%1” is now a separate entry. Choose its match under Settings → Review matches.").arg(detail.title))
+                page.selectedFileId = 0
+                page.load()
+                return
+            }
             if (requestId !== page.request) return
             const first = !page.loaded
             page.d = detail
+            if (page.hasFiles) page.pickVersion()
             if (page.kind === "season" && !first) episodeList.currentIndex = Math.min(keep, episodeList.count - 1)
             if (page.kind === "show")
                 page.selectSeason(first || page.seasonIndex < 0 ? page.initialSeason() : page.seasonIndex)
@@ -262,6 +288,46 @@ FocusScope {
                             wrapMode: Text.Wrap
                         }
 
+                        // Issue #34: the version to play, when there are several.
+                        RowLayout {
+                            visible: page.manyVersions
+                            Layout.topMargin: 10
+                            spacing: 12
+                            Label { text: qsTr("Version"); color: Theme.textDim; font.pixelSize: Theme.fontSmall }
+                            FocusButton {
+                                id: versionButton
+                                text: (page.file ? MediaInfo.versionLabel(page.file) : "") + "  ▾"
+                                tip: qsTr("Choose a version")
+                                font.pixelSize: Theme.fontSmall
+                                Accessible.name: qsTr("Version: %1").arg(page.file ? MediaInfo.versionLabel(page.file) : "")
+                                KeyNavigation.down: playButton
+                                KeyNavigation.right: splitButton.visible ? splitButton : null
+                                Keys.onLeftPressed: Nav.focusRail()
+                                onClicked: versionMenu.open()
+                            }
+                            FocusButton {
+                                id: splitButton
+                                visible: page.kind === "movie"
+                                text: qsTr("This is a different movie")
+                                font.pixelSize: Theme.fontSmall
+                                KeyNavigation.left: versionButton
+                                KeyNavigation.down: playButton
+                                onClicked: splitConfirm.open()
+                            }
+                        }
+                        Label {
+                            visible: page.hasFiles && page.file !== null && !page.file.online
+                            text: qsTr("This version's source cannot be reached right now.")
+                            color: Theme.danger
+                            font.pixelSize: Theme.fontSmall
+                        }
+                        Label {
+                            visible: page.hasFiles && !page.sharedResume && (page.d.positionMs || 0) > 0 && !(page.file.positionMs > 0)
+                            text: qsTr("Resume not available for this version (a different cut).")
+                            color: Theme.textDim
+                            font.pixelSize: Theme.fontSmall
+                        }
+
                         RowLayout {
                             Layout.topMargin: 10
                             spacing: 12
@@ -271,6 +337,8 @@ FocusScope {
                                 focus: true
                                 glyph: "▶"
                                 text: page.loaded ? page.playLabel() : qsTr("Play")
+                                enabled: !(page.hasFiles && page.file !== null && !page.file.online)
+                                KeyNavigation.up: page.manyVersions ? versionButton : null
                                 KeyNavigation.right: watchedButton
                                 KeyNavigation.down: page.childView()
                                 Keys.onLeftPressed: Nav.focusRail()
@@ -519,6 +587,99 @@ FocusScope {
                 onClicked: { page.selectSeason(index); seasonMenu.close() }
                 Keys.onReturnPressed: clicked()
                 Keys.onEnterPressed: clicked()
+            }
+        }
+    }
+
+    // Issue #34: the versions, offline ones listed but not selectable.
+    Popup {
+        id: versionMenu
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(720, parent.width - 80)
+        height: Math.min(480, versionList.contentHeight + 24)
+        modal: true
+        padding: 12
+        background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
+        // After opening, so the list has its rows: start on the selected version.
+        onOpened: Qt.callLater(() => { versionList.currentIndex = page.fileIndex; versionList.forceActiveFocus() })
+        onClosed: versionButton.forceActiveFocus()
+        ListView {
+            id: versionList
+            anchors.fill: parent
+            clip: true
+            spacing: 4
+            model: page.files
+            keyNavigationEnabled: true
+            Accessible.role: Accessible.List
+            Accessible.name: qsTr("Versions")
+            delegate: ItemDelegate {
+                id: versionRow
+                required property var modelData
+                required property int index
+                width: versionList.width
+                focus: ListView.isCurrentItem
+                enabled: modelData.online
+                highlighted: index === page.fileIndex
+                text: MediaInfo.versionLabel(modelData) + (modelData.online ? "" : "  ·  " + qsTr("offline"))
+                Accessible.name: text
+                contentItem: Label {
+                    text: versionRow.text
+                    color: versionRow.enabled ? Theme.text : Theme.textDim
+                    font.bold: versionRow.highlighted
+                    elide: Text.ElideRight
+                }
+                background: Rectangle {
+                    color: versionRow.activeFocus ? Theme.surfaceHi : "transparent"
+                    radius: 6
+                    border.width: versionRow.activeFocus ? Theme.focusWidth : 0
+                    border.color: Theme.focus
+                }
+                onClicked: { page.chooseVersion(index); versionMenu.close() }
+                Keys.onReturnPressed: clicked()
+                Keys.onEnterPressed: clicked()
+            }
+        }
+    }
+
+    // Issue #34: "This is a different movie" moves the selected version into its own entry.
+    Popup {
+        id: splitConfirm
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(560, parent.width - 80)
+        modal: true
+        padding: 24
+        background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
+        onOpened: splitCancel.forceActiveFocus()
+        onClosed: splitButton.forceActiveFocus()
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 16
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.text
+                text: qsTr("Move “%1” into its own entry? It will not be merged with this movie again, and you can choose its match under Settings → Review matches.").arg(page.file ? MediaInfo.versionLabel(page.file) : "")
+            }
+            RowLayout {
+                spacing: 12
+                FocusButton {
+                    id: splitCancel
+                    text: qsTr("Cancel")
+                    KeyNavigation.right: splitOk
+                    onClicked: splitConfirm.close()
+                }
+                FocusButton {
+                    id: splitOk
+                    primary: true
+                    text: qsTr("Move to its own entry")
+                    KeyNavigation.left: splitCancel
+                    onClicked: {
+                        page.splitRequest = Core.splitFile(page.file.id)
+                        splitConfirm.close()
+                    }
+                }
             }
         }
     }

@@ -382,6 +382,10 @@ pub struct FileInfo {
     pub probe_json: String,
     /// Set by the core: whether the file's source can be reached right now.
     pub online: bool,
+    /// Set by the core from the file name: "Director's Cut", "Extended", ... (issue #34).
+    pub edition: String,
+    /// This version's own resume position, for a cut of a different length (issue #34).
+    pub position_ms: u64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -398,6 +402,10 @@ pub struct Detail {
     pub parent_title: String,
     pub files: Vec<FileInfo>,
     pub position_ms: u64,
+    /// The item's duration as last played (to tell versions of another cut apart).
+    pub duration_ms: u64,
+    /// The version played last (0 = none), preselected on the page (issue #34).
+    pub last_file_id: i64,
     pub children: Vec<Summary>,
     /// For shows and seasons: the episode "Play" should start.
     pub next_up: Option<Summary>,
@@ -471,8 +479,11 @@ pub fn detail(c: &Connection, id: i64) -> Result<Option<Detail>> {
     };
     let files = {
         let mut st = c.prepare(&format!(
-            "SELECT {ABS_PATH_SQL}, coalesce(f.size, 0), f.id, s.id, s.name, s.kind, coalesce(f.probe_json, '')
-             FROM file f JOIN source s ON s.id = f.source_id WHERE f.item_id = ?1 ORDER BY f.size DESC"
+            "SELECT {ABS_PATH_SQL}, coalesce(f.size, 0), f.id, s.id, s.name, s.kind, coalesce(f.probe_json, ''),
+                    coalesce(fs.position_ms, 0)
+             FROM file f JOIN source s ON s.id = f.source_id
+             LEFT JOIN file_state fs ON fs.file_id = f.id AND fs.profile_id = {DEFAULT_PROFILE}
+             WHERE f.item_id = ?1 ORDER BY f.size DESC"
         ))?;
         st.query_map([id], |r| {
             Ok(FileInfo {
@@ -484,11 +495,22 @@ pub fn detail(c: &Connection, id: i64) -> Result<Option<Detail>> {
                 source_kind: r.get(5)?,
                 probe_json: r.get(6)?,
                 online: true,
+                edition: String::new(),
+                position_ms: r.get::<_, i64>(7)? as u64,
             })
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?
     };
-    let position_ms = crate::queries::playstate(c, id)?.position_ms;
+    let st = crate::queries::playstate(c, id)?;
+    let (position_ms, duration_ms) = (st.position_ms, st.duration_ms);
+    let last_file_id: i64 = c
+        .query_row(
+            "SELECT coalesce(last_file_id, 0) FROM playstate WHERE item_id = ?1 AND profile_id = ?2",
+            params![id, DEFAULT_PROFILE],
+            |r| r.get(0),
+        )
+        .optional()?
+        .unwrap_or(0);
     let children = match item.kind.as_str() {
         "show" | "season" => children(c, id)?,
         _ => vec![],
@@ -510,6 +532,8 @@ pub fn detail(c: &Connection, id: i64) -> Result<Option<Detail>> {
         parent_title,
         files,
         position_ms,
+        duration_ms,
+        last_file_id,
         children,
         next_up,
     }))
@@ -568,6 +592,7 @@ pub fn playable_path(c: &Connection, item_id: i64) -> Result<Option<String>> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PlayableFile {
+    pub file_id: i64,
     pub source_id: i64,
     pub kind: String,
     /// Absolute: an OS path for local files, the path inside the share for network ones.
@@ -578,7 +603,7 @@ pub struct PlayableFile {
 /// The caller skips sources that are offline.
 pub fn playable_files(c: &Connection, item_id: i64) -> Result<Vec<PlayableFile>> {
     let mut st = c.prepare(&format!(
-        "SELECT f.source_id, s.kind, {ABS_PATH_SQL} FROM file f JOIN source s ON s.id = f.source_id
+        "SELECT f.source_id, s.kind, {ABS_PATH_SQL}, f.id FROM file f JOIN source s ON s.id = f.source_id
          WHERE f.item_id = ?1 ORDER BY s.kind = 'local' DESC, f.size DESC"
     ))?;
     let rows = st.query_map([item_id], |r| {
@@ -586,6 +611,7 @@ pub fn playable_files(c: &Connection, item_id: i64) -> Result<Vec<PlayableFile>>
             source_id: r.get(0)?,
             kind: r.get(1)?,
             path: r.get(2)?,
+            file_id: r.get(3)?,
         })
     })?;
     Ok(rows.collect::<rusqlite::Result<_>>()?)
@@ -643,6 +669,54 @@ pub fn probe_json(c: &Connection, file_id: i64) -> Result<Option<String>> {
     )
     .optional()?
     .flatten())
+}
+
+/// A file's duration from its probe data (0 when not analysed).
+pub fn file_duration_ms(c: &Connection, file_id: i64) -> Result<u64> {
+    Ok(c.query_row(
+        "SELECT coalesce(json_extract(probe_json, '$.duration_ms'), 0) FROM file WHERE id = ?1",
+        [file_id],
+        |r| r.get::<_, i64>(0),
+    )
+    .optional()?
+    .unwrap_or(0) as u64)
+}
+
+/// "This is a different movie" (issue #34): move `file_id` out of its movie into a new item of
+/// its own, titled `title`. The new item is locked, so a rescan does not merge it back, and
+/// goes to the review list to be matched. Returns the new item.
+pub fn split_file(c: &Connection, file_id: i64, title: &str, year: Option<u16>) -> Result<i64> {
+    let (old, key): (i64, Option<String>) = c.query_row(
+        "SELECT i.id, i.group_key FROM file f JOIN item i ON i.id = f.item_id WHERE f.id = ?1",
+        [file_id],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    c.execute(
+        "INSERT INTO item(kind, title, sort_title, year, match_state, locked, added_at, group_key)
+         SELECT kind, ?2, ?3, ?4, 'needs_review', 1, ?5, ?6 FROM item WHERE id = ?1",
+        params![
+            old,
+            title,
+            sort_key(title),
+            year,
+            now_ms(),
+            format!("{}|split:{file_id}", key.unwrap_or_default())
+        ],
+    )?;
+    let id = c.last_insert_rowid();
+    c.execute(
+        "INSERT INTO item_fts(rowid, title) VALUES (?1, ?2)",
+        params![id, title],
+    )?;
+    c.execute(
+        "UPDATE file SET item_id = ?2 WHERE id = ?1",
+        params![file_id, id],
+    )?;
+    c.execute(
+        "UPDATE playstate SET last_file_id = NULL WHERE item_id = ?1 AND last_file_id = ?2",
+        params![old, file_id],
+    )?;
+    Ok(id)
 }
 
 /// Store a probe result. Returns the file's item.

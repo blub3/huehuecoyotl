@@ -273,13 +273,32 @@ pub(crate) async fn prepare_remote(
     {
         inner.ticket_files.lock().unwrap().insert(ticket_id, file);
     }
+    // Issue #34: a version of another cut resumes from its own position.
+    let file = inner.ticket_files.lock().unwrap().get(&ticket_id).copied();
+    let resume_ms = match file {
+        Some(f) => inner
+            .lib
+            .read(move |c| {
+                let dur = catalog::file_duration_ms(c, f)?;
+                queries::resume_for(c, item_id, f, dur)
+            })
+            .await
+            .unwrap_or(if state.watched { 0 } else { state.position_ms }),
+        None => {
+            if state.watched {
+                0
+            } else {
+                state.position_ms
+            }
+        }
+    };
     Ok(Ticket {
         ticket: ticket_id,
         item_id,
         title: title.unwrap_or_else(|| entry.name.clone()),
         url: huehuecoyotl_stream::url(source_id, &vp),
         is_network: true,
-        resume_ms: if state.watched { 0 } else { state.position_ms },
+        resume_ms,
         subtitles,
         audio_langs: lang::variants(&prefs.audio_lang),
         sub_langs: lang::variants(&prefs.sub_lang),

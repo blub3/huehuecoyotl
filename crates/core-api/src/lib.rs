@@ -116,6 +116,9 @@ mod ffi {
         /// The media probe's JSON (issue #33), "" until analysed.
         probe_json: String,
         online: bool,
+        /// Issue #34: the edition from the file name, and this version's own resume position.
+        edition: String,
+        position_ms: u64,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -137,6 +140,9 @@ mod ffi {
         children: Vec<ItemSummary>,
         /// Zero or one entry: the episode "Play" starts for shows and seasons.
         next_up: Vec<ItemSummary>,
+        /// Issue #34: the item's duration as last played, and the version played last (0: none).
+        duration_ms: u64,
+        last_file_id: i64,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -227,6 +233,10 @@ mod ffi {
         fn browse(self: &Core, request_id: u64, path: &str);
         fn open_path(self: &Core, request_id: u64, path: &str);
         fn open_item(self: &Core, request_id: u64, item_id: i64);
+        /// Issue #34: play one version (file) of a movie or episode.
+        fn open_item_file(self: &Core, request_id: u64, item_id: i64, file_id: i64);
+        /// Issue #34: "This is a different movie"; answers with the new item's detail.
+        fn split_file(self: &Core, request_id: u64, file_id: i64);
         fn report_progress(self: &Core, ticket: u64, position_ms: u64, duration_ms: u64, state: u8);
         /// Issue #33: mpv's view of the playing file (JSON), the fallback for technical details.
         fn report_media_info(self: &Core, ticket: u64, mpv_json: &str);
@@ -410,9 +420,13 @@ fn detail(d: core::Detail) -> ffi::ItemDetail {
                 source_kind: f.source_kind,
                 probe_json: f.probe_json,
                 online: f.online,
+                edition: f.edition,
+                position_ms: f.position_ms,
             })
             .collect(),
         position_ms: d.position_ms,
+        duration_ms: d.duration_ms,
+        last_file_id: d.last_file_id,
         children: d.children.into_iter().map(summary).collect(),
         next_up: d.next_up.into_iter().map(summary).collect(),
     }
@@ -650,6 +664,14 @@ impl Core {
     }
     fn open_item(&self, request_id: u64, item_id: i64) {
         guard("open_item", || self.0.open_item(request_id, item_id))
+    }
+    fn open_item_file(&self, request_id: u64, item_id: i64, file_id: i64) {
+        guard("open_item_file", || {
+            self.0.open_item_file(request_id, item_id, file_id)
+        })
+    }
+    fn split_file(&self, request_id: u64, file_id: i64) {
+        guard("split_file", || self.0.split_file(request_id, file_id))
     }
     fn report_media_info(&self, ticket: u64, mpv_json: &str) {
         guard("report_media_info", || {

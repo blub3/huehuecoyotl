@@ -4,6 +4,9 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+- Versions (#34): a movie or episode with several files has a version selector with labels such as "Director's Cut · 2160p · Dolby Vision · HEVC · TrueHD Atmos · 61 GB · NAS". The page preselects the version played last, else the highest quality (or the smallest file, Settings → Playback). Offline versions are listed but cannot be played. Versions of the same cut share the resume point; another cut keeps its own. "This is a different movie" splits a wrongly merged version into its own entry.
+- Fixed: a switched-off server answering "No route to host" was not marked offline.
+
 - Technical details for movies and episodes (#33): a summary line ("4K · HDR10 · HEVC 10-bit · TrueHD Atmos 7.1 · 3 subtitles") with badges, and a collapsible panel with file, video, audio and subtitle details. Files are analysed in the background with the FFmpeg libraries the app already ships, also on network shares (only the start of each file is read), and playback fills in what the analysis could not read. `coyotl-cli probe FILE` prints the analysis.
 
 ## 1.1.0 – 2026-11-12 (Linux)

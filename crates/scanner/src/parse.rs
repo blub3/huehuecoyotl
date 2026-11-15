@@ -692,9 +692,73 @@ pub fn parse(relative_path: &str) -> Parsed {
     p
 }
 
+/// The edition a file name names (issue #34): "{edition-Director's Cut}" as other media
+/// servers write it, or words like "Director's Cut", "Extended", "Theatrical", "IMAX".
+pub fn edition(name: &str) -> Option<String> {
+    if let Some(start) = name.find("{edition-") {
+        let rest = &name[start + 9..];
+        if let Some(end) = rest.find('}') {
+            let e = rest[..end].trim();
+            if !e.is_empty() {
+                return Some(e.to_string());
+            }
+        }
+    }
+    // Only after the title ("Uncut Gems" is a title, not an edition).
+    let all = words(strip_ext(name));
+    let (title, _) = title_and_year(&all);
+    let rest = all
+        .get(all.find(title.as_str()).map_or(0, |i| i + title.len())..)
+        .unwrap_or("");
+    let w = format!(" {} ", rest.to_lowercase().replace(['\'', '’'], ""));
+    for (pattern, label) in [
+        (" directors cut ", "Director's Cut"),
+        (" director cut ", "Director's Cut"),
+        (" final cut ", "Final Cut"),
+        (" extended ", "Extended"),
+        (" theatrical ", "Theatrical"),
+        (" imax ", "IMAX"),
+        (" unrated ", "Unrated"),
+        (" uncut ", "Uncut"),
+    ] {
+        if w.contains(pattern) {
+            return Some(label.to_string());
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn editions() {
+        assert_eq!(
+            edition("Blade Runner (1982) {edition-Final Cut}.mkv").as_deref(),
+            Some("Final Cut")
+        );
+        assert_eq!(
+            edition("Alien.1979.Directors.Cut.2160p.mkv").as_deref(),
+            Some("Director's Cut")
+        );
+        assert_eq!(
+            edition("Aliens (1986) Extended Edition.mkv").as_deref(),
+            Some("Extended")
+        );
+        assert_eq!(edition("Dune.2021.IMAX.2160p.mkv").as_deref(), Some("IMAX"));
+        assert_eq!(
+            edition("Alien (1979) - Theatrical.mp4").as_deref(),
+            Some("Theatrical")
+        );
+        assert_eq!(edition("Alien.1979.1080p.mkv"), None);
+        assert_eq!(
+            edition("Uncut Gems (2019).mkv"),
+            None,
+            "a title word is not an edition"
+        );
+        assert_eq!(edition("Extended.Family.2020.mkv"), None);
+    }
 
     #[test]
     fn words_and_years() {
