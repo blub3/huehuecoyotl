@@ -1,6 +1,8 @@
-# Huehuecoyotl – Architecture Specification v1.4
+# Huehuecoyotl – Architecture Specification v1.5
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
+
+**Changes in v1.5:** 1.2 is released for Linux on Nov 15, 2026: technical details from a media probe in the Rust core (FFmpeg's libavformat loaded at runtime, sections 3, 7, 10) and a version selector for movies with several files (section 9).
 
 **Changes in v1.4:** 1.1 is released for Linux on Nov 12, 2026: SFTP, the logo, cover sizes per display mode, one item per show with the repair of older libraries, and the show page (#32). The Windows release has no version number yet (GitHub milestone "Windows"): it needs GitHub Actions minutes or a Windows build machine for its packages (sections 2, 11).
 
@@ -43,6 +45,7 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | Stage | Features |
 | --- | --- |
 | 1.0 (Linux, released) | Playback of common containers and codecs with hardware decoding; embedded and sidecar subtitles; audio track selection; resume and watched state; library scan; TMDB matching for movies and series; SMB, NFS, WebDAV and FTP sources; keyboard, mouse and remote-style navigation; MPRIS media keys; Flatpak |
+| 1.2 (Linux, released) | Technical details of every file (codecs, HDR, audio and subtitle tracks, bit rates), analysed in the background; choosing between several versions of a movie or episode |
 | 1.1 (Linux, released) | SFTP sources; the logo; cover sizes per display mode; one item per show, with the repair of libraries from older versions; the show page with season switching and episodes not on disk |
 | Windows (no version yet) | The Windows build; MSIX and winget packages; code signing; Windows media keys (SMTC) |
 | Unscheduled | HDR passthrough on Windows through direct mode (needs a Windows PC with an HDR display for tests W1–W8) |
@@ -436,6 +439,8 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 - **M5 Windows release** (was "Release 1.1" until v1.4). The Windows parts of the M0 to M4 gates (first run on Windows, Windows servers, Intel and AMD graphics); MSIX and winget packages; code signing; SMTC media keys; SFTP in the app. Direct mode with HDR passthrough was part of M5 until v1.3 and is now unscheduled.
 
 **M5 status (Nov 12, 2026).** Paused: GitHub Actions has no minutes left, and the Windows build needs it (or a Windows build machine). The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). The Windows release workflow is ready in PR #31 but untested. Open: that PR, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
+
+**1.2 (Nov 15, 2026): released for Linux.** Technical details for movies and episodes, and a version selector. Built and checked locally, with GitHub Actions disabled.
 
 **1.1 (Nov 12, 2026): released for Linux.** SFTP, the logo, cover sizes, one item per show (with the repair of older libraries) and the show page. Built and checked locally, since GitHub Actions was unavailable.
 
