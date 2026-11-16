@@ -541,6 +541,12 @@ fn clean(name: &str) -> String {
     if s.is_empty() { "Unknown".into() } else { s }
 }
 
+/// A file the desktop portal exposes on its own (`/run/user/<uid>/doc/<id>/name`, Flatpak).
+pub fn is_portal_path(path: &Path) -> bool {
+    let s = path.to_string_lossy();
+    s.starts_with("/run/user/") && s.split('/').nth(4) == Some("doc")
+}
+
 fn part_of(path: &Path) -> PathBuf {
     let mut s = path.as_os_str().to_owned();
     s.push(".part");
@@ -949,7 +955,16 @@ async fn add_companions(inner: &Arc<Inner>, main: &Copy, src: &dyn Source) {
         .map(Path::to_path_buf)
         .unwrap_or_default();
     let mut new = Vec::new();
-    if let Some(dir) = vp.parent() {
+    // Flatpak: a file picked in the portal's save dialog lives in a document-portal folder
+    // that accepts that one file only; subtitles next to it cannot be written there.
+    let portal_file = main.kind == copies::EXPORT && is_portal_path(Path::new(&main.path));
+    if portal_file {
+        tracing::info!(
+            main_id,
+            "export to a single portal file: subtitles are not copied"
+        );
+    }
+    if let (false, Some(dir)) = (portal_file, vp.parent()) {
         if let Ok(siblings) = src.list(&dir).await {
             // Subtitles take the video's new base name ("Alien.en.srt" next to "My Alien.mkv").
             let stem = |n: &str| n.rsplit_once('.').map_or(n, |(s, _)| s).to_string();
@@ -1995,6 +2010,15 @@ mod tests {
             s += t.await.unwrap();
         }
         s
+    }
+
+    #[test]
+    fn portal_paths() {
+        assert!(is_portal_path(Path::new(
+            "/run/user/1000/doc/ab12cd/My Alien.mkv"
+        )));
+        assert!(!is_portal_path(Path::new("/run/user/1000/gvfs/x.mkv")));
+        assert!(!is_portal_path(Path::new("/home/me/doc/x.mkv")));
     }
 
     #[test]

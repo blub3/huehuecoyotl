@@ -87,6 +87,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="1.5.1" date="2026-11-16" type="stable">
+      <description>
+        <p>Fixes "Save as…" of a single file in the Flatpak version, which left a hidden temporary file instead of the subtitles.</p>
+      </description>
+    </release>
     <release version="1.5.0" date="2026-11-16" type="stable">
       <description>
         <p>Save movies, episodes and whole shows from network shares as offline copies that play without the network, with a Downloads screen and storage settings; and "Save as…" to copy files to a folder or drive of your choice.</p>

@@ -286,6 +286,13 @@ QUrl CoreBridge::exportFolder()
     return QUrl::fromLocalFile(dir);
 }
 
+bool CoreBridge::isPortalPath(const QString &path)
+{
+    // Same rule as the core's is_portal_path: /run/user/<uid>/doc/<id>/name
+    const QStringList parts = path.split(u'/');
+    return path.startsWith(QStringLiteral("/run/user/")) && parts.size() > 4 && parts.at(4) == u"doc";
+}
+
 QString CoreBridge::localPath(const QUrl &url)
 {
     return url.isLocalFile() ? url.toLocalFile() : url.toString();

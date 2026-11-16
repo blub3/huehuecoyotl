@@ -203,8 +203,10 @@ FocusScope {
         function onDownloadsListed(requestId, items, used, dir) {
             if (requestId === page.saveRequest) page.saveRequest = Core.saveState(page.itemId)
             if (requestId === page.exportRequest) {
-                page.exportRequest = 0
-                (page.Window.window as Main).showError(qsTr("Saving a copy to %1. Progress is under Downloads.").arg(page.exportDest))
+                page.exportRequest = 0;
+                (page.Window.window as Main).showError((Core.isPortalPath(page.exportDest)
+                    ? qsTr("Saving a copy to %1. Progress is under Downloads. Subtitle files are not copied along: the system's file dialog grants this one file only. Choose a folder (Save as… on a season) to include them.")
+                    : qsTr("Saving a copy to %1. Progress is under Downloads.")).arg(page.exportDest))
             }
         }
         function onExportConflict(requestId, paths) {
