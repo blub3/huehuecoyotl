@@ -314,3 +314,40 @@ function outputName(ao) {
     return ({ pipewire: "PipeWire", pulse: "PulseAudio", alsa: "ALSA", wasapi: "WASAPI",
               coreaudio: "Core Audio", pcm: qsTr("file") })[ao] || ao
 }
+
+// ---- music versions (issue #63) ---------------------------------------------------------------
+
+// "FLAC · 24-bit/96 kHz", "MP3 320 kbit/s".
+function musicFormat(codec, rate, depth, lossless, bitrate) {
+    const names = { flac: "FLAC", alac: "ALAC", pcm: "PCM", mp3: "MP3", aac: "AAC", vorbis: "Vorbis",
+                    opus: "Opus", wavpack: "WavPack" }
+    const name = names[codec] || (codec || "").toUpperCase()
+    if (lossless && depth > 0 && rate > 0)
+        return name + " · " + qsTr("%1-bit/%2").arg(depth).arg(rateShort(rate))
+    if (bitrate > 0) return name + " " + qsTr("%1 kbit/s").arg(bitrate)
+    return name
+}
+
+// "96 kHz", "44.1 kHz".
+function rateShort(hz) {
+    return (hz % 1000 === 0 ? hz / 1000 : (hz / 1000).toFixed(1)) + " kHz"
+}
+
+// An album version: "2011 Remaster · FLAC · 16-bit/44.1 kHz · 1.1 GB · NAS".
+function musicVersionLabel(v) {
+    const parts = [v.edition || "", musicFormat(v.codec, v.sampleRate, v.bitDepth, v.lossless, v.bitrate),
+                   size(v.size), v.sourceName || ""]
+    return parts.filter(p => p !== "").join(" · ")
+}
+
+// The list entry: the label, and whether an unreachable one plays its saved copy.
+function musicVersionChoice(v) {
+    if (v.online) return musicVersionLabel(v)
+    return musicVersionLabel(v) + "  ·  " + (v.saved ? qsTr("offline, plays the saved copy") : qsTr("offline"))
+}
+
+// One file of a track: "FLAC · 24-bit/96 kHz · 38 MB · 02 (new master).flac".
+function trackFileLabel(f) {
+    return [musicFormat(f.codec, f.sampleRate, f.bitDepth, f.lossless, f.bitrate), size(f.size), f.name]
+        .filter(p => p !== "").join(" · ")
+}

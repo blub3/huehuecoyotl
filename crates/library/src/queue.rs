@@ -2,6 +2,8 @@
 //! to queue", stored in `play_queue` and `setting` so it survives a restart. The logic is plain
 //! data without I/O; the core holds one `Queue` and saves it after every change.
 
+use std::collections::HashSet;
+
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::Result;
@@ -37,9 +39,18 @@ impl Repeat {
 /// Track item ids in their original order (`items`), the play order as indexes into them
 /// (`order`: the identity unless shuffled, so turning shuffle off returns to the original
 /// order), and the position in the play order.
+/// A queue entry: the track item and the file to play (issue #63: the version chosen when it was
+/// queued; `None` lets the player choose).
+pub type Track = (i64, Option<i64>);
+
+/// Tracks without a chosen file.
+pub fn tracks(ids: &[i64]) -> Vec<Track> {
+    ids.iter().map(|&i| (i, None)).collect()
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Queue {
-    items: Vec<i64>,
+    items: Vec<Track>,
     order: Vec<usize>,
     pos: usize,
     pub shuffle: bool,
@@ -98,16 +109,24 @@ impl Queue {
     }
     /// The item at a position of the play order.
     pub fn at(&self, pos: usize) -> Option<i64> {
+        self.entry(pos).map(|t| t.0)
+    }
+    /// The entry (item and file) at a position of the play order.
+    pub fn entry(&self, pos: usize) -> Option<Track> {
         self.order.get(pos).map(|&i| self.items[i])
+    }
+    /// Every entry in play order.
+    pub fn entries(&self) -> Vec<Track> {
+        self.order.iter().map(|&i| self.items[i]).collect()
     }
     /// Every item in play order.
     pub fn play_order(&self) -> Vec<i64> {
-        self.order.iter().map(|&i| self.items[i]).collect()
+        self.order.iter().map(|&i| self.items[i].0).collect()
     }
 
     /// Replace the queue: `items` in their order, starting at `start`. With shuffle the start
     /// item plays first and the rest follow in random order. Repeat is kept.
-    pub fn play(&mut self, items: Vec<i64>, start: usize, shuffle: bool, seed: u64) {
+    pub fn play(&mut self, items: Vec<Track>, start: usize, shuffle: bool, seed: u64) {
         let start = start.min(items.len().saturating_sub(1));
         self.items = items;
         self.shuffle = shuffle;
@@ -192,7 +211,7 @@ impl Queue {
     }
 
     /// "Play next" (`next`) or "add to queue". An empty queue starts with them.
-    pub fn insert(&mut self, ids: &[i64], next: bool) {
+    pub fn insert(&mut self, ids: &[Track], next: bool) {
         if ids.is_empty() {
             return;
         }
@@ -299,7 +318,7 @@ pub fn save(c: &mut Connection, q: &Queue) -> Result<()> {
     tx.execute("DELETE FROM play_queue", [])?;
     {
         let mut st = tx.prepare(
-            "INSERT INTO play_queue(position, item_id, shuffled_position) VALUES (?1, ?2, ?3)",
+            "INSERT INTO play_queue(position, item_id, file_id, shuffled_position) VALUES (?1, ?2, ?3, ?4)",
         )?;
         let mut shuffled = vec![None; q.items.len()];
         if q.shuffle {
@@ -307,8 +326,8 @@ pub fn save(c: &mut Connection, q: &Queue) -> Result<()> {
                 shuffled[i] = Some(p as i64);
             }
         }
-        for (i, id) in q.items.iter().enumerate() {
-            st.execute(params![i as i64, id, shuffled[i]])?;
+        for (i, (id, file)) in q.items.iter().enumerate() {
+            st.execute(params![i as i64, id, file, shuffled[i]])?;
         }
     }
     set_setting(&tx, POS, Some(&q.pos.to_string()))?;
@@ -324,12 +343,16 @@ pub fn save(c: &mut Connection, q: &Queue) -> Result<()> {
 /// CASCADE`); the current entry is found again by its item.
 pub fn load(c: &Connection) -> Result<Queue> {
     let mut st = c.prepare(
-        "SELECT item_id, shuffled_position FROM play_queue
+        "SELECT item_id, shuffled_position, file_id FROM play_queue
          WHERE item_id IN (SELECT id FROM item WHERE kind = 'track') ORDER BY position",
     )?;
     let rows = st
         .query_map([], |r| {
-            Ok((r.get::<_, i64>(0)?, r.get::<_, Option<i64>>(1)?))
+            Ok((
+                r.get::<_, i64>(0)?,
+                r.get::<_, Option<i64>>(1)?,
+                r.get::<_, Option<i64>>(2)?,
+            ))
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     let mut q = Queue {
@@ -337,7 +360,7 @@ pub fn load(c: &Connection) -> Result<Queue> {
         repeat: Repeat::parse(setting(c, REPEAT)?.as_deref().unwrap_or("off")),
         ..Default::default()
     };
-    q.items = rows.iter().map(|r| r.0).collect();
+    q.items = rows.iter().map(|r| (r.0, r.2)).collect();
     q.order = (0..rows.len()).collect();
     if q.shuffle {
         q.order
@@ -346,7 +369,7 @@ pub fn load(c: &Connection) -> Result<Queue> {
     let current: Option<i64> = setting(c, CURRENT)?.and_then(|v| v.parse().ok());
     let pos: usize = setting(c, POS)?.and_then(|v| v.parse().ok()).unwrap_or(0);
     q.pos = current
-        .and_then(|id| q.order.iter().position(|&i| q.items[i] == id))
+        .and_then(|id| q.order.iter().position(|&i| q.items[i].0 == id))
         .unwrap_or(pos.min(q.len().saturating_sub(1)));
     Ok(q)
 }
@@ -385,26 +408,75 @@ pub fn record_play(c: &Connection, item_id: i64, now_ms: i64) -> Result<()> {
 
 /// Tracks to queue for items: a track itself, an album's tracks by disc and number, an
 /// artist's albums by year with their tracks.
-pub fn expand(c: &Connection, ids: &[i64]) -> Result<Vec<i64>> {
-    let tracks_of = |album: i64| -> Result<Vec<i64>> {
+pub fn expand(
+    c: &Connection,
+    ids: &[i64],
+    version: Option<i64>,
+    preference: &str,
+    offline: &HashSet<i64>,
+) -> Result<Vec<Track>> {
+    use crate::versions;
+    // Issue #63: an album plays one version for all its tracks (gapless stays consistent): the
+    // one asked for, else the one played last, else by preference.
+    let album_version = |album: i64| -> Result<Option<i64>> {
+        if let Some(v) = version {
+            let belongs: bool = c.query_row(
+                "SELECT EXISTS (SELECT 1 FROM album_version WHERE id = ?1 AND album_id = ?2)",
+                params![v, album],
+                |r| r.get(0),
+            )?;
+            if belongs {
+                return Ok(Some(v));
+            }
+        }
+        let mut vs = versions::versions(c, album)?;
+        for v in &mut vs {
+            v.online = !offline.contains(&v.source_id);
+        }
+        let choices: Vec<versions::Choice> = vs.iter().map(versions::Choice::from).collect();
+        Ok(versions::preselect(
+            &choices,
+            versions::last_version(c, album)?,
+            preference,
+        ))
+    };
+    let tracks_of = |album: i64| -> Result<Vec<Track>> {
+        if let Some(v) = album_version(album)? {
+            return Ok(versions::version_tracks(c, v, preference)?
+                .into_iter()
+                .map(|(t, f)| (t, Some(f)))
+                .collect());
+        }
+        // Without versions (a library before migration 9): every track, the player chooses.
         let mut st = c.prepare_cached(
             "SELECT t.id FROM item t WHERE t.parent_id = ?1 AND t.kind = 'track'
                AND EXISTS (SELECT 1 FROM file f WHERE f.item_id = t.id)
              ORDER BY coalesce(t.season_no, 1), coalesce(t.episode_no, 0), t.sort_title",
         )?;
         Ok(st
-            .query_map([album], |r| r.get(0))?
+            .query_map([album], |r| Ok((r.get(0)?, None)))?
             .collect::<rusqlite::Result<_>>()?)
     };
     let mut out = Vec::new();
     for &id in ids {
-        let kind: Option<String> = c
-            .query_row("SELECT kind FROM item WHERE id = ?1", [id], |r| r.get(0))
+        let row: Option<(String, Option<i64>)> = c
+            .query_row(
+                "SELECT kind, parent_id FROM item WHERE id = ?1",
+                [id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
             .optional()?;
-        match kind.as_deref() {
-            Some("track") => out.push(id),
-            Some("album") => out.extend(tracks_of(id)?),
-            Some("artist") => {
+        match row {
+            Some((kind, parent)) if kind == "track" => {
+                // A single track: its file in the album's version, when that version has it.
+                let file = match parent.map(album_version).transpose()?.flatten() {
+                    Some(v) => versions::track_file(c, id, v, preference)?,
+                    None => None,
+                };
+                out.push((id, file));
+            }
+            Some((kind, _)) if kind == "album" => out.extend(tracks_of(id)?),
+            Some((kind, _)) if kind == "artist" => {
                 let mut st = c.prepare_cached(
                     "SELECT id FROM item WHERE parent_id = ?1 AND kind = 'album'
                      ORDER BY coalesce(year, 9999), sort_title",
@@ -429,6 +501,10 @@ pub struct Entry {
     /// Position in the play order.
     pub index: usize,
     pub id: i64,
+    /// Issue #63: the file queued for it (0: the player chooses), and whether the player had to
+    /// fall back to another version of the track (set by the core).
+    pub file_id: i64,
+    pub fallback: bool,
     pub title: String,
     pub artists: String,
     pub album: String,
@@ -444,17 +520,18 @@ pub struct Entry {
     pub hires: bool,
 }
 
-pub fn entry(c: &Connection, id: i64) -> Result<Option<Entry>> {
+/// An entry with the file it plays (`file`; else the track's largest).
+pub fn entry(c: &Connection, id: i64, file: Option<i64>) -> Result<Option<Entry>> {
     let e = c
         .query_row(
             "SELECT coalesce(t.title, ''), coalesce(a.title, ''), coalesce(a.id, 0),
                     coalesce(a.parent_id, 0), coalesce(fa.duration_ms, 0), coalesce(fa.codec, ''),
                     coalesce(fa.sample_rate, 0), coalesce(fa.bit_depth, 0), coalesce(fa.lossless, 0)
              FROM item t LEFT JOIN item a ON a.id = t.parent_id
-             LEFT JOIN file f ON f.id = (SELECT id FROM file WHERE item_id = t.id ORDER BY size DESC LIMIT 1)
+             LEFT JOIN file f ON f.id = coalesce(?2, (SELECT id FROM file WHERE item_id = t.id ORDER BY size DESC LIMIT 1))
              LEFT JOIN file_audio fa ON fa.file_id = f.id
              WHERE t.id = ?1 AND t.kind = 'track'",
-            [id],
+            params![id, file],
             |r| {
                 let lossless = r.get::<_, i64>(8)? != 0;
                 let (rate, depth): (i64, i64) = (r.get(6)?, r.get(7)?);
@@ -497,15 +574,10 @@ pub fn entry(c: &Connection, id: i64) -> Result<Option<Entry>> {
 /// The entries of the play order from `from` (at most `limit`).
 pub fn entries(c: &Connection, q: &Queue, from: usize, limit: usize) -> Result<Vec<Entry>> {
     let mut out = Vec::new();
-    for (index, id) in q
-        .play_order()
-        .into_iter()
-        .enumerate()
-        .skip(from)
-        .take(limit)
-    {
-        if let Some(mut e) = entry(c, id)? {
+    for (index, (id, file)) in q.entries().into_iter().enumerate().skip(from).take(limit) {
+        if let Some(mut e) = entry(c, id, file)? {
             e.index = index;
+            e.file_id = file.unwrap_or(0);
             out.push(e);
         }
     }
@@ -518,7 +590,7 @@ mod tests {
 
     fn q(n: i64) -> Queue {
         let mut q = Queue::default();
-        q.play((1..=n).collect(), 0, false, 7);
+        q.play(tracks(&(1..=n).collect::<Vec<_>>()), 0, false, 7);
         q
     }
 
@@ -567,7 +639,7 @@ mod tests {
     #[test]
     fn shuffle_starts_with_the_chosen_track_and_turns_back() {
         let mut q = Queue::default();
-        q.play((1..=20).collect(), 4, true, 42);
+        q.play(tracks(&(1..=20).collect::<Vec<_>>()), 4, true, 42);
         assert_eq!(q.current(), Some(5));
         let mut all = q.play_order();
         assert_ne!(all, (1..=20).collect::<Vec<_>>());
@@ -587,20 +659,20 @@ mod tests {
     fn play_next_and_add_to_queue() {
         let mut q = q(3);
         q.jump(1);
-        q.insert(&[10, 11], true);
+        q.insert(&tracks(&[10, 11]), true);
         assert_eq!(q.play_order(), vec![1, 2, 10, 11, 3]);
-        q.insert(&[20], false);
+        q.insert(&tracks(&[20]), false);
         assert_eq!(q.play_order(), vec![1, 2, 10, 11, 3, 20]);
         assert_eq!(q.current(), Some(2));
         // Shuffled: next after the current, and back in the original order without shuffle.
         q.set_shuffle(true, 3);
-        q.insert(&[30], true);
+        q.insert(&tracks(&[30]), true);
         assert_eq!(q.at(q.pos() + 1), Some(30));
         q.set_shuffle(false, 0);
         assert_eq!(q.play_order(), vec![1, 2, 30, 10, 11, 3, 20]);
         // Into an empty queue: it starts with them.
         let mut e = Queue::default();
-        e.insert(&[5, 6], false);
+        e.insert(&tracks(&[5, 6]), false);
         assert_eq!(e.current(), Some(5));
     }
 
@@ -647,15 +719,35 @@ mod tests {
             .unwrap();
             ids.push(c.last_insert_rowid());
         }
+        // Issue #63: every entry with the file chosen for it.
+        c.execute(
+            "INSERT INTO source(id, kind, name) VALUES (2, 'local', 'Music')",
+            [],
+        )
+        .unwrap();
+        let mut entries = Vec::new();
+        for (n, id) in ids.iter().enumerate() {
+            c.execute(
+                "INSERT INTO file(source_id, path, item_id) VALUES (2, ?1, ?2)",
+                params![format!("{n}.flac"), id],
+            )
+            .unwrap();
+            entries.push((*id, Some(c.last_insert_rowid())));
+        }
         let mut q = Queue {
             repeat: Repeat::All,
             ..Default::default()
         };
-        q.play(ids.clone(), 2, true, 5);
+        q.play(entries.clone(), 2, true, 5);
         q.advance();
         save(&mut c, &q).unwrap();
         save_position(&c, 12_345).unwrap();
         assert_eq!(load(&c).unwrap(), q);
+        // The same files come back.
+        let mut back = load(&c).unwrap().entries();
+        back.sort();
+        entries.sort();
+        assert_eq!(back, entries);
         assert_eq!(position(&c).unwrap(), 12_345);
         // A track gone from the library leaves the queue; the current one is kept.
         let current = q.current().unwrap();

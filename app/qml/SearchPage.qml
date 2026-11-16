@@ -161,6 +161,7 @@ FocusScope {
                                     posterLarge: model.posterLarge ?? ""
                                     posterWidth: Appearance.coverWidth
                                     posterRatio: row.modelData.ratio
+                                    versions: Number(model.versions ?? 0)
                                     progress: model.progress
                                     watched: model.watched
                                     unwatched: Number(model.unwatched)

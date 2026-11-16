@@ -145,6 +145,20 @@ are named after their folders and file names.
   album with the track selected.
 - **Home** shows *Recently added albums* and *Recently played* once you have music.
 
+**Versions of an album** (from 2.1). When the same album is in your library more than once — as
+FLAC and as MP3, on two shares, or as a remaster next to the original — it appears once, with a
+small mark (for example "3×") on its cover. On the album page, the button under the format line
+chooses the version: it shows the format, the size and where the copy is (for example
+"FLAC · 24-bit/96 kHz · 1.1 GB · NAS" or "2011 Remaster · FLAC · 16-bit/44.1 kHz"). Play,
+Shuffle, the track list, the Hi-Res badge and Save follow the version you choose. Without a choice
+the album opens with the version you played last, else the one **Settings → Playback → Preferred
+version** asks for: **Highest quality**, **Smallest file** or **Lossless only**. A version on a
+share that cannot be reached is marked offline; if it is saved on this computer, it still plays.
+
+A track that exists twice in one version (a replaced file) is marked with "2 versions"; press Menu
+on it to choose which file plays. If two different albums were taken for one, choose the wrong
+version and **This is a different album**: it becomes an album of its own and stays one.
+
 **Playing music.** **Play** or **Shuffle** on an album starts it; Enter on a track plays the
 album from that track. **Play next** (⤵) and **Add to queue** (+) put an album after the
 current track or at the end; on a track, press Menu for the same. Music keeps playing while you

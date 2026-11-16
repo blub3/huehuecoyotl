@@ -2,6 +2,11 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased
+
+- Album versions (#63, part of 2.1): an album that is in your library more than once — in two formats, on two shares, or as a remaster next to the original — appears once, with a mark showing how many versions it has. The album page chooses the version (format, size and where it is, or the edition such as "2011 Remaster"); Play, Shuffle, the track list, the Hi-Res badge and Save follow it. The album opens with the version played last, else the one **Preferred version** asks for, now also **Lossless only**. A track with two files offers both in its menu. **This is a different album** splits a wrong match off for good. The queue remembers the exact files, also after a restart, and plays another version of a track whose file cannot be reached.
+- The database moves to schema 9 on first start: copies of one album are merged, with their play counts, the queue and saved copies. A copy of the previous database is kept as `library.db.before-9`.
+
 ## 2.0.0 – 2026-11-16 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). Music: library folders can now hold music.

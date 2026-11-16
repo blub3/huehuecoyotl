@@ -349,6 +349,10 @@ pub struct TrackRow {
     pub hires: bool,
     pub play_count: i64,
     pub saved: bool,
+    /// Issue #63: the file that plays in the selected version, and the track's files there when
+    /// it has more than one (a replaced file); empty otherwise.
+    pub file_id: i64,
+    pub files: Vec<crate::versions::TrackFile>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -374,6 +378,12 @@ pub struct AlbumDetail {
     pub hires: bool,
     pub discs: i64,
     pub tracks: Vec<TrackRow>,
+    /// Issue #63: the album's versions (best first), the one selected, whether it can be played,
+    /// and whether no version can (every source offline, no saved copy).
+    pub versions: Vec<crate::versions::VersionInfo>,
+    pub version_id: i64,
+    pub playable: bool,
+    pub all_offline: bool,
 }
 
 pub(crate) fn art(c: &Connection, item: i64, role: &str) -> Result<String> {
@@ -403,7 +413,15 @@ pub(crate) fn credit_line(c: &Connection, item: i64, role: &str) -> Result<Strin
     Ok(parts.concat())
 }
 
-pub fn album_detail(c: &Connection, album: i64) -> Result<Option<AlbumDetail>> {
+/// An album's page (issue #10) for a version (issue #63): `want` (else the one played last, else
+/// by `preference`); `offline` names sources that cannot be reached.
+pub fn album_detail(
+    c: &Connection,
+    album: i64,
+    want: Option<i64>,
+    preference: &str,
+    offline: &std::collections::HashSet<i64>,
+) -> Result<Option<AlbumDetail>> {
     let head = c
         .query_row(
             "SELECT a.title, coalesce(p.title, ''), coalesce(a.parent_id, 0), a.year,
@@ -432,6 +450,69 @@ pub fn album_detail(c: &Connection, album: i64) -> Result<Option<AlbumDetail>> {
     d.poster = art(c, album, "poster_grid")?;
     d.poster_full = art(c, album, "poster")?;
     d.disc = art(c, album, "disc")?;
+    // Issue #63: the versions, and the selected one's tracks.
+    let mut versions = crate::versions::versions(c, album)?;
+    for v in &mut versions {
+        v.online = !offline.contains(&v.source_id);
+    }
+    if !versions.is_empty() {
+        let choices: Vec<crate::versions::Choice> =
+            versions.iter().map(crate::versions::Choice::from).collect();
+        let selected = want
+            .filter(|w| versions.iter().any(|v| v.id == *w))
+            .or(crate::versions::preselect(
+                &choices,
+                crate::versions::last_version(c, album)?,
+                preference,
+            ))
+            .unwrap_or(versions[0].id);
+        let sel = versions
+            .iter()
+            .find(|v| v.id == selected)
+            .cloned()
+            .unwrap_or_default();
+        d.version_id = selected;
+        d.playable = sel.online || sel.saved;
+        d.all_offline = versions.iter().all(|v| !(v.online || v.saved));
+        for (t, file) in crate::versions::version_tracks(c, selected, preference)? {
+            let mut row = c.query_row(
+                "SELECT coalesce(t.season_no, 1), coalesce(t.episode_no, 0), coalesce(t.title, ''),
+                        coalesce(fa.duration_ms, 0), coalesce(fa.codec, ''), coalesce(fa.sample_rate, 0),
+                        coalesce(fa.bit_depth, 0), coalesce(fa.lossless, 0), coalesce(p.play_count, 0),
+                        EXISTS (SELECT 1 FROM local_copy lc WHERE lc.file_id = ?2 AND lc.kind = 'saved' AND lc.main_id IS NULL AND lc.state = 'done')
+                 FROM item t LEFT JOIN file_audio fa ON fa.file_id = ?2
+                 LEFT JOIN playstate p ON p.item_id = t.id AND p.profile_id = 1
+                 WHERE t.id = ?1",
+                params![t, file],
+                |r| {
+                    let lossless = r.get::<_, i64>(7)? != 0;
+                    let (depth, rate): (i64, i64) = (r.get(6)?, r.get(5)?);
+                    Ok(TrackRow {
+                        id: t,
+                        disc: r.get(0)?,
+                        number: r.get(1)?,
+                        title: r.get(2)?,
+                        duration_ms: r.get(3)?,
+                        codec: r.get(4)?,
+                        sample_rate: rate,
+                        bit_depth: depth,
+                        lossless,
+                        hires: hires(lossless, Some(depth), Some(rate)),
+                        play_count: r.get(8)?,
+                        saved: r.get(9)?,
+                        file_id: file,
+                        ..Default::default()
+                    })
+                },
+            )?;
+            let files = crate::versions::track_files(c, t, selected)?;
+            if files.len() > 1 {
+                row.files = files;
+            }
+            d.tracks.push(row);
+        }
+        d.versions = versions;
+    }
     let mut st = c.prepare(
         "SELECT t.id, coalesce(t.season_no, 1), coalesce(t.episode_no, 0), coalesce(t.title, ''),
                 coalesce(fa.duration_ms, 0), coalesce(fa.codec, ''), coalesce(fa.sample_rate, 0),
@@ -463,7 +544,13 @@ pub fn album_detail(c: &Connection, album: i64) -> Result<Option<AlbumDetail>> {
             ..Default::default()
         })
     })?;
-    d.tracks = rows.collect::<rusqlite::Result<_>>()?;
+    // Without versions (a library before migration 9 in tests): every track, its largest file.
+    if d.versions.is_empty() {
+        d.tracks = rows.collect::<rusqlite::Result<_>>()?;
+        d.playable = !d.tracks.is_empty();
+    } else {
+        drop(rows);
+    }
     for t in &mut d.tracks {
         t.artists = credit_line(c, t.id, "artist")?;
     }
@@ -490,6 +577,8 @@ pub struct AlbumCard {
     pub poster: String,
     pub poster_large: String,
     pub hires: bool,
+    /// Issue #63: how many versions the album has.
+    pub versions: i64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -542,6 +631,11 @@ fn cards(c: &Connection, sql: &str, artist: i64) -> Result<Vec<AlbumCard>> {
     for a in &mut out {
         a.poster = art(c, a.id, "poster_grid")?;
         a.poster_large = art(c, a.id, "poster_grid_l")?;
+        a.versions = c.query_row(
+            "SELECT count(*) FROM album_version WHERE album_id = ?1",
+            [a.id],
+            |r| r.get(0),
+        )?;
     }
     Ok(out)
 }
@@ -633,7 +727,9 @@ mod tests {
     #[test]
     fn the_album_page() {
         let c = db();
-        let d = album_detail(&c, 10).unwrap().unwrap();
+        let d = album_detail(&c, 10, None, "quality", &Default::default())
+            .unwrap()
+            .unwrap();
         assert_eq!(
             (d.title.as_str(), d.artist.as_str(), d.artist_id, d.year),
             ("Skies", "Aurora", 1, Some(2019))
@@ -650,11 +746,15 @@ mod tests {
             (d.codec.as_str(), d.sample_rate, d.bit_depth, d.hires),
             ("flac", 96000, 24, true)
         );
-        let mix = album_detail(&c, 12).unwrap().unwrap();
+        let mix = album_detail(&c, 12, None, "quality", &Default::default())
+            .unwrap()
+            .unwrap();
         assert!(!mix.hires);
         assert_eq!(mix.tracks[0].artists, "Band B feat. Aurora");
         assert!(
-            album_detail(&c, 20).unwrap().is_none(),
+            album_detail(&c, 20, None, "quality", &Default::default())
+                .unwrap()
+                .is_none(),
             "a track is not an album"
         );
     }

@@ -83,33 +83,8 @@ pub async fn fingerprint_with_data(
     Ok((out, vec![(0, head.to_vec()), (tail_off, tail.to_vec())]))
 }
 
-/// Lower-case alphanumerics and single spaces: the key that makes "The.Matrix" and
-/// "the matrix" the same title.
-pub fn normalize(title: &str) -> String {
-    title
-        .to_lowercase()
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { ' ' })
-        .collect::<String>()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-/// Sort without leading articles: "The Matrix" sorts under M.
-pub fn sort_title(title: &str) -> String {
-    let l = title.trim().to_lowercase();
-    for a in [
-        "the ", "a ", "an ", "der ", "die ", "das ", "le ", "la ", "les ", "el ",
-    ] {
-        if let Some(rest) = l.strip_prefix(a)
-            && !rest.is_empty()
-        {
-            return rest.to_string();
-        }
-    }
-    l
-}
+// Issue #63: shared with the library (its migration and merges compute the same keys).
+pub use huehuecoyotl_library::text::{normalize, sort_title};
 
 struct Walked {
     rel: String,

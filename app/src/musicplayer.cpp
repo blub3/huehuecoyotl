@@ -159,20 +159,20 @@ void MusicPlayer::setCurrent(const QVariantMap &entry)
 
 // ---- requests ---------------------------------------------------------------------------------
 
-void MusicPlayer::playItems(const QVariantList &items, qint64 startItem, bool shuffle)
+void MusicPlayer::playItems(const QVariantList &items, qint64 startItem, bool shuffle, qint64 version)
 {
-    track(CoreBridge::instance()->queuePlay(idList(items), startItem, shuffle));
+    track(CoreBridge::instance()->queuePlay(idList(items), startItem, shuffle, version, m_preference));
     setState(Opening);
 }
 
-void MusicPlayer::playNext(const QVariantList &items)
+void MusicPlayer::playNext(const QVariantList &items, qint64 version)
 {
-    track(CoreBridge::instance()->queueInsert(idList(items), true));
+    track(CoreBridge::instance()->queueInsert(idList(items), true, version, m_preference));
 }
 
-void MusicPlayer::addToQueue(const QVariantList &items)
+void MusicPlayer::addToQueue(const QVariantList &items, qint64 version)
 {
-    track(CoreBridge::instance()->queueInsert(idList(items), false));
+    track(CoreBridge::instance()->queueInsert(idList(items), false, version, m_preference));
 }
 
 void MusicPlayer::togglePause()

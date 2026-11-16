@@ -123,7 +123,7 @@ fn the_play_queue() {
     let b = album_id(&db, "B");
 
     // Play album A: the queue, then the tickets for A1 and A2.
-    core.queue_play(2, vec![a], 0, false);
+    core.queue_play(2, vec![a], 0, false, 0, "quality");
     let (k, q) = next(&rx);
     assert_eq!(k, "queue");
     assert_eq!(titles(&q), ["A1", "A2", "A3"]);
@@ -149,7 +149,7 @@ fn the_play_queue() {
     assert_eq!(t["next"]["entry"]["title"], "A3");
 
     // Play album B next: after A2, before A3.
-    core.queue_insert(3, vec![b], true);
+    core.queue_insert(3, vec![b], true, 0, "quality");
     let (_, q) = next(&rx);
     assert_eq!(titles(&q), ["A1", "A2", "B1", "B2", "B3", "A3"]);
     let (_, t) = next(&rx);

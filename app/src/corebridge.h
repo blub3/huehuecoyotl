@@ -93,7 +93,14 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 musicKeys();
     Q_INVOKABLE quint64 setMusicKey(const QString &provider, const QString &key);
     // Issue #10: an album's or an artist's page (answers with musicDetailReady).
-    Q_INVOKABLE quint64 albumDetail(qint64 albumId);
+    // Issue #63: `version` 0 picks the one played last, else by `preference` (quality,
+    // smallest, lossless).
+    Q_INVOKABLE quint64 albumDetail(qint64 albumId, qint64 version = 0,
+                                    const QString &preference = QString());
+    // Issue #63: "This is a different album" (answers with the new album's musicDetailReady).
+    Q_INVOKABLE quint64 splitAlbumVersion(qint64 version);
+    // Issue #63: play this file of a track from now on.
+    Q_INVOKABLE void setTrackFile(qint64 track, qint64 file);
     Q_INVOKABLE quint64 artistDetail(qint64 artistId);
     bool musicOnline() const { return m_musicOnline; }
     void setMusicOnline(bool on);
@@ -152,8 +159,9 @@ class CoreBridge : public QObject {
     void reportProgress(quint64 ticket, qint64 positionMs, qint64 durationMs, int state);
 
     // Issue #8: the music play queue (answers with queueChanged and musicTickets).
-    quint64 queuePlay(const QList<qint64> &items, qint64 startItem, bool shuffle);
-    quint64 queueInsert(const QList<qint64> &items, bool next);
+    quint64 queuePlay(const QList<qint64> &items, qint64 startItem, bool shuffle, qint64 version,
+                      const QString &preference);
+    quint64 queueInsert(const QList<qint64> &items, bool next, qint64 version, const QString &preference);
     quint64 queueStep(int delta, qint64 positionMs);
     quint64 queueJump(int position);
     quint64 queueRemove(int position);

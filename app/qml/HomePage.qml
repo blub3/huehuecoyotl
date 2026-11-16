@@ -215,6 +215,7 @@ FocusScope {
                     posterWidth: Appearance.coverWidth
                     posterRatio: 1
                     saved: model.saved === true
+                    versions: Number(model.versions ?? 0)
                     onClicked: Nav.openItem(albumTile.model.id, "album")
                     Keys.onReturnPressed: Nav.openItem(albumTile.model.id, "album")
                     Keys.onEnterPressed: Nav.openItem(albumTile.model.id, "album")
@@ -255,6 +256,7 @@ FocusScope {
                     posterWidth: Appearance.coverWidth
                     posterRatio: 1
                     saved: model.saved === true
+                    versions: Number(model.versions ?? 0)
                     onClicked: Nav.openItem(playedTile.model.id, "album")
                     Keys.onReturnPressed: Nav.openItem(playedTile.model.id, "album")
                     Keys.onEnterPressed: Nav.openItem(playedTile.model.id, "album")

@@ -352,7 +352,8 @@ FocusScope {
             SizeChoice {
                 id: versionChoice
                 label: qsTr("Preferred version")
-                options: [{ key: "quality", label: qsTr("Highest quality") }, { key: "smallest", label: qsTr("Smallest file") }]
+                options: [{ key: "quality", label: qsTr("Highest quality") }, { key: "smallest", label: qsTr("Smallest file") },
+                          { key: "lossless", label: qsTr("Lossless only") }]
                 value: Appearance.preferredVersion
                 onPicked: (key) => Appearance.preferredVersion = key
                 onUpRequested: fullscreenSizes.focusSelected()
@@ -363,7 +364,7 @@ FocusScope {
                 wrapMode: Text.Wrap
                 color: Theme.textDim
                 font.pixelSize: Theme.fontSmall
-                text: qsTr("When a movie exists in several versions and none was played yet. “Smallest file” helps on slow networks.")
+                text: qsTr("When a movie or an album exists in several versions and none was played yet. “Smallest file” helps on slow networks. For music, “Highest quality” prefers lossless, then bit depth, then sample rate; “Lossless only” never picks a lossy copy when a lossless one can play (for films it means the highest quality).")
             }
             // Issue #8: music volume levelling from the ReplayGain tags.
             SizeChoice {

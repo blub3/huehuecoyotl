@@ -127,6 +127,8 @@ mod ffi {
         /// Music (2.0): an album's artist, a track's album; "" otherwise. 0: no parent.
         subtitle: String,
         parent_id: i64,
+        /// Issue #63: an album's number of versions (0 otherwise).
+        versions: i64,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -379,7 +381,13 @@ mod ffi {
         fn music_online(self: &Core, request_id: u64);
         fn set_music_online(self: &Core, request_id: u64, on: bool);
         /// Issue #10: an album's or an artist's page (answers with MusicDetail).
-        fn album_detail(self: &Core, request_id: u64, album: i64);
+        /// Issue #63: `version` 0 picks the one played last, else by `preference` (quality,
+        /// smallest or lossless).
+        fn album_detail(self: &Core, request_id: u64, album: i64, version: i64, preference: &str);
+        /// Issue #63: "This is a different album" (answers with the new album's MusicDetail).
+        fn split_album_version(self: &Core, request_id: u64, version: i64);
+        /// Issue #63: play this file of a track (one of its files in a version) from now on.
+        fn set_track_file(self: &Core, track: i64, file: i64);
         fn artist_detail(self: &Core, request_id: u64, artist: i64);
 
         /// Issue #12: TheAudioDB and Fanart.tv keys (answers with MusicKeys; never the key).
@@ -390,9 +398,25 @@ mod ffi {
         // Issue #8: the music play queue (answers with QueueChanged and MusicTickets).
         /// Play items (tracks, albums, artists) from `start_item` (0: the first, or a random
         /// one with shuffle).
-        fn queue_play(self: &Core, request_id: u64, items: &[i64], start_item: i64, shuffle: bool);
+        /// Issue #63: albums play `version` (0: the one played last, else by `preference`).
+        fn queue_play(
+            self: &Core,
+            request_id: u64,
+            items: &[i64],
+            start_item: i64,
+            shuffle: bool,
+            version: i64,
+            preference: &str,
+        );
         /// "Play next" (`next`) or "add to queue".
-        fn queue_insert(self: &Core, request_id: u64, items: &[i64], next: bool);
+        fn queue_insert(
+            self: &Core,
+            request_id: u64,
+            items: &[i64],
+            next: bool,
+            version: i64,
+            preference: &str,
+        );
         /// Next (1) or previous (-1) as the user asks; previous restarts after 3 s.
         fn queue_step(self: &Core, request_id: u64, delta: i32, position_ms: u64);
         fn queue_jump(self: &Core, request_id: u64, position: u32);
@@ -570,6 +594,7 @@ fn summary(s: core::Summary) -> ffi::ItemSummary {
         saved: s.saved,
         subtitle: s.subtitle,
         parent_id: s.parent_id.unwrap_or(0),
+        versions: s.versions,
     }
 }
 
@@ -1142,21 +1167,53 @@ impl Core {
     fn clear_tmdb_key(&self, request_id: u64) {
         guard("clear_tmdb_key", || self.0.clear_tmdb_key(request_id))
     }
-    fn album_detail(&self, request_id: u64, album: i64) {
-        guard("album_detail", || self.0.album_detail(request_id, album))
+    fn album_detail(&self, request_id: u64, album: i64, version: i64, preference: &str) {
+        guard("album_detail", || {
+            self.0.album_detail(request_id, album, version, preference)
+        })
+    }
+    fn split_album_version(&self, request_id: u64, version: i64) {
+        guard("split_album_version", || {
+            self.0.split_album_version(request_id, version)
+        })
+    }
+    fn set_track_file(&self, track: i64, file: i64) {
+        guard("set_track_file", || self.0.set_track_file(track, file))
     }
     fn artist_detail(&self, request_id: u64, artist: i64) {
         guard("artist_detail", || self.0.artist_detail(request_id, artist))
     }
-    fn queue_play(&self, request_id: u64, items: &[i64], start_item: i64, shuffle: bool) {
+    fn queue_play(
+        &self,
+        request_id: u64,
+        items: &[i64],
+        start_item: i64,
+        shuffle: bool,
+        version: i64,
+        preference: &str,
+    ) {
         guard("queue_play", || {
-            self.0
-                .queue_play(request_id, items.to_vec(), start_item, shuffle)
+            self.0.queue_play(
+                request_id,
+                items.to_vec(),
+                start_item,
+                shuffle,
+                version,
+                preference,
+            )
         })
     }
-    fn queue_insert(&self, request_id: u64, items: &[i64], next: bool) {
+    fn queue_insert(
+        &self,
+        request_id: u64,
+        items: &[i64],
+        next: bool,
+        version: i64,
+        preference: &str,
+    ) {
         guard("queue_insert", || {
-            self.0.queue_insert(request_id, items.to_vec(), next)
+            self.0
+                .queue_insert(request_id, items.to_vec(), next, version, preference)
         })
     }
     fn queue_step(&self, request_id: u64, delta: i32, position_ms: u64) {

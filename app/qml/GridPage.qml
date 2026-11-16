@@ -191,6 +191,7 @@ FocusScope {
                 watched: model.watched
                 unwatched: Number(model.unwatched)
                 saved: model.saved === true
+                versions: Number(model.versions ?? 0)
                 focus: GridView.isCurrentItem
                 onClicked: { grid.currentIndex = tile.index; page.open(tile.model) }
                 Keys.onReturnPressed: page.open(tile.model)

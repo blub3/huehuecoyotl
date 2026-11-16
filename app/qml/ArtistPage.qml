@@ -207,6 +207,7 @@ FocusScope {
                             posterLarge: modelData.posterLarge || ""
                             posterWidth: Appearance.coverWidth
                             posterRatio: 1
+                            versions: card.modelData.versions || 0
                             focus: ListView.isCurrentItem
                             onClicked: Nav.openItem(modelData.id, "album")
                             Keys.onReturnPressed: Nav.openItem(modelData.id, "album")

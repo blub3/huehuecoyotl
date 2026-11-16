@@ -15,6 +15,8 @@ ItemDelegate {
     property int unwatched: 0
     // Issue #4: a saved copy is on this computer.
     property bool saved: false
+    // Issue #63: an album with more than one version shows how many.
+    property int versions: 0
     property string caption: year > 0 ? String(year) : ""
     property real posterWidth: 180
     property real posterRatio: 1.5
@@ -25,7 +27,7 @@ ItemDelegate {
     height: posterWidth * posterRatio + 54 * textScale
     padding: 0
     focusPolicy: Qt.StrongFocus
-    Accessible.name: title + (caption !== "" ? ", " + caption : "") + (watched ? ", " + qsTr("watched") : "") + (saved ? ", " + qsTr("saved on this computer") : "")
+    Accessible.name: title + (caption !== "" ? ", " + caption : "") + (watched ? ", " + qsTr("watched") : "") + (saved ? ", " + qsTr("saved on this computer") : "") + (versions > 1 ? ", " + qsTr("%n version(s)", "", versions) : "")
 
     background: Item {}
     contentItem: Column {
@@ -94,6 +96,20 @@ ItemDelegate {
                     text: "⤓"
                     color: Theme.accent
                     font.pixelSize: 14
+                    font.bold: true
+                }
+            }
+            Rectangle {   // several versions (issue #63)
+                visible: card.versions > 1
+                anchors { right: parent.right; bottom: parent.bottom; margins: 8 }
+                width: Math.max(26, versionsText.implicitWidth + 12); height: 22; radius: 11
+                color: "#c0101418"
+                Label {
+                    id: versionsText
+                    anchors.centerIn: parent
+                    text: card.versions + "×"
+                    color: Theme.text
+                    font.pixelSize: 12
                     font.bold: true
                 }
             }

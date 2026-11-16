@@ -94,6 +94,8 @@ ApplicationWindow {
         function onVolumeChanged() { if (!Music.bitPerfect) playbackPrefs.musicVolume = Music.volume }
     }
     Binding { target: Appearance; property: "fullscreen"; value: win.visibility === Window.FullScreen }
+    // Issue #63: the preferred version also picks album versions.
+    Binding { target: Music; property: "preference"; value: Appearance.preferredVersion }
 
     Toast { id: toast }
 }
