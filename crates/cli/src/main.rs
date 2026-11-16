@@ -43,14 +43,16 @@ fn share_password() -> String {
 fn usage() -> ExitCode {
     eprintln!(
         "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent\n\
-         \x20      | library add PATH | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
+         \x20      | library add PATH [--music] | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
+         \x20      | music artists | music albums | music tracks ALBUM (a music folder's artists, albums, tracks)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
          \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
          \x20      | probe FILE (technical details as JSON; FFmpeg from COYOTL_FFMPEG_DIR or the system)\n\
          \x20      | download ITEM [FILE] (save offline copies and wait for them) | downloads list\n\
          \x20      | export ITEM DEST [--overwrite] (Save as…: a file, or a folder for a season or show)\n\
          \x20      | downloads delete|pause|resume ID | storage [DIR] (where saved copies go)\n\
-         network shares: SPEC_JSON is {{\"protocol\":\"smb\",\"host\":\"nas\",\"share\":\"media\",\"user\":\"me\",\"path\":\"/Movies\"}};\n\
+         network shares: SPEC_JSON is {{\"protocol\":\"smb\",\"host\":\"nas\",\"share\":\"media\",\"user\":\"me\",\"path\":\"/Movies\"}}\n\
+         (add \"content\":\"music\" for a music folder);\n\
          the password comes from COYOTL_SHARE_PASSWORD (never from the command line)"
     );
     ExitCode::from(2)
@@ -275,8 +277,10 @@ fn main() -> ExitCode {
             core.continue_watching(1, 20);
             wait()
         }
-        ("library", [sub, path]) if sub == "add" => {
-            core.add_library(1, path);
+        ("library", [sub, path, rest @ ..])
+            if sub == "add" && (rest.is_empty() || rest == ["--music"]) =>
+        {
+            core.add_library(1, path, if rest.is_empty() { "video" } else { "music" });
             let ev = wait();
             settle();
             ev
@@ -316,6 +320,18 @@ fn main() -> ExitCode {
             core.rescan(0);
             settle();
             core.libraries(1);
+            wait()
+        }
+        // Issue #7: what the music scan made of a music folder.
+        ("music", [what]) if what == "artists" || what == "albums" => {
+            core.browse_items(1, &what[..what.len() - 1], 0, "title", "", 0, 500);
+            wait()
+        }
+        ("music", [what, album]) if what == "tracks" => {
+            let Ok(album) = album.parse() else {
+                return usage();
+            };
+            core.browse_items(1, "track", album, "title", "", 0, 500);
             wait()
         }
         ("movies" | "shows", []) => {
@@ -474,9 +490,10 @@ fn main() -> ExitCode {
         Event::Libraries { libraries, .. } => {
             for l in libraries {
                 println!(
-                    "  {:>3}  {}  ({} files{}{})",
+                    "  {:>3}  {}  ({}, {} files{}{})",
                     l.id,
                     l.root,
+                    l.content,
                     l.files,
                     if l.scanning { ", scanning" } else { "" },
                     if l.online { "" } else { ", offline" }

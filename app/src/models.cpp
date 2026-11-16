@@ -290,7 +290,7 @@ quint64 LibraryFoldersModel::send()
 void LibraryFoldersModel::add(const QString &path)
 {
     if (m_request) CoreBridge::instance()->cancel(m_request);
-    m_request = CoreBridge::instance()->addLibrary(path);
+    m_request = CoreBridge::instance()->addLibrary(path, QStringLiteral("video"));
     emit loadingChanged();
 }
 

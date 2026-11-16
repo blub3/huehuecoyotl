@@ -60,10 +60,10 @@ pub fn load_tmdb_key() -> KeyLoad {
     if std::env::var_os("COYOTL_DISABLE_KEYSTORE").is_some() {
         return KeyLoad::Absent;
     }
-    if let Ok(k) = std::env::var("COYOTL_TMDB_KEY") {
-        if !k.trim().is_empty() {
-            return KeyLoad::Found(k.trim().to_string(), KeySource::Environment);
-        }
+    if let Ok(k) = std::env::var("COYOTL_TMDB_KEY")
+        && !k.trim().is_empty()
+    {
+        return KeyLoad::Found(k.trim().to_string(), KeySource::Environment);
     }
     if let Err(e) = keystore_status() {
         return KeyLoad::Unavailable(e);

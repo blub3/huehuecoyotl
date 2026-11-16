@@ -87,15 +87,15 @@ impl LocalSource {
     pub fn places() -> Vec<Entry> {
         let mut out = Vec::new();
         let mut add = |p: std::path::PathBuf, label: Option<String>| {
-            if let Ok(meta) = std::fs::metadata(&p) {
-                if meta.is_dir() {
-                    let mut e = to_entry(VPath::new(p.to_string_lossy()), &meta);
-                    if let Some(l) = label {
-                        e.name = l;
-                    }
-                    if !out.iter().any(|o: &Entry| o.path == e.path) {
-                        out.push(e);
-                    }
+            if let Ok(meta) = std::fs::metadata(&p)
+                && meta.is_dir()
+            {
+                let mut e = to_entry(VPath::new(p.to_string_lossy()), &meta);
+                if let Some(l) = label {
+                    e.name = l;
+                }
+                if !out.iter().any(|o: &Entry| o.path == e.path) {
+                    out.push(e);
                 }
             }
         };

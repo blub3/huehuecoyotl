@@ -178,10 +178,10 @@ pub fn split_country(title: &str) -> (String, Option<&'static str>) {
         let l = last
             .trim_matches(|c: char| !c.is_alphanumeric())
             .to_lowercase();
-        if let Some((_, iso)) = COUNTRY_SUFFIXES.iter().find(|(s, _)| *s == l) {
-            if !head.trim().is_empty() {
-                return (head.trim().to_string(), Some(iso));
-            }
+        if let Some((_, iso)) = COUNTRY_SUFFIXES.iter().find(|(s, _)| *s == l)
+            && !head.trim().is_empty()
+        {
+            return (head.trim().to_string(), Some(iso));
         }
     }
     (t.to_string(), None)
@@ -209,13 +209,12 @@ pub fn search_queries(title: &str) -> Vec<String> {
 
 /// Keep the candidates from `country` when there are any (the US and the UK show of one title).
 pub fn filter_country(cands: &mut Vec<Candidate>, country: Option<&str>) {
-    if let Some(cc) = country {
-        if cands
+    if let Some(cc) = country
+        && cands
             .iter()
             .any(|c| c.origin_country.iter().any(|o| o == cc))
-        {
-            cands.retain(|c| c.origin_country.iter().any(|o| o == cc));
-        }
+    {
+        cands.retain(|c| c.origin_country.iter().any(|o| o == cc));
     }
 }
 

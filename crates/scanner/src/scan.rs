@@ -63,6 +63,16 @@ fn fnv1a(data: &[u8]) -> u64 {
 
 /// size + hash of the first and last 64 KiB (SPEC 7).
 pub async fn fingerprint(src: &dyn Source, path: &VPath, size: u64) -> Result<Vec<u8>, VfsError> {
+    Ok(fingerprint_with_data(src, path, size).await?.0)
+}
+
+/// The fingerprint, and the ranges it read ((offset, bytes): the first and the last 64 KiB), so
+/// the music scan can read tags from them without fetching them again.
+pub async fn fingerprint_with_data(
+    src: &dyn Source,
+    path: &VPath,
+    size: u64,
+) -> Result<(Vec<u8>, Vec<(u64, Vec<u8>)>), VfsError> {
     let head = src.read_at(path, 0, FP_CHUNK).await?;
     let tail_off = size.saturating_sub(u64::from(FP_CHUNK));
     let tail = src.read_at(path, tail_off, FP_CHUNK).await?;
@@ -70,7 +80,7 @@ pub async fn fingerprint(src: &dyn Source, path: &VPath, size: u64) -> Result<Ve
     out.extend_from_slice(&size.to_le_bytes());
     out.extend_from_slice(&fnv1a(&head).to_le_bytes());
     out.extend_from_slice(&fnv1a(&tail).to_le_bytes());
-    Ok(out)
+    Ok((out, vec![(0, head.to_vec()), (tail_off, tail.to_vec())]))
 }
 
 /// Lower-case alphanumerics and single spaces: the key that makes "The.Matrix" and
@@ -92,10 +102,10 @@ pub fn sort_title(title: &str) -> String {
     for a in [
         "the ", "a ", "an ", "der ", "die ", "das ", "le ", "la ", "les ", "el ",
     ] {
-        if let Some(rest) = l.strip_prefix(a) {
-            if !rest.is_empty() {
-                return rest.to_string();
-            }
+        if let Some(rest) = l.strip_prefix(a)
+            && !rest.is_empty()
+        {
+            return rest.to_string();
         }
     }
     l
@@ -165,10 +175,10 @@ struct Existing {
 pub fn show_key(title: &str) -> String {
     let n = normalize(title);
     for article in ["the ", "a ", "an "] {
-        if let Some(rest) = n.strip_prefix(article) {
-            if !rest.is_empty() {
-                return rest.to_string();
-            }
+        if let Some(rest) = n.strip_prefix(article)
+            && !rest.is_empty()
+        {
+            return rest.to_string();
         }
     }
     n

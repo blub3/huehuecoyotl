@@ -118,17 +118,17 @@ impl FtpSource {
         let reusable = g.as_ref().is_some_and(|r| r.path == sp && r.pos == offset);
         if !reusable {
             // Seek: abort the running transfer (or drop the connection if that fails).
-            if let Some(mut r) = g.take() {
-                if r.ctrl.abort(r.data).await.is_ok() {
-                    r.ctrl.resume_transfer(offset as usize).await.map_err(err)?;
-                    let data = r.ctrl.retr_as_stream(&sp).await.map_err(err)?;
-                    *g = Some(Reader {
-                        path: sp.clone(),
-                        pos: offset,
-                        ctrl: r.ctrl,
-                        data,
-                    });
-                }
+            if let Some(mut r) = g.take()
+                && r.ctrl.abort(r.data).await.is_ok()
+            {
+                r.ctrl.resume_transfer(offset as usize).await.map_err(err)?;
+                let data = r.ctrl.retr_as_stream(&sp).await.map_err(err)?;
+                *g = Some(Reader {
+                    path: sp.clone(),
+                    pos: offset,
+                    ctrl: r.ctrl,
+                    data,
+                });
             }
             if g.is_none() {
                 let mut ctrl = self.login().await?;

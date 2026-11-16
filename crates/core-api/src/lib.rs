@@ -182,6 +182,8 @@ mod ffi {
         last_scan_ms: i64,
         scanning: bool,
         online: bool,
+        /// video | music (2.0)
+        content: String,
     }
 
     /// A file server found on the local network.
@@ -329,7 +331,8 @@ mod ffi {
 
         // M2: library
         fn libraries(self: &Core, request_id: u64);
-        fn add_library(self: &Core, request_id: u64, path: &str);
+        /// `content`: video or music (2.0).
+        fn add_library(self: &Core, request_id: u64, path: &str, content: &str);
         fn remove_library(self: &Core, request_id: u64, source_id: i64);
         fn rescan(self: &Core, source_id: i64);
         fn browse_items(
@@ -725,6 +728,7 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                     last_scan_ms: l.last_scan_ms,
                     scanning: l.scanning,
                     online: l.online,
+                    content: l.content,
                 })
                 .collect(),
             ..event(K::Libraries, request_id)
@@ -995,8 +999,10 @@ impl Core {
     fn libraries(&self, request_id: u64) {
         guard("libraries", || self.0.libraries(request_id))
     }
-    fn add_library(&self, request_id: u64, path: &str) {
-        guard("add_library", || self.0.add_library(request_id, path))
+    fn add_library(&self, request_id: u64, path: &str, content: &str) {
+        guard("add_library", || {
+            self.0.add_library(request_id, path, content)
+        })
     }
     fn remove_library(&self, request_id: u64, source_id: i64) {
         guard("remove_library", || {

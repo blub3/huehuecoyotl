@@ -5,6 +5,8 @@ use crate::Entry;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MediaKind {
     Video,
+    /// Issue #7: the music formats of 2.0 (SPEC 2, "Music in 2.0").
+    Audio,
     Subtitle,
     Other,
 }
@@ -14,6 +16,10 @@ const VIDEO: &[&str] = &[
     "ogv", "flv", "3gp", "iso",
 ];
 const SUBTITLE: &[&str] = &["srt", "ass", "ssa", "vtt", "sub", "idx", "sup"];
+/// `.mp4` counts as video here; music folders also accept audio-only `.mp4` files.
+const AUDIO: &[&str] = &[
+    "flac", "m4a", "wav", "aif", "aiff", "mp3", "aac", "ogg", "oga", "opus", "wv",
+];
 
 fn ext(name: &str) -> Option<String> {
     let (stem, e) = name.rsplit_once('.')?;
@@ -24,6 +30,7 @@ pub fn media_kind(name: &str) -> MediaKind {
     match ext(name) {
         Some(e) if VIDEO.contains(&e.as_str()) => MediaKind::Video,
         Some(e) if SUBTITLE.contains(&e.as_str()) => MediaKind::Subtitle,
+        Some(e) if AUDIO.contains(&e.as_str()) => MediaKind::Audio,
         _ => MediaKind::Other,
     }
 }

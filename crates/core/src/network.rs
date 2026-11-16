@@ -33,6 +33,9 @@ pub struct NetworkSpec {
     pub path: String,
     #[serde(default)]
     pub name: String,
+    /// `video` (default) or `music` (2.0, SPEC 6).
+    #[serde(default)]
+    pub content: String,
 }
 
 impl NetworkSpec {
@@ -185,10 +188,10 @@ impl Inner {
     /// The connection the dialog's folder picker uses, reused while the settings stay the same.
     async fn probe(&self, spec: &NetworkSpec, password: &str) -> CResult<Arc<dyn RemoteSource>> {
         let key = format!("{}\u{0}{password}", spec.config_json());
-        if let Some((k, s)) = self.probe.lock().unwrap().as_ref() {
-            if *k == key {
-                return Ok(s.clone());
-            }
+        if let Some((k, s)) = self.probe.lock().unwrap().as_ref()
+            && *k == key
+        {
+            return Ok(s.clone());
         }
         let mut cfg = spec.cfg.clone();
         cfg.password = password.to_string();
@@ -483,9 +486,12 @@ impl Core {
                 spec.name.trim().to_string()
             };
             let (kind, root_s) = (cfg.protocol.as_str().to_string(), spec.path.clone());
+            let content = crate::library::content_type(&spec.content);
             let id = inner
                 .lib
-                .write(move |c| catalog::add_network_library(c, &kind, &name, &json, &root_s))
+                .write(move |c| {
+                    catalog::add_network_library(c, &kind, &name, &json, &root_s, content)
+                })
                 .await?;
             let reference = format!("source:{id}");
             let warning =

@@ -53,6 +53,8 @@ pub struct LibraryInfo {
     pub files: i64,
     pub last_scan_ms: i64,
     pub scanning: bool,
+    /// `video` or `music` (2.0).
+    pub content: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -738,10 +740,10 @@ impl Core {
                 .lib
                 .read(move |c| {
                     let mut id = item_id;
-                    if let Some(d) = huehuecoyotl_library::catalog::detail(c, item_id)? {
-                        if let Some(n) = d.next_up {
-                            id = n.id;
-                        }
+                    if let Some(d) = huehuecoyotl_library::catalog::detail(c, item_id)?
+                        && let Some(n) = d.next_up
+                    {
+                        id = n.id;
                     }
                     let mut files = huehuecoyotl_library::catalog::playable_files(c, id)?;
                     if let Some(f) = only {

@@ -166,7 +166,7 @@ fn library_end_to_end() {
     .unwrap();
     core.set_provider(Arc::new(Fake));
 
-    core.add_library(1, &media.to_string_lossy());
+    core.add_library(1, &media.to_string_lossy(), "video");
     let Event::Libraries { libraries, .. } = wait_for(&rx, "libraries", |e| {
         matches!(e, Event::Libraries { request_id: 1, .. })
     }) else {

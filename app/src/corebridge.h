@@ -63,7 +63,8 @@ class CoreBridge : public QObject {
 
     // M2: library
     Q_INVOKABLE quint64 libraries();
-    Q_INVOKABLE quint64 addLibrary(const QString &path);
+    // content: "video" or "music" (2.0).
+    Q_INVOKABLE quint64 addLibrary(const QString &path, const QString &content = QStringLiteral("video"));
     Q_INVOKABLE quint64 removeLibrary(qint64 sourceId);
     Q_INVOKABLE void rescan(qint64 sourceId = 0);
     // filter: "" (everything), "unwatched" or "saved".

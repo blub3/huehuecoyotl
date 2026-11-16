@@ -31,10 +31,10 @@ fn fixture(rel: &str) -> Vec<u8> {
 fn wait(rx: &Receiver<Event>, what: &str, secs: u64, mut f: impl FnMut(&Event) -> bool) -> Event {
     let end = Instant::now() + Duration::from_secs(secs);
     while Instant::now() < end {
-        if let Ok(e) = rx.recv_timeout(Duration::from_millis(200)) {
-            if f(&e) {
-                return e;
-            }
+        if let Ok(e) = rx.recv_timeout(Duration::from_millis(200))
+            && f(&e)
+        {
+            return e;
         }
     }
     panic!("timed out waiting for {what}");
