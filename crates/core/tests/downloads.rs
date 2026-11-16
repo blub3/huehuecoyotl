@@ -70,7 +70,7 @@ fn add_movies(core: &Core, rx: &Receiver<Event>, spec: &str) -> i64 {
         60,
         |e| matches!(e, Event::ScanState { running: false, source_id, .. } if *source_id == id),
     );
-    core.browse_items(2, "movie", 0, "title", false, 0, 10);
+    core.browse_items(2, "movie", 0, "title", "", 0, 10);
     let Event::Page { items, .. } = wait(rx, "page", 10, |e| {
         matches!(e, Event::Page { request_id: 2, .. })
     }) else {

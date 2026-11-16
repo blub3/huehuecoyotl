@@ -349,6 +349,96 @@ pub fn layout_dir(c: &Connection, item_id: i64) -> Result<Vec<String>> {
     ])
 }
 
+// ---- the state of an item's saved copies (issue #4) ----------------------------------------
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SaveInfo {
+    /// none, queued, running, paused, done, failed or outdated. For a season or show: the
+    /// busiest state of its episodes' copies, `done` once every episode that can be saved is.
+    pub state: String,
+    /// Movies and episodes: the main row of the saved copy (0 = none).
+    pub copy_id: i64,
+    /// Bytes copied and total, subtitles and parts included (seasons, shows: all copies).
+    pub bytes_done: u64,
+    pub size: u64,
+    pub error: String,
+    pub error_kind: String,
+    /// Episodes (or the movie) with a complete saved copy, and those that can be saved at all
+    /// (they have a file on a network source).
+    pub saved: i64,
+    pub saveable: i64,
+}
+
+/// The state of one main row, its companions included.
+fn family_state(c: &Connection, main: &Copy) -> Result<(String, u64, u64, String, String)> {
+    let mut state = main.state.clone();
+    let (mut done, mut size) = (main.bytes_done, main.size);
+    let (mut error, mut kind) = (main.error.clone(), main.error_kind.clone());
+    for o in companions(c, main.id)? {
+        done += o.bytes_done;
+        size += o.size;
+        if state == "done" && matches!(o.state.as_str(), "queued" | "running" | "failed") {
+            state = o.state.clone();
+        }
+        if error.is_empty() && !o.error.is_empty() {
+            error = o.error;
+            kind = o.error_kind;
+        }
+    }
+    Ok((state, done, size, error, kind))
+}
+
+pub fn save_info(c: &Connection, item_id: i64) -> Result<SaveInfo> {
+    let items = playable_items(c, item_id)?;
+    let single = items.len() == 1 && items[0] == item_id;
+    let mut info = SaveInfo {
+        state: "none".into(),
+        ..Default::default()
+    };
+    let mut states = Vec::new();
+    for it in items {
+        if !network_files(c, it)?.is_empty() {
+            info.saveable += 1;
+        }
+        // The newest saved copy of the item (another version may have been saved before).
+        let Some(main) = saved_for_item(c, it)?.into_iter().last() else {
+            continue;
+        };
+        let (state, done, size, error, kind) = family_state(c, &main)?;
+        if single {
+            info.copy_id = main.id;
+        }
+        if state == "done" {
+            info.saved += 1;
+        }
+        info.bytes_done += done;
+        info.size += size;
+        if info.error.is_empty() && !error.is_empty() && state == "failed" {
+            info.error = error;
+            info.error_kind = kind;
+        }
+        states.push(state);
+    }
+    let has = |s: &str| states.iter().any(|x| x == s);
+    info.state = if has("running") {
+        "running"
+    } else if has("queued") {
+        "queued"
+    } else if has("paused") {
+        "paused"
+    } else if has("failed") {
+        "failed"
+    } else if has("outdated") {
+        "outdated"
+    } else if info.saved > 0 && info.saved >= info.saveable {
+        "done"
+    } else {
+        "none"
+    }
+    .into();
+    Ok(info)
+}
+
 // ---- settings -----------------------------------------------------------------------------
 
 pub fn setting(c: &Connection, key: &str) -> Result<Option<String>> {
@@ -470,6 +560,58 @@ mod tests {
         assert_eq!(companions(&c, a).unwrap().len(), 1);
         delete(&c, a).unwrap();
         assert!(get(&c, sub).unwrap().is_none());
+    }
+
+    #[test]
+    fn save_info_sums_up_seasons_and_shows() {
+        let c = db();
+        assert_eq!(save_info(&c, 1).unwrap().state, "none");
+        assert_eq!(save_info(&c, 1).unwrap().saveable, 1);
+        let a = saved(&c, 101, 12);
+        let s = save_info(&c, 11).unwrap();
+        assert_eq!((s.state.as_str(), s.saved, s.saveable), ("none", 1, 2));
+        let b = insert(
+            &c,
+            &NewCopy {
+                kind: SAVED.into(),
+                file_id: Some(102),
+                item_id: Some(13),
+                source_id: 2,
+                source_path: "/y".into(),
+                path: "/store/y.mkv".into(),
+                size: 10,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        set_state(&c, b, "running").unwrap();
+        set_progress(&c, b, 4).unwrap();
+        let s = save_info(&c, 10).unwrap();
+        assert_eq!(
+            (s.state.as_str(), s.bytes_done, s.size),
+            ("running", 54, 60)
+        );
+        set_done(&c, b).unwrap();
+        assert_eq!(save_info(&c, 10).unwrap().state, "done");
+        let e = save_info(&c, 12).unwrap();
+        assert_eq!((e.state.as_str(), e.copy_id), ("done", a));
+        // the grid's mark and filter
+        let q = crate::catalog::Query {
+            kind: "show".into(),
+            parent: None,
+            sort: crate::catalog::Sort::Title,
+            unwatched_only: false,
+            saved_only: true,
+            offset: 0,
+            limit: 10,
+        };
+        let (n, items) = crate::catalog::browse(&c, &q).unwrap();
+        assert_eq!((n, items[0].saved), (1, true));
+        let q = crate::catalog::Query {
+            kind: "movie".into(),
+            ..q
+        };
+        assert_eq!(crate::catalog::browse(&c, &q).unwrap().0, 0);
     }
 
     #[test]

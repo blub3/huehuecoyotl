@@ -58,7 +58,39 @@ QVariantMap summaryMap(const coyotl::core::ItemSummary &s)
             {"unwatched", qlonglong(s.unwatched)},
             {"overview", qs(s.overview)},
             {"onDisk", s.on_disk},
-            {"runtimeMin", s.runtime_min}};
+            {"runtimeMin", s.runtime_min},
+            {"saved", s.saved}};
+}
+
+// Issue #4: the state of an item's saved copies.
+QVariantMap saveMap(const coyotl::core::SaveInfo &i)
+{
+    return {{"state", qs(i.state)},
+            {"copyId", qlonglong(i.copy_id)},
+            {"bytesDone", double(i.bytes_done)},
+            {"size", double(i.size)},
+            {"error", qs(i.error)},
+            {"errorKind", qs(i.error_kind)},
+            {"saved", qlonglong(i.saved)},
+            {"saveable", qlonglong(i.saveable)}};
+}
+
+// Issue #3: a saved copy or an export, or one file's progress.
+QVariantMap downloadMap(const coyotl::core::DownloadEntry &d)
+{
+    return {{"id", qlonglong(d.id)},
+            {"mainId", qlonglong(d.main_id)},
+            {"kind", qs(d.kind)},
+            {"itemId", qlonglong(d.item_id)},
+            {"fileId", qlonglong(d.file_id)},
+            {"title", qs(d.title)},
+            {"path", qs(d.path)},
+            {"state", qs(d.state)},
+            {"bytesDone", double(d.bytes_done)},
+            {"size", double(d.size)},
+            {"errorKind", qs(d.error_kind)},
+            {"error", qs(d.error)},
+            {"completedAt", qlonglong(d.completed_at)}};
 }
 
 QVariantList summaries(const rust::Vec<coyotl::core::ItemSummary> &v)
@@ -203,13 +235,13 @@ void CoreBridge::rescan(qint64 sourceId)
     if (m_core) (*m_core)->rescan(sourceId);
 }
 
-quint64 CoreBridge::browseItems(const QString &kind, qint64 parent, const QString &sort, bool unwatchedOnly,
-                                int offset, int limit)
+quint64 CoreBridge::browseItems(const QString &kind, qint64 parent, const QString &sort,
+                                const QString &filter, int offset, int limit)
 {
     const quint64 id = nextId();
-    const QByteArray k = kind.toUtf8(), so = sort.toUtf8();
+    const QByteArray k = kind.toUtf8(), so = sort.toUtf8(), fi = filter.toUtf8();
     if (m_core)
-        (*m_core)->browse_items(id, rs(k), parent, rs(so), unwatchedOnly, uint32_t(qMax(0, offset)),
+        (*m_core)->browse_items(id, rs(k), parent, rs(so), rs(fi), uint32_t(qMax(0, offset)),
                                 uint32_t(qMax(1, limit)));
     return id;
 }
@@ -231,6 +263,92 @@ quint64 CoreBridge::search(const QString &text)
 void CoreBridge::probeNow(qint64 fileId)
 {
     if (m_core) (*m_core)->probe_now(fileId);
+}
+
+quint64 CoreBridge::saveItem(qint64 itemId, qint64 fileId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->save_item(id, itemId, fileId);
+    return id;
+}
+
+quint64 CoreBridge::exportFile(qint64 fileId, const QString &dest)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->export_file(id, fileId, rs(dest.toUtf8()));
+    return id;
+}
+
+void CoreBridge::pauseDownload(qint64 copyId)
+{
+    if (m_core) (*m_core)->pause_download(copyId);
+}
+
+void CoreBridge::resumeDownload(qint64 copyId)
+{
+    if (m_core) (*m_core)->resume_download(copyId);
+}
+
+quint64 CoreBridge::deleteDownload(qint64 copyId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->delete_download(id, copyId);
+    return id;
+}
+
+quint64 CoreBridge::deleteSavedItem(qint64 itemId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->delete_saved_item(id, itemId);
+    return id;
+}
+
+void CoreBridge::pauseSavedItem(qint64 itemId)
+{
+    if (m_core) (*m_core)->pause_saved_item(itemId);
+}
+
+void CoreBridge::resumeSavedItem(qint64 itemId)
+{
+    if (m_core) (*m_core)->resume_saved_item(itemId);
+}
+
+quint64 CoreBridge::saveState(qint64 itemId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->save_state(id, itemId);
+    return id;
+}
+
+quint64 CoreBridge::deleteAllSaved()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->delete_all_saved(id);
+    return id;
+}
+
+quint64 CoreBridge::downloads()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->downloads(id);
+    return id;
+}
+
+quint64 CoreBridge::setStorageDir(const QString &path)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->set_storage_dir(id, rs(path.toUtf8()));
+    return id;
+}
+
+QString CoreBridge::downloadErrorText(const QString &kind, const QString &message)
+{
+    static const QHash<QString, int> kinds{{"auth", Auth},
+                                           {"unreachable", Unreachable},
+                                           {"not_found", NotFound},
+                                           {"unsupported", Unsupported},
+                                           {"no_space", NoSpace}};
+    return errorText(kinds.value(kind, Internal), message);
 }
 
 quint64 CoreBridge::itemDetail(qint64 itemId)
@@ -344,6 +462,8 @@ QString CoreBridge::errorText(int kind, const QString &message)
         return tr("Not found. It may have been moved or deleted.");
     case Unsupported:
         return tr("This is not supported.");
+    case NoSpace:
+        return tr("There is not enough free space on the drive.");
     default:
         return tr("Something went wrong: %1").arg(message);
     }
@@ -427,7 +547,8 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                   {"durationMs", qulonglong(d.duration_ms)},
                   {"lastFileId", qlonglong(d.last_file_id)},
                   {"children", summaries(d.children)},
-                  {"nextUp", d.next_up.empty() ? QVariant() : QVariant(summaryMap(d.next_up[0]))}});
+                  {"nextUp", d.next_up.empty() ? QVariant() : QVariant(summaryMap(d.next_up[0]))},
+                  {"save", saveMap(d.save)}});
         emit detailReady(e.request_id, m);
     } else if (e.kind == K::Libraries) {
         QVariantList libs;
@@ -478,6 +599,15 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                                        {"port", int(d.port)},
                                        {"tls", d.tls}});
         emit serversDiscovered(e.request_id, servers);
+    } else if (e.kind == K::Downloads) {
+        QVariantList items;
+        for (const auto &d : e.downloads)
+            items.append(downloadMap(d));
+        emit downloadsListed(e.request_id, items, double(e.used_bytes), qs(e.path));
+    } else if (e.kind == K::DownloadProgress) {
+        emit downloadProgress(downloadMap(e.download));
+    } else if (e.kind == K::SaveState) {
+        emit saveStateReady(e.request_id, qlonglong(e.item_id), saveMap(e.save));
     } else if (e.kind == K::Error) {
         const int kind = int(e.error);
         qCWarning(lcCore) << "request" << e.request_id << "failed:" << qs(e.message);

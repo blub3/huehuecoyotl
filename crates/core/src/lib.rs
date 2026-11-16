@@ -31,6 +31,7 @@ use tokio::task::AbortHandle;
 
 pub use download::{DownloadInfo, available_space};
 pub use huehuecoyotl_library::catalog::{CandidateRow, Detail, FileInfo, Summary};
+pub use huehuecoyotl_library::copies::SaveInfo;
 pub use network::{Discovered, NetworkSpec};
 pub use queries::TrackPref;
 use secrets::KeySource;
@@ -246,6 +247,12 @@ pub enum Event {
         request_id: u64,
         kind: ErrorKind,
         message: String,
+    },
+    /// The state of an item's saved copies (issue #4).
+    SaveState {
+        request_id: u64,
+        item_id: i64,
+        info: huehuecoyotl_library::copies::SaveInfo,
     },
     /// Saved copies and exports (issue #3), with the space saved copies use.
     Downloads {

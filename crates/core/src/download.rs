@@ -1464,6 +1464,63 @@ impl crate::Core {
         });
     }
 
+    /// Pause or continue every running saved copy of an item (a season's, a show's).
+    pub fn pause_saved_item(&self, item_id: i64) {
+        self.each_saved(item_id, true);
+    }
+    pub fn resume_saved_item(&self, item_id: i64) {
+        self.each_saved(item_id, false);
+    }
+
+    fn each_saved(&self, item_id: i64, stop: bool) {
+        let inner = self.inner.clone();
+        self.rt.spawn(async move {
+            let r: CResult<()> = async {
+                let items = inner
+                    .lib
+                    .read(move |c| copies::playable_items(c, item_id))
+                    .await?;
+                for it in items {
+                    for row in inner
+                        .lib
+                        .read(move |c| copies::saved_for_item(c, it))
+                        .await?
+                    {
+                        if stop {
+                            pause(&inner, row.id).await?;
+                        } else {
+                            resume(&inner, row.id).await?;
+                        }
+                    }
+                }
+                Ok(())
+            }
+            .await;
+            if let Err(e) = r {
+                tracing::error!(
+                    item_id,
+                    "pausing or resuming saved copies failed: {}",
+                    e.message
+                );
+            }
+        });
+    }
+
+    /// The state of an item's saved copies (the detail page polls it while copies run).
+    pub fn save_state(&self, request_id: u64, item_id: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let info = inner
+                .lib
+                .read(move |c| copies::save_info(c, item_id))
+                .await?;
+            Ok(Event::SaveState {
+                request_id,
+                item_id,
+                info,
+            })
+        });
+    }
+
     /// Settings → Storage: "Delete all saved copies".
     pub fn delete_all_saved(&self, request_id: u64) {
         self.spawn(request_id, move |inner| async move {

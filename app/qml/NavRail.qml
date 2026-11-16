@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Coyotl
 
-// Persistent navigation (SPEC 9): Home, Movies, Shows, Search, Sources, Settings.
+// Persistent navigation (SPEC 9): Home, Movies, Shows, Search, Downloads, Sources, Settings.
 FocusScope {
     id: rail
     property string current: "home"
@@ -22,6 +22,7 @@ FocusScope {
         { key: "movies", glyph: "▶", label: qsTr("Movies") },
         { key: "shows", glyph: "▦", label: qsTr("Shows") },
         { key: "search", glyph: "⌕", label: qsTr("Search") },
+        { key: "downloads", glyph: "⤓", label: qsTr("Downloads") },
         { key: "sources", glyph: "▤", label: qsTr("Sources") },
         { key: "settings", glyph: "⚙", label: qsTr("Settings") }
     ]

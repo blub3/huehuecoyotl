@@ -68,7 +68,7 @@ Apache 2.0 for the project's own code is workable if Qt, libmpv and FFmpeg are u
 | Component | Licence | Consequence | Decision |
 | --- | --- | --- | --- |
 | Project code (C++, QML and Rust) | Apache-2.0 | Permissive, with a patent grant | Keep; require DCO sign-off on contributions |
-| [Qt 6](https://doc.qt.io/qt-6/licensing.html) | LGPLv3 for most modules; some add-on modules are GPL-only in the open-source edition | Using one GPL-only module makes the binary GPL. The Qt FAQ names Qt Charts, Data Visualization and Virtual Keyboard as examples. | Use only LGPL modules: Core, Gui, OpenGL, Qml, Quick, Quick Controls, Svg, DBus. Link dynamically. OpenGL is needed because the embedded video item's renderer returns a `QOpenGLFramebufferObject` (spike finding). |
+| [Qt 6](https://doc.qt.io/qt-6/licensing.html) | LGPLv3 for most modules; some add-on modules are GPL-only in the open-source edition | Using one GPL-only module makes the binary GPL. The Qt FAQ names Qt Charts, Data Visualization and Virtual Keyboard as examples. | Use only LGPL modules: Core, Gui, OpenGL, Qml, Quick, Quick Controls, Quick Dialogs (LGPLv3, part of qtdeclarative; the native file and folder dialogs since 1.5, through the portal under Flatpak), Svg, DBus. Link dynamically. OpenGL is needed because the embedded video item's renderer returns a `QOpenGLFramebufferObject` (spike finding). |
 | [libmpv](https://github.com/mpv-player/mpv/blob/master/Copyright) | GPLv2+ by default; LGPLv2.1+ when built without the GPL-only files (`-Dgpl=false`) | LGPL mode drops the X11 video output, VDPAU and a few minor features. Linked libraries can still change the result. | Own LGPL build, shipped as a separate shared library. In mpv 0.42 the entire X11 backend is GPL-only, so the LGPL build has no X11 support at all (see 5.2). |
 | FFmpeg | LGPLv2.1+ unless configured with GPL or non-free parts | A GPL-configured FFmpeg makes the whole libmpv build GPL | Configure without GPL or non-free options; decoders only |
 | mpvqt (reference only, not linked) | LGPL-2.1 or LGPL-3 | None, as long as no code is copied | Not a dependency; the video item is written from mpv's API documentation |
@@ -308,6 +308,7 @@ CREATE VIRTUAL TABLE item_fts USING fts5(title, original_title, overview);
 - A source file that changed in place (size or modification time) or disappeared makes its saved copy `outdated` (triggers on `file`). Playback uses a complete copy that is not outdated in place of the network file, and keeps the item's watch state.
 - Deleting a copy removes its local files and rows, never the file on the source. Removing a library deletes its saved copies.
 - At start-up, exports of the last session are forgotten (their `.part` files removed), unfinished copies are queued again, a saved copy whose file has gone is marked failed, and `.part` files in managed storage that no row knows are removed.
+- In the UI (issue #4): the detail page offers Save (movies and episodes), Save season and Save all (shows) for items with a file on a network source; one button changes from Save to Pause, Resume, Try again, Save again and Delete saved copy, beside Cancel and the progress, and deleting asks first and says the server's file stays. Saved items carry a mark on their cover and episode row, and Movies and Shows filter All, Unwatched or Saved. The Downloads screen lists copies in progress, failed or outdated, and done, with sizes and the space used; Settings → Storage sets the folder (a native folder dialog, the portal under Flatpak), shows the space used and deletes all saved copies.
 - Progress reaches the UI as `DownloadProgress` events, at most twice a second per file. `coyotl-cli download ITEM [FILE]`, `downloads list|delete|pause|resume ID` and `storage [DIR]` drive the engine headless.
 
 Libraries scanned before 1.1.1 are repaired by migration 4 (TMDB duplicates merged) and the `regroup` job, which derives every show's key again from its file paths, without network access or rescanning, and re-keys or merges the shows; shows whose title changed and that have no match are matched again. `crates/scanner/examples/regroup.rs` runs the same repair on a copy of a database and reports the counts.
@@ -376,7 +377,7 @@ The UI is QML on top of a few C++ models and controllers: it holds no business l
 | Area | Decision |
 | --- | --- |
 | State | C++ list models and controller objects exposed to QML as singletons; QML keeps only view state |
-| Navigation | A `StackView` inside a persistent shell: Home, Movies, Shows, Search, Sources, Settings, Player |
+| Navigation | A `StackView` inside a persistent shell: Home, Movies, Shows, Search, Downloads, Sources, Settings, Player |
 | Controls and style | Qt Quick Controls on the Basic style with a custom dark theme, so the app looks the same on Windows and Linux |
 | Input | Mouse and keyboard, plus directional focus navigation (`KeyNavigation`, `FocusScope`) on every screen from the first milestone; gamepad buttons mapped to the same keys. Living-room PCs on Linux are a core audience. |
 | Layout | Windowed and fullscreen "TV" layouts from the same components |

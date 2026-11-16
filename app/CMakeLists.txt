@@ -41,7 +41,8 @@ qt_add_qml_module(coyotl
     qml/NetworkSharePage.qml
     qml/SettingsPage.qml
     qml/ReviewPage.qml
-    qml/NoticesPage.qml)
+    qml/NoticesPage.qml
+    qml/DownloadsPage.qml)
 
 # Third-party notices (SPEC 10, step 6), shown under Settings → About and installed as a file.
 # Release builds must have cargo-about; developer builds without it embed a short stub.

@@ -6,6 +6,8 @@
 # Qt libraries actually loaded at run time (transitive dependencies included).
 set(COYOTL_QT_ALLOWED_MODULES
   Core Gui OpenGL Qml Quick QuickControls2 Svg DBus
+  # QML import only (QtQuick.Dialogs: file and folder dialogs, issues #4 and #5); LGPLv3
+  QuickDialogs2
   # build-time only / tests
   LinguistTools QuickTest Test)
 

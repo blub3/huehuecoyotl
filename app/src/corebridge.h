@@ -27,7 +27,7 @@ class CoreBridge : public QObject {
     Q_PROPERTY(int failedJobs READ failedJobs NOTIFY activityChanged)
 
   public:
-    enum ErrorKind { NoError = 0, Auth, Unreachable, NotFound, Unsupported, Internal };
+    enum ErrorKind { NoError = 0, Auth, Unreachable, NotFound, Unsupported, Internal, NoSpace };
     Q_ENUM(ErrorKind)
 
     // Opens the core in `dataDir`. On failure `isOpen()` is false and `openError()` explains.
@@ -59,8 +59,9 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 addLibrary(const QString &path);
     Q_INVOKABLE quint64 removeLibrary(qint64 sourceId);
     Q_INVOKABLE void rescan(qint64 sourceId = 0);
+    // filter: "" (everything), "unwatched" or "saved".
     Q_INVOKABLE quint64 browseItems(const QString &kind, qint64 parent, const QString &sort,
-                                    bool unwatchedOnly, int offset, int limit);
+                                    const QString &filter, int offset, int limit);
     Q_INVOKABLE quint64 recentlyAdded(int limit = 20);
     Q_INVOKABLE quint64 search(const QString &text);
     Q_INVOKABLE quint64 itemDetail(qint64 itemId);
@@ -80,6 +81,24 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 discover();
     // SFTP: the host key fingerprint of the server browseNetwork last reached ("" otherwise).
     Q_INVOKABLE QString networkHostKey() const;
+
+    // 1.5: offline copies (issues #3, #4, #5). saveItem, exportFile, deleteDownload,
+    // deleteSavedItem, deleteAllSaved, downloads and setStorageDir answer with downloadsListed;
+    // progress arrives as downloadProgress, an item's state as saveStateReady.
+    Q_INVOKABLE quint64 saveItem(qint64 itemId, qint64 fileId = 0);
+    Q_INVOKABLE quint64 exportFile(qint64 fileId, const QString &dest);
+    Q_INVOKABLE void pauseDownload(qint64 copyId);
+    Q_INVOKABLE void resumeDownload(qint64 copyId);
+    Q_INVOKABLE quint64 deleteDownload(qint64 copyId);
+    Q_INVOKABLE quint64 deleteSavedItem(qint64 itemId);
+    Q_INVOKABLE void pauseSavedItem(qint64 itemId);
+    Q_INVOKABLE void resumeSavedItem(qint64 itemId);
+    Q_INVOKABLE quint64 saveState(qint64 itemId);
+    Q_INVOKABLE quint64 deleteAllSaved();
+    Q_INVOKABLE quint64 downloads();
+    Q_INVOKABLE quint64 setStorageDir(const QString &path);
+    // The translated text for a download's error category ("no_space", ...).
+    Q_INVOKABLE static QString downloadErrorText(const QString &kind, const QString &message);
 
     // M4: writes a redacted diagnostics file to the Downloads folder and returns its path,
     // or an empty string (the reason goes to the log and the toast via `lastError`).
@@ -121,6 +140,11 @@ class CoreBridge : public QObject {
     // The library changed in bulk; grids re-query.
     void libraryChanged();
     void serversDiscovered(quint64 requestId, const QVariantList &servers);
+    void downloadsListed(quint64 requestId, const QVariantList &items, double usedBytes,
+                         const QString &storageDir);
+    // One copied file moved on or changed state; `mainId` is the row Downloads shows.
+    void downloadProgress(const QVariantMap &entry);
+    void saveStateReady(quint64 requestId, qint64 itemId, const QVariantMap &info);
 
   private:
     void dispatch(const coyotl::core::CoreEvent &e);

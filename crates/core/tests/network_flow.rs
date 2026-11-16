@@ -126,7 +126,7 @@ fn flow(spec: &str) {
         |e| matches!(e, Event::ScanState { running: false, source_id, .. } if *source_id == lib.id),
     );
 
-    core.browse_items(4, "movie", 0, "title", false, 0, 50);
+    core.browse_items(4, "movie", 0, "title", "", 0, 50);
     let Event::Page { items, .. } = wait(&rx, "page", |e| {
         matches!(e, Event::Page { request_id: 4, .. })
     }) else {

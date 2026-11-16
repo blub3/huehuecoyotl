@@ -182,7 +182,7 @@ fn library_end_to_end() {
         &core,
         &rx,
         "movies with posters",
-        |c, id| c.browse_items(id, "movie", 0, "title", false, 0, 50),
+        |c, id| c.browse_items(id, "movie", 0, "title", "", 0, 50),
         |e| matches!(e, Event::Page { items, .. } if items.iter().any(|i| i.title == "Alien" && !i.poster.is_empty())),
     ) else {
         unreachable!()
@@ -225,7 +225,7 @@ fn library_end_to_end() {
         &core,
         &rx,
         "show matched",
-        |c, id| c.browse_items(id, "show", 0, "title", false, 0, 50),
+        |c, id| c.browse_items(id, "show", 0, "title", "", 0, 50),
         |e| matches!(e, Event::Page { items, .. } if items.first().is_some_and(|s| !s.overview.is_empty())),
     ) else {
         unreachable!()
@@ -258,7 +258,7 @@ fn library_end_to_end() {
         &core,
         &rx,
         "season watched",
-        |c, id| c.browse_items(id, "show", 0, "title", false, 0, 50),
+        |c, id| c.browse_items(id, "show", 0, "title", "", 0, 50),
         |e| matches!(e, Event::Page { items, .. } if items.first().is_some_and(|s| s.unwatched == 0)),
     );
 }

@@ -31,6 +31,7 @@ mod ffi {
         Discovered,
         Downloads,
         DownloadProgress,
+        SaveState,
     }
 
     #[derive(Debug)]
@@ -108,6 +109,8 @@ mod ffi {
         on_disk: bool,
         /// 0 when unknown.
         runtime_min: i32,
+        /// Issue #4: a saved copy is on this computer (the cover mark).
+        saved: bool,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -147,6 +150,7 @@ mod ffi {
         /// Issue #34: the item's duration as last played, and the version played last (0: none).
         duration_ms: u64,
         last_file_id: i64,
+        save: SaveInfo,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -212,6 +216,21 @@ mod ffi {
         completed_at: i64,
     }
 
+    /// Issue #4: the state of an item's saved copies.
+    #[derive(Clone, Debug, Default)]
+    struct SaveInfo {
+        /// none, queued, running, paused, done, failed, outdated
+        state: String,
+        copy_id: i64,
+        bytes_done: u64,
+        size: u64,
+        error: String,
+        error_kind: String,
+        /// Episodes (or the movie) saved, and those that can be saved (on a network source).
+        saved: i64,
+        saveable: i64,
+    }
+
     /// One event type for everything; `kind` says which fields are meaningful.
     #[derive(Clone, Debug)]
     struct CoreEvent {
@@ -247,6 +266,8 @@ mod ffi {
         downloads: Vec<DownloadEntry>,
         download: DownloadEntry,
         used_bytes: u64,
+        /// SaveState (with `item_id`).
+        save: SaveInfo,
     }
 
     extern "Rust" {
@@ -292,7 +313,8 @@ mod ffi {
             kind: &str,
             parent: i64,
             sort: &str,
-            unwatched_only: bool,
+            /// "" (everything), "unwatched" or "saved"
+            filter: &str,
             offset: u32,
             limit: u32,
         );
@@ -337,6 +359,10 @@ mod ffi {
         /// Cancel or delete a copy (local files only; the source file stays).
         fn delete_download(self: &Core, request_id: u64, id: i64);
         fn delete_saved_item(self: &Core, request_id: u64, item_id: i64);
+        fn pause_saved_item(self: &Core, item_id: i64);
+        fn resume_saved_item(self: &Core, item_id: i64);
+        /// Answers with a SaveState event.
+        fn save_state(self: &Core, request_id: u64, item_id: i64);
         fn delete_all_saved(self: &Core, request_id: u64);
         fn downloads(self: &Core, request_id: u64);
         /// Where new saved copies go ("" = the default folder in the data directory).
@@ -397,6 +423,20 @@ fn event(kind: ffi::EventKind, request_id: u64) -> ffi::CoreEvent {
         downloads: Vec::new(),
         download: ffi::DownloadEntry::default(),
         used_bytes: 0,
+        save: ffi::SaveInfo::default(),
+    }
+}
+
+fn save_info(i: core::SaveInfo) -> ffi::SaveInfo {
+    ffi::SaveInfo {
+        state: i.state,
+        copy_id: i.copy_id,
+        bytes_done: i.bytes_done,
+        size: i.size,
+        error: i.error,
+        error_kind: i.error_kind,
+        saved: i.saved,
+        saveable: i.saveable,
     }
 }
 
@@ -434,6 +474,7 @@ fn summary(s: core::Summary) -> ffi::ItemSummary {
         overview: s.overview,
         on_disk: s.on_disk,
         runtime_min: s.runtime_min.unwrap_or(0) as i32,
+        saved: s.saved,
     }
 }
 
@@ -496,6 +537,7 @@ fn detail(d: core::Detail) -> ffi::ItemDetail {
         last_file_id: d.last_file_id,
         children: d.children.into_iter().map(summary).collect(),
         next_up: d.next_up.into_iter().map(summary).collect(),
+        save: save_info(d.save),
     }
 }
 
@@ -683,6 +725,15 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                 .collect(),
             ..event(K::Discovered, request_id)
         },
+        core::Event::SaveState {
+            request_id,
+            item_id,
+            info,
+        } => ffi::CoreEvent {
+            item_id,
+            save: save_info(info),
+            ..event(K::SaveState, request_id)
+        },
         core::Event::Downloads {
             request_id,
             items,
@@ -783,6 +834,15 @@ impl Core {
             self.0.delete_saved_item(request_id, item_id)
         })
     }
+    fn pause_saved_item(&self, item_id: i64) {
+        guard("pause_saved_item", || self.0.pause_saved_item(item_id))
+    }
+    fn resume_saved_item(&self, item_id: i64) {
+        guard("resume_saved_item", || self.0.resume_saved_item(item_id))
+    }
+    fn save_state(&self, request_id: u64, item_id: i64) {
+        guard("save_state", || self.0.save_state(request_id, item_id))
+    }
     fn delete_all_saved(&self, request_id: u64) {
         guard("delete_all_saved", || self.0.delete_all_saved(request_id))
     }
@@ -870,20 +930,13 @@ impl Core {
         kind: &str,
         parent: i64,
         sort: &str,
-        unwatched_only: bool,
+        filter: &str,
         offset: u32,
         limit: u32,
     ) {
         guard("browse_items", || {
-            self.0.browse_items(
-                request_id,
-                kind,
-                parent,
-                sort,
-                unwatched_only,
-                offset,
-                limit,
-            )
+            self.0
+                .browse_items(request_id, kind, parent, sort, filter, offset, limit)
         })
     }
     fn recently_added(&self, request_id: u64, limit: u32) {
