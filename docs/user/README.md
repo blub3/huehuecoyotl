@@ -130,6 +130,9 @@ the video with the same name (`Film.mkv` and `Film.en.srt` or `Film.de.forced.sr
 - **Save as…** copies a film or episode to a file you choose (a season or series into a
   folder), for example on a USB drive. The app does not keep track of these copies and
   never deletes them.
+  In the Flatpak version, a single file picked in the system's dialog is copied without its
+  subtitle files (the dialog grants that one file only); a season copied into a folder
+  includes them.
 
 ## Keyboard and remote
 

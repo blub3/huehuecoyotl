@@ -29,7 +29,7 @@ use tokio::runtime::Runtime;
 use tokio::sync::Notify;
 use tokio::task::AbortHandle;
 
-pub use download::{DownloadInfo, available_space};
+pub use download::{DownloadInfo, available_space, is_portal_path};
 pub use huehuecoyotl_library::catalog::{CandidateRow, Detail, FileInfo, Summary};
 pub use huehuecoyotl_library::copies::SaveInfo;
 pub use network::{Discovered, NetworkSpec};

@@ -4,7 +4,7 @@
 <context>
     <name>DetailPage</name>
     <message numerus="yes">
-        <location filename="../qml/DetailPage.qml" line="922"/>
+        <location filename="../qml/DetailPage.qml" line="924"/>
         <source>%n file(s) exist already in %1. Replace them?</source>
         <translation type="unfinished">
             <numerusform></numerusform>

@@ -95,6 +95,8 @@ class CoreBridge : public QObject {
     Q_INVOKABLE static QString localPath(const QUrl &url);
     // Where Save as… starts: the Videos folder, else the home folder.
     Q_INVOKABLE static QUrl exportFolder();
+    // A file the Flatpak document portal grants on its own (no files can be added next to it).
+    Q_INVOKABLE static bool isPortalPath(const QString &path);
     Q_INVOKABLE void pauseDownload(qint64 copyId);
     Q_INVOKABLE void resumeDownload(qint64 copyId);
     Q_INVOKABLE quint64 deleteDownload(qint64 copyId);
