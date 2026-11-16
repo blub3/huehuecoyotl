@@ -2,7 +2,7 @@
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
 
-**Changes in v1.9:** Music for 2.0 (issue #6): scope and formats (section 2), the music data model and its migration, the music scan pipeline, music metadata providers, artwork order and the privacy setting (7), library content types (6), the play queue, gapless playback and the bit-perfect path (5.7), bridge additions (8), the Music section (9), the bundle (10), the 2.0 plan (11) and the open decisions for music (12).
+**Changes in v1.9:** Music for 2.0 (issue #6): scope and formats (section 2), the music data model and its migration, the music scan pipeline, music metadata providers, artwork order and the privacy setting (7), library content types (6), the play queue, gapless playback and the bit-perfect path (5.7), bridge additions (8), the Music section (9), the bundle (10), the 2.0 plan (11) and the maintainer's decisions for music: online lookups by default, user-supplied keys for TheAudioDB and Fanart.tv, no ALSA device permission in the Flatpak, 2.0 waits for all seven issues, two mpv handles (12).
 
 **Changes in v1.8:** 1.6.1 (Nov 16, 2026, issue #52): Settings shows whether a TMDB key is stored, where it comes from and when TMDB last accepted it, with Replace, Test and Remove; the core looks for the key before it answers; a missing keystore is reported instead of being silent. Under Flatpak the Secret Service is reached directly over D-Bus, not through a portal (sections 6, 7).
 
