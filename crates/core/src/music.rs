@@ -348,6 +348,7 @@ impl Core {
             inner.lib.write(move |c| music::set_online(c, on)).await?;
             if on {
                 enqueue_lookups(&inner, &[]).await;
+                crate::books::enqueue_lookups(&inner, &[]).await;
             }
             Ok(Event::MusicOnline {
                 request_id,

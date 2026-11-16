@@ -1,0 +1,20 @@
+{
+ "numFound": 1,
+ "start": 0,
+ "docs": [
+  {
+   "author_name": [
+    "Jane Austen"
+   ],
+   "cover_i": 14348537,
+   "first_publish_year": 1813,
+   "key": "/works/OL66554W",
+   "language": [
+    "rum",
+    "srp",
+    "tam"
+   ],
+   "title": "Pride and Prejudice"
+  }
+ ]
+}

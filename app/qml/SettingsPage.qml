@@ -271,7 +271,7 @@ FocusScope {
                     id: musicOnline
                     objectName: "musicOnline"
                     glyph: Core.musicOnline ? "✓" : ""
-                    text: Core.musicOnline ? qsTr("Music information online: on") : qsTr("Music information online: off")
+                    text: Core.musicOnline ? qsTr("Music and book information online: on") : qsTr("Music and book information online: off")
                     Accessible.description: musicNote.text
                     KeyNavigation.up: reviewButton
                     Keys.onDownPressed: audioDbKey.firstItem.forceActiveFocus()
@@ -285,8 +285,8 @@ FocusScope {
                     color: Theme.textDim
                     font.pixelSize: Theme.fontSmall
                     text: Core.musicOnline
-                          ? qsTr("Album and artist names from your music are sent to MusicBrainz to find release types, dates and ids, and covers come from the Cover Art Archive. No account or key is needed.")
-                          : qsTr("Music information comes from your files' tags only; nothing is sent.")
+                          ? qsTr("Album and artist names from your music are sent to MusicBrainz to find release types, dates and ids, and covers come from the Cover Art Archive. Titles, authors and ISBNs of your audiobooks are sent to Open Library for descriptions, years and covers. Your own metadata is never replaced. No account or key is needed.")
+                          : qsTr("Music and book information comes from your files, their tags and metadata files only; nothing is sent.")
                 }
             }
 
@@ -566,6 +566,13 @@ FocusScope {
                 wrapMode: Text.Wrap
                 color: Theme.textDim
                 text: qsTr("Music information from MusicBrainz (musicbrainz.org, data under CC0). Album covers from the Cover Art Archive (coverartarchive.org), a joint project of the Internet Archive and MusicBrainz.")
+            }
+            // Issue #67: book information and covers.
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.textDim
+                text: qsTr("Book information and covers from Open Library (openlibrary.org), a project of the Internet Archive.")
             }
             // Issue #12: only when used (a key is entered).
             Label {

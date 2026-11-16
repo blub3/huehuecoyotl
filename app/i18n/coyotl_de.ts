@@ -2356,23 +2356,23 @@
     </message>
     <message>
         <location filename="../qml/SettingsPage.qml" line="274"/>
-        <source>Music information online: on</source>
-        <translation>Musikinformationen online: an</translation>
+        <source>Music and book information online: on</source>
+        <translation>Musik- und Buchinformationen online: an</translation>
     </message>
     <message>
         <location filename="../qml/SettingsPage.qml" line="274"/>
-        <source>Music information online: off</source>
-        <translation>Musikinformationen online: aus</translation>
+        <source>Music and book information online: off</source>
+        <translation>Musik- und Buchinformationen online: aus</translation>
     </message>
     <message>
         <location filename="../qml/SettingsPage.qml" line="288"/>
-        <source>Album and artist names from your music are sent to MusicBrainz to find release types, dates and ids, and covers come from the Cover Art Archive. No account or key is needed.</source>
-        <translation>Album- und Künstlernamen deiner Musik werden an MusicBrainz geschickt, um Veröffentlichungsart, Datum und IDs zu finden; Cover kommen aus dem Cover Art Archive. Ein Konto oder Schlüssel ist nicht nötig.</translation>
+        <source>Album and artist names from your music are sent to MusicBrainz to find release types, dates and ids, and covers come from the Cover Art Archive. Titles, authors and ISBNs of your audiobooks are sent to Open Library for descriptions, years and covers. Your own metadata is never replaced. No account or key is needed.</source>
+        <translation>Album- und Künstlernamen deiner Musik werden an MusicBrainz geschickt, um Veröffentlichungsart, Datum und IDs zu finden; Cover kommen aus dem Cover Art Archive. Titel, Autoren und ISBNs deiner Hörbücher werden an Open Library geschickt, für Beschreibungen, Jahre und Cover. Deine eigenen Metadaten werden nie ersetzt. Ein Konto oder Schlüssel ist nicht nötig.</translation>
     </message>
     <message>
         <location filename="../qml/SettingsPage.qml" line="289"/>
-        <source>Music information comes from your files&apos; tags only; nothing is sent.</source>
-        <translation>Musikinformationen kommen nur aus den Tags deiner Dateien; nichts wird gesendet.</translation>
+        <source>Music and book information comes from your files, their tags and metadata files only; nothing is sent.</source>
+        <translation>Musik- und Buchinformationen kommen nur aus deinen Dateien, ihren Tags und Metadatendateien; nichts wird gesendet.</translation>
     </message>
     <message>
         <location filename="../qml/SettingsPage.qml" line="300"/>
@@ -2536,7 +2536,7 @@
     </message>
     <message>
         <location filename="../qml/SettingsPage.qml" line="480"/>
-        <location filename="../qml/SettingsPage.qml" line="631"/>
+        <location filename="../qml/SettingsPage.qml" line="638"/>
         <source>Delete all saved copies</source>
         <translation>Alle gespeicherten Kopien löschen</translation>
     </message>
@@ -2596,27 +2596,32 @@
         <translation>Musikinformationen von MusicBrainz (musicbrainz.org, Daten unter CC0). Albumcover aus dem Cover Art Archive (coverartarchive.org), einem gemeinsamen Projekt des Internet Archive und von MusicBrainz.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="576"/>
+        <location filename="../qml/SettingsPage.qml" line="575"/>
+        <source>Book information and covers from Open Library (openlibrary.org), a project of the Internet Archive.</source>
+        <translation>Buchinformationen und Cover von Open Library (openlibrary.org), einem Projekt des Internet Archive.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="583"/>
         <source>Artist images, biographies and album art from TheAudioDB (theaudiodb.com), contributed by its community.</source>
         <translation>Künstlerbilder, Biografien und Albumbilder von TheAudioDB (theaudiodb.com), beigetragen von dessen Community.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="583"/>
+        <location filename="../qml/SettingsPage.qml" line="590"/>
         <source>Artist images, logos and album art from Fanart.tv (fanart.tv), contributed by its community.</source>
         <translation>Künstlerbilder, Logos und Albumbilder von Fanart.tv (fanart.tv), beigetragen von dessen Community.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="590"/>
+        <location filename="../qml/SettingsPage.qml" line="597"/>
         <source>Where saved copies go</source>
         <translation>Ordner für gespeicherte Kopien</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="618"/>
+        <location filename="../qml/SettingsPage.qml" line="625"/>
         <source>Delete every saved copy from this computer (%1)? The files on your servers stay, and everything can be streamed or saved again.</source>
         <translation>Alle gespeicherten Kopien von diesem Computer löschen (%1)? Die Dateien auf deinen Servern bleiben erhalten, und alles kann weiter gestreamt oder erneut gespeichert werden.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="624"/>
+        <location filename="../qml/SettingsPage.qml" line="631"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>

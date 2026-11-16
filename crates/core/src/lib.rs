@@ -5,6 +5,7 @@
 //! [`Event`] on the sink; change events carry ids, not payloads; every request can be
 //! cancelled; errors carry an [`ErrorKind`]; panics never escape a task.
 
+mod books;
 pub mod diagnostics;
 mod download;
 mod extras;
@@ -356,6 +357,8 @@ struct Inner {
     provider: RwLock<Option<Arc<dyn MetadataProvider>>>,
     /// Issue #11: MusicBrainz and the Cover Art Archive; one client, so one rate limiter.
     music: RwLock<Arc<dyn MusicProvider>>,
+    /// Issue #67: Open Library, or a test's provider.
+    books: RwLock<Arc<dyn huehuecoyotl_metadata::books::BookProvider>>,
     key_source: Mutex<Option<KeySource>>,
     /// Issue #52: whether a keystore that keeps secrets is available (else why not), the time
     /// TMDB last accepted the key, and whether the start-up has looked for the key yet.
@@ -574,6 +577,10 @@ impl Core {
             provider: RwLock::new(None),
             music: RwLock::new(Arc::new(
                 huehuecoyotl_metadata::musicbrainz::MusicBrainz::new(env!("CARGO_PKG_VERSION"))
+                    .map_err(|e| CoreError::new(ErrorKind::Internal, e.to_string()))?,
+            )),
+            books: RwLock::new(Arc::new(
+                huehuecoyotl_metadata::openlibrary::OpenLibrary::new(env!("CARGO_PKG_VERSION"))
                     .map_err(|e| CoreError::new(ErrorKind::Internal, e.to_string()))?,
             )),
             key_source: Mutex::new(None),

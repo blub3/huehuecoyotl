@@ -187,6 +187,8 @@ pub struct Meta {
     pub isbn: Option<String>,
     pub asin: Option<String>,
     pub description: Option<String>,
+    /// Issue #67: from the tags only (Picard writes it).
+    pub mb_release: Option<String>,
 }
 
 impl Meta {
@@ -212,6 +214,7 @@ impl Meta {
         opt(&mut self.isbn, lower.isbn);
         opt(&mut self.asin, lower.asin);
         opt(&mut self.description, lower.description);
+        opt(&mut self.mb_release, lower.mb_release);
     }
 }
 
@@ -472,6 +475,7 @@ fn from_tags(t: &TrackTags) -> Meta {
         isbn: t.book.isbn.clone(),
         asin: t.book.asin.clone(),
         description: t.book.description.clone(),
+        mb_release: t.mb_release.clone(),
     }
 }
 
@@ -902,6 +906,7 @@ async fn read_book(
         isbn: m.isbn,
         asin: m.asin,
         description: m.description,
+        mb_release: m.mb_release,
         drm,
         files,
         chapters: vec![],
