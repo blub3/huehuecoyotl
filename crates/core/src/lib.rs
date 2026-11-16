@@ -9,6 +9,7 @@ pub mod diagnostics;
 mod download;
 pub mod lang;
 mod library;
+mod music;
 mod network;
 mod probe;
 pub mod secrets;
@@ -21,6 +22,7 @@ use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
 use huehuecoyotl_library::{DbError, Library, catalog, queries};
 use huehuecoyotl_metadata::MetadataProvider;
+use huehuecoyotl_metadata::music::MusicProvider;
 use huehuecoyotl_vfs::{
     LocalSource, MediaKind, RemoteSource, Source, VPath, VfsError, find_sidecar_subtitles,
     media_kind,
@@ -249,6 +251,11 @@ pub enum Event {
         request_id: u64,
         devices: Vec<Discovered>,
     },
+    /// Issue #11: whether music information is looked up online (MusicBrainz, Cover Art Archive).
+    MusicOnline {
+        request_id: u64,
+        online: bool,
+    },
     KeyStatus {
         request_id: u64,
         has_key: bool,
@@ -322,6 +329,8 @@ struct Inner {
     /// BCP-47 UI language for metadata ("de-DE").
     language: String,
     provider: RwLock<Option<Arc<dyn MetadataProvider>>>,
+    /// Issue #11: MusicBrainz and the Cover Art Archive; one client, so one rate limiter.
+    music: RwLock<Arc<dyn MusicProvider>>,
     key_source: Mutex<Option<KeySource>>,
     /// Issue #52: whether a keystore that keeps secrets is available (else why not), the time
     /// TMDB last accepted the key, and whether the start-up has looked for the key yet.
@@ -531,6 +540,10 @@ impl Core {
                 language.to_string()
             },
             provider: RwLock::new(None),
+            music: RwLock::new(Arc::new(
+                huehuecoyotl_metadata::musicbrainz::MusicBrainz::new(env!("CARGO_PKG_VERSION"))
+                    .map_err(|e| CoreError::new(ErrorKind::Internal, e.to_string()))?,
+            )),
             key_source: Mutex::new(None),
             keystore: Mutex::new(Ok(())),
             key_validated_at: AtomicI64::new(0),

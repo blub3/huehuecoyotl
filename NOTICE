@@ -15,3 +15,10 @@ The Huehuecoyotl logo (assets/logo and the icons generated from it) is not cover
 Apache License 2.0; see assets/logo/LICENSE.
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.
+
+Music information (2.0) comes from MusicBrainz (https://musicbrainz.org). Only its core data
+is used: artists, releases, release groups, recordings and their identifiers, released under
+CC0 1.0 (public domain); see https://musicbrainz.org/doc/About/Data_License. Album covers come
+from the Cover Art Archive (https://coverartarchive.org), a joint project of the Internet
+Archive and MusicBrainz; the images belong to their rights holders and are fetched for display
+only. Both can be turned off in Settings (music information from file tags only).

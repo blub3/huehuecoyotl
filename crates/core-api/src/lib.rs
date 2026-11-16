@@ -30,6 +30,8 @@ mod ffi {
         ScanState,
         LibraryChanged,
         KeyStatus,
+        /// Issue #11: online music information on or off (`flag`).
+        MusicOnline,
         Discovered,
         Downloads,
         DownloadProgress,
@@ -361,6 +363,9 @@ mod ffi {
         fn clear_tmdb_key(self: &Core, request_id: u64);
         /// Issue #52: "Test key", ask TMDB whether the key in use is accepted.
         fn test_tmdb_key(self: &Core, request_id: u64);
+        /// Issue #11: online music information (MusicBrainz, Cover Art Archive).
+        fn music_online(self: &Core, request_id: u64);
+        fn set_music_online(self: &Core, request_id: u64, on: bool);
 
         // M3: network sources. `spec_json`: {protocol, host, port, share, user, tls, key_file,
         // path, name}; for SFTP with a key file, `password` is the key's passphrase.
@@ -767,6 +772,10 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
             failed,
             ..event(K::LibraryChanged, 0)
         },
+        core::Event::MusicOnline { request_id, online } => ffi::CoreEvent {
+            flag: online,
+            ..event(K::MusicOnline, request_id)
+        },
         core::Event::KeyStatus {
             request_id,
             has_key,
@@ -1066,6 +1075,14 @@ impl Core {
     }
     fn clear_tmdb_key(&self, request_id: u64) {
         guard("clear_tmdb_key", || self.0.clear_tmdb_key(request_id))
+    }
+    fn music_online(&self, request_id: u64) {
+        guard("music_online", || self.0.music_online(request_id))
+    }
+    fn set_music_online(&self, request_id: u64, on: bool) {
+        guard("set_music_online", || {
+            self.0.set_music_online(request_id, on)
+        })
     }
     fn test_tmdb_key(&self, request_id: u64) {
         guard("test_tmdb_key", || self.0.test_tmdb_key(request_id))

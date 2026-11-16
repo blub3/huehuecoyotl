@@ -3,6 +3,8 @@
 
 pub mod artwork;
 pub mod matching;
+pub mod music;
+pub mod musicbrainz;
 pub mod tmdb;
 
 use async_trait::async_trait;
