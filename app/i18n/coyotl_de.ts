@@ -53,37 +53,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="524"/>
+        <location filename="../src/corebridge.cpp" line="531"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="526"/>
+        <location filename="../src/corebridge.cpp" line="533"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="528"/>
+        <location filename="../src/corebridge.cpp" line="535"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="530"/>
+        <location filename="../src/corebridge.cpp" line="537"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="532"/>
+        <location filename="../src/corebridge.cpp" line="539"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="534"/>
+        <location filename="../src/corebridge.cpp" line="541"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="706"/>
+        <location filename="../src/corebridge.cpp" line="715"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -750,29 +750,29 @@
         <translation>Ordner hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="89"/>
+        <location filename="../qml/HomePage.qml" line="90"/>
         <source>Set up TMDB</source>
         <translation>TMDB einrichten</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="100"/>
-        <location filename="../qml/HomePage.qml" line="114"/>
+        <location filename="../qml/HomePage.qml" line="101"/>
+        <location filename="../qml/HomePage.qml" line="115"/>
         <source>Continue watching</source>
         <translation>Weiterschauen</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="125"/>
+        <location filename="../qml/HomePage.qml" line="126"/>
         <source>%1 left</source>
         <translation>noch %1</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="136"/>
-        <location filename="../qml/HomePage.qml" line="153"/>
+        <location filename="../qml/HomePage.qml" line="137"/>
+        <location filename="../qml/HomePage.qml" line="154"/>
         <source>Recently added</source>
         <translation>Zuletzt hinzugefügt</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="178"/>
+        <location filename="../qml/HomePage.qml" line="179"/>
         <source>Arrow keys to move · Enter to open · Esc to go back · F11 fullscreen</source>
         <translation>Pfeiltasten zum Bewegen · Enter zum Öffnen · Esc für zurück · F11 Vollbild</translation>
     </message>
@@ -1681,208 +1681,208 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="103"/>
+        <location filename="../qml/SettingsPage.qml" line="122"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="106"/>
+        <location filename="../qml/SettingsPage.qml" line="125"/>
         <source>Metadata</source>
         <translation>Metadaten</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="112"/>
-        <source>A TMDB key is set through the COYOTL_TMDB_KEY environment variable.</source>
-        <translation>Ein TMDB-Schlüssel ist über die Umgebungsvariable COYOTL_TMDB_KEY gesetzt.</translation>
-    </message>
-    <message>
-        <location filename="../qml/SettingsPage.qml" line="113"/>
-        <source>Your TMDB key is stored in the system keystore. Posters and descriptions are downloaded automatically.</source>
-        <translation>Dein TMDB-Schlüssel liegt im Schlüsselspeicher des Systems. Poster und Beschreibungen werden automatisch geladen.</translation>
-    </message>
-    <message>
-        <location filename="../qml/SettingsPage.qml" line="114"/>
+        <location filename="../qml/SettingsPage.qml" line="146"/>
         <source>Posters, descriptions and episode titles come from The Movie Database (TMDB). TMDB needs a free personal API key: create an account at themoviedb.org, open Settings → API, request a key for personal use, and paste the “API Key” or the “API Read Access Token” here. Without a key the app still plays everything and shows titles from the file names.</source>
         <translation>Poster, Beschreibungen und Folgentitel kommen von The Movie Database (TMDB). TMDB braucht einen kostenlosen persönlichen API-Schlüssel: Lege ein Konto auf themoviedb.org an, öffne Einstellungen → API, beantrage einen Schlüssel für die private Nutzung und füge hier den „API Key“ oder das „API Read Access Token“ ein. Ohne Schlüssel spielt die App trotzdem alles ab und zeigt die Titel aus den Dateinamen.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="130"/>
+        <location filename="../qml/SettingsPage.qml" line="161"/>
         <source>TMDB API key or read access token</source>
         <translation>TMDB-API-Schlüssel oder Read Access Token</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="134"/>
+        <location filename="../qml/SettingsPage.qml" line="165"/>
         <source>TMDB API key</source>
         <translation>TMDB-API-Schlüssel</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="150"/>
+        <location filename="../qml/SettingsPage.qml" line="181"/>
         <source>Checking…</source>
         <translation>Wird geprüft …</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="150"/>
+        <location filename="../qml/SettingsPage.qml" line="181"/>
         <source>Check and save</source>
         <translation>Prüfen und speichern</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="160"/>
-        <source>Remove key</source>
-        <translation>Schlüssel entfernen</translation>
+        <location filename="../qml/SettingsPage.qml" line="95"/>
+        <source>TMDB accepted the key.</source>
+        <translation>TMDB hat den Schlüssel akzeptiert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="173"/>
+        <location filename="../qml/SettingsPage.qml" line="145"/>
+        <source>Enter the new key. The stored key stays until TMDB accepts the new one.</source>
+        <translation>Gib den neuen Schlüssel ein. Der gespeicherte bleibt, bis TMDB den neuen akzeptiert.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="193"/>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="207"/>
         <source>Review matches</source>
         <translation>Zuordnungen prüfen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="180"/>
+        <location filename="../qml/SettingsPage.qml" line="214"/>
         <source>%1 tasks queued</source>
         <translation>%1 Aufgaben in der Warteschlange</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="185"/>
+        <location filename="../qml/SettingsPage.qml" line="219"/>
         <source>%1 failed (see the log)</source>
         <translation>%1 fehlgeschlagen (siehe Protokoll)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="191"/>
+        <location filename="../qml/SettingsPage.qml" line="225"/>
         <source>Appearance</source>
         <translation>Darstellung</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="194"/>
+        <location filename="../qml/SettingsPage.qml" line="228"/>
         <source>Cover size in window</source>
         <translation>Covergröße im Fenster</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="202"/>
+        <location filename="../qml/SettingsPage.qml" line="236"/>
         <source>Cover size in fullscreen</source>
         <translation>Covergröße im Vollbild</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="210"/>
+        <location filename="../qml/SettingsPage.qml" line="244"/>
         <source>Playback</source>
         <translation>Wiedergabe</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="213"/>
+        <location filename="../qml/SettingsPage.qml" line="247"/>
         <source>Preferred version</source>
         <translation>Bevorzugte Version</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="214"/>
+        <location filename="../qml/SettingsPage.qml" line="248"/>
         <source>Highest quality</source>
         <translation>Höchste Qualität</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="214"/>
+        <location filename="../qml/SettingsPage.qml" line="248"/>
         <source>Smallest file</source>
         <translation>Kleinste Datei</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="225"/>
+        <location filename="../qml/SettingsPage.qml" line="259"/>
         <source>When a movie exists in several versions and none was played yet. “Smallest file” helps on slow networks.</source>
         <translation>Wenn ein Film in mehreren Versionen vorliegt und noch keine abgespielt wurde. „Kleinste Datei“ hilft bei langsamen Netzwerken.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="229"/>
+        <location filename="../qml/SettingsPage.qml" line="263"/>
         <source>Storage</source>
         <translation>Speicher</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="234"/>
+        <location filename="../qml/SettingsPage.qml" line="268"/>
         <source>Saved copies go to %1</source>
         <translation>Gespeicherte Kopien liegen in %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="240"/>
+        <location filename="../qml/SettingsPage.qml" line="274"/>
         <source>Space used by saved copies: %1</source>
         <translation>Von gespeicherten Kopien belegt: %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="246"/>
+        <location filename="../qml/SettingsPage.qml" line="280"/>
         <source>Change location…</source>
         <translation>Ort ändern …</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="247"/>
+        <location filename="../qml/SettingsPage.qml" line="281"/>
         <source>New saved copies go to the chosen folder; existing ones stay where they are.</source>
         <translation>Neue Kopien landen im gewählten Ordner; vorhandene bleiben, wo sie sind.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="256"/>
+        <location filename="../qml/SettingsPage.qml" line="290"/>
         <source>Use default</source>
         <translation>Standard verwenden</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="266"/>
-        <location filename="../qml/SettingsPage.qml" line="395"/>
+        <location filename="../qml/SettingsPage.qml" line="300"/>
+        <location filename="../qml/SettingsPage.qml" line="429"/>
         <source>Delete all saved copies</source>
         <translation>Alle gespeicherten Kopien löschen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="282"/>
+        <location filename="../qml/SettingsPage.qml" line="316"/>
         <source>Troubleshooting</source>
         <translation>Fehlerbehebung</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="287"/>
+        <location filename="../qml/SettingsPage.qml" line="321"/>
         <source>If something does not work, export a diagnostics file and attach it to a bug report. It contains the app&apos;s log and version information. Server names, user names, addresses, keys and your home folder are removed.</source>
         <translation>Wenn etwas nicht funktioniert, exportiere eine Diagnosedatei und hänge sie an einen Fehlerbericht an. Sie enthält das Protokoll der App und Versionsangaben. Servernamen, Benutzernamen, Adressen, Schlüssel und dein Benutzerordner werden entfernt.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="293"/>
+        <location filename="../qml/SettingsPage.qml" line="327"/>
         <source>Export diagnostics</source>
         <translation>Diagnose exportieren</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="300"/>
+        <location filename="../qml/SettingsPage.qml" line="334"/>
         <source>Saved to %1</source>
         <translation>Gespeichert unter %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="301"/>
+        <location filename="../qml/SettingsPage.qml" line="335"/>
         <source>Export failed: %1</source>
         <translation>Export fehlgeschlagen: %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="314"/>
+        <location filename="../qml/SettingsPage.qml" line="348"/>
         <source>About</source>
         <translation>Über</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="324"/>
+        <location filename="../qml/SettingsPage.qml" line="358"/>
         <source>Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt, all used under the LGPL.</source>
         <translation>Huehuecoyotl %1 · Apache-Lizenz 2.0. Wiedergabe mit libmpv und FFmpeg, Oberfläche mit Qt, jeweils unter der LGPL.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="325"/>
+        <location filename="../qml/SettingsPage.qml" line="359"/>
         <source>%1 (development build %2)</source>
         <translation>%1 (Entwicklungsversion %2)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="330"/>
+        <location filename="../qml/SettingsPage.qml" line="364"/>
         <source>Third-party licences</source>
         <translation>Lizenzen von Drittanbietern</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="346"/>
+        <location filename="../qml/SettingsPage.qml" line="380"/>
         <source>This product uses the TMDB API but is not endorsed or certified by TMDB.</source>
         <translation>Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="354"/>
+        <location filename="../qml/SettingsPage.qml" line="388"/>
         <source>Where saved copies go</source>
         <translation>Ordner für gespeicherte Kopien</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="382"/>
+        <location filename="../qml/SettingsPage.qml" line="416"/>
         <source>Delete every saved copy from this computer (%1)? The files on your servers stay, and everything can be streamed or saved again.</source>
         <translation>Alle gespeicherten Kopien von diesem Computer löschen (%1)? Die Dateien auf deinen Servern bleiben erhalten, und alles kann weiter gestreamt oder erneut gespeichert werden.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="388"/>
+        <location filename="../qml/SettingsPage.qml" line="422"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>
@@ -1987,6 +1987,84 @@
         <location filename="../qml/TechSummary.qml" line="43"/>
         <source>Analysing…</source>
         <translation>Wird analysiert …</translation>
+    </message>
+</context>
+<context>
+    <name>TmdbKeyStatus</name>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="29"/>
+        <source>Key stored</source>
+        <translation>Schlüssel gespeichert</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="30"/>
+        <source>Key set for development</source>
+        <translation>Schlüssel für die Entwicklung gesetzt</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="31"/>
+        <source>Key in use until the app closes</source>
+        <translation>Schlüssel gilt nur bis zum Beenden der App</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="32"/>
+        <source>No system keystore available</source>
+        <translation>Kein Schlüsselspeicher des Systems verfügbar</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="33"/>
+        <source>Looking for the stored key…</source>
+        <translation>Gespeicherter Schlüssel wird gesucht …</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="39"/>
+        <source>Kept in the system keystore. Posters and descriptions are downloaded automatically.</source>
+        <translation>Liegt im Schlüsselspeicher des Systems. Poster und Beschreibungen werden automatisch geladen.</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="40"/>
+        <source>Comes from the COYOTL_TMDB_KEY environment variable and is not stored. This is meant for development.</source>
+        <translation>Kommt aus der Umgebungsvariable COYOTL_TMDB_KEY und wird nicht gespeichert. Das ist für die Entwicklung gedacht.</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="41"/>
+        <source>The system keystore could not keep the key, so it has to be entered again after a restart. Install or unlock a keyring (for example GNOME Keyring or KWallet), then enter the key again.</source>
+        <translation>Der Schlüsselspeicher des Systems konnte den Schlüssel nicht aufnehmen, daher musst du ihn nach einem Neustart erneut eingeben. Installiere oder entsperre einen Schlüsselbund (zum Beispiel GNOME Keyring oder KWallet) und gib den Schlüssel dann noch einmal ein.</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="42"/>
+        <source>Huehuecoyotl keeps the TMDB key only in the system keystore, and none can be reached. Install or unlock a keyring (for example GNOME Keyring or KWallet) and restart the app. Until then the app plays everything and shows titles from the file names; a key entered now works until the app closes.</source>
+        <translation>Huehuecoyotl bewahrt den TMDB-Schlüssel nur im Schlüsselspeicher des Systems auf, und keiner ist erreichbar. Installiere oder entsperre einen Schlüsselbund (zum Beispiel GNOME Keyring oder KWallet) und starte die App neu. Bis dahin spielt die App alles ab und zeigt Titel aus den Dateinamen; ein jetzt eingegebener Schlüssel gilt bis zum Beenden der App.</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="48"/>
+        <source>Last accepted by TMDB: %1</source>
+        <translation>Zuletzt von TMDB akzeptiert: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="49"/>
+        <source>Not checked with TMDB yet.</source>
+        <translation>Noch nicht bei TMDB geprüft.</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="85"/>
+        <source>Replace key</source>
+        <translation>Schlüssel ersetzen</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="95"/>
+        <source>Checking…</source>
+        <translation>Wird geprüft …</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="95"/>
+        <source>Test key</source>
+        <translation>Schlüssel testen</translation>
+    </message>
+    <message>
+        <location filename="../qml/TmdbKeyStatus.qml" line="106"/>
+        <source>Remove key</source>
+        <translation>Schlüssel entfernen</translation>
     </message>
 </context>
 <context>

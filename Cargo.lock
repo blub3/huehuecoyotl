@@ -1609,6 +1609,7 @@ dependencies = [
  "huehuecoyotl-vfs-sftp",
  "image",
  "keyring",
+ "keyring-core",
  "libc",
  "mdns-sd",
  "regex",

@@ -85,7 +85,8 @@ FocusScope {
                         }
                         FocusButton {
                             id: keyButton
-                            visible: !Core.hasTmdbKey
+                            // Only once the core looked and found no key (issue #52).
+                            visible: Core.tmdbKeyState === "none" || Core.tmdbKeyState === "unavailable"
                             text: qsTr("Set up TMDB")
                             KeyNavigation.left: setupButton
                             onClicked: Nav.go("settings")

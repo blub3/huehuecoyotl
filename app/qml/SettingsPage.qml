@@ -12,6 +12,12 @@ FocusScope {
     property var keyRequest: 0
     property string keyMessage: ""
     property bool keyBusy: false
+    // Issue #52: "Replace key" shows the field while the stored key stays in use.
+    property bool replacing: false
+    property bool keyTesting: false
+    property bool keyRemoving: false
+    property string keyNote: ""
+    readonly property bool showKeyField: Core.tmdbKeyState === "none" || Core.tmdbKeyState === "unavailable" || replacing
     property string exportMessage: ""
     property bool exportFailed: false
     // Issue #4: Storage.
@@ -65,8 +71,9 @@ FocusScope {
     // When the page receives focus, hand it to its first control.
     function focusFirst() {
         if (!page.activeFocus) return
-        for (const c of [keyField, saveKey, removeKey, reviewButton, exportButton, noticesButton]) if (c.activeFocus) return
-        (Core.hasTmdbKey ? reviewButton : keyField).forceActiveFocus()
+        if (keyStatus.activeFocus) return
+        for (const c of [keyField, saveKey, cancelReplace, reviewButton, exportButton, noticesButton]) if (c.activeFocus) return
+        (keyStatus.firstButton || (page.showKeyField ? keyField : reviewButton)).forceActiveFocus()
     }
     onActiveFocusChanged: if (activeFocus) Qt.callLater(focusFirst)
 
@@ -84,7 +91,19 @@ FocusScope {
             if (requestId !== 0 && requestId !== page.keyRequest) return
             page.keyBusy = false
             page.keyMessage = message
-            if (Core.hasTmdbKey) keyField.text = ""
+            // "Test key" succeeded: say so (failures show as the message).
+            page.keyNote = requestId === page.keyRequest && page.keyTesting && message === "" ? qsTr("TMDB accepted the key.") : ""
+            page.keyTesting = false
+            // "Remove key" took away the button that had focus: focus what is there now.
+            if (requestId === page.keyRequest && page.keyRemoving) {
+                page.keyRemoving = false
+                Qt.callLater(() => (keyStatus.firstButton || keyField).forceActiveFocus())
+            }
+            // A new key was accepted (a failure keeps the field and its text for another try).
+            if (requestId === page.keyRequest && message === "" && Core.hasTmdbKey) {
+                keyField.text = ""
+                if (page.replacing) { page.replacing = false; if (keyStatus.firstButton) keyStatus.firstButton.forceActiveFocus() }
+            }
         }
     }
 
@@ -104,35 +123,48 @@ FocusScope {
 
             // ---- Metadata --------------------------------------------------------------------
             Label { text: qsTr("Metadata"); color: Theme.textDim; font.pixelSize: Theme.fontLarge; Layout.topMargin: 12 }
+            // Issue #52: the key's state (stored, from the environment, no keystore) and its actions.
+            TmdbKeyStatus {
+                id: keyStatus
+                Layout.fillWidth: true
+                keyState: Core.tmdbKeyState
+                validatedAt: Core.tmdbKeyValidatedAt
+                busy: page.keyBusy
+                downTarget: page.showKeyField ? keyField : reviewButton
+                onLeftEdge: Nav.focusRail()
+                onReplaceRequested: { page.replacing = true; page.keyMessage = ""; Qt.callLater(() => keyField.forceActiveFocus()) }
+                onTestRequested: { page.keyBusy = true; page.keyTesting = true; page.keyMessage = ""; page.keyNote = ""; page.keyRequest = Core.testTmdbKey() }
+                onRemoveRequested: { page.keyMessage = ""; page.keyNote = ""; page.keyRemoving = true; page.keyRequest = Core.clearTmdbKey() }
+            }
             Label {
                 Layout.fillWidth: true
+                visible: page.showKeyField
                 wrapMode: Text.Wrap
                 color: Theme.text
-                text: Core.hasTmdbKey
-                      ? (Core.tmdbKeyFromEnvironment ? qsTr("A TMDB key is set through the COYOTL_TMDB_KEY environment variable.")
-                                                     : qsTr("Your TMDB key is stored in the system keystore. Posters and descriptions are downloaded automatically."))
+                text: keyStatus.hasKey
+                      ? qsTr("Enter the new key. The stored key stays until TMDB accepts the new one.")
                       : qsTr("Posters, descriptions and episode titles come from The Movie Database (TMDB). TMDB needs a free personal API key: create an account at themoviedb.org, open Settings → API, request a key for personal use, and paste the “API Key” or the “API Read Access Token” here. Without a key the app still plays everything and shows titles from the file names.")
             }
             Label {
-                visible: !Core.hasTmdbKey
+                visible: page.showKeyField
                 text: "https://www.themoviedb.org/settings/api"
                 color: Theme.accent
                 font.underline: true
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Qt.openUrlExternally(parent.text) }
             }
             RowLayout {
-                visible: !Core.hasTmdbKey || !Core.tmdbKeyFromEnvironment
+                visible: page.showKeyField
                 spacing: 10
                 TextField {
                     id: keyField
                     Layout.fillWidth: true
-                    visible: !Core.hasTmdbKey
                     placeholderText: qsTr("TMDB API key or read access token")
                     echoMode: TextInput.Password
                     color: Theme.text
                     placeholderTextColor: Theme.textDim
                     Accessible.name: qsTr("TMDB API key")
                     KeyNavigation.right: saveKey
+                    KeyNavigation.up: keyStatus.firstButton
                     KeyNavigation.down: reviewButton
                     Keys.onLeftPressed: (e) => { if (cursorPosition === 0) Nav.focusRail(); else e.accepted = false }
                     onAccepted: saveKey.clicked()
@@ -146,23 +178,25 @@ FocusScope {
                 }
                 FocusButton {
                     id: saveKey
-                    visible: !Core.hasTmdbKey
                     text: page.keyBusy ? qsTr("Checking…") : qsTr("Check and save")
                     enabled: !page.keyBusy && keyField.text.length > 10
                     primary: true
                     KeyNavigation.left: keyField
+                    KeyNavigation.right: cancelReplace.visible ? cancelReplace : null
+                    KeyNavigation.up: keyStatus.firstButton
                     KeyNavigation.down: reviewButton
                     onClicked: { page.keyBusy = true; page.keyMessage = ""; page.keyRequest = Core.setTmdbKey(keyField.text) }
                 }
                 FocusButton {
-                    id: removeKey
-                    visible: Core.hasTmdbKey && !Core.tmdbKeyFromEnvironment
-                    text: qsTr("Remove key")
+                    id: cancelReplace
+                    visible: page.replacing
+                    text: qsTr("Cancel")
+                    KeyNavigation.left: saveKey
                     KeyNavigation.down: reviewButton
-                    Keys.onLeftPressed: Nav.focusRail()
-                    onClicked: page.keyRequest = Core.clearTmdbKey()
+                    onClicked: { page.replacing = false; keyField.text = ""; keyStatus.firstButton.forceActiveFocus() }
                 }
             }
+            Label { visible: page.keyNote !== ""; text: page.keyNote; color: Theme.accent; Layout.fillWidth: true; wrapMode: Text.Wrap }
             Label { visible: page.keyMessage !== ""; text: page.keyMessage; color: Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
 
             RowLayout {
@@ -171,7 +205,7 @@ FocusScope {
                 FocusButton {
                     id: reviewButton
                     text: qsTr("Review matches")
-                    KeyNavigation.up: Core.hasTmdbKey ? (removeKey.visible ? removeKey : null) : keyField
+                    KeyNavigation.up: page.showKeyField ? keyField : keyStatus.firstButton
                     Keys.onDownPressed: windowSizes.focusSelected()
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: Nav.open(Qt.resolvedUrl("ReviewPage.qml"))

@@ -292,7 +292,7 @@ impl crate::Core {
                 secrets.push((l.name.clone(), format!("<library-{}>", i + 1)));
             }
         }
-        if let Some((key, _)) = crate::secrets::load_tmdb_key() {
+        if let crate::secrets::KeyLoad::Found(key, _) = crate::secrets::load_tmdb_key() {
             secrets.push((key, "<tmdb-key>".into()));
         }
         let redactor = Redactor::new(secrets);

@@ -5,7 +5,9 @@
 set(_ui_dir "${CMAKE_CURRENT_BINARY_DIR}/imports/CoyotlUi")
 set(_ui_files Theme.qml FocusButton.qml TrackMenu.qml PlayerControls.qml
   # Issue #48: the episode tile and the components it shares with the detail page.
-  MediaInfo.js EpisodeTile.qml VersionPicker.qml TechSummary.qml TechDetails.qml SaveMenu.qml)
+  MediaInfo.js EpisodeTile.qml VersionPicker.qml TechSummary.qml TechDetails.qml SaveMenu.qml
+  # Issue #52: the TMDB key status in Settings.
+  TmdbKeyStatus.qml)
 file(MAKE_DIRECTORY "${_ui_dir}")
 set(_qmldir "module CoyotlUi\nsingleton Theme 1.0 Theme.qml\n")
 foreach(f IN LISTS _ui_files)

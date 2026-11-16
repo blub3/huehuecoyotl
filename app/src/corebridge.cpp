@@ -464,6 +464,13 @@ quint64 CoreBridge::clearTmdbKey()
     return id;
 }
 
+quint64 CoreBridge::testTmdbKey()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->test_tmdb_key(id);
+    return id;
+}
+
 static QByteArray specJson(const QVariantMap &spec)
 {
     QJsonObject o = QJsonObject::fromVariantMap(spec);
@@ -651,6 +658,8 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
     } else if (e.kind == K::KeyStatus) {
         m_hasKey = e.flag;
         m_keyFromEnv = e.flag2;
+        m_keyState = qs(e.key_state);
+        m_keyValidatedAt = e.validated_at > 0 ? QDateTime::fromSecsSinceEpoch(e.validated_at) : QDateTime();
         emit keyStatusChanged(e.request_id, qs(e.message));
     } else if (e.kind == K::Discovered) {
         QVariantList servers;

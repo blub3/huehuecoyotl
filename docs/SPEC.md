@@ -1,6 +1,8 @@
-# Huehuecoyotl – Architecture Specification v1.7
+# Huehuecoyotl – Architecture Specification v1.8
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
+
+**Changes in v1.8:** 1.6.1 (Nov 16, 2026, issue #52): Settings shows whether a TMDB key is stored, where it comes from and when TMDB last accepted it, with Replace, Test and Remove; the core looks for the key before it answers; a missing keystore is reported instead of being silent. Under Flatpak the Secret Service is reached directly over D-Bus, not through a portal (sections 6, 7).
 
 **Changes in v1.7:** 1.6 is released for Linux on Nov 16, 2026: the show page's episodes are tiles with their own version, technical summary, details panel and Save menu (issue #48), loaded page by page (sections 8, 9); one Save menu on the movie and episode pages too; a version whose source is offline plays its saved copy (7, 9).
 
@@ -232,7 +234,7 @@ If a pure-Rust client proves unreliable, the C libraries libsmb2 and libnfs can 
 
 **Discovery.** mDNS and DNS-SD find NAS devices advertising SMB, NFS, WebDAV or SFTP. WS-Discovery finds Windows hosts. Manual entry of an address always works.
 
-**Credentials.** Secrets go into the OS keystore through the `keyring` crate: Windows Credential Manager, the Secret Service on Linux (the secrets portal under Flatpak), Keychain on macOS. The database stores only a reference.
+**Credentials.** Secrets go into the OS keystore through the `keyring` crate (its platform stores, never the in-memory mock store; a test checks this in debug and release builds): Windows Credential Manager, the Secret Service on Linux, Keychain on macOS. Under Flatpak the app talks to the Secret Service (`org.freedesktop.secrets`) directly over D-Bus; the manifest allows exactly that name. The database stores only a reference. A secret that cannot be stored (no keystore installed, a locked one) is never written anywhere else: it works until the app closes, and the UI says so. `tools/test-keystore.sh` checks that secrets survive a restart against a throwaway Secret Service (its own D-Bus session and gnome-keyring-daemon).
 
 **Connection handling**
 
@@ -325,7 +327,8 @@ Every step is a row in `job`: persisted, resumable after a restart, rate-limited
 **TMDB**
 
 - [Terms](https://developer.themoviedb.org/docs/faq): free for non-commercial use with attribution. The About screen must carry an approved TMDB logo, less prominent than the app's own, and the notice that the product uses the TMDB API but is not endorsed or certified by TMDB.
-- API key: an open-source client cannot keep a key secret. The project therefore ships no key. Each user enters their own free TMDB key in the Settings menu, under Metadata. A first-run screen explains how to get one, the app validates it with a test request, and it is stored in the OS keystore. Without a key the app still works as a player and shows titles parsed from file names. For development and automated tests the core also accepts the key from an environment variable; it is never written to the repository, to fixtures or to logs.
+- API key: an open-source client cannot keep a key secret. The project therefore ships no key. Each user enters their own free TMDB key in the Settings menu, under Metadata. A first-run screen explains how to get one, the app validates it with a test request, and it is stored in the OS keystore. Without a key the app still works as a player and shows titles parsed from file names. For development and automated tests the core also accepts the key from the `COYOTL_TMDB_KEY` environment variable; it is never written to the repository, to fixtures or to logs.
+- Key status (issue #52): the core looks for the key once at start-up, before anything else, tells the UI what it found, and answers status requests only after that, so a stored key is never shown as missing. Settings → Metadata shows the state without ever showing the key: "Key stored" (in the keystore), set for development (from the environment variable), in use until the app closes (the keystore could not keep it), no keystore available (with what to do), or no key (the field to enter one). It shows when TMDB last accepted the key (`setting` key `tmdb_key_validated_at`, set by Check and save and by Test key) and offers Replace key (the stored key stays until TMDB accepts the new one), Test key and Remove key (which deletes the keystore entry). `coyotl-cli key status|test|remove` does the same headless.
 - Client behaviour: request the user's language with an English fallback, combine detail calls with `append_to_response`, apply a client-side rate limiter, and back off on HTTP 429.
 - Metadata sits behind a `MetadataProvider` trait, so local `.nfo` files or other databases can be added without touching the scanner.
 
@@ -469,6 +472,8 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 - **M5 Windows release** (was "Release 1.1" until v1.4). The Windows parts of the M0 to M4 gates (first run on Windows, Windows servers, Intel and AMD graphics); MSIX and winget packages; code signing; SMTC media keys; SFTP in the app. Direct mode with HDR passthrough was part of M5 until v1.3 and is now unscheduled.
 
 **M5 status (Nov 12, 2026).** Paused: GitHub Actions has no minutes left, and the Windows build needs it (or a Windows build machine). The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). The Windows release workflow is ready in PR #31 but untested. Open: that PR, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
+
+**1.6.1 (Nov 16, 2026): released for Linux.** The TMDB key status in Settings (#52). The key was never lost: the core loaded it at start-up, but Settings asked before that and was not told afterwards.
 
 **1.6 (Nov 16, 2026): released for Linux.** Episode tiles on the show page with versions, technical details and the Save menu (#48). Built and checked locally, with GitHub Actions disabled; scrolling measured on this machine's NVIDIA graphics, not on integrated graphics.
 
