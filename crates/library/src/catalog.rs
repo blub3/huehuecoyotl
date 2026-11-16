@@ -260,6 +260,9 @@ pub enum Sort {
     Title,
     Added,
     Year,
+    /// Issue #8: music played most recently first; only what was played (albums by their
+    /// tracks' plays).
+    Played,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -362,15 +365,27 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
     } else {
         ""
     };
+    const PLAYED: &str =
+        "(CASE WHEN i.kind = 'album' THEN (SELECT max(pt.last_played_at) FROM item t
+        JOIN playstate pt ON pt.item_id = t.id AND pt.profile_id = 1 WHERE t.parent_id = i.id)
+        ELSE p.last_played_at END)";
+    let played = if q.sort == Sort::Played && q.parent.is_none() {
+        format!(" AND {PLAYED} IS NOT NULL")
+    } else {
+        String::new()
+    };
     let order = match (q.parent.is_some(), q.sort) {
-        (true, _) => "coalesce(i.season_no, 0) = 0, i.season_no, i.episode_no, i.sort_title",
-        (false, Sort::Title) => "i.sort_title, i.year",
-        (false, Sort::Added) => "i.added_at DESC, i.sort_title",
-        (false, Sort::Year) => "i.year DESC, i.sort_title",
+        (true, _) => {
+            "coalesce(i.season_no, 0) = 0, i.season_no, i.episode_no, i.sort_title".to_string()
+        }
+        (false, Sort::Title) => "i.sort_title, i.year".to_string(),
+        (false, Sort::Added) => "i.added_at DESC, i.sort_title".to_string(),
+        (false, Sort::Year) => "i.year DESC, i.sort_title".to_string(),
+        (false, Sort::Played) => format!("{PLAYED} DESC, i.sort_title"),
     };
     let from = format!(
         "FROM item i LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = {DEFAULT_PROFILE}
-         WHERE {filter} AND {VISIBLE}{unwatched}{saved}"
+         WHERE {filter} AND {VISIBLE}{unwatched}{saved}{played}"
     );
     let key: rusqlite::types::Value = match q.parent {
         Some(p) => p.into(),

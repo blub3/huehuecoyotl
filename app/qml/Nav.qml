@@ -10,6 +10,7 @@ QtObject {
     function back() { if (shell) shell.back() }
     function go(section) { if (shell) shell.go(section) }
     function focusRail() { if (shell) shell.focusRail() }
+    function nowPlaying() { if (shell) shell.openNowPlaying() }
     // Music (2.0) has pages of its own: an album, an artist; a track opens its album.
     function openItem(itemId, kind, parentId) {
         if (kind === "album") open(Qt.resolvedUrl("AlbumPage.qml"), { itemId: itemId })

@@ -277,7 +277,7 @@ FocusScope {
                 value: Appearance.preferredVersion
                 onPicked: (key) => Appearance.preferredVersion = key
                 onUpRequested: fullscreenSizes.focusSelected()
-                onDownRequested: storageButton.forceActiveFocus()
+                onDownRequested: replayGainChoice.focusSelected()
             }
             Label {
                 Layout.fillWidth: true
@@ -285,6 +285,23 @@ FocusScope {
                 color: Theme.textDim
                 font.pixelSize: Theme.fontSmall
                 text: qsTr("When a movie exists in several versions and none was played yet. “Smallest file” helps on slow networks.")
+            }
+            // Issue #8: music volume levelling from the ReplayGain tags.
+            SizeChoice {
+                id: replayGainChoice
+                label: qsTr("ReplayGain")
+                options: [{ key: "off", label: qsTr("Off") }, { key: "track", label: qsTr("Track") }, { key: "album", label: qsTr("Album") }]
+                value: Music.replayGain
+                onPicked: (key) => Music.replayGain = key
+                onUpRequested: versionChoice.focusSelected()
+                onDownRequested: storageButton.forceActiveFocus()
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.textDim
+                font.pixelSize: Theme.fontSmall
+                text: qsTr("Evens out the loudness of music from the ReplayGain tags in the files: per track, or per album so an album keeps its own dynamics.")
             }
 
             // ---- Storage (issue #4) -----------------------------------------------------------
@@ -307,7 +324,7 @@ FocusScope {
                     id: storageButton
                     text: qsTr("Change location…")
                     Accessible.description: qsTr("New saved copies go to the chosen folder; existing ones stay where they are.")
-                    Keys.onUpPressed: versionChoice.focusSelected()
+                    Keys.onUpPressed: replayGainChoice.focusSelected()
                     KeyNavigation.right: storageDefault
                     KeyNavigation.down: deleteAllButton
                     Keys.onLeftPressed: Nav.focusRail()
@@ -319,7 +336,7 @@ FocusScope {
                     KeyNavigation.left: storageButton
                     KeyNavigation.right: deleteAllButton
                     KeyNavigation.down: deleteAllButton
-                    Keys.onUpPressed: versionChoice.focusSelected()
+                    Keys.onUpPressed: replayGainChoice.focusSelected()
                     onClicked: { page.storageMessage = ""; page.storageRequest = Core.setStorageDir("") }
                 }
                 FocusButton {

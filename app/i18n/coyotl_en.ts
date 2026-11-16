@@ -65,6 +65,17 @@
     </message>
 </context>
 <context>
+    <name>NowPlayingPage</name>
+    <message numerus="yes">
+        <location filename="../qml/NowPlayingPage.qml" line="231"/>
+        <source>%n track(s)</source>
+        <translation>
+            <numerusform>%n track</numerusform>
+            <numerusform>%n tracks</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>SourcesPage</name>
     <message numerus="yes">
         <location filename="../qml/SourcesPage.qml" line="139"/>

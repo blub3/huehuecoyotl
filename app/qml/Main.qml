@@ -42,6 +42,10 @@ ApplicationWindow {
         }
         function onFailed(message) { win.showError(message) }
     }
+    Connections {
+        target: Music
+        function onFailed(message) { win.showError(message) }
+    }
 
     Shortcut { sequence: "F11"; onActivated: win.toggleFullscreen() }
 
@@ -58,17 +62,24 @@ ApplicationWindow {
         location: win.settingsFile
         category: "playback"
         property string preferredVersion: "quality"
+        // Issue #8: off, track or album.
+        property string replayGain: "off"
     }
     Component.onCompleted: {
         Appearance.coverWindow = prefs.coverWindow
         Appearance.coverFullscreen = prefs.coverFullscreen
         Appearance.preferredVersion = playbackPrefs.preferredVersion
+        Music.replayGain = playbackPrefs.replayGain
     }
     Connections {
         target: Appearance
         function onCoverWindowChanged() { prefs.coverWindow = Appearance.coverWindow }
         function onCoverFullscreenChanged() { prefs.coverFullscreen = Appearance.coverFullscreen }
         function onPreferredVersionChanged() { playbackPrefs.preferredVersion = Appearance.preferredVersion }
+    }
+    Connections {
+        target: Music
+        function onReplayGainChanged() { playbackPrefs.replayGain = Music.replayGain }
     }
     Binding { target: Appearance; property: "fullscreen"; value: win.visibility === Window.FullScreen }
 

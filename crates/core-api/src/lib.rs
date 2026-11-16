@@ -34,6 +34,10 @@ mod ffi {
         MusicOnline,
         /// Issue #10: an album's or artist's page: `path` says which, `message` holds the JSON.
         MusicDetail,
+        /// Issue #8: the play queue changed; `message` holds its JSON (core `playqueue`).
+        QueueChanged,
+        /// Issue #8: what the music player loads; `message` holds the tickets' JSON.
+        MusicTickets,
         Discovered,
         Downloads,
         DownloadProgress,
@@ -375,6 +379,29 @@ mod ffi {
         /// Issue #10: an album's or an artist's page (answers with MusicDetail).
         fn album_detail(self: &Core, request_id: u64, album: i64);
         fn artist_detail(self: &Core, request_id: u64, artist: i64);
+
+        // Issue #8: the music play queue (answers with QueueChanged and MusicTickets).
+        /// Play items (tracks, albums, artists) from `start_item` (0: the first, or a random
+        /// one with shuffle).
+        fn queue_play(self: &Core, request_id: u64, items: &[i64], start_item: i64, shuffle: bool);
+        /// "Play next" (`next`) or "add to queue".
+        fn queue_insert(self: &Core, request_id: u64, items: &[i64], next: bool);
+        /// Next (1) or previous (-1) as the user asks; previous restarts after 3 s.
+        fn queue_step(self: &Core, request_id: u64, delta: i32, position_ms: u64);
+        fn queue_jump(self: &Core, request_id: u64, position: u32);
+        fn queue_remove(self: &Core, request_id: u64, position: u32);
+        fn queue_move(self: &Core, request_id: u64, from: u32, to: u32);
+        /// Repeat: "off", "one" or "all".
+        fn queue_set_mode(self: &Core, request_id: u64, shuffle: bool, repeat: &str);
+        /// mpv went on to the following entry by itself.
+        fn queue_advanced(self: &Core, ticket: u64);
+        /// Load the current entry where it was left (after a restart); after the end of the
+        /// queue (`after_end`), what was added since, or the queue from its start.
+        fn queue_resume(self: &Core, request_id: u64, after_end: bool);
+        fn queue_state(self: &Core, request_id: u64);
+        fn queue_clear(self: &Core, request_id: u64);
+        /// Position of a queue ticket: kept for a restart, and counts plays.
+        fn music_progress(self: &Core, ticket: u64, position_ms: u64, duration_ms: u64);
 
         // M3: network sources. `spec_json`: {protocol, host, port, share, user, tls, key_file,
         // path, name}; for SFTP with a key file, `password` is the key's passphrase.
@@ -792,6 +819,14 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
             message: json,
             ..event(K::MusicDetail, request_id)
         },
+        core::Event::QueueChanged { request_id, json } => ffi::CoreEvent {
+            message: json,
+            ..event(K::QueueChanged, request_id)
+        },
+        core::Event::MusicTickets { json } => ffi::CoreEvent {
+            message: json,
+            ..event(K::MusicTickets, 0)
+        },
         core::Event::MusicOnline { request_id, online } => ffi::CoreEvent {
             flag: online,
             ..event(K::MusicOnline, request_id)
@@ -1101,6 +1136,55 @@ impl Core {
     }
     fn artist_detail(&self, request_id: u64, artist: i64) {
         guard("artist_detail", || self.0.artist_detail(request_id, artist))
+    }
+    fn queue_play(&self, request_id: u64, items: &[i64], start_item: i64, shuffle: bool) {
+        guard("queue_play", || {
+            self.0
+                .queue_play(request_id, items.to_vec(), start_item, shuffle)
+        })
+    }
+    fn queue_insert(&self, request_id: u64, items: &[i64], next: bool) {
+        guard("queue_insert", || {
+            self.0.queue_insert(request_id, items.to_vec(), next)
+        })
+    }
+    fn queue_step(&self, request_id: u64, delta: i32, position_ms: u64) {
+        guard("queue_step", || {
+            self.0.queue_step(request_id, delta, position_ms)
+        })
+    }
+    fn queue_jump(&self, request_id: u64, position: u32) {
+        guard("queue_jump", || self.0.queue_jump(request_id, position))
+    }
+    fn queue_remove(&self, request_id: u64, position: u32) {
+        guard("queue_remove", || self.0.queue_remove(request_id, position))
+    }
+    fn queue_move(&self, request_id: u64, from: u32, to: u32) {
+        guard("queue_move", || self.0.queue_move(request_id, from, to))
+    }
+    fn queue_set_mode(&self, request_id: u64, shuffle: bool, repeat: &str) {
+        guard("queue_set_mode", || {
+            self.0.queue_set_mode(request_id, shuffle, repeat)
+        })
+    }
+    fn queue_advanced(&self, ticket: u64) {
+        guard("queue_advanced", || self.0.queue_advanced(ticket))
+    }
+    fn queue_resume(&self, request_id: u64, after_end: bool) {
+        guard("queue_resume", || {
+            self.0.queue_resume(request_id, after_end)
+        })
+    }
+    fn queue_state(&self, request_id: u64) {
+        guard("queue_state", || self.0.queue_state(request_id))
+    }
+    fn queue_clear(&self, request_id: u64) {
+        guard("queue_clear", || self.0.queue_clear(request_id))
+    }
+    fn music_progress(&self, ticket: u64, position_ms: u64, duration_ms: u64) {
+        guard("music_progress", || {
+            self.0.music_progress(ticket, position_ms, duration_ms)
+        })
     }
     fn music_online(&self, request_id: u64) {
         guard("music_online", || self.0.music_online(request_id))

@@ -1,5 +1,6 @@
 #include "mpris.h"
 #include "mpvplayer.h"
+#include "musicplayer.h"
 #include "playbackcontroller.h"
 
 #include <cmath>
@@ -74,9 +75,19 @@ void MprisRoot::Quit()
 
 // ---- org.mpris.MediaPlayer2.Player --------------------------------------------------------
 
-MprisPlayer::MprisPlayer(QObject *parent, MpvPlayer *player, PlaybackController *playback)
-    : QDBusAbstractAdaptor(parent), m_player(player), m_playback(playback)
+MprisPlayer::MprisPlayer(QObject *parent, MpvPlayer *player, PlaybackController *playback, MusicPlayer *music)
+    : QDBusAbstractAdaptor(parent), m_player(player), m_playback(playback), m_music(music)
 {
+    connect(music, &MusicPlayer::stateChanged, this, [this] {
+        notify(
+            {"PlaybackStatus", "CanPlay", "CanPause", "CanSeek", "CanGoNext", "CanGoPrevious", "Metadata"});
+    });
+    connect(music, &MusicPlayer::currentChanged, this, [this] {
+        ++m_track;
+        notify({"Metadata", "CanGoNext", "CanGoPrevious"});
+    });
+    connect(music, &MusicPlayer::durationChanged, this, [this] { notify({"Metadata"}); });
+    connect(music, &MusicPlayer::queueChanged, this, [this] { notify({"CanGoNext", "CanGoPrevious"}); });
     connect(player, &MpvPlayer::stateChanged, this,
             [this] { notify({"PlaybackStatus", "CanPlay", "CanPause", "CanSeek"}); });
     connect(player, &MpvPlayer::speedChanged, this, [this] { notify({"Rate"}); });
@@ -100,9 +111,19 @@ MprisPlayer::MprisPlayer(QObject *parent, MpvPlayer *player, PlaybackController 
     });
 }
 
+bool MprisPlayer::music() const
+{
+    return m_player->state() == MpvPlayer::Idle && m_music->active();
+}
+
+double MprisPlayer::pos() const
+{
+    return music() ? m_music->position() : m_player->position();
+}
+
 QString MprisPlayer::playbackStatus() const
 {
-    switch (m_player->state()) {
+    switch (music() ? MpvPlayer::State(m_music->state()) : m_player->state()) {
     case MpvPlayer::Playing:
     case MpvPlayer::Buffering:
     case MpvPlayer::Opening:
@@ -138,6 +159,20 @@ QVariantMap MprisPlayer::metadata() const
     if (!canControl()) return {};
     QVariantMap m;
     m.insert("mpris:trackid", QVariant::fromValue(trackId()));
+    if (music()) {
+        const QVariantMap e = m_music->current();
+        m.insert("xesam:title", e.value("title").toString());
+        if (!e.value("artists").toString().isEmpty())
+            m.insert("xesam:artist", QStringList{e.value("artists").toString()});
+        if (!e.value("album").toString().isEmpty()) m.insert("xesam:album", e.value("album").toString());
+        const QString art = e.value("posterFull").toString().isEmpty() ? e.value("poster").toString()
+                                                                       : e.value("posterFull").toString();
+        if (!art.isEmpty()) m.insert("mpris:artUrl", art);
+        const double d =
+            m_music->duration() > 0 ? m_music->duration() : e.value("durationMs").toDouble() / 1000;
+        if (d > 0) m.insert("mpris:length", qlonglong(d * 1e6));
+        return m;
+    }
     const QString title = m_playback->title().isEmpty() ? m_player->mediaTitle() : m_playback->title();
     if (!title.isEmpty()) m.insert("xesam:title", title);
     if (m_player->duration() > 0) m.insert("mpris:length", qlonglong(m_player->duration() * 1e6));
@@ -156,65 +191,93 @@ void MprisPlayer::setVolume(double v)
 
 qlonglong MprisPlayer::position() const
 {
-    return qlonglong(m_player->position() * 1e6);
+    return qlonglong(pos() * 1e6);
 }
 
 bool MprisPlayer::canControl() const
 {
+    if (music()) return true; // a queue: Play loads its current entry
     const auto s = m_player->state();
     return s != MpvPlayer::Idle && s != MpvPlayer::Error;
 }
 
 bool MprisPlayer::canGoNext() const
 {
+    if (music()) return m_music->queueCount() > 1 || m_music->repeat() != "off";
     return canControl() && m_player->chapters().size() > 1;
 }
 
 bool MprisPlayer::canGoPrevious() const
 {
+    if (music()) return true; // restarts the track at least
     return canGoNext();
 }
 
 void MprisPlayer::Next()
 {
-    if (canGoNext()) m_player->addChapter(1);
+    if (music())
+        m_music->next();
+    else if (canGoNext())
+        m_player->addChapter(1);
 }
 
 void MprisPlayer::Previous()
 {
-    if (canGoPrevious()) m_player->addChapter(-1);
+    if (music())
+        m_music->previous();
+    else if (canGoPrevious())
+        m_player->addChapter(-1);
 }
 
 void MprisPlayer::Pause()
 {
-    if (canControl()) m_player->setPaused(true);
+    if (music())
+        m_music->pause();
+    else if (canControl())
+        m_player->setPaused(true);
 }
 
 void MprisPlayer::Play()
 {
-    if (canControl()) m_player->setPaused(false);
+    if (music())
+        m_music->play();
+    else if (canControl())
+        m_player->setPaused(false);
 }
 
 void MprisPlayer::PlayPause()
 {
-    if (canControl()) m_player->togglePause();
+    if (music())
+        m_music->togglePause();
+    else if (canControl())
+        m_player->togglePause();
 }
 
 void MprisPlayer::Stop()
 {
-    if (canControl()) m_playback->requestLeave();
+    if (music())
+        m_music->pause();
+    else if (canControl())
+        m_playback->requestLeave();
 }
 
 void MprisPlayer::Seek(qlonglong offsetUs)
 {
-    if (canControl()) m_player->seek(offsetUs / 1e6, true);
+    if (music())
+        m_music->seek(offsetUs / 1e6, true);
+    else if (canControl())
+        m_player->seek(offsetUs / 1e6, true);
 }
 
 void MprisPlayer::SetPosition(const QDBusObjectPath &id, qlonglong positionUs)
 {
     if (!canControl() || id != trackId()) return;
-    if (positionUs < 0 || (m_player->duration() > 0 && positionUs > m_player->duration() * 1e6)) return;
-    m_player->seek(positionUs / 1e6, false);
+    const double d = music() ? m_music->duration() : m_player->duration();
+    if (positionUs < 0 || (d > 0 && positionUs > d * 1e6)) return;
+    if (music())
+        m_music->seek(positionUs / 1e6, false);
+    else
+        m_player->seek(positionUs / 1e6, false);
 }
 
 void MprisPlayer::OpenUri(const QString &uri)
@@ -235,7 +298,7 @@ void MprisPlayer::notify(const QStringList &names)
     QDBusConnection::sessionBus().send(msg);
 }
 
-void registerMpris(QObject *owner, MpvPlayer *player, PlaybackController *playback)
+void registerMpris(QObject *owner, MpvPlayer *player, PlaybackController *playback, MusicPlayer *music)
 {
     auto bus = QDBusConnection::sessionBus();
     if (!bus.isConnected()) {
@@ -244,7 +307,7 @@ void registerMpris(QObject *owner, MpvPlayer *player, PlaybackController *playba
     }
     auto *obj = new QObject(owner);
     new MprisRoot(obj);
-    new MprisPlayer(obj, player, playback);
+    new MprisPlayer(obj, player, playback, music);
     if (!bus.registerObject(kPath, obj, QDBusConnection::ExportAdaptors)) {
         qCWarning(lcMpris) << "cannot register" << kPath << bus.lastError().message();
         return;

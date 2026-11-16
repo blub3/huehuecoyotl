@@ -34,3 +34,11 @@ target_include_directories(tst_episodemodel PRIVATE ${CMAKE_SOURCE_DIR}/app/src)
 target_link_libraries(tst_episodemodel PRIVATE Qt6::Test Qt6::Quick Qt6::Qml)
 coyotl_check_qt_modules(tst_episodemodel)
 add_test(NAME episodemodel COMMAND tst_episodemodel -platform offscreen)
+
+# Issue #8: gapless playback and one fixture per music format, through the bundled libmpv with
+# the music player's options, rendered into mpv's file output (no audio device needed).
+qt_add_executable(tst_musicplayback tst_musicplayback.cpp)
+target_include_directories(tst_musicplayback PRIVATE ${CMAKE_SOURCE_DIR}/app/src)
+target_link_libraries(tst_musicplayback PRIVATE Qt6::Test libmpv)
+coyotl_check_qt_modules(tst_musicplayback)
+add_test(NAME musicplayback COMMAND tst_musicplayback)
