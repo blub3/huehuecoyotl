@@ -2,13 +2,43 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en" sourcelanguage="en">
 <context>
+    <name>AlbumPage</name>
+    <message numerus="yes">
+        <location filename="../qml/AlbumPage.qml" line="165"/>
+        <source>%n track(s)</source>
+        <translation>
+            <numerusform>%n track</numerusform>
+            <numerusform>%n tracks</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/AlbumPage.qml" line="166"/>
+        <source>%n disc(s)</source>
+        <translation>
+            <numerusform>%n disc</numerusform>
+            <numerusform>%n discs</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>ArtistPage</name>
+    <message numerus="yes">
+        <location filename="../qml/ArtistPage.qml" line="112"/>
+        <source>%n album(s)</source>
+        <translation>
+            <numerusform>%n album</numerusform>
+            <numerusform>%n albums</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>DetailPage</name>
     <message numerus="yes">
         <location filename="../qml/DetailPage.qml" line="992"/>
         <source>%n file(s) exist already in %1. Replace them?</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>%n file exists already in %1. Replace it?</numerusform>
+            <numerusform>%n files exist already in %1. Replace them?</numerusform>
         </translation>
     </message>
 </context>
@@ -26,7 +56,7 @@
 <context>
     <name>NetworkSharePage</name>
     <message numerus="yes">
-        <location filename="../qml/NetworkSharePage.qml" line="113"/>
+        <location filename="../qml/NetworkSharePage.qml" line="117"/>
         <source>%n video(s) in this folder</source>
         <translation>
             <numerusform>%n video in this folder</numerusform>
@@ -37,7 +67,15 @@
 <context>
     <name>SourcesPage</name>
     <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="134"/>
+        <location filename="../qml/SourcesPage.qml" line="139"/>
+        <source>Music · %n file(s)</source>
+        <translation>
+            <numerusform>Music · %n file</numerusform>
+            <numerusform>Music · %n files</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/SourcesPage.qml" line="140"/>
         <source>%n video(s)</source>
         <translation>
             <numerusform>%n video</numerusform>

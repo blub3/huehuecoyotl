@@ -21,6 +21,6 @@ QtObject {
 
     // Title text, spacing and gaps grow and shrink with the poster.
     function textScale(posterWidth) { return Math.max(0.85, Math.min(1.35, posterWidth / 180)) }
-    // A card: the 2:3 poster plus two lines of text.
-    function cardHeight(posterWidth) { return posterWidth * 1.5 + 54 * textScale(posterWidth) }
+    // A card: the poster (2:3, or square for music) plus two lines of text.
+    function cardHeight(posterWidth, ratio) { return posterWidth * (ratio ?? 1.5) + 54 * textScale(posterWidth) }
 }

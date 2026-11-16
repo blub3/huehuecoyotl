@@ -251,6 +251,13 @@ pub enum Event {
         request_id: u64,
         devices: Vec<Discovered>,
     },
+    /// Issue #10: an album's or artist's page (`kind`: album, artist) as JSON
+    /// (`huehuecoyotl_library::music::AlbumDetail`, `ArtistDetail`).
+    MusicDetail {
+        request_id: u64,
+        kind: String,
+        json: String,
+    },
     /// Issue #11: whether music information is looked up online (MusicBrainz, Cover Art Archive).
     MusicOnline {
         request_id: u64,

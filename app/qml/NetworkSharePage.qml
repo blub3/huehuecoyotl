@@ -42,6 +42,9 @@ FocusScope {
         }
     }
 
+    // 2.0: "video" or "music".
+    property string content: "video"
+
     function spec(path) {
         return {
             protocol: protocol,
@@ -52,7 +55,8 @@ FocusScope {
             tls: protocol === "webdav" && tlsBox.checked,
             key_file: protocol === "sftp" && keyField.text.trim() !== "" ? keyField.text.trim() : null,
             path: path || "",
-            name: ""
+            name: "",
+            content: content
         }
     }
 
@@ -349,8 +353,19 @@ FocusScope {
                     enabled: !page.busy
                     text: page.currentPath === "/" ? qsTr("Add the whole share") : qsTr("Add this folder")
                     KeyNavigation.left: connectButton
+                    KeyNavigation.right: contentButton
                     KeyNavigation.down: folderList
                     onClicked: page.addHere()
+                }
+                // 2.0: what the folder holds; it decides how it is scanned.
+                FocusButton {
+                    id: contentButton
+                    visible: page.connected
+                    text: page.content === "music" ? qsTr("Contains: music") : qsTr("Contains: video")
+                    tip: qsTr("Video folders become Movies and Shows, music folders Music")
+                    KeyNavigation.left: addButton
+                    KeyNavigation.down: folderList
+                    onClicked: page.content = page.content === "music" ? "video" : "music"
                 }
                 Label {
                     text: page.status

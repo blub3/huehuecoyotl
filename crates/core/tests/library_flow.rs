@@ -244,7 +244,7 @@ fn library_end_to_end() {
     let season = detail.children[0].id;
 
     // Search finds by title prefix and by overview words.
-    core.search(50, "fire");
+    core.search(50, "fire", "");
     let Event::Page { items, .. } = wait_for(&rx, "search", |e| {
         matches!(e, Event::Page { request_id: 50, .. })
     }) else {

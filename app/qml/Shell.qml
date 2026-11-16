@@ -13,6 +13,7 @@ FocusScope {
         home: homePage,
         movies: moviesPage,
         shows: showsPage,
+        music: musicPage,
         search: searchPage,
         downloads: downloadsPage,
         sources: sourcesPage,
@@ -21,6 +22,7 @@ FocusScope {
     Component { id: homePage; HomePage {} }
     Component { id: moviesPage; MoviesPage {} }
     Component { id: showsPage; ShowsPage {} }
+    Component { id: musicPage; MusicPage {} }
     Component { id: searchPage; SearchPage {} }
     Component { id: downloadsPage; DownloadsPage {} }
     Component { id: sourcesPage; SourcesPage {} }
@@ -51,6 +53,7 @@ FocusScope {
         Nav.shell = shell
         if (Bench.mode === "scroll") shell.go("movies")
         if (Bench.mode === "episodes") shell.go("shows")
+        if (Bench.mode === "music") shell.go("music")
     }
     // Returning from the player: give focus back to the page.
     StackView.onActivated: focusContent()

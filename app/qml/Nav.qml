@@ -10,5 +10,11 @@ QtObject {
     function back() { if (shell) shell.back() }
     function go(section) { if (shell) shell.go(section) }
     function focusRail() { if (shell) shell.focusRail() }
-    function openItem(itemId) { open(Qt.resolvedUrl("DetailPage.qml"), { itemId: itemId }) }
+    // Music (2.0) has pages of its own: an album, an artist; a track opens its album.
+    function openItem(itemId, kind, parentId) {
+        if (kind === "album") open(Qt.resolvedUrl("AlbumPage.qml"), { itemId: itemId })
+        else if (kind === "artist") open(Qt.resolvedUrl("ArtistPage.qml"), { itemId: itemId })
+        else if (kind === "track") open(Qt.resolvedUrl("AlbumPage.qml"), { itemId: parentId, focusTrack: itemId })
+        else open(Qt.resolvedUrl("DetailPage.qml"), { itemId: itemId })
+    }
 }

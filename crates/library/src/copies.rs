@@ -289,7 +289,7 @@ pub fn playable_items(c: &Connection, item_id: i64) -> Result<Vec<i64>> {
     let mut st = c.prepare(
         "WITH RECURSIVE t(id) AS (SELECT ?1 UNION ALL SELECT i.id FROM item i JOIN t ON i.parent_id = t.id)
          SELECT i.id FROM item i JOIN t ON t.id = i.id
-         WHERE i.kind IN ('movie','episode','video')
+         WHERE i.kind IN ('movie','episode','video','track')
            AND EXISTS (SELECT 1 FROM file f WHERE f.item_id = i.id)
          ORDER BY coalesce((SELECT season_no FROM item p WHERE p.id = i.parent_id), 0), coalesce(i.episode_no, 0), i.id",
     )?;

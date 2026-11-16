@@ -73,7 +73,8 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 browseItems(const QString &kind, qint64 parent, const QString &sort,
                                     const QString &filter, int offset, int limit);
     Q_INVOKABLE quint64 recentlyAdded(int limit = 20);
-    Q_INVOKABLE quint64 search(const QString &text);
+    // kind: movie, show, artist, album or track; "" for all (issue #10).
+    Q_INVOKABLE quint64 search(const QString &text, const QString &kind = QString());
     Q_INVOKABLE quint64 itemDetail(qint64 itemId);
     // Issue #48: one page of a season's episodes for the tiles (answers with episodesReady).
     Q_INVOKABLE quint64 seasonEpisodes(qint64 seasonId, int offset, int limit);
@@ -87,6 +88,9 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 clearTmdbKey();
     // Issue #52: ask TMDB whether the key in use is accepted (answers with keyStatusChanged).
     Q_INVOKABLE quint64 testTmdbKey();
+    // Issue #10: an album's or an artist's page (answers with musicDetailReady).
+    Q_INVOKABLE quint64 albumDetail(qint64 albumId);
+    Q_INVOKABLE quint64 artistDetail(qint64 artistId);
     bool musicOnline() const { return m_musicOnline; }
     void setMusicOnline(bool on);
 
@@ -174,6 +178,8 @@ class CoreBridge : public QObject {
     void saveStateReady(quint64 requestId, qint64 itemId, const QVariantMap &info);
     void exportConflict(quint64 requestId, const QStringList &paths);
     void musicOnlineChanged();
+    // kind: "album" or "artist"; the map as in the core's AlbumDetail / ArtistDetail (camelCase).
+    void musicDetailReady(quint64 requestId, const QString &kind, const QVariantMap &detail);
 
   private:
     void dispatch(const coyotl::core::CoreEvent &e);

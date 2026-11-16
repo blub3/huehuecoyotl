@@ -60,7 +60,9 @@ QVariantMap summaryMap(const coyotl::core::ItemSummary &s)
             {"overview", qs(s.overview)},
             {"onDisk", s.on_disk},
             {"runtimeMin", s.runtime_min},
-            {"saved", s.saved}};
+            {"saved", s.saved},
+            {"subtitle", qs(s.subtitle)},
+            {"parentId", qlonglong(s.parent_id)}};
 }
 
 // Issue #4: the state of an item's saved copies.
@@ -294,10 +296,10 @@ quint64 CoreBridge::recentlyAdded(int limit)
     return id;
 }
 
-quint64 CoreBridge::search(const QString &text)
+quint64 CoreBridge::search(const QString &text, const QString &kind)
 {
     const quint64 id = nextId();
-    if (m_core) (*m_core)->search(id, rs(text.toUtf8()));
+    if (m_core) (*m_core)->search(id, rs(text.toUtf8()), rs(kind.toUtf8()));
     return id;
 }
 
@@ -462,6 +464,20 @@ quint64 CoreBridge::clearTmdbKey()
 {
     const quint64 id = nextId();
     if (m_core) (*m_core)->clear_tmdb_key(id);
+    return id;
+}
+
+quint64 CoreBridge::albumDetail(qint64 albumId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->album_detail(id, albumId);
+    return id;
+}
+
+quint64 CoreBridge::artistDetail(qint64 artistId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->artist_detail(id, artistId);
     return id;
 }
 
@@ -662,6 +678,27 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
         m_failed = int(e.failed);
         emit activityChanged();
         emit libraryChanged();
+    } else if (e.kind == K::MusicDetail) {
+        // Local paths of covers become file URLs for QML.
+        QVariantMap m = QJsonDocument::fromJson(QByteArray::fromStdString(std::string(e.message)))
+                            .object()
+                            .toVariantMap();
+        const auto urls = [](QVariantMap &x) {
+            for (const char *k : {"poster", "posterFull", "posterLarge", "image"})
+                if (!x.value(k).toString().isEmpty())
+                    x[k] = QUrl::fromLocalFile(x.value(k).toString()).toString();
+        };
+        urls(m);
+        for (const char *list : {"albums", "appearsOn"}) {
+            QVariantList l = m.value(list).toList();
+            for (auto &v : l) {
+                QVariantMap x = v.toMap();
+                urls(x);
+                v = x;
+            }
+            if (m.contains(list)) m[list] = l;
+        }
+        emit musicDetailReady(e.request_id, qs(e.path), m);
     } else if (e.kind == K::MusicOnline) {
         if (m_musicOnline != e.flag) {
             m_musicOnline = e.flag;

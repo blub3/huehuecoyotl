@@ -4,17 +4,22 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Coyotl
 
-// Library folders on this computer and on network shares (scanned into Movies and Shows),
-// and plain browsing of this computer.
+// Library folders on this computer and on network shares (scanned into Movies and Shows, or
+// Music: each folder says which, 2.0), and plain browsing of this computer.
 FocusScope {
     id: page
     readonly property bool isPlayer: false
 
     LibraryFoldersModel { id: folders }
+    // A folder just picked, waiting for its content type.
+    property string picked: ""
     FolderModel { id: places; path: "" }
 
     function pickFolder() {
-        Nav.open(Qt.resolvedUrl("BrowserPage.qml"), { startPath: "", pickMode: true, onPicked: (p) => folders.add(p) })
+        Nav.open(Qt.resolvedUrl("BrowserPage.qml"), { startPath: "", pickMode: true, onPicked: (p) => {
+            page.picked = p
+            Qt.callLater(() => contentQuestion.open())
+        } })
     }
 
     // When the page receives focus but none of its controls has it, focus the first control.
@@ -131,6 +136,7 @@ FocusScope {
                                 Layout.fillWidth: true
                                 text: row.model.root + "  ·  " + (row.model.scanning ? qsTr("scanning…")
                                       : !row.model.online ? qsTr("offline")
+                                      : row.model.content === "music" ? qsTr("Music · %n file(s)", "", row.model.files)
                                       : qsTr("%n video(s)", "", row.model.files))
                                 color: Theme.textDim; font.pixelSize: Theme.fontSmall; elide: Text.ElideMiddle
                             }
@@ -191,6 +197,59 @@ FocusScope {
                         Label { text: place.name; color: Theme.text; Layout.fillWidth: true; elide: Text.ElideRight }
                         Label { text: place.path; color: Theme.textDim; font.pixelSize: Theme.fontSmall; elide: Text.ElideMiddle; Layout.maximumWidth: 420 }
                     }
+                }
+            }
+        }
+    }
+
+    // 2.0: what a new folder holds decides how it is scanned.
+    Popup {
+        id: contentQuestion
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(560, parent.width - 80)
+        modal: true
+        padding: 24
+        background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
+        onOpened: videoChoice.forceActiveFocus()
+        onClosed: addButton.forceActiveFocus()
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 16
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.text
+                text: qsTr("What is in “%1”?").arg(page.picked)
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.textDim
+                font.pixelSize: Theme.fontSmall
+                text: qsTr("Video folders become Movies and Shows, music folders Music. A folder with both is added twice, once per subfolder.")
+            }
+            RowLayout {
+                spacing: 12
+                FocusButton {
+                    id: videoChoice
+                    primary: true
+                    text: qsTr("Movies and shows")
+                    KeyNavigation.right: musicChoice
+                    onClicked: { folders.add(page.picked, "video"); contentQuestion.close() }
+                }
+                FocusButton {
+                    id: musicChoice
+                    text: qsTr("Music")
+                    KeyNavigation.left: videoChoice
+                    KeyNavigation.right: cancelChoice
+                    onClicked: { folders.add(page.picked, "music"); contentQuestion.close() }
+                }
+                FocusButton {
+                    id: cancelChoice
+                    text: qsTr("Cancel")
+                    KeyNavigation.left: musicChoice
+                    onClicked: contentQuestion.close()
                 }
             }
         }

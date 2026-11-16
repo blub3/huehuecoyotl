@@ -185,6 +185,43 @@ impl Core {
         *self.inner.music.write().unwrap() = p;
     }
 
+    /// Issue #10: an album's page: its tracks by disc, durations, format and Hi-Res.
+    pub fn album_detail(&self, request_id: u64, album: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let d = inner
+                .lib
+                .read(move |c| music::album_detail(c, album))
+                .await?
+                .ok_or_else(|| {
+                    crate::CoreError::new(crate::ErrorKind::NotFound, format!("album {album}"))
+                })?;
+            drop(inner.lib.submit(move |c| jobs::bump_items(c, &[album])));
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "album".into(),
+                json: serde_json::to_string(&d).unwrap_or_default(),
+            })
+        });
+    }
+
+    /// Issue #10: an artist's page: albums by release type and year, and "appears on".
+    pub fn artist_detail(&self, request_id: u64, artist: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let d = inner
+                .lib
+                .read(move |c| music::artist_detail(c, artist))
+                .await?
+                .ok_or_else(|| {
+                    crate::CoreError::new(crate::ErrorKind::NotFound, format!("artist {artist}"))
+                })?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "artist".into(),
+                json: serde_json::to_string(&d).unwrap_or_default(),
+            })
+        });
+    }
+
     /// Whether music information is looked up online.
     pub fn music_online(&self, request_id: u64) {
         self.spawn(request_id, move |inner| async move {
