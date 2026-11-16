@@ -1,6 +1,8 @@
-# Huehuecoyotl – Architecture Specification v1.8
+# Huehuecoyotl – Architecture Specification v1.9
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
+
+**Changes in v1.9:** Music for 2.0 (issue #6): scope and formats (section 2), the music data model and its migration, the music scan pipeline, music metadata providers, artwork order and the privacy setting (7), library content types (6), the play queue, gapless playback and the bit-perfect path (5.7), bridge additions (8), the Music section (9), the bundle (10), the 2.0 plan (11) and the maintainer's decisions for music: online lookups by default, user-supplied keys for TheAudioDB and Fanart.tv, no ALSA device permission in the Flatpak, 2.0 waits for all seven issues, two mpv handles (12).
 
 **Changes in v1.8:** 1.6.1 (Nov 16, 2026, issue #52): Settings shows whether a TMDB key is stored, where it comes from and when TMDB last accepted it, with Replace, Test and Remove; the core looks for the key before it answers; a missing keystore is reported instead of being silent. Under Flatpak the Secret Service is reached directly over D-Bus, not through a portal (sections 6, 7).
 
@@ -38,7 +40,7 @@ Missing from the draft and added here: licensing, credential storage, the scanne
 
 ## 2. Scope and design principles
 
-Huehuecoyotl is a desktop player for Windows and Linux with local and network playback, a scanned library and TMDB metadata. Versions 1.0 and 1.1 are released for Linux; the Windows release follows without a version number yet. Mobile and TV platforms are out of scope.
+Huehuecoyotl is a desktop player for Windows and Linux with local and network playback, a scanned library and TMDB metadata. Versions 1.0 to 1.6 are released for Linux; the Windows release follows without a version number yet. Version 2.0 adds music (below). Mobile and TV platforms are out of scope.
 
 | Tier | Platforms | Status |
 | --- | --- | --- |
@@ -56,9 +58,18 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | 1.2 (Linux, released) | Technical details of every file (codecs, HDR, audio and subtitle tracks, bit rates), analysed in the background; choosing between several versions of a movie or episode |
 | 1.1 (Linux, released) | SFTP sources; the logo; cover sizes per display mode; one item per show, with the repair of libraries from older versions; the show page with season switching and episodes not on disk |
 | Windows (no version yet) | The Windows build; MSIX and winget packages; code signing; Windows media keys (SMTC) |
+| 2.0 (Linux, planned) | Music: a music library from tags (FLAC, ALAC, WAV, AIFF, MP3, AAC, Ogg Vorbis, Opus, WavPack), Albums and Artists, a play queue with gapless playback and a mini player, Hi-Res badges, MusicBrainz and the Cover Art Archive, optional TheAudioDB and Fanart.tv, a bit-perfect output mode (see **Music in 2.0** below) |
 | Unscheduled | HDR passthrough on Windows through direct mode (needs a Windows PC with an HDR display for tests W1–W8) |
 | After 1.1 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
 | Non-goals | Phones, tablets and TV boxes; DRM streaming services; transcoding or acting as a media server; SMB1; cloud accounts run by the project |
+| Not in 2.0 (music) | Playlist files (M3U, PLS), cue sheets, DSD, audiobooks and podcasts, lyrics, music streaming services, editing tags, acoustic fingerprinting, crossfade, equaliser, visualisations, upsampling, room correction, multichannel bitstream for music |
+
+**Music in 2.0** (issues #6 to #12)
+
+- **Formats.** FLAC, ALAC (in MP4/M4A), WAV, AIFF, MP3, AAC (MP4/M4A and ADTS), Ogg Vorbis, Opus and WavPack. The file extensions the music scanner looks at: `.flac`, `.m4a`, `.mp4` (audio only), `.wav`, `.aif`, `.aiff`, `.mp3`, `.aac`, `.ogg`, `.oga`, `.opus`, `.wv`.
+- **Lossless** means FLAC, ALAC, PCM (WAV, AIFF) and WavPack in its lossless mode. **Hi-Res** means lossless with more than 16 bits per sample or a sample rate above 48 kHz; the badge sits on a track when its file is Hi-Res and on an album when all of its tracks are. Lossy files are never Hi-Res, whatever their sample rate.
+- Music shares the library, the network sources, the job queue, the offline copies and the player with video; what differs is the scan pipeline (tags, not file names), the metadata providers and the playback model (a queue that plays while the user browses).
+- Where each issue is specified: the music library from tags (#7) in section 7, *Music library* (data model, scan pipeline); playback, the queue and Now Playing (#8) in 5.7 and 9; bit-perfect output (#9) in 5.7; the Music section (#10) in 9; MusicBrainz and the Cover Art Archive (#11) and TheAudioDB and Fanart.tv (#12) in section 7, *Providers*; content types of library folders in 6; formats in the bundle in 10; the order of work in 11; open decisions in 12.
 
 **Principles**
 
@@ -189,6 +200,17 @@ Read-ahead is adaptive: after a seek, fetch a small first block and widen the wi
 - Remembered per item: position, watched flag. Remembered per series: audio and subtitle language choice.
 - States: Idle, Opening, Buffering, Playing, Paused, Ended, Error. The UI derives every control from this one state property.
 
+**5.7 Music playback (2.0, issues #8 and #9)**
+
+- **Two mpv handles.** Music plays in a second, audio-only mpv handle (`vid=no`, `vo=null`, no render context) owned by a C++ `MusicPlayer` next to `MpvPlayer`. The video player keeps its own handle and lifecycle. Both handles load the same bundled libmpv.
+- **Queue in the core.** The core owns the play queue: its entries (track items and the chosen file), the order, shuffle (a permutation stored with the queue, so turning shuffle off returns to the original order), repeat (off, one, all), "play next" and "add to queue". The queue, its position and the playback position are stored in the database and restored after a restart (paused). The C++ shell only feeds mpv: it holds the current entry and the following one in mpv's playlist, reports when mpv moves on, and asks the core for the next entry. Play counts are recorded per track when a track has played to 50 % or for four minutes, whichever comes first.
+- **Gapless.** `gapless-audio=weak` and `prefetch-playlist=yes`, with the following entry already in mpv's playlist. Consecutive tracks with the same sample rate and channel layout play without a gap; at a format change mpv reopens the output, which the user may hear. A test plays two fixture files that hold one continuous sine tone into mpv's file output (`ao=pcm`) and fails on a gap or a discontinuity.
+- **Network tracks** stream through `coyotl://` like video, with a smaller demuxer cache (`demuxer-max-bytes` 32 MiB, `demuxer-max-back-bytes` 8 MiB), so the next track can be prefetched while the current one plays.
+- **ReplayGain:** off, track or album (mpv's `replaygain`), from the tags the scanner stored.
+- **Music and video.** Starting a video pauses music and keeps the queue; music does not resume by itself when the video ends. Starting music while a video plays is not offered (the player page is in front). The screensaver is not inhibited while only audio plays. MPRIS (and SMTC in the Windows release) shows the player that plays: track, artist, album and cover for music.
+- **Bit-perfect mode (issue #9)**, a setting under Settings → Audio, off by default: no forced sample rate or format, no audio filters, software volume fixed at 100 %, ReplayGain off, and exclusive access where the output offers it (`audio-exclusive=yes`). The output device is chosen in the same place (mpv's `audio-device`; the list from `audio-device-list`). On Linux the choices are PipeWire (which switches its rate only when its allowed rates are configured and no other stream plays; the user guide documents the configuration) and, outside the Flatpak, direct ALSA hardware devices, the only truly exclusive path. The Flatpak gets no device permission for that (decided in v1.9, section 12): there bit-perfect mode uses PipeWire, and the user guide explains the difference. Windows uses WASAPI exclusive mode.
+- **Signal path.** Now Playing shows the source format (`audio-params`) and the output format (`audio-out-params`). It says "Bit-perfect" only when sample rate and sample format match, no filter is active and the output is exclusive; in shared mode it shows the output rate and that the system mixer may resample. A device that rejects a format falls back to one it supports, with a visible note.
+
 **5.6 Direct mode on Wayland**
 
 There is no clean way today to show mpv's HDR output inside a Qt window on Wayland. Version 1.0 uses embedded mode there, and three routes exist for later.
@@ -236,6 +258,8 @@ If a pure-Rust client proves unreliable, the C libraries libsmb2 and libnfs can 
 
 **Credentials.** Secrets go into the OS keystore through the `keyring` crate (its platform stores, never the in-memory mock store; a test checks this in debug and release builds): Windows Credential Manager, the Secret Service on Linux, Keychain on macOS. Under Flatpak the app talks to the Secret Service (`org.freedesktop.secrets`) directly over D-Bus; the manifest allows exactly that name. The database stores only a reference. A secret that cannot be stored (no keystore installed, a locked one) is never written anywhere else: it works until the app closes, and the UI says so. `tools/test-keystore.sh` checks that secrets survive a restart against a throwaway Secret Service (its own D-Bus session and gnome-keyring-daemon).
 
+**Content type (2.0).** Every library folder, local or on a network source, has a content type: `video` or `music` (`source.content`, migration 8; existing folders become `video`). The scanner runs the video or the music pipeline by it. Adding a folder asks for the type; a folder holds one type, and a share with both is added twice, once per folder.
+
 **Connection handling**
 
 - One connection per source, reconnected transparently. Reads are scheduled per source: playback reads outrank background reads (downloads and the media probe), which wait while playback is reading (at most two seconds at a time, so they never starve) and share a cap of two reads in flight per source.
@@ -253,7 +277,8 @@ CREATE TABLE source   (id INTEGER PRIMARY KEY, kind TEXT, name TEXT,
                        config_json TEXT, credential_ref TEXT);
 
 CREATE TABLE item     (id INTEGER PRIMARY KEY,
-                       kind TEXT CHECK (kind IN ('movie','show','season','episode','video')),
+                       kind TEXT CHECK (kind IN ('movie','show','season','episode','video',
+                                                 'artist','album','track')),  -- music: 2.0, migration 8
                        parent_id INTEGER REFERENCES item(id),
                        title TEXT, sort_title TEXT, year INTEGER,
                        season_no INTEGER, episode_no INTEGER,
@@ -324,6 +349,63 @@ Libraries scanned before 1.1.1 are repaired by migration 4 (TMDB duplicates merg
 
 Every step is a row in `job`: persisted, resumable after a restart, rate-limited per source, and prioritised so items on screen are processed first. The filename parser is tested against a large fixture corpus of real-world names; that corpus is the most valuable test asset in the project.
 
+**Music library (2.0)**
+
+*Data model (migration 8).* SQLite cannot change a CHECK constraint, so migration 8 rebuilds `item` to allow the kinds `artist`, `album` and `track`, following SQLite's twelve-step procedure: foreign keys off, one transaction, create `item_new` with the new CHECK, copy every row with its id, drop `item`, rename, recreate every index on `item` (the list is read from `sqlite_master` before the drop, so the unique TMDB index and the others come back as they were), `PRAGMA foreign_key_check`, commit, foreign keys on. Ids are kept, so files, play state, artwork, offline copies and `item_fts` stay attached; video libraries and watch state are untouched. Before migration 8 the app copies the database to `library.db.before-8` (the SQLite backup API, the source read-only). A test migrates a version-7 database with movies, shows, play state and saved copies and compares them before and after.
+
+```sql
+-- migration 8, after the rebuild of item
+ALTER TABLE source ADD COLUMN content TEXT NOT NULL DEFAULT 'video' CHECK (content IN ('video','music'));
+CREATE TABLE music      (item_id INTEGER PRIMARY KEY REFERENCES item(id) ON DELETE CASCADE,
+                         disc_no INTEGER, disc_total INTEGER, track_no INTEGER, track_total INTEGER,
+                         release_date TEXT,        -- as tagged: 2024, 2024-03 or 2024-03-15
+                         release_type TEXT,        -- album | ep | single | compilation | other
+                         compilation INTEGER NOT NULL DEFAULT 0,
+                         genre TEXT,
+                         rg_track_gain REAL, rg_track_peak REAL, rg_album_gain REAL, rg_album_peak REAL);
+CREATE TABLE credit     (item_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         artist_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         role TEXT NOT NULL,       -- artist | album_artist
+                         position INTEGER NOT NULL, join_phrase TEXT NOT NULL DEFAULT '',
+                         PRIMARY KEY (item_id, role, position));
+CREATE TABLE external_id(item_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         provider TEXT NOT NULL,   -- musicbrainz, theaudiodb, ...
+                         kind TEXT NOT NULL,       -- artist | release | release_group | recording | track
+                         value TEXT NOT NULL,
+                         PRIMARY KEY (provider, kind, value, item_id));
+CREATE TABLE file_audio (file_id INTEGER PRIMARY KEY REFERENCES file(id) ON DELETE CASCADE,
+                         codec TEXT, sample_rate INTEGER, bit_depth INTEGER, channels INTEGER,
+                         lossless INTEGER NOT NULL, bitrate INTEGER, duration_ms INTEGER);
+CREATE TABLE play_queue (position INTEGER PRIMARY KEY, item_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         file_id INTEGER REFERENCES file(id) ON DELETE SET NULL,
+                         shuffled_position INTEGER);
+ALTER TABLE playstate ADD COLUMN play_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE playstate ADD COLUMN last_played_at INTEGER;
+```
+
+- The hierarchy is artist → album → track: an album's `parent_id` is its first album artist, a track's is its album. Compilations without one album artist hang below one "Various Artists" item. `credit` holds every artist of a track and every album artist of an album, in order with their join phrases ("feat.", "&"), so "A feat. B" is one credit line with two artists, and B's page lists the track.
+- `external_id` holds provider ids for music; `tmdb_id` and `imdb_id` stay on `item` for video. The queue's state (current position, playback position, shuffle, repeat) lives in `setting`.
+- Track numbers, durations and audio properties come from the file, not from the providers; providers fill in what tags lack (release type, dates, artist ids) and never overwrite a tag silently.
+
+*Scan pipeline for music folders (issue #7).*
+
+1. Enumerate and diff by path, size and modification time, as for video. Unchanged files are not read again.
+2. Read tags with the `lofty` crate (MIT or Apache-2.0) through `Source::read_at` with range reads: the header and tag blocks only, never whole files; a test counts the bytes read. Fields: title, artists, album, album artist, track and disc numbers, date, genre, compilation flag, MusicBrainz ids, ReplayGain, duration, codec, sample rate, bit depth, channels.
+3. Group tracks into albums: by MusicBrainz release id when present; otherwise by album artist (or artist), album title and year within one folder tree (an album folder with `CD1`, `Disc 2` subfolders is one album). Multi-disc albums keep their disc numbers; compilations are albums with the compilation flag or many track artists and no album artist.
+4. Files without usable tags fall back to the folder and file name: `Artist/Album/01 - Title.ext`, `Artist - Album/01. Title.ext`, `01 Artist - Title.ext`. A broken tag never stops the scan; the file then appears under its file name. The fallback patterns are tested against a corpus of real-world folder names, like the video file names.
+5. Artwork: embedded pictures (the front cover first) and sidecar images (`cover`, `folder`, `front`, `album` with `.jpg`, `.jpeg` or `.png`) go into the artwork cache in the same thumbnail tiers as posters, square.
+6. Match online (below), unless music metadata is limited to file tags.
+
+*Providers.* A `MusicProvider` trait sits next to `MetadataProvider` in `crates/metadata`, with release lookup by id, release search by artist, title and track count, artist lookup, and images by id. Implementations: MusicBrainz and the Cover Art Archive (issue #11), TheAudioDB and Fanart.tv (issue #12).
+
+- MusicBrainz: about one request per second per IP on average, HTTP 503 above it; every request carries a User-Agent with the application, its real version and the project URL: `Huehuecoyotl/<version> ( https://github.com/blub3/huehuecoyotl )`. One limiter for the whole app keeps to that rate across all jobs and backs off on 503. A lookup by release id takes one request that includes the related data needed (`inc=` artists, recordings, release group). A match without ids that is not clearly right goes to "needs review", like video; the user's choice is locked.
+- Artwork order for an album: embedded art, then sidecar images, then the Cover Art Archive (the release, then its release group), then the optional providers. The optional providers' album covers are used only when nothing else has one. Artist images, backgrounds, logos and biographies come only from the optional providers; without them an artist shows its initials on a tinted tile.
+- Keys: MusicBrainz and the Cover Art Archive need none. TheAudioDB and Fanart.tv need keys: each user enters their own in Settings → Metadata, as for TMDB; they are validated when entered, kept in the OS keystore and redacted from logs, and both providers stay off until then (decided in v1.9, section 12). The project ships no keys.
+- Data licences (to confirm when issue #11 is implemented): MusicBrainz core data is CC0; the Cover Art Archive's images belong to their rights holders and are fetched for display only. The About screen credits MusicBrainz, the Cover Art Archive and, when used, TheAudioDB and Fanart.tv, according to their terms.
+- Every lookup is a persisted job with the music limiter; albums on screen go first. The library works from tags alone while lookups run, which take long for a large library at one request per second.
+
+*Privacy.* Online lookups send artist and album names (and ids) to third parties. Settings → Metadata has "Music information: from file tags only, or also from MusicBrainz and the Cover Art Archive". With tags only, no request leaves the machine for music; a test asserts that. The default is online (decided in v1.9, section 12): lookups start with the first music folder, and the user guide and the setting say what is sent.
+
 **TMDB**
 
 - [Terms](https://developer.themoviedb.org/docs/faq): free for non-commercial use with attribution. The About screen must carry an approved TMDB logo, less prominent than the app's own, and the notice that the product uses the TMDB API but is not endorsed or certified by TMDB.
@@ -378,6 +460,8 @@ mod ffi {
 
 On the C++ side, `LibraryModel` and `EpisodeModel` (`QAbstractListModel`s) fetch pages on demand and `PlayerController` connects tickets to `MpvPlayer`. The command-line harness uses the same Rust API with a channel as its sink.
 
+**Music additions (2.0).** The same rules apply: paged queries and change events with ids. New calls: `browse_music` (albums or artists, sorted and filtered, paged), `album_detail` and `artist_detail` (the track list grouped by disc, the artist's albums grouped by release type), music results in `search` grouped by kind, and the queue: `queue_play` (items, start index, shuffle), `queue_insert` (play next or add to the end), `queue_move`, `queue_remove`, `queue_step` (next or previous), `queue_set_mode` (shuffle, repeat) and `queue_state`. The core answers with `QueueChanged` (the entries around the current one, the position, the modes) and hands the shell the current and the following entry as playback tickets, as for video. `report_progress` records play counts for tracks.
+
 [CXX-Qt](https://github.com/KDAB/cxx-qt) from KDAB would allow the models themselves to be written in Rust. It is still below 1.0, so the spec uses plain `cxx` now and leaves that as a later option.
 
 ## 9. Qt Quick UI layer
@@ -394,6 +478,15 @@ The UI is QML on top of a few C++ models and controllers: it holds no business l
 | Desktop integration (C++) | Fullscreen and cursor auto-hide; screensaver inhibit during playback; media keys through SMTC on Windows and MPRIS over D-Bus on Linux |
 | Localisation and accessibility | `qsTr` strings with Qt Linguist files and `Accessible` properties from the start; retrofitting both is expensive |
 | Tooling | `qmllint` and the QML compiler run in every build |
+
+**Music section (2.0, issue #10)**
+
+- The navigation rail gains **Music**, with Albums, Artists and Recently added as tabs of its page. Home gains rows for recently added albums and recently played music, shown only when there is music.
+- Albums: a grid of square covers that follows the cover-size settings. Album page: cover, artist, year, total duration, format and Hi-Res badge, the tracks grouped by disc, and Play, Shuffle, Save (offline copies, section 7) and Save as…. Artist page: albums grouped by release type (album, EP, single, compilation), sorted by year, with the artist's image and biography when a provider supplied them.
+- Now Playing: cover, title, artist, album, a format line ("FLAC · 96 kHz · 24 bit"), the signal path (5.7), the seek bar and the queue. A mini player at the bottom of the shell stays visible while music plays and leads back to Now Playing; it takes no focus of its own until the user moves down to it.
+- Search shows artists, albums and tracks grouped by kind next to movies and shows. Adding a library folder asks for its content type.
+- Long lists use paged C++ models, as for video; QML holds no business logic. Without a music folder the Music page explains how to add one instead of showing empty grids.
+- Keys: everywhere as for video; on Now Playing and in the mini player, Space plays or pauses, and the media keys work throughout.
 
 **Performance budgets**
 
@@ -440,8 +533,10 @@ Cargo.toml           Rust workspace
 | Platform | Formats | Notes |
 | --- | --- | --- |
 | Windows | MSIX and a portable zip; winget manifest | MSVC toolchain; `windeployqt` collects the Qt libraries. Code signing is needed to avoid SmartScreen warnings and has a recurring cost. |
-| Linux | Flatpak on Flathub first; AppImage second | The Flatpak builds on the KDE runtime, which provides Qt 6, and uses portals for secrets and idle inhibit. The AppImage bundles Qt. Distribution packages are left to the community. |
+| Linux | Flatpak on Flathub first; AppImage second | The Flatpak builds on the KDE runtime, which provides Qt 6; it reaches the Secret Service directly (section 6) and uses portals for files and idle inhibit. The AppImage bundles Qt. Distribution packages are left to the community. |
 | macOS | Universal, notarised app bundle | Tier 2, after 1.0 |
+
+**Formats in the bundle (2.0).** The FFmpeg recipe already builds every decoder and demuxer: it disables only encoders, muxers and devices. The bundle therefore already decodes FLAC, ALAC, PCM (WAV, AIFF), MP3, AAC, Vorbis, Opus and WavPack (checked on the 1.6 bundle); nothing has to be added for 2.0. mpv is built with PulseAudio, PipeWire and ALSA outputs and its file output (`ao=pcm`) for the tests. Issue #8 adds a test that plays one generated fixture per format through the bundled libmpv. Fixtures are generated in the test setup (tones or silence with tags); no copyrighted music is committed.
 
 **CI pipeline (GitHub Actions, Windows and Linux runners)**
 
@@ -472,6 +567,8 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 - **M5 Windows release** (was "Release 1.1" until v1.4). The Windows parts of the M0 to M4 gates (first run on Windows, Windows servers, Intel and AMD graphics); MSIX and winget packages; code signing; SMTC media keys; SFTP in the app. Direct mode with HDR passthrough was part of M5 until v1.3 and is now unscheduled.
 
 **M5 status (Nov 12, 2026).** Paused: GitHub Actions has no minutes left, and the Windows build needs it (or a Windows build machine). The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). The Windows release workflow is ready in PR #31 but untested. Open: that PR, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
+
+**2.0 (planned): music.** The specification (#6) comes first; then, in this order: the music library from tags (#7), MusicBrainz and the Cover Art Archive (#11), the Music section (#10, which can start once #7 is merged), the play queue, gapless playback and Now Playing (#8), TheAudioDB and Fanart.tv (#12), and the bit-perfect output (#9). 2.0 is released when all seven are done (decided in v1.9); #9's manual checklist needs a USB DAC with a rate display and is run by the maintainer. Where an issue's work is Windows-only (SMTC metadata for music, WASAPI exclusive mode) it is built with the Windows release.
 
 **1.6.1 (Nov 16, 2026): released for Linux.** The TMDB key status in Settings (#52). The key was never lost: the core loaded it at start-up, but Settings asked before that and was not told afterwards.
 
@@ -516,6 +613,11 @@ The two video paths are the risk that could still change the architecture, so bo
 - [x] Direct mode on Wayland: embedded mode in 1.0, a separate mpv window as a later opt-in (section 5.6)
 - [x] TMDB key policy: user-supplied only, entered in the Settings menu
 - [x] Governance: DCO, Contributor Covenant and CI-only releases (section 13)
+- [x] **Music, online lookups by default** (2.0, v1.9): online. MusicBrainz and Cover Art Archive lookups start with the first music folder; Settings → Metadata can limit music information to file tags (no request then). The recommendation had been to ask first.
+- [x] **Music, keys for TheAudioDB and Fanart.tv** (issue #12, v1.9): option A, each user's own keys in the OS keystore, both providers off until entered. Project keys (option B) were not chosen.
+- [x] **Music, direct ALSA access in the Flatpak** (issue #9, v1.9): no manifest change; under Flatpak bit-perfect mode uses PipeWire with configured rates. Revisit if users ask for it.
+- [x] **Music, scope of 2.0** (v1.9): 2.0 is released when all seven music issues are done, bit-perfect mode (#9) and the optional providers (#12) included.
+- [x] **Music, two mpv handles** (5.7, v1.9): an audio-only handle for music next to the video one.
 - [ ] Windows video path: direct mode for all playback (SDR and HDR) so Qt Quick stays on Direct3D 11, or embedded mode for SDR with Qt forced to OpenGL. Decided by tests W3 and W3b of the [direct mode design](spike/direct-mode-design.md).
 
 **Project name: Huehuecoyotl.** The app is named after the Aztec god of music, dance and storytelling, who is depicted as a dancing coyote. The README should explain the name in one respectful line, since it comes from a living Nahua tradition.
