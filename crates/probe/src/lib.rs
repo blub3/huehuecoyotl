@@ -562,20 +562,21 @@ unsafe fn read_info(
     }
     // The overall rate from size and duration when the container has none, and the video's
     // from the overall minus the audio when only that is known: both labelled "estimated".
-    if info.video.len() == 1 && info.video[0].bitrate.is_none() {
-        if let Some(total) = info.bitrate {
-            let audio: u64 = info
-                .audio
-                .iter()
-                .filter_map(|a| a.bitrate.map(|b| b.bps))
-                .sum();
-            let all_audio_known = info.audio.iter().all(|a| a.bitrate.is_some());
-            if all_audio_known && total.bps > audio {
-                info.video[0].bitrate = Some(Bitrate {
-                    bps: total.bps - audio,
-                    estimated: true,
-                });
-            }
+    if info.video.len() == 1
+        && info.video[0].bitrate.is_none()
+        && let Some(total) = info.bitrate
+    {
+        let audio: u64 = info
+            .audio
+            .iter()
+            .filter_map(|a| a.bitrate.map(|b| b.bps))
+            .sum();
+        let all_audio_known = info.audio.iter().all(|a| a.bitrate.is_some());
+        if all_audio_known && total.bps > audio {
+            info.video[0].bitrate = Some(Bitrate {
+                bps: total.bps - audio,
+                estimated: true,
+            });
         }
     }
     info

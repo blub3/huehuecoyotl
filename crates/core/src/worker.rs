@@ -10,6 +10,7 @@ use huehuecoyotl_metadata::matching::{
     Decision, PLAUSIBLE, decide, filter_country, fits_structure, search_queries, split_country,
 };
 use huehuecoyotl_metadata::{Candidate, MediaType, MetaError, MetadataProvider, artwork};
+use huehuecoyotl_scanner::music::{Cover, scan_music_source};
 use huehuecoyotl_scanner::scan::{ScanError, regroup_shows, scan_source};
 use huehuecoyotl_vfs::VPath;
 use serde_json::json;
@@ -129,7 +130,7 @@ async fn scan(inner: &Arc<Inner>, source_id: i64) -> Result<(), String> {
         .await
         .map_err(|e| e.to_string())?;
     // The library was removed meanwhile.
-    let Some((kind, Some(root))) = row.map(|r| (r.kind, r.root)) else {
+    let Some((kind, Some(root), content)) = row.map(|r| (r.kind, r.root, r.content)) else {
         return Ok(());
     };
     let remote = if kind == "local" {
@@ -154,17 +155,18 @@ async fn scan(inner: &Arc<Inner>, source_id: i64) -> Result<(), String> {
         running: true,
         message: String::new(),
     });
-    let res = match &remote {
-        None => scan_source(&inner.lib, &inner.local, source_id, &VPath::new(&root)).await,
-        Some(src) => {
-            let root = if root.is_empty() {
-                "/".to_string()
-            } else {
-                root
-            };
-            scan_source(&inner.lib, &**src, source_id, &VPath::new(root)).await
-        }
+    let root = match &remote {
+        Some(_) if root.is_empty() => "/".to_string(),
+        _ => root,
     };
+    let src: &dyn huehuecoyotl_vfs::Source = match &remote {
+        None => &inner.local,
+        Some(s) => &**s,
+    };
+    if content == "music" {
+        return scan_music(inner, src, source_id, &VPath::new(root)).await;
+    }
+    let res = scan_source(&inner.lib, src, source_id, &VPath::new(root)).await;
     if let Err(ScanError::Vfs(huehuecoyotl_vfs::VfsError::Unreachable(_))) = &res {
         inner.set_online(source_id, false);
     }
@@ -217,6 +219,118 @@ async fn scan(inner: &Arc<Inner>, source_id: i64) -> Result<(), String> {
         message,
     });
     out
+}
+
+/// A music folder (issue #7): tags, albums and artists, then the albums' covers.
+async fn scan_music(
+    inner: &Arc<Inner>,
+    src: &dyn huehuecoyotl_vfs::Source,
+    source_id: i64,
+    root: &VPath,
+) -> Result<(), String> {
+    let res = scan_music_source(&inner.lib, src, source_id, root).await;
+    if let Err(ScanError::Vfs(huehuecoyotl_vfs::VfsError::Unreachable(_))) = &res {
+        inner.set_online(source_id, false);
+    }
+    inner.scanning.lock().unwrap().remove(&source_id);
+    let (message, out) = match res {
+        Ok(r) => {
+            for (album, cover) in r.covers {
+                write_cover(inner, src, album, cover).await;
+            }
+            inner.mark_changed();
+            (
+                format!(
+                    "{} files, {} new, {} removed",
+                    r.files_seen, r.added, r.removed
+                ),
+                Ok(()),
+            )
+        }
+        Err(ScanError::LooksUnreachable | ScanError::Vfs(_)) => {
+            ("The folder cannot be read right now.".to_string(), Ok(()))
+        }
+        Err(e) => (e.to_string(), Err(e.to_string())),
+    };
+    inner.sink.post(Event::ScanState {
+        source_id,
+        running: false,
+        message,
+    });
+    out
+}
+
+/// An album's cover from its tags or a sidecar image, in the tiers posters have: the full image
+/// (`poster`, at most 1000 px) and the two grid tiers. Failures are logged and skipped.
+async fn write_cover(
+    inner: &Arc<Inner>,
+    src: &dyn huehuecoyotl_vfs::Source,
+    album: i64,
+    cover: Cover,
+) {
+    let data = match cover {
+        Cover::Embedded(b) => b,
+        Cover::Sidecar(path) => {
+            let size = match src.stat(&path).await {
+                Ok(e) => e.size,
+                Err(e) => {
+                    tracing::warn!(album, "cover not readable: {e}");
+                    return;
+                }
+            };
+            if size > 32 << 20 {
+                tracing::warn!(album, size, "cover too large, skipped");
+                return;
+            }
+            let mut data = Vec::with_capacity(size as usize);
+            while (data.len() as u64) < size {
+                let want = (size - data.len() as u64).min(4 << 20) as u32;
+                match src.read_at(&path, data.len() as u64, want).await {
+                    Ok(b) if !b.is_empty() => data.extend_from_slice(&b),
+                    Ok(_) => break,
+                    Err(e) => {
+                        tracing::warn!(album, "cover not readable: {e}");
+                        return;
+                    }
+                }
+            }
+            data
+        }
+    };
+    let dir = inner.data_dir.join("artwork").join(album.to_string());
+    let data = Arc::new(data);
+    for (role, width) in [
+        ("poster", 1000),
+        ("poster_grid", artwork::GRID_WIDTH),
+        ("poster_grid_l", artwork::GRID_LARGE_WIDTH),
+    ] {
+        let (d, dir) = (data.clone(), dir.clone());
+        let made = tokio::task::spawn_blocking(move || -> Result<(String, u32, u32), String> {
+            let (jpg, w, h) = artwork::scale_to_jpeg(&d, width)?;
+            std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+            let file = dir.join(format!("{role}.jpg"));
+            std::fs::write(&file, jpg).map_err(|e| e.to_string())?;
+            Ok((VPath::new(file.to_string_lossy()).to_string(), w, h))
+        })
+        .await;
+        match made {
+            Ok(Ok((local, w, h))) => {
+                let _ = inner
+                    .lib
+                    .write(move |c| catalog::set_artwork_tier(c, album, role, &local, w, h))
+                    .await;
+            }
+            Ok(Err(e)) => {
+                tracing::warn!(album, "cover could not be decoded: {e}");
+                return;
+            }
+            Err(e) => {
+                tracing::warn!(album, "cover not written: {e}");
+                return;
+            }
+        }
+    }
+    inner.sink.post(Event::ItemChanged { item_id: album });
 }
 
 fn media_type(kind: &str) -> Option<MediaType> {

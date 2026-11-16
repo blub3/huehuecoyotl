@@ -7,6 +7,9 @@ use rusqlite::Transaction;
 pub enum Migration {
     Sql(&'static str),
     Rust(fn(&Transaction) -> crate::Result<()>),
+    /// A table rebuild (SQLite's twelve-step procedure): runs with foreign keys off, so dropping
+    /// the old table cascades nothing, and commits only when `PRAGMA foreign_key_check` is clean.
+    Rebuild(fn(&Transaction) -> crate::Result<()>),
 }
 
 pub const MIGRATIONS: &[Migration] = &[
@@ -167,4 +170,86 @@ END;
 CREATE TABLE setting(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 "#,
     ),
+    // 8: music (2.0, SPEC 7 "Music library"): the kinds artist, album and track, content types
+    // of library folders, and the music tables. Ids are kept, so files, play state, artwork and
+    // offline copies stay attached.
+    Migration::Rebuild(music_schema),
 ];
+
+/// The old and new kind constraint of `item`.
+const KINDS_7: &str = "CHECK (kind IN ('movie','show','season','episode','video'))";
+const KINDS_8: &str =
+    "CHECK (kind IN ('movie','show','season','episode','video','artist','album','track'))";
+
+fn music_schema(tx: &Transaction) -> crate::Result<()> {
+    // `item` as it is now (columns added by earlier migrations included), with the new kinds.
+    let sql: String = tx.query_row(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'item'",
+        [],
+        |r| r.get(0),
+    )?;
+    if !sql.contains(KINDS_7) {
+        return Err(crate::DbError::Other(format!(
+            "unexpected item table, not migrating: {sql}"
+        )));
+    }
+    let new_sql = sql
+        .replacen(KINDS_7, KINDS_8, 1)
+        .replacen("CREATE TABLE item ", "CREATE TABLE item_new ", 1)
+        .replacen("CREATE TABLE \"item\"", "CREATE TABLE item_new", 1);
+    if !new_sql.contains("item_new") {
+        return Err(crate::DbError::Other(format!("cannot rename item: {sql}")));
+    }
+    let indexes: Vec<String> = {
+        let mut st = tx.prepare(
+            "SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'item' AND sql IS NOT NULL",
+        )?;
+        st.query_map([], |r| r.get(0))?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    tx.execute_batch(&new_sql)?;
+    tx.execute_batch(
+        "INSERT INTO item_new SELECT * FROM item;
+         DROP TABLE item;
+         ALTER TABLE item_new RENAME TO item;",
+    )?;
+    for ix in &indexes {
+        tx.execute_batch(ix)?;
+    }
+    tx.execute_batch(MUSIC_TABLES)?;
+    Ok(())
+}
+
+const MUSIC_TABLES: &str = r#"
+ALTER TABLE source ADD COLUMN content TEXT NOT NULL DEFAULT 'video' CHECK (content IN ('video','music'));
+
+CREATE TABLE music      (item_id INTEGER PRIMARY KEY REFERENCES item(id) ON DELETE CASCADE,
+                         disc_no INTEGER, disc_total INTEGER, track_no INTEGER, track_total INTEGER,
+                         release_date TEXT,
+                         release_type TEXT,
+                         compilation INTEGER NOT NULL DEFAULT 0,
+                         genre TEXT,
+                         rg_track_gain REAL, rg_track_peak REAL, rg_album_gain REAL, rg_album_peak REAL);
+CREATE TABLE credit     (item_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         artist_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         role TEXT NOT NULL CHECK (role IN ('artist','album_artist')),
+                         position INTEGER NOT NULL,
+                         join_phrase TEXT NOT NULL DEFAULT '',
+                         PRIMARY KEY (item_id, role, position));
+CREATE INDEX credit_artist ON credit(artist_id, role);
+CREATE TABLE external_id(item_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         provider TEXT NOT NULL,
+                         kind TEXT NOT NULL,
+                         value TEXT NOT NULL,
+                         PRIMARY KEY (provider, kind, value, item_id));
+CREATE INDEX external_id_item ON external_id(item_id);
+CREATE TABLE file_audio (file_id INTEGER PRIMARY KEY REFERENCES file(id) ON DELETE CASCADE,
+                         codec TEXT, sample_rate INTEGER, bit_depth INTEGER, channels INTEGER,
+                         lossless INTEGER NOT NULL DEFAULT 0, bitrate INTEGER, duration_ms INTEGER);
+CREATE TABLE play_queue (position INTEGER PRIMARY KEY,
+                         item_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         file_id INTEGER REFERENCES file(id) ON DELETE SET NULL,
+                         shuffled_position INTEGER);
+ALTER TABLE playstate ADD COLUMN play_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE playstate ADD COLUMN last_played_at INTEGER;
+"#;

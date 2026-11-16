@@ -34,6 +34,7 @@ pub(crate) async fn library_list(inner: &Arc<Inner>) -> Result<Vec<LibraryInfo>,
             name: l.name,
             files: l.files,
             last_scan_ms: l.last_scan.unwrap_or(0),
+            content: l.content,
         })
         .collect())
 }
@@ -65,9 +66,10 @@ impl Core {
         });
     }
 
-    /// Add a folder to the library and scan it.
-    pub fn add_library(&self, request_id: u64, path: &str) {
+    /// Add a folder to the library and scan it. `content`: `video` or `music` (SPEC 6).
+    pub fn add_library(&self, request_id: u64, path: &str, content: &str) {
         let root = huehuecoyotl_vfs::VPath::new(path.trim_end_matches(['/', '\\'])).to_string();
+        let content = content_type(content);
         self.spawn(request_id, move |inner| async move {
             let meta = tokio::fs::metadata(&root)
                 .await
@@ -86,7 +88,7 @@ impl Core {
             let r = root.clone();
             let id = inner
                 .lib
-                .write(move |c| catalog::add_library(c, &name, &r))
+                .write(move |c| catalog::add_library(c, &name, &r, content))
                 .await?;
             enqueue_scan(&inner, id, jobs::priority::USER).await;
             Ok(Event::Libraries {
@@ -490,6 +492,15 @@ impl Core {
     }
 }
 
+/// A library folder's content type: `music`, anything else is `video`.
+pub(crate) fn content_type(s: &str) -> &'static str {
+    if s.eq_ignore_ascii_case("music") {
+        "music"
+    } else {
+        "video"
+    }
+}
+
 fn now_s() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -516,10 +527,10 @@ pub(crate) fn compact_probe(json: &str) -> String {
     let pick = |v: &Value, keys: &[&str]| -> Value {
         let mut m = Map::new();
         for k in keys {
-            if let Some(x) = v.get(*k) {
-                if !x.is_null() {
-                    m.insert((*k).to_string(), x.clone());
-                }
+            if let Some(x) = v.get(*k)
+                && !x.is_null()
+            {
+                m.insert((*k).to_string(), x.clone());
             }
         }
         Value::Object(m)

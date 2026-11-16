@@ -212,10 +212,11 @@ impl MetadataProvider for Tmdb {
         let v = self.get(&path, &q).await?;
         let c = Self::candidate(ty, &v);
         let mut overview = c.overview.clone();
-        if overview.is_empty() && !self.is_english() {
-            if let Ok(en) = self.get(&path, &[("language", "en-US".to_string())]).await {
-                overview = s(&en, "overview");
-            }
+        if overview.is_empty()
+            && !self.is_english()
+            && let Ok(en) = self.get(&path, &[("language", "en-US".to_string())]).await
+        {
+            overview = s(&en, "overview");
         }
         let runtime = match ty {
             MediaType::Movie => v.get("runtime").and_then(Value::as_u64),
@@ -289,10 +290,10 @@ impl MetadataProvider for Tmdb {
                     .enumerate()
                     .map(|(i, x)| {
                         let mut overview = s(x, "overview");
-                        if overview.is_empty() {
-                            if let Some(e) = en.as_ref().and_then(|e| e["episodes"].get(i)) {
-                                overview = s(e, "overview");
-                            }
+                        if overview.is_empty()
+                            && let Some(e) = en.as_ref().and_then(|e| e["episodes"].get(i))
+                        {
+                            overview = s(e, "overview");
                         }
                         EpisodeDetails {
                             episode_no: x.get("episode_number").and_then(Value::as_u64).unwrap_or(0)

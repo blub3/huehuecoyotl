@@ -256,10 +256,10 @@ quint64 CoreBridge::libraries()
     return id;
 }
 
-quint64 CoreBridge::addLibrary(const QString &path)
+quint64 CoreBridge::addLibrary(const QString &path, const QString &content)
 {
     const quint64 id = nextId();
-    if (m_core) (*m_core)->add_library(id, rs(path.toUtf8()));
+    if (m_core) (*m_core)->add_library(id, rs(path.toUtf8()), rs(content.toUtf8()));
     return id;
 }
 
@@ -629,7 +629,8 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                                     {"root", qs(l.root)},
                                     {"files", qlonglong(l.files)},
                                     {"lastScanMs", qlonglong(l.last_scan_ms)},
-                                    {"scanning", l.scanning}});
+                                    {"scanning", l.scanning},
+                                    {"content", qs(l.content)}});
         emit librariesListed(e.request_id, libs);
     } else if (e.kind == K::Review) {
         QVariantList items;

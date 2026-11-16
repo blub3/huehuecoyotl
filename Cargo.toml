@@ -7,7 +7,7 @@ version = "1.6.1"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/blub3/huehuecoyotl"
-rust-version = "1.86"
+rust-version = "1.89"
 
 [workspace.dependencies]
 huehuecoyotl-core = { path = "crates/core" }
@@ -23,6 +23,8 @@ bytes = "1"
 crossbeam-channel = "0.5"
 cxx = "1.0.205"
 rusqlite = { version = "0.41", features = ["bundled"] }
+# Issue #7: audio tags (MIT OR Apache-2.0).
+lofty = "0.25.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tempfile = "3"

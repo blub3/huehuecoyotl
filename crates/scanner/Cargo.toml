@@ -9,11 +9,15 @@ rust-version.workspace = true
 [dependencies]
 huehuecoyotl-library.workspace = true
 huehuecoyotl-vfs.workspace = true
+lofty.workspace = true
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+async-trait.workspace = true
+bytes.workspace = true
 tempfile.workspace = true
 
 [lints]

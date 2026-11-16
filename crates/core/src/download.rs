@@ -966,62 +966,62 @@ async fn add_companions(inner: &Arc<Inner>, main: &Copy, src: &dyn Source) {
             "export to a single portal file: subtitles are not copied"
         );
     }
-    if let (false, Some(dir)) = (portal_file, vp.parent()) {
-        if let Ok(siblings) = src.list(&dir).await {
-            // Subtitles take the video's new base name ("Alien.en.srt" next to "My Alien.mkv").
-            let stem = |n: &str| n.rsplit_once('.').map_or(n, |(s, _)| s).to_string();
-            let (from, to) = (
-                stem(vp.file_name()),
-                stem(
-                    &PathBuf::from(&main.path)
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy(),
-                ),
-            );
-            for e in find_sidecar_subtitles(vp.file_name(), &siblings) {
-                let name = match e.name.strip_prefix(&from) {
-                    Some(rest) if from != to => format!("{to}{rest}"),
-                    _ => e.name.clone(),
-                };
-                new.push((None, e.path.to_string(), e.mtime, e.size, name));
-            }
+    if let (false, Some(dir)) = (portal_file, vp.parent())
+        && let Ok(siblings) = src.list(&dir).await
+    {
+        // Subtitles take the video's new base name ("Alien.en.srt" next to "My Alien.mkv").
+        let stem = |n: &str| n.rsplit_once('.').map_or(n, |(s, _)| s).to_string();
+        let (from, to) = (
+            stem(vp.file_name()),
+            stem(
+                &PathBuf::from(&main.path)
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy(),
+            ),
+        );
+        for e in find_sidecar_subtitles(vp.file_name(), &siblings) {
+            let name = match e.name.strip_prefix(&from) {
+                Some(rest) if from != to => format!("{to}{rest}"),
+                _ => e.name.clone(),
+            };
+            new.push((None, e.path.to_string(), e.mtime, e.size, name));
         }
     }
     // Other parts (cd1, part 2, ...) of the same movie in the same folder.
     let name = vp.file_name().to_string();
-    if huehuecoyotl_scanner::parse::parse(&name).part.is_some() {
-        if let Some(item) = main.item_id {
-            let dir = vp.parent().map(|p| p.to_string()).unwrap_or_default();
-            let mine = main.file_id;
-            let parts = inner
-                .lib
-                .read(move |c| {
-                    let mut out = Vec::new();
-                    for id in copies::network_files(c, item)? {
-                        if Some(id) == mine {
-                            continue;
-                        }
-                        if let Some(t) = copies::target(c, id)? {
-                            let p = VPath::new(&t.path);
-                            let same_dir = p.parent().map(|d| d.to_string()) == Some(dir.clone());
-                            if same_dir
-                                && huehuecoyotl_scanner::parse::parse(p.file_name())
-                                    .part
-                                    .is_some()
-                            {
-                                out.push(t);
-                            }
+    if huehuecoyotl_scanner::parse::parse(&name).part.is_some()
+        && let Some(item) = main.item_id
+    {
+        let dir = vp.parent().map(|p| p.to_string()).unwrap_or_default();
+        let mine = main.file_id;
+        let parts = inner
+            .lib
+            .read(move |c| {
+                let mut out = Vec::new();
+                for id in copies::network_files(c, item)? {
+                    if Some(id) == mine {
+                        continue;
+                    }
+                    if let Some(t) = copies::target(c, id)? {
+                        let p = VPath::new(&t.path);
+                        let same_dir = p.parent().map(|d| d.to_string()) == Some(dir.clone());
+                        if same_dir
+                            && huehuecoyotl_scanner::parse::parse(p.file_name())
+                                .part
+                                .is_some()
+                        {
+                            out.push(t);
                         }
                     }
-                    Ok(out)
-                })
-                .await
-                .unwrap_or_default();
-            for t in parts {
-                let n = t.path.rsplit('/').next().unwrap_or(&t.path).to_string();
-                new.push((Some(t.file_id), t.path, t.mtime.unwrap_or(0), t.size, n));
-            }
+                }
+                Ok(out)
+            })
+            .await
+            .unwrap_or_default();
+        for t in parts {
+            let n = t.path.rsplit('/').next().unwrap_or(&t.path).to_string();
+            new.push((Some(t.file_id), t.path, t.mtime.unwrap_or(0), t.size, n));
         }
     }
     let (kind, item_id, source_id) = (main.kind.clone(), main.item_id, main.source_id);

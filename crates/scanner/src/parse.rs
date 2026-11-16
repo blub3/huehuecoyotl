@@ -449,22 +449,27 @@ fn bare_episode(w: &str) -> Option<u16> {
     if first.len() <= 3 && first.bytes().all(|b| b.is_ascii_digit()) {
         return num(&first);
     }
-    if let Some(n) = first.strip_prefix('e') {
-        if !n.is_empty() && n.len() <= 3 && n.bytes().all(|b| b.is_ascii_digit()) {
-            return num(n);
-        }
+    if let Some(n) = first.strip_prefix('e')
+        && !n.is_empty()
+        && n.len() <= 3
+        && n.bytes().all(|b| b.is_ascii_digit())
+    {
+        return num(n);
     }
     for (i, t) in toks.iter().enumerate() {
         let l = t.to_ascii_lowercase();
-        if (l == "episode" || l == "ep" || l == "part" || l == "folge") && i + 1 < toks.len() {
-            if let Some(n) = num(toks[i + 1]) {
-                return Some(n);
-            }
+        if (l == "episode" || l == "ep" || l == "part" || l == "folge")
+            && i + 1 < toks.len()
+            && let Some(n) = num(toks[i + 1])
+        {
+            return Some(n);
         }
-        if l == "-" && i + 1 < toks.len() && toks[i + 1].len() <= 3 {
-            if let Some(n) = num(toks[i + 1]) {
-                return Some(n);
-            }
+        if l == "-"
+            && i + 1 < toks.len()
+            && toks[i + 1].len() <= 3
+            && let Some(n) = num(toks[i + 1])
+        {
+            return Some(n);
         }
     }
     None
@@ -479,10 +484,12 @@ fn movie_part(w: &str) -> Option<u16> {
                 if !n.is_empty() && n.len() <= 2 && n.bytes().all(|b| b.is_ascii_digit()) {
                     return num(n);
                 }
-                if n.is_empty() && i + 1 < toks.len() && toks[i + 1].len() <= 2 {
-                    if let Some(v) = num(&toks[i + 1]) {
-                        return Some(v);
-                    }
+                if n.is_empty()
+                    && i + 1 < toks.len()
+                    && toks[i + 1].len() <= 2
+                    && let Some(v) = num(&toks[i + 1])
+                {
+                    return Some(v);
                 }
             }
         }
@@ -677,16 +684,15 @@ pub fn parse(relative_path: &str) -> Parsed {
     p.title = t;
     p.year = y;
     p.part = movie_part(&w);
-    if p.year.is_none() {
-        if let Some(f) = folders
+    if p.year.is_none()
+        && let Some(f) = folders
             .last()
             .filter(|f| !GENERIC_FOLDERS.contains(&words(f).to_ascii_lowercase().as_str()))
-        {
-            let (ft, fy) = title_and_year(&words(f));
-            if fy.is_some() {
-                p.title = ft;
-                p.year = fy;
-            }
+    {
+        let (ft, fy) = title_and_year(&words(f));
+        if fy.is_some() {
+            p.title = ft;
+            p.year = fy;
         }
     }
     p

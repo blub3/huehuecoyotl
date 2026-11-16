@@ -12,10 +12,10 @@ const MOVIE: &str = "tests/servers/fixtures/Movies/Alien (1979)/Alien.1979.1080p
 fn wait(rx: &Receiver<Event>, what: &str, mut f: impl FnMut(&Event) -> bool) -> Event {
     let end = Instant::now() + Duration::from_secs(60);
     while Instant::now() < end {
-        if let Ok(e) = rx.recv_timeout(Duration::from_millis(200)) {
-            if f(&e) {
-                return e;
-            }
+        if let Ok(e) = rx.recv_timeout(Duration::from_millis(200))
+            && f(&e)
+        {
+            return e;
         }
     }
     panic!("timed out waiting for {what}");

@@ -30,12 +30,14 @@ pub struct LibraryFolder {
     pub config_json: String,
     pub files: i64,
     pub last_scan: Option<i64>,
+    /// `video` or `music` (2.0, SPEC 6 "Content type").
+    pub content: String,
 }
 
 pub fn libraries(c: &Connection) -> Result<Vec<LibraryFolder>> {
     let mut st = c.prepare(
         "SELECT s.id, s.name, s.root, (SELECT count(*) FROM file f WHERE f.source_id = s.id), s.last_scan,
-                s.kind, s.config_json
+                s.kind, s.config_json, s.content
          FROM source s WHERE s.root IS NOT NULL ORDER BY s.name",
     )?;
     let rows = st.query_map([], |r| {
@@ -47,13 +49,15 @@ pub fn libraries(c: &Connection) -> Result<Vec<LibraryFolder>> {
             last_scan: r.get(4)?,
             kind: r.get(5)?,
             config_json: r.get(6)?,
+            content: r.get(7)?,
         })
     })?;
     Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
-/// Add a library folder. Returns the existing id if the folder is already a library.
-pub fn add_library(c: &Connection, name: &str, root: &str) -> Result<i64> {
+/// Add a library folder with its content type (`video` or `music`). Returns the existing id if
+/// the folder is already a library (its content type stays).
+pub fn add_library(c: &Connection, name: &str, root: &str, content: &str) -> Result<i64> {
     let root = root.trim_end_matches('/');
     if let Some(id) = c
         .query_row(
@@ -66,8 +70,8 @@ pub fn add_library(c: &Connection, name: &str, root: &str) -> Result<i64> {
         return Ok(id);
     }
     c.execute(
-        "INSERT INTO source(kind, name, root) VALUES ('local', ?1, ?2)",
-        params![name, root],
+        "INSERT INTO source(kind, name, root, content) VALUES ('local', ?1, ?2, ?3)",
+        params![name, root, content],
     )?;
     Ok(c.last_insert_rowid())
 }
@@ -80,6 +84,7 @@ pub fn add_network_library(
     name: &str,
     config_json: &str,
     root: &str,
+    content: &str,
 ) -> Result<i64> {
     let root = root.trim_end_matches('/');
     if let Some(id) = c
@@ -93,8 +98,8 @@ pub fn add_network_library(
         return Ok(id);
     }
     c.execute(
-        "INSERT INTO source(kind, name, config_json, root) VALUES (?1, ?2, ?3, ?4)",
-        params![kind, name, config_json, root],
+        "INSERT INTO source(kind, name, config_json, root, content) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![kind, name, config_json, root, content],
     )?;
     let id = c.last_insert_rowid();
     c.execute(
@@ -111,11 +116,13 @@ pub struct SourceRow {
     pub config_json: String,
     pub credential_ref: Option<String>,
     pub root: Option<String>,
+    /// `video` or `music` (2.0).
+    pub content: String,
 }
 
 pub fn source(c: &Connection, id: i64) -> Result<Option<SourceRow>> {
     Ok(c.query_row(
-        "SELECT id, kind, config_json, credential_ref, root FROM source WHERE id = ?1",
+        "SELECT id, kind, config_json, credential_ref, root, content FROM source WHERE id = ?1",
         [id],
         |r| {
             Ok(SourceRow {
@@ -124,6 +131,7 @@ pub fn source(c: &Connection, id: i64) -> Result<Option<SourceRow>> {
                 config_json: r.get(2)?,
                 credential_ref: r.get(3)?,
                 root: r.get(4)?,
+                content: r.get(5)?,
             })
         },
     )
@@ -181,6 +189,10 @@ pub fn remove_library(c: &mut Connection, id: i64) -> Result<()> {
         "DELETE FROM item WHERE kind IN ('movie','episode','video') AND NOT EXISTS (SELECT 1 FROM file f WHERE f.item_id = item.id);
          DELETE FROM item WHERE kind = 'season' AND NOT EXISTS (SELECT 1 FROM item e WHERE e.parent_id = item.id);
          DELETE FROM item WHERE kind = 'show' AND NOT EXISTS (SELECT 1 FROM item s WHERE s.parent_id = item.id);
+         DELETE FROM item WHERE kind = 'track' AND NOT EXISTS (SELECT 1 FROM file f WHERE f.item_id = item.id);
+         DELETE FROM item WHERE kind = 'album' AND NOT EXISTS (SELECT 1 FROM item t WHERE t.parent_id = item.id);
+         DELETE FROM item WHERE kind = 'artist' AND NOT EXISTS (SELECT 1 FROM item a WHERE a.parent_id = item.id)
+           AND NOT EXISTS (SELECT 1 FROM credit c WHERE c.artist_id = item.id);
          DELETE FROM item_fts WHERE rowid NOT IN (SELECT id FROM item);",
     )?;
     tx.commit()?;
@@ -315,9 +327,13 @@ fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
 }
 
 /// Items that have something playable: movies and episodes with files; shows and seasons with
-/// at least one such episode.
+/// at least one such episode; music (2.0): tracks with a file, albums with such a track, artists
+/// with such an album or a credit on such a track.
 const VISIBLE: &str = "(
-    (i.kind IN ('movie','episode') AND EXISTS (SELECT 1 FROM file f WHERE f.item_id = i.id AND f.source_id != 1))
+    (i.kind IN ('movie','episode','track') AND EXISTS (SELECT 1 FROM file f WHERE f.item_id = i.id AND f.source_id != 1))
+ OR (i.kind = 'album' AND EXISTS (SELECT 1 FROM item t JOIN file f ON f.item_id = t.id WHERE t.parent_id = i.id))
+ OR (i.kind = 'artist' AND (EXISTS (SELECT 1 FROM item a JOIN item t ON t.parent_id = a.id JOIN file f ON f.item_id = t.id WHERE a.parent_id = i.id)
+                            OR EXISTS (SELECT 1 FROM credit c JOIN file f ON f.item_id = c.item_id WHERE c.artist_id = i.id)))
  OR (i.kind = 'season' AND EXISTS (SELECT 1 FROM item e JOIN file f ON f.item_id = e.id WHERE e.parent_id = i.id))
  OR (i.kind = 'show' AND EXISTS (SELECT 1 FROM item s JOIN item e ON e.parent_id = s.id JOIN file f ON f.item_id = e.id WHERE s.parent_id = i.id)))";
 
@@ -325,6 +341,8 @@ const VISIBLE: &str = "(
 pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
     let filter = match q.parent {
         Some(_) => "i.parent_id = ?1".to_string(),
+        // Albums and tracks hang below artists and albums, but are listed on their own too.
+        None if q.kind == "album" || q.kind == "track" => "i.kind = ?1".to_string(),
         None => "i.kind = ?1 AND i.parent_id IS NULL".to_string(),
     };
     let unwatched = if q.unwatched_only {
@@ -511,16 +529,16 @@ pub fn detail(c: &Connection, id: i64) -> Result<Option<Detail>> {
         _ => None,
     };
     let mut backdrop = art(c, id, "backdrop")?;
-    if backdrop.is_empty() {
-        if let Some(s) = show_id {
-            backdrop = art(c, s, "backdrop")?;
-        }
+    if backdrop.is_empty()
+        && let Some(s) = show_id
+    {
+        backdrop = art(c, s, "backdrop")?;
     }
     let mut poster_full = art(c, id, "poster")?;
-    if poster_full.is_empty() {
-        if let Some(s) = show_id {
-            poster_full = art(c, s, "poster")?;
-        }
+    if poster_full.is_empty()
+        && let Some(s) = show_id
+    {
+        poster_full = art(c, s, "poster")?;
     }
     let parent_title: String = match show_id {
         Some(s) => c
@@ -1021,10 +1039,10 @@ fn sort_key(t: &str) -> String {
     for a in [
         "the ", "a ", "an ", "der ", "die ", "das ", "le ", "la ", "les ", "el ",
     ] {
-        if let Some(rest) = l.strip_prefix(a) {
-            if !rest.is_empty() {
-                return rest.to_string();
-            }
+        if let Some(rest) = l.strip_prefix(a)
+            && !rest.is_empty()
+        {
+            return rest.to_string();
         }
     }
     l
@@ -1219,8 +1237,8 @@ mod tests {
     #[test]
     fn library_items_browse_search_detail() {
         let mut c = db();
-        let lib = add_library(&c, "Media", "/m").unwrap();
-        assert_eq!(add_library(&c, "Again", "/m/").unwrap(), lib);
+        let lib = add_library(&c, "Media", "/m", "video").unwrap();
+        assert_eq!(add_library(&c, "Again", "/m/", "video").unwrap(), lib);
         c.execute_batch(&format!(
             "INSERT INTO item(id, kind, title, sort_title, year, added_at) VALUES (1,'movie','The Matrix','matrix',1999,10), (2,'movie','Alien','alien',1979,20);
              INSERT INTO item(id, kind, title, sort_title, added_at) VALUES (3,'show','Firefly','firefly',30);
@@ -1293,7 +1311,7 @@ mod tests {
     #[test]
     fn large_grid_tier_is_listed_made_and_dropped_with_its_image() {
         let mut c = db();
-        let lib = add_library(&c, "Media", "/m").unwrap();
+        let lib = add_library(&c, "Media", "/m", "video").unwrap();
         c.execute_batch(&format!(
             "INSERT INTO item(id, kind, title, sort_title, added_at) VALUES (1,'movie','Alien','alien',1), (2,'season','Season 1','s',2);
              INSERT INTO file(source_id, path, size, item_id) VALUES ({lib},'Alien.mkv',5,1);"
@@ -1341,7 +1359,7 @@ mod tests {
     #[test]
     fn show_page_children_and_next_episode() {
         let mut c = db();
-        let lib = add_library(&c, "Media", "/m").unwrap();
+        let lib = add_library(&c, "Media", "/m", "video").unwrap();
         c.execute_batch(&format!(
             "INSERT INTO item(id, kind, title) VALUES (1, 'show', 'Show');
              INSERT INTO item(id, kind, parent_id, title, season_no) VALUES (10, 'season', 1, 'Specials', 0), (11, 'season', 1, 'Season 1', 1), (12, 'season', 1, 'Season 2', 2);
