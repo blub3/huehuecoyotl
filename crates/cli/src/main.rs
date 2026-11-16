@@ -49,6 +49,7 @@ fn usage() -> ExitCode {
          \x20      | music album ID VERSION (an album's page for one version) | music split VERSION (this is a different album)\n\
          \x20      | music keys | music key theaudiodb|fanarttv (key from COYOTL_MUSIC_KEY; none removes it)\n\
          \x20      | library add PATH --audiobooks | books | authors | series | book ID (audiobooks; a book with its chapters, a series' or person's books)\n\
+         \x20      | book search ID [TITLE [AUTHOR]] | book choose ID WORK (find and pick a book's Open Library work)\n\
          \x20      | queue | queue play|shuffle|next|add ID... | queue clear (the music play queue; tracks, albums or artists)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
          \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
@@ -429,6 +430,19 @@ fn main() -> ExitCode {
         ("book", [id]) => {
             let Ok(id) = id.parse() else { return usage() };
             core.book_detail(1, id);
+            wait()
+        }
+        // Issue #67: "Search again" and choosing a work.
+        ("book", [sub, id, rest @ ..]) if sub == "search" && rest.len() <= 2 => {
+            let Ok(id) = id.parse() else { return usage() };
+            let title = rest.first().map_or("", String::as_str);
+            let author = rest.get(1).map_or("", String::as_str);
+            core.search_book(1, id, title, author);
+            wait()
+        }
+        ("book", [sub, id, work]) if sub == "choose" => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.choose_book_match(1, id, work);
             wait()
         }
         ("movies" | "shows", []) => {

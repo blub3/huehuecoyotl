@@ -2,10 +2,12 @@
 //! implementation, local `.nfo` files or other databases can follow without touching it.
 
 pub mod artwork;
+pub mod books;
 pub mod fanarttv;
 pub mod matching;
 pub mod music;
 pub mod musicbrainz;
+pub mod openlibrary;
 pub mod theaudiodb;
 pub mod tmdb;
 

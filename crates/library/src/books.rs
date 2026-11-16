@@ -42,6 +42,8 @@ pub struct BookInput {
     pub isbn: Option<String>,
     pub asin: Option<String>,
     pub description: Option<String>,
+    /// Issue #67: a MusicBrainz release id from the tags (Picard), for an exact lookup.
+    pub mb_release: Option<String>,
     pub drm: bool,
     pub files: Vec<FileInput>,
     /// Embedded chapters on the timeline, when known; else every file is a chapter.
@@ -213,6 +215,16 @@ pub fn upsert(c: &Connection, b: &BookInput, now: i64) -> Result<(i64, bool)> {
          WHERE item_id = ?1",
         params![id, b.publisher, b.published, b.language, b.isbn, b.asin, duration, b.drm],
     )?;
+    c.execute(
+        "DELETE FROM external_id WHERE item_id = ?1 AND provider = 'musicbrainz' AND kind = 'release'",
+        [id],
+    )?;
+    if let Some(r) = b.mb_release.as_deref().filter(|r| !r.trim().is_empty()) {
+        c.execute(
+            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'musicbrainz', 'release', ?2)",
+            params![id, r.trim()],
+        )?;
+    }
     // People.
     if free("authors") {
         set_credits(c, id, "author", &b.authors, now)?;
@@ -340,6 +352,219 @@ pub fn apply_probe_chapters(
     Ok(Some(book))
 }
 
+// ---- online information (issue #67) --------------------------------------------------------
+
+/// A book is looked up again after a week when nothing was found or it waits for review.
+const RETRY_AFTER_MS: i64 = 7 * 24 * 3600 * 1000;
+
+/// What a lookup needs to know about a book.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BookTarget {
+    pub id: i64,
+    pub title: String,
+    pub authors: Vec<String>,
+    pub isbn: Option<String>,
+    pub mb_release: Option<String>,
+    /// The Open Library work it is matched to.
+    pub work: Option<String>,
+    pub match_state: String,
+    pub has_cover: bool,
+    pub has_description: bool,
+    pub has_year: bool,
+    pub has_language: bool,
+}
+
+fn external(c: &Connection, item: i64, provider: &str, kind: &str) -> Result<Option<String>> {
+    Ok(c.query_row(
+        "SELECT value FROM external_id WHERE item_id = ?1 AND provider = ?2 AND kind = ?3",
+        params![item, provider, kind],
+        |r| r.get(0),
+    )
+    .optional()?)
+}
+
+pub fn target(c: &Connection, id: i64) -> Result<Option<BookTarget>> {
+    let row = c
+        .query_row(
+            "SELECT coalesce(i.title, ''), b.isbn, coalesce(i.match_state, 'unmatched'),
+                    EXISTS (SELECT 1 FROM artwork w WHERE w.item_id = i.id AND w.role = 'poster_grid' AND w.local_path IS NOT NULL),
+                    coalesce(i.overview, '') <> '', i.year IS NOT NULL, coalesce(b.language, '') <> ''
+             FROM item i JOIN book b ON b.item_id = i.id WHERE i.id = ?1 AND i.kind = 'audiobook'",
+            [id],
+            |r| {
+                Ok(BookTarget {
+                    id,
+                    title: r.get(0)?,
+                    isbn: r.get::<_, Option<String>>(1)?.filter(|s| !s.trim().is_empty()),
+                    match_state: r.get(2)?,
+                    has_cover: r.get(3)?,
+                    has_description: r.get(4)?,
+                    has_year: r.get(5)?,
+                    has_language: r.get(6)?,
+                    ..Default::default()
+                })
+            },
+        )
+        .optional()?;
+    let Some(mut t) = row else {
+        return Ok(None);
+    };
+    t.authors = people(c, id, "author")?
+        .into_iter()
+        .map(|p| p.name)
+        .collect();
+    t.mb_release = external(c, id, "musicbrainz", "release")?;
+    t.work = external(c, id, "openlibrary", "work")?;
+    Ok(Some(t))
+}
+
+/// Books to look up: never looked up, or not found or waiting for review and not tried for a
+/// week. Books with copy protection too: their pages show the same information.
+pub fn due(c: &Connection, now: i64) -> Result<Vec<i64>> {
+    let mut st = c.prepare(
+        "SELECT id FROM item WHERE kind = 'audiobook'
+           AND coalesce(match_state, 'unmatched') IN ('unmatched', 'needs_review')
+           AND (meta_fetched_at IS NULL OR meta_fetched_at < ?1)",
+    )?;
+    let rows = st.query_map([now - RETRY_AFTER_MS], |r| r.get(0))?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+/// What a lookup found for a book.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct OnlineBook {
+    pub work: Option<String>,
+    pub description: Option<String>,
+    pub year: Option<i64>,
+    /// ISO 639 code.
+    pub language: Option<String>,
+    pub subjects: Vec<String>,
+}
+
+/// Fill what the local metadata left empty (and the user did not correct) from a lookup, and mark
+/// the book matched. Fields filled online are remembered in `meta_json.online`, so a match the
+/// user chooses later (`replace`) replaces them; a local value is never replaced.
+pub fn apply_online(
+    c: &Connection,
+    id: i64,
+    o: &OnlineBook,
+    replace: bool,
+    now: i64,
+) -> Result<()> {
+    let (locked, meta): (String, Option<String>) = c.query_row(
+        "SELECT b.locked, i.meta_json FROM book b JOIN item i ON i.id = b.item_id WHERE b.item_id = ?1",
+        [id],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    let locked: Vec<String> = serde_json::from_str(&locked).unwrap_or_default();
+    let mut meta: serde_json::Value = meta
+        .and_then(|m| serde_json::from_str(&m).ok())
+        .filter(serde_json::Value::is_object)
+        .unwrap_or_else(|| serde_json::json!({}));
+    let mut online: Vec<String> = meta["online"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default();
+    // A field may be written when the user did not set it and it is empty, or it came from an
+    // earlier lookup that the user's choice replaces.
+    let may = |field: &str, empty: bool| {
+        !locked.iter().any(|l| l == field)
+            && (empty || (replace && online.iter().any(|f| f == field)))
+    };
+    let (no_desc, no_year, no_lang): (bool, bool, bool) = c.query_row(
+        "SELECT coalesce(i.overview, '') = '', i.year IS NULL, coalesce(b.language, '') = ''
+         FROM item i JOIN book b ON b.item_id = i.id WHERE i.id = ?1",
+        [id],
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+    )?;
+    let mut filled = Vec::new();
+    if let Some(d) = o.description.as_deref().filter(|d| !d.trim().is_empty())
+        && may("description", no_desc)
+    {
+        c.execute(
+            "UPDATE item SET overview = ?2 WHERE id = ?1",
+            params![id, d],
+        )?;
+        filled.push("description");
+    }
+    if let Some(y) = o.year
+        && may("year", no_year)
+    {
+        c.execute("UPDATE item SET year = ?2 WHERE id = ?1", params![id, y])?;
+        filled.push("year");
+    }
+    if let Some(l) = o.language.as_deref().filter(|l| !l.is_empty())
+        && may("language", no_lang)
+    {
+        c.execute(
+            "UPDATE book SET language = ?2 WHERE item_id = ?1",
+            params![id, l],
+        )?;
+        filled.push("language");
+    }
+    if replace {
+        online.retain(|f| {
+            filled.contains(&f.as_str())
+                || !["description", "year", "language"].contains(&f.as_str())
+        });
+    }
+    for f in filled {
+        if !online.iter().any(|x| x == f) {
+            online.push(f.to_string());
+        }
+    }
+    meta["online"] = serde_json::json!(online);
+    if !o.subjects.is_empty() {
+        meta["subjects"] = serde_json::json!(o.subjects);
+    }
+    c.execute(
+        "UPDATE item SET meta_json = ?2, match_state = 'matched', meta_fetched_at = ?3 WHERE id = ?1",
+        params![id, meta.to_string(), now],
+    )?;
+    c.execute(
+        "DELETE FROM external_id WHERE item_id = ?1 AND provider = 'openlibrary'",
+        [id],
+    )?;
+    if let Some(w) = &o.work {
+        c.execute(
+            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'openlibrary', 'work', ?2)",
+            params![id, w],
+        )?;
+    }
+    c.execute("DELETE FROM match_candidate WHERE item_id = ?1", [id])?;
+    Ok(())
+}
+
+/// One stored candidate for a book in review: the work id, title, authors and year.
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BookCandidate {
+    pub id: String,
+    pub title: String,
+    pub authors: String,
+    pub year: Option<i64>,
+}
+
+pub fn candidates(c: &Connection, id: i64) -> Result<Vec<BookCandidate>> {
+    let mut st = c.prepare(
+        "SELECT CAST(provider_id AS TEXT), coalesce(title, ''), coalesce(overview, ''), year
+         FROM match_candidate WHERE item_id = ?1 ORDER BY score DESC, rowid",
+    )?;
+    let rows = st.query_map([id], |r| {
+        Ok(BookCandidate {
+            id: r.get(0)?,
+            title: r.get(1)?,
+            authors: r.get(2)?,
+            year: r.get(3)?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
 /// Books, people and series no file needs any more.
 pub fn prune(c: &Connection) -> Result<()> {
     c.execute_batch(
@@ -395,6 +620,11 @@ pub struct BookDetail {
     pub poster_full: String,
     pub chapters: Vec<Chapter>,
     pub files: Vec<BookFile>,
+    /// Issue #67: "matched", "unmatched" or "needs_review" (then "Search again" offers
+    /// `candidates`).
+    pub match_state: String,
+    pub subjects: Vec<String>,
+    pub candidates: Vec<BookCandidate>,
 }
 
 fn people(c: &Connection, book: i64, role: &str) -> Result<Vec<Person>> {
@@ -459,7 +689,8 @@ pub fn detail(c: &Connection, book: i64) -> Result<Option<BookDetail>> {
         .query_row(
             "SELECT coalesce(i.title, ''), coalesce(i.parent_id, 0), coalesce(s.title, ''), b.series_position, i.year,
                     coalesce(b.publisher, ''), coalesce(b.language, ''), coalesce(b.isbn, ''), coalesce(i.overview, ''),
-                    b.duration_ms, coalesce(p.position_ms, 0), coalesce(p.watched, 0), b.speed, b.cover_ratio, b.drm
+                    b.duration_ms, coalesce(p.position_ms, 0), coalesce(p.watched, 0), b.speed, b.cover_ratio, b.drm,
+                    coalesce(i.match_state, 'unmatched'), i.meta_json
              FROM item i JOIN book b ON b.item_id = i.id
              LEFT JOIN item s ON s.id = i.parent_id
              LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = 1
@@ -483,6 +714,12 @@ pub fn detail(c: &Connection, book: i64) -> Result<Option<BookDetail>> {
                     speed: r.get(12)?,
                     cover_ratio: r.get(13)?,
                     drm: r.get::<_, i64>(14)? != 0,
+                    match_state: r.get(15)?,
+                    subjects: r
+                        .get::<_, Option<String>>(16)?
+                        .and_then(|m| serde_json::from_str::<serde_json::Value>(&m).ok())
+                        .and_then(|m| serde_json::from_value(m["subjects"].clone()).ok())
+                        .unwrap_or_default(),
                     ..Default::default()
                 })
             },
@@ -495,6 +732,9 @@ pub fn detail(c: &Connection, book: i64) -> Result<Option<BookDetail>> {
     d.files = files(c, book)?;
     d.poster = art(c, book, "poster_grid")?;
     d.poster_full = art(c, book, "poster")?;
+    if d.match_state == "needs_review" {
+        d.candidates = candidates(c, book)?;
+    }
     Ok(Some(d))
 }
 
@@ -664,6 +904,87 @@ mod tests {
             continue_series(&[(1, true, Some(1)), (2, true, Some(2))]),
             None
         );
+    }
+
+    /// Issue #67: online data fills only empty fields the user did not correct; a later choice
+    /// replaces what an earlier lookup filled, never what was local.
+    #[test]
+    fn online_data_fills_gaps_only() {
+        let mut c = Connection::open_in_memory().unwrap();
+        crate::migrate(&mut c).unwrap();
+        c.execute_batch(
+            "INSERT INTO source(id, kind, name, content) VALUES (2, 'local', 'Books', 'audiobooks');
+             INSERT INTO file(id, source_id, path) VALUES (10, 2, 'A/B.m4b');",
+        )
+        .unwrap();
+        let input = BookInput {
+            key: "b:2:A/B.m4b".into(),
+            title: "Book".into(),
+            authors: vec!["Ann Author".into()],
+            description: Some("From the OPF.".into()),
+            isbn: Some("9780000000001".into()),
+            mb_release: Some("rel-1".into()),
+            files: vec![FileInput {
+                file_id: 10,
+                duration_ms: 1000,
+                title: "B".into(),
+            }],
+            ..Default::default()
+        };
+        let (id, _) = upsert(&c, &input, 1).unwrap();
+        let t = target(&c, id).unwrap().unwrap();
+        assert_eq!(t.authors, ["Ann Author"]);
+        assert_eq!(t.isbn.as_deref(), Some("9780000000001"));
+        assert_eq!(t.mb_release.as_deref(), Some("rel-1"));
+        assert!(t.has_description && !t.has_year && !t.has_language && !t.has_cover);
+        assert_eq!(due(&c, 10).unwrap(), [id]);
+
+        let online = OnlineBook {
+            work: Some("OL1W".into()),
+            description: Some("From Open Library.".into()),
+            year: Some(1950),
+            language: Some("eng".into()),
+            subjects: vec!["Fiction".into()],
+        };
+        // The user corrected the language before.
+        c.execute(
+            "UPDATE book SET locked = '[\"language\"]' WHERE item_id = ?1",
+            [id],
+        )
+        .unwrap();
+        apply_online(&c, id, &online, false, 5).unwrap();
+        let d = detail(&c, id).unwrap().unwrap();
+        assert_eq!(d.description, "From the OPF.");
+        assert_eq!(d.year, Some(1950));
+        assert_eq!(d.language, "");
+        assert_eq!(d.subjects, ["Fiction"]);
+        assert_eq!(d.match_state, "matched");
+        assert!(due(&c, 10).unwrap().is_empty());
+        assert_eq!(
+            target(&c, id).unwrap().unwrap().work.as_deref(),
+            Some("OL1W")
+        );
+
+        // The user picks another work: the year it filled is replaced, the OPF text stays.
+        let other = OnlineBook {
+            work: Some("OL2W".into()),
+            description: Some("Other.".into()),
+            year: Some(1960),
+            ..Default::default()
+        };
+        apply_online(&c, id, &other, true, 6).unwrap();
+        let d = detail(&c, id).unwrap().unwrap();
+        assert_eq!(
+            (d.description.as_str(), d.year),
+            ("From the OPF.", Some(1960))
+        );
+        assert_eq!(
+            target(&c, id).unwrap().unwrap().work.as_deref(),
+            Some("OL2W")
+        );
+        // A rescan keeps what was filled online (the local sources still have no year).
+        upsert(&c, &input, 7).unwrap();
+        assert_eq!(detail(&c, id).unwrap().unwrap().year, Some(1960));
     }
 
     #[test]

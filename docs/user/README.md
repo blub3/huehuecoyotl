@@ -231,6 +231,12 @@ series and number), and last the folder and file names. Chapters come from the f
 with chapters); a book of many files gets one chapter per file. Covers come from the tags or a
 `cover.jpg` or `folder.jpg` next to the files.
 
+Online, Open Library fills in what your files leave out: a description, the year and a cover
+(a book tagged by MusicBrainz Picard is looked up at MusicBrainz). What your files say is never
+replaced. When Open Library has several books that could be yours, the book waits for you:
+**Search again** on its page shows them to choose from. **Settings → Metadata → Music and
+book information online** turns this off.
+
 Books with copy protection (Audible `.aax` and `.aaxc`) are listed with a note but cannot be
 played. Rescans read only books whose files changed, and a book is read by its headers, not
 whole, also on a network share.
@@ -316,9 +322,12 @@ For audiobooks see [Audiobooks](#audiobooks).
 - The app talks to TMDB only when you have entered a key, and only to look up titles and
   download artwork.
 - For music folders (from 2.0), album and artist names are sent to MusicBrainz to find
-  release types, dates and ids, and album covers come from the Cover Art Archive. Turn this
-  off under **Settings → Metadata → Music information online**; music information then comes
-  from your files' tags only and nothing is sent.
+  release types, dates and ids, and album covers come from the Cover Art Archive. For
+  audiobook folders (from 2.5), titles, authors and ISBNs are sent to Open Library for
+  descriptions, years and covers (books tagged with MusicBrainz ids go to MusicBrainz instead).
+  Turn both off under **Settings → Metadata → Music and book information online**;
+  information then comes from your files, their tags and metadata files only, and nothing is
+  sent.
 - Optionally, with your own keys (see *Music*), MusicBrainz ids of your artists and albums
   are sent to TheAudioDB and Fanart.tv for artist images, biographies and album art. Without
   a key nothing is sent to either.

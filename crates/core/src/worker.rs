@@ -21,6 +21,8 @@ pub const SCAN_KINDS: &[&str] = &["scan", "tiers", "regroup"];
 pub const META_KINDS: &[&str] = &["match", "details", "artwork"];
 /// Issue #11: music lookups have their own worker; MusicBrainz's pace never holds up TMDB.
 pub const MUSIC_KINDS: &[&str] = &["music_match", "music_artist"];
+/// Issue #67: book lookups (Open Library's pace) have their own worker too.
+pub const BOOK_KINDS: &[&str] = &["book_match"];
 
 enum Outcome {
     Done,
@@ -36,6 +38,7 @@ pub fn spawn_workers(inner: &Arc<Inner>) {
         (META_KINDS, true),
         (crate::probe::PROBE_KINDS, false),
         (MUSIC_KINDS, false),
+        (BOOK_KINDS, false),
     ] {
         let inner = inner.clone();
         tokio::spawn(async move {
@@ -99,6 +102,13 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
             Ok(()) | Err(MetaError::NotFound) => Ok(()),
             Err(MetaError::RateLimited(s)) => {
                 return Outcome::Retry("MusicBrainz is busy".into(), Some(s as i64));
+            }
+            Err(e) => Err(e.to_string()),
+        },
+        "book_match" => match crate::books::match_book(inner, item_of(payload)).await {
+            Ok(()) | Err(MetaError::NotFound) => Ok(()),
+            Err(MetaError::RateLimited(s)) => {
+                return Outcome::Retry("Open Library is busy".into(), Some(s as i64));
             }
             Err(e) => Err(e.to_string()),
         },
@@ -300,18 +310,7 @@ async fn scan_books(
         Ok(r) => {
             for (book, cover) in r.covers {
                 write_cover(inner, src, book, cover).await;
-                // One grid shows square and portrait covers: keep the cover's aspect.
-                let _ = inner
-                    .lib
-                    .write(move |c| {
-                        c.execute(
-                            "UPDATE book SET cover_ratio = (SELECT CAST(height AS REAL) / width FROM artwork
-                               WHERE item_id = ?1 AND role = 'poster' AND width > 0) WHERE item_id = ?1",
-                            [book],
-                        )?;
-                        Ok(())
-                    })
-                    .await;
+                crate::books::keep_ratio(inner, book).await;
             }
             // Embedded chapters come from the probe (single files, M4B).
             let books = r.probe.clone();
@@ -339,6 +338,8 @@ async fn scan_books(
                 })
                 .await;
             inner.wake.notify_waiters();
+            // Issue #67: new books (and any due) are looked up online.
+            crate::books::enqueue_lookups(inner, &r.new_books).await;
             inner.mark_changed();
             (
                 format!(
