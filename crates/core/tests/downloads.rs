@@ -209,7 +209,7 @@ fn export(core: &Core, rx: &Receiver<Event>, item: i64, dir: &Path, tag: &str, s
     };
     let id = items
         .iter()
-        .find(|d| d.kind == "export" && PathBuf::from(&d.path) == dest)
+        .find(|d| d.kind == "export" && Path::new(&d.path) == dest)
         .expect("export row")
         .id;
     finish(core, rx, id, 60);
