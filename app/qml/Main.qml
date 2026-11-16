@@ -68,6 +68,10 @@ ApplicationWindow {
         property bool bitPerfect: false
         property string audioDevice: "auto"
         property int musicVolume: 100
+        // Issue #66: audiobooks.
+        property real bookSpeed: 1.0
+        property int skipBack: 15
+        property int skipForward: 30
     }
     Component.onCompleted: {
         Appearance.coverWindow = prefs.coverWindow
@@ -77,6 +81,18 @@ ApplicationWindow {
         Music.audioDevice = playbackPrefs.audioDevice
         Music.bitPerfect = playbackPrefs.bitPerfect
         Music.volume = playbackPrefs.musicVolume
+        Book.defaultSpeed = playbackPrefs.bookSpeed
+        Book.skipBack = playbackPrefs.skipBack
+        Book.skipForward = playbackPrefs.skipForward
+    }
+    Connections {
+        target: Book
+        function onSettingsChanged() {
+            playbackPrefs.bookSpeed = Book.defaultSpeed
+            playbackPrefs.skipBack = Book.skipBack
+            playbackPrefs.skipForward = Book.skipForward
+        }
+        function onFailed(message) { win.showError(message) }
     }
     Connections {
         target: Appearance

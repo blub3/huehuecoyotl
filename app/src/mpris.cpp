@@ -1,4 +1,5 @@
 #include "mpris.h"
+#include "bookplayer.h"
 #include "mpvplayer.h"
 #include "musicplayer.h"
 #include "playbackcontroller.h"
@@ -75,9 +76,24 @@ void MprisRoot::Quit()
 
 // ---- org.mpris.MediaPlayer2.Player --------------------------------------------------------
 
-MprisPlayer::MprisPlayer(QObject *parent, MpvPlayer *player, PlaybackController *playback, MusicPlayer *music)
-    : QDBusAbstractAdaptor(parent), m_player(player), m_playback(playback), m_music(music)
+MprisPlayer::MprisPlayer(QObject *parent, MpvPlayer *player, PlaybackController *playback, MusicPlayer *music,
+                         BookPlayer *book)
+    : QDBusAbstractAdaptor(parent), m_player(player), m_playback(playback), m_music(music), m_book(book)
 {
+    connect(book, &BookPlayer::stateChanged, this, [this] {
+        notify(
+            {"PlaybackStatus", "CanPlay", "CanPause", "CanSeek", "CanGoNext", "CanGoPrevious", "Metadata"});
+    });
+    connect(book, &BookPlayer::frontChanged, this, [this] {
+        ++m_track;
+        notify({"PlaybackStatus", "Metadata", "CanGoNext", "CanGoPrevious", "Rate"});
+    });
+    connect(book, &BookPlayer::bookChanged, this, [this] {
+        ++m_track;
+        notify({"Metadata"});
+    });
+    connect(book, &BookPlayer::chapterChanged, this, [this] { notify({"Metadata"}); });
+    connect(book, &BookPlayer::speedChanged, this, [this] { notify({"Rate"}); });
     connect(music, &MusicPlayer::stateChanged, this, [this] {
         notify(
             {"PlaybackStatus", "CanPlay", "CanPause", "CanSeek", "CanGoNext", "CanGoPrevious", "Metadata"});
@@ -112,19 +128,27 @@ MprisPlayer::MprisPlayer(QObject *parent, MpvPlayer *player, PlaybackController 
     });
 }
 
+bool MprisPlayer::book() const
+{
+    return m_player->state() == MpvPlayer::Idle && m_book->active() && m_book->front();
+}
+
 bool MprisPlayer::music() const
 {
-    return m_player->state() == MpvPlayer::Idle && m_music->active();
+    return m_player->state() == MpvPlayer::Idle && m_music->active() && !book();
 }
 
 double MprisPlayer::pos() const
 {
+    if (book()) return m_book->position();
     return music() ? m_music->position() : m_player->position();
 }
 
 QString MprisPlayer::playbackStatus() const
 {
-    switch (music() ? MpvPlayer::State(m_music->state()) : m_player->state()) {
+    switch (book()    ? MpvPlayer::State(m_book->state())
+            : music() ? MpvPlayer::State(m_music->state())
+                      : m_player->state()) {
     case MpvPlayer::Playing:
     case MpvPlayer::Buffering:
     case MpvPlayer::Opening:
@@ -138,13 +162,17 @@ QString MprisPlayer::playbackStatus() const
 
 double MprisPlayer::rate() const
 {
-    return m_player->speed();
+    return book() ? m_book->speed() : m_player->speed();
 }
 
 void MprisPlayer::setRate(double r)
 {
     if (r <= 0) {
         Pause();
+        return;
+    }
+    if (book()) {
+        m_book->setSpeed(qBound(0.5, r, 3.0));
         return;
     }
     m_player->setSpeed(qBound(minimumRate(), r, maximumRate()));
@@ -160,6 +188,20 @@ QVariantMap MprisPlayer::metadata() const
     if (!canControl()) return {};
     QVariantMap m;
     m.insert("mpris:trackid", QVariant::fromValue(trackId()));
+    if (book()) {
+        const QVariantMap b = m_book->book();
+        // The chapter as the title, the book as the album: what players show in two lines.
+        const QString chapter = m_book->chapterTitle();
+        m.insert("xesam:title", chapter.isEmpty() ? b.value("title").toString() : chapter);
+        m.insert("xesam:album", b.value("title").toString());
+        if (!b.value("authors").toString().isEmpty())
+            m.insert("xesam:artist", QStringList{b.value("authors").toString()});
+        const QString art = b.value("posterFull").toString().isEmpty() ? b.value("poster").toString()
+                                                                       : b.value("posterFull").toString();
+        if (!art.isEmpty()) m.insert("mpris:artUrl", art);
+        if (m_book->duration() > 0) m.insert("mpris:length", qlonglong(m_book->duration() * 1e6));
+        return m;
+    }
     if (music()) {
         const QVariantMap e = m_music->current();
         m.insert("xesam:title", e.value("title").toString());
@@ -182,6 +224,7 @@ QVariantMap MprisPlayer::metadata() const
 
 double MprisPlayer::volume() const
 {
+    if (book()) return 1.0;
     if (music()) return m_music->volume() / 100.0;
     return m_player->muted() ? 0.0 : m_player->volume() / 100.0;
 }
@@ -189,6 +232,7 @@ double MprisPlayer::volume() const
 void MprisPlayer::setVolume(double v)
 {
     const int pct = int(qBound(0.0, v, 1.0) * 100 + 0.5);
+    if (book()) return; // books use the system volume
     if (music())
         m_music->setVolume(pct); // ignored in bit-perfect mode (fixed at 100 %)
     else
@@ -202,26 +246,30 @@ qlonglong MprisPlayer::position() const
 
 bool MprisPlayer::canControl() const
 {
-    if (music()) return true; // a queue: Play loads its current entry
+    if (book() || music()) return true; // a queue: Play loads its current entry
     const auto s = m_player->state();
     return s != MpvPlayer::Idle && s != MpvPlayer::Error;
 }
 
 bool MprisPlayer::canGoNext() const
 {
+    if (book()) return m_book->chapters().size() > 1;
     if (music()) return m_music->queueCount() > 1 || m_music->repeat() != "off";
     return canControl() && m_player->chapters().size() > 1;
 }
 
 bool MprisPlayer::canGoPrevious() const
 {
+    if (book()) return true;
     if (music()) return true; // restarts the track at least
     return canGoNext();
 }
 
 void MprisPlayer::Next()
 {
-    if (music())
+    if (book())
+        m_book->nextChapter();
+    else if (music())
         m_music->next();
     else if (canGoNext())
         m_player->addChapter(1);
@@ -229,7 +277,9 @@ void MprisPlayer::Next()
 
 void MprisPlayer::Previous()
 {
-    if (music())
+    if (book())
+        m_book->previousChapter();
+    else if (music())
         m_music->previous();
     else if (canGoPrevious())
         m_player->addChapter(-1);
@@ -237,7 +287,9 @@ void MprisPlayer::Previous()
 
 void MprisPlayer::Pause()
 {
-    if (music())
+    if (book())
+        m_book->pause();
+    else if (music())
         m_music->pause();
     else if (canControl())
         m_player->setPaused(true);
@@ -245,7 +297,9 @@ void MprisPlayer::Pause()
 
 void MprisPlayer::Play()
 {
-    if (music())
+    if (book())
+        m_book->play();
+    else if (music())
         m_music->play();
     else if (canControl())
         m_player->setPaused(false);
@@ -253,7 +307,9 @@ void MprisPlayer::Play()
 
 void MprisPlayer::PlayPause()
 {
-    if (music())
+    if (book())
+        m_book->togglePause();
+    else if (music())
         m_music->togglePause();
     else if (canControl())
         m_player->togglePause();
@@ -261,7 +317,9 @@ void MprisPlayer::PlayPause()
 
 void MprisPlayer::Stop()
 {
-    if (music())
+    if (book())
+        m_book->pause();
+    else if (music())
         m_music->pause();
     else if (canControl())
         m_playback->requestLeave();
@@ -269,7 +327,9 @@ void MprisPlayer::Stop()
 
 void MprisPlayer::Seek(qlonglong offsetUs)
 {
-    if (music())
+    if (book())
+        m_book->seekTo(m_book->position() + offsetUs / 1e6);
+    else if (music())
         m_music->seek(offsetUs / 1e6, true);
     else if (canControl())
         m_player->seek(offsetUs / 1e6, true);
@@ -278,9 +338,11 @@ void MprisPlayer::Seek(qlonglong offsetUs)
 void MprisPlayer::SetPosition(const QDBusObjectPath &id, qlonglong positionUs)
 {
     if (!canControl() || id != trackId()) return;
-    const double d = music() ? m_music->duration() : m_player->duration();
+    const double d = book() ? m_book->duration() : music() ? m_music->duration() : m_player->duration();
     if (positionUs < 0 || (d > 0 && positionUs > d * 1e6)) return;
-    if (music())
+    if (book())
+        m_book->seekTo(positionUs / 1e6);
+    else if (music())
         m_music->seek(positionUs / 1e6, false);
     else
         m_player->seek(positionUs / 1e6, false);
@@ -304,7 +366,8 @@ void MprisPlayer::notify(const QStringList &names)
     QDBusConnection::sessionBus().send(msg);
 }
 
-void registerMpris(QObject *owner, MpvPlayer *player, PlaybackController *playback, MusicPlayer *music)
+void registerMpris(QObject *owner, MpvPlayer *player, PlaybackController *playback, MusicPlayer *music,
+                   BookPlayer *book)
 {
     auto bus = QDBusConnection::sessionBus();
     if (!bus.isConnected()) {
@@ -313,7 +376,7 @@ void registerMpris(QObject *owner, MpvPlayer *player, PlaybackController *playba
     }
     auto *obj = new QObject(owner);
     new MprisRoot(obj);
-    new MprisPlayer(obj, player, playback, music);
+    new MprisPlayer(obj, player, playback, music, book);
     if (!bus.registerObject(kPath, obj, QDBusConnection::ExportAdaptors)) {
         qCWarning(lcMpris) << "cannot register" << kPath << bus.lastError().message();
         return;

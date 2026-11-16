@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Coyotl
 
-// The mini player (issue #8): at the bottom of the shell while there is a queue, on every
+// The mini player (issue #8): at the bottom of the shell while there is a queue or a book, on every
 // screen but Now Playing. It takes no focus of its own: Down from the last entry of the
 // navigation rail reaches it. Left and Right move between its buttons, Up leaves it, Space plays
 // or pauses.
@@ -14,11 +14,16 @@ FocusScope {
     signal upRequested()
     signal leftRequested()
 
+    // Issue #66: the book when it played last (its title, chapter and author); else the music.
+    readonly property bool book: Book.front && Book.active
+    readonly property real position: book ? Book.position : Music.position
+    readonly property real duration: book ? Book.duration : Music.duration
+
     implicitHeight: 80
     Accessible.role: Accessible.Grouping
-    Accessible.name: qsTr("Music player")
+    Accessible.name: book ? qsTr("Audiobook player") : qsTr("Music player")
     Keys.onUpPressed: upRequested()
-    Keys.onSpacePressed: Music.togglePause()
+    Keys.onSpacePressed: book ? Book.togglePause() : Music.togglePause()
 
     Rectangle {
         anchors.fill: parent
@@ -28,7 +33,7 @@ FocusScope {
         Rectangle {
             anchors { left: parent.left; top: parent.top }
             height: 3
-            width: Music.duration > 0 ? parent.width * Math.min(1, Music.position / Music.duration) : 0
+            width: mini.duration > 0 ? parent.width * Math.min(1, mini.position / mini.duration) : 0
             color: Theme.accent
         }
     }
@@ -46,11 +51,11 @@ FocusScope {
             radius: 6
             color: Theme.surfaceHi
             clip: true
-            Label { anchors.centerIn: parent; visible: cover.status !== Image.Ready; text: "♫"; color: Theme.textDim; font.pixelSize: 24 }
+            Label { anchors.centerIn: parent; visible: cover.status !== Image.Ready; text: mini.book ? "❞" : "♫"; color: Theme.textDim; font.pixelSize: 24 }
             Image {
                 id: cover
                 anchors.fill: parent
-                source: Music.current.poster || ""
+                source: mini.book ? (Book.book.poster || "") : (Music.current.poster || "")
                 sourceSize.width: 112
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
@@ -62,14 +67,15 @@ FocusScope {
             spacing: 2
             Label {
                 Layout.fillWidth: true
-                text: Music.current.title || ""
+                text: mini.book ? (Book.book.title || "") : (Music.current.title || "")
                 color: Theme.text
                 font.pixelSize: Theme.fontBody
                 elide: Text.ElideRight
             }
             Label {
                 Layout.fillWidth: true
-                text: [Music.current.artists, Music.current.album].filter(x => x).join("  ·  ")
+                text: mini.book ? [Book.chapterTitle, Book.book.authors].filter(x => x).join("  ·  ")
+                                : [Music.current.artists, Music.current.album].filter(x => x).join("  ·  ")
                 color: Theme.textDim
                 font.pixelSize: Theme.fontSmall
                 elide: Text.ElideRight
@@ -84,28 +90,29 @@ FocusScope {
         FocusButton {
             id: prev
             glyph: "⏮"
-            tip: qsTr("Previous")
+            tip: mini.book ? qsTr("Previous chapter") : qsTr("Previous")
             KeyNavigation.right: play
             Keys.onLeftPressed: mini.leftRequested()
-            onClicked: Music.previous()
+            onClicked: mini.book ? Book.previousChapter() : Music.previous()
         }
         FocusButton {
             id: play
             focus: true
             primary: true
-            glyph: Music.playing ? "❚❚" : "▶"
-            tip: Music.playing ? qsTr("Pause") : qsTr("Play")
+            readonly property bool playing: mini.book ? Book.playing : Music.playing
+            glyph: playing ? "❚❚" : "▶"
+            tip: playing ? qsTr("Pause") : qsTr("Play")
             KeyNavigation.left: prev
             KeyNavigation.right: next
-            onClicked: Music.togglePause()
+            onClicked: mini.book ? Book.togglePause() : Music.togglePause()
         }
         FocusButton {
             id: next
             glyph: "⏭"
-            tip: qsTr("Next")
+            tip: mini.book ? qsTr("Next chapter") : qsTr("Next")
             KeyNavigation.left: play
             KeyNavigation.right: open
-            onClicked: Music.next()
+            onClicked: mini.book ? Book.nextChapter() : Music.next()
         }
         FocusButton {
             id: open

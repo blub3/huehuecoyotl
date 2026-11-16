@@ -14,6 +14,7 @@ FocusScope {
         movies: moviesPage,
         shows: showsPage,
         music: musicPage,
+        audiobooks: audiobooksPage,
         search: searchPage,
         downloads: downloadsPage,
         sources: sourcesPage,
@@ -23,6 +24,7 @@ FocusScope {
     Component { id: moviesPage; MoviesPage {} }
     Component { id: showsPage; ShowsPage {} }
     Component { id: musicPage; MusicPage {} }
+    Component { id: audiobooksPage; AudiobooksPage {} }
     Component { id: searchPage; SearchPage {} }
     Component { id: downloadsPage; DownloadsPage {} }
     Component { id: sourcesPage; SourcesPage {} }
@@ -54,6 +56,7 @@ FocusScope {
         if (Bench.mode === "scroll") shell.go("movies")
         if (Bench.mode === "episodes") shell.go("shows")
         if (Bench.mode === "music") shell.go("music")
+        if (Bench.mode === "books") shell.go("audiobooks")
     }
     // Returning from the player: give focus back to the page.
     StackView.onActivated: focusContent()
@@ -61,17 +64,19 @@ FocusScope {
     // Issue #8: Now Playing opens above the current section's pages.
     function openNowPlaying() {
         if (content.currentItem && content.currentItem.objectName === "nowPlaying") focusContent()
+        else if (Book.front && Book.active) openPage(Qt.resolvedUrl("BookPlayerPage.qml"), {})
         else openPage(Qt.resolvedUrl("NowPlayingPage.qml"), {})
     }
     // Media keys and Space-free shortcuts for music while the shell is in front (the player
     // page handles them itself while a video plays).
     Keys.onPressed: (e) => {
         switch (e.key) {
-        case Qt.Key_MediaPlay: Music.play(); break
-        case Qt.Key_MediaPause: Music.pause(); break
-        case Qt.Key_MediaTogglePlayPause: Music.togglePause(); break
-        case Qt.Key_MediaNext: Music.next(); break
-        case Qt.Key_MediaPrevious: Music.previous(); break
+        // Issue #66: the book when it played last; next and previous are its chapters.
+        case Qt.Key_MediaPlay: if (Book.front) Book.play(); else Music.play(); break
+        case Qt.Key_MediaPause: if (Book.front) Book.pause(); else Music.pause(); break
+        case Qt.Key_MediaTogglePlayPause: if (Book.front) Book.togglePause(); else Music.togglePause(); break
+        case Qt.Key_MediaNext: if (Book.front) Book.nextChapter(); else Music.next(); break
+        case Qt.Key_MediaPrevious: if (Book.front) Book.previousChapter(); else Music.previous(); break
         default: return
         }
         e.accepted = true
@@ -94,7 +99,7 @@ FocusScope {
     MiniPlayer {
         id: mini
         anchors { left: rail.right; right: parent.right; bottom: parent.bottom }
-        visible: Music.active && !(content.currentItem && content.currentItem.objectName === "nowPlaying")
+        visible: (Music.active || Book.active) && !(content.currentItem && content.currentItem.objectName === "nowPlaying")
         height: visible ? implicitHeight : 0
         onOpenRequested: shell.openNowPlaying()
         onUpRequested: shell.focusContent()

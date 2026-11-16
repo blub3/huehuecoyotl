@@ -165,6 +165,15 @@ impl Core {
             // "" (everything), "unwatched", or "saved" (issue #4).
             unwatched_only: filter == "unwatched",
             saved_only: filter == "saved",
+            // Issue #66: books by progress, persons by role.
+            book_filter: match filter {
+                "unread" => "unread",
+                "in_progress" => "in_progress",
+                "finished" => "finished",
+                "author" => "author",
+                "narrator" => "narrator",
+                _ => "",
+            },
             offset,
             limit: limit.clamp(1, 500),
         };

@@ -24,7 +24,12 @@
 #if defined(Q_OS_LINUX)
 #include "mpris.h"
 #endif
+#include "bookplayer.h"
 #include "mpvplayer.h"
+#include <mpv/stream_cb.h>
+
+// Implemented in Rust (crates/stream), linked through the core-api static library.
+extern "C" int coyotl_stream_open(void *user_data, char *uri, mpv_stream_cb_info *info);
 #include "musicplayer.h"
 #include "playbackcontroller.h"
 
@@ -71,10 +76,11 @@ int main(int argc, char *argv[])
     cli.addVersionOption();
     cli.addOption({"fullscreen", QCoreApplication::translate("main", "Start in fullscreen.")});
     cli.addOption({"data-dir", QCoreApplication::translate("main", "Use this data folder."), "dir"});
-    cli.addOption({"benchmark",
-                   QCoreApplication::translate(
-                       "main", "Measure a performance budget and quit: startup, scroll, episodes or music."),
-                   "name"});
+    cli.addOption(
+        {"benchmark",
+         QCoreApplication::translate(
+             "main", "Measure a performance budget and quit: startup, scroll, episodes, music or books."),
+         "name"});
     cli.addOption({"benchmark-out",
                    QCoreApplication::translate("main", "Also write the benchmark result to this file."),
                    "file"});
@@ -115,10 +121,37 @@ int main(int argc, char *argv[])
     // Issue #8: music plays in its own audio-only handle; a video pauses it and keeps the queue.
     auto *music = new MusicPlayer(&app);
     QObject::connect(playback, &PlaybackController::started, music, &MusicPlayer::pause);
+    // Issue #66: books play in a third audio-only handle. A book pauses the music (its queue
+    // stays), music pauses the book (its position is saved), a video pauses both; the media
+    // controls and the mini player show whichever played last.
+    BookPlayer::setBackend({
+        [core](qint64 b, qint64 pos) { return core->bookPlay(b, pos); },
+        [core](qint64 b, qint64 pos) { core->bookProgress(b, pos); },
+        [core](qint64 b, double speed) { core->bookSetSpeed(b, speed); },
+        &CoreBridge::previousChapter,
+        &CoreBridge::nextChapter,
+        &CoreBridge::endOfChapter,
+        [](mpv_handle *mpv) {
+            if (mpv_stream_cb_add_ro(mpv, "coyotl", nullptr, coyotl_stream_open) < 0)
+                qWarning() << "registering the coyotl:// stream protocol for books failed";
+        },
+    });
+    auto *book = new BookPlayer(&app);
+    QObject::connect(core, &CoreBridge::musicDetailReady, book, &BookPlayer::onTicket);
+    QObject::connect(core, &CoreBridge::requestFailed, book,
+                     [book](quint64 id, int, const QString &message) { book->onFailed(id, message); });
+    QObject::connect(playback, &PlaybackController::started, book, &BookPlayer::pause);
+    QObject::connect(book, &BookPlayer::started, music, &MusicPlayer::pause);
+    QObject::connect(music, &MusicPlayer::stateChanged, book, [music, book] {
+        if (music->playing() && music->state() != MusicPlayer::Opening) {
+            book->pause();
+            book->setFront(false);
+        }
+    });
     // Only video keeps the screensaver away.
     new DesktopIntegration(player, &app);
 #if defined(Q_OS_LINUX)
-    registerMpris(&app, player, playback, music);
+    registerMpris(&app, player, playback, music, book);
 #endif
 
     int rc = 0;
@@ -140,10 +173,12 @@ int main(int argc, char *argv[])
         rc = app.exec();
         playback->stop(); // save progress
         music->report();
+        book->report();
         // engine (and the video item's render context) goes out of scope before the player
     }
     delete playback;
     delete music;
+    delete book;
     delete player;
     qInstallMessageHandler(g_previousHandler);
     delete core; // joins core threads

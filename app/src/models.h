@@ -86,9 +86,9 @@ class ContinueWatchingModel : public VariantListModel {
 // Keys of an item summary as the bridge delivers it (CoreBridge::summaryMap).
 inline QList<QByteArray> summaryKeys()
 {
-    return {"id",     "kind",        "title",    "year",     "seasonNo",  "episodeNo",
-            "poster", "posterLarge", "progress", "watched",  "unwatched", "overview",
-            "onDisk", "runtimeMin",  "saved",    "subtitle", "parentId",  "versions"};
+    return {"id",          "kind",     "title",    "year",      "seasonNo", "episodeNo", "poster",
+            "posterLarge", "progress", "watched",  "unwatched", "overview", "onDisk",    "runtimeMin",
+            "saved",       "subtitle", "parentId", "versions",  "ratio"};
 }
 
 // Movies or shows, or the children of an item, fetched page by page as the view scrolls

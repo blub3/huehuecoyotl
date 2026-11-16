@@ -297,6 +297,23 @@ pub fn playable_items(c: &Connection, item_id: i64) -> Result<Vec<i64>> {
     Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
+/// The items whose saved copies belong to `item_id` (its playable items; a book itself, whose
+/// copies are one per file, issue #66).
+pub fn copy_owners(c: &Connection, item_id: i64) -> Result<Vec<i64>> {
+    let book: bool = c
+        .query_row(
+            "SELECT kind = 'audiobook' FROM item WHERE id = ?1",
+            [item_id],
+            |r| r.get(0),
+        )
+        .optional()?
+        .unwrap_or(false);
+    if book {
+        return Ok(vec![item_id]);
+    }
+    playable_items(c, item_id)
+}
+
 /// The folder a saved copy goes into, relative to the storage directory:
 /// `Title (Year)` for movies, `Show (Year)/Season 01` for episodes.
 pub fn layout_dir(c: &Connection, item_id: i64) -> Result<Vec<String>> {
@@ -403,12 +420,29 @@ pub fn save_info(c: &Connection, item_id: i64) -> Result<SaveInfo> {
         ..Default::default()
     };
     let mut states = Vec::new();
+    // Issue #66: a book counts each of its files on network sources.
+    let book_files: Vec<i64> = {
+        let mut st = c.prepare(
+            "SELECT bf.file_id FROM book_file bf JOIN file f ON f.id = bf.file_id JOIN source s ON s.id = f.source_id
+             WHERE bf.book_id = ?1 AND s.kind != 'local' ORDER BY bf.idx",
+        )?;
+        st.query_map([item_id], |r| r.get(0))?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    let mut units: Vec<Option<Copy>> = Vec::new();
+    for f in &book_files {
+        info.saveable += 1;
+        units.push(saved_for_file(c, *f)?);
+    }
     for it in items {
         if !network_files(c, it)?.is_empty() {
             info.saveable += 1;
         }
         // The newest saved copy of the item (another version may have been saved before).
-        let Some(main) = saved_for_item(c, it)?.into_iter().last() else {
+        units.push(saved_for_item(c, it)?.into_iter().last());
+    }
+    for main in units {
+        let Some(main) = main else {
             continue;
         };
         let (state, done, size, error, kind) = family_state(c, &main)?;
@@ -609,6 +643,7 @@ mod tests {
             sort: crate::catalog::Sort::Title,
             unwatched_only: false,
             saved_only: true,
+            book_filter: "",
             offset: 0,
             limit: 10,
         };

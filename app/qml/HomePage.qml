@@ -4,8 +4,9 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Coyotl
 
-// Home: continue watching, recently added, recently added albums (2.0, only with music), and a
-// first-run guide while the library is empty.
+// Home: continue watching, recently added, recently added albums (2.0, only with music),
+// continue listening (2.5, only with books in progress), and a first-run guide while the library
+// is empty.
 FocusScope {
     id: page
     readonly property bool isPlayer: false
@@ -15,6 +16,8 @@ FocusScope {
     LibraryModel { id: albums; kind: "album"; sort: "added" }
     // Issue #8: albums whose tracks were played, most recent first.
     LibraryModel { id: played; kind: "album"; sort: "played" }
+    // Issue #66: books in progress, most recently listened to first.
+    LibraryModel { id: listening; kind: "audiobook"; sort: "played"; filter: "in_progress" }
     LibraryFoldersModel { id: folders }
 
     readonly property bool firstRun: !folders.loading && folders.count === 0
@@ -22,11 +25,12 @@ FocusScope {
     // Keyboard and remote users must always have a focused item on this page.
     function ensureFocus() {
         if (!page.activeFocus) return
-        for (const v of [recentList, addedList, albumList, setupButton, keyButton])
+        for (const v of [recentList, addedList, albumList, playedList, listeningList, setupButton, keyButton])
             if (v.activeFocus) return
         if (recent.count > 0) recentList.forceActiveFocus()
         else if (added.count > 0) addedList.forceActiveFocus()
         else if (albums.total > 0) albumList.forceActiveFocus()
+        else if (listening.total > 0) listeningList.forceActiveFocus()
         else if (page.firstRun) setupButton.forceActiveFocus()
         else Nav.focusRail()
     }
@@ -242,6 +246,7 @@ FocusScope {
                 Accessible.role: Accessible.List
                 Accessible.name: qsTr("Recently played")
                 KeyNavigation.up: albums.total > 0 ? albumList : null
+                KeyNavigation.down: listening.total > 0 ? listeningList : null
                 Keys.onLeftPressed: (e) => { if (currentIndex === 0) Nav.focusRail(); else e.accepted = false }
                 onActiveFocusChanged: if (activeFocus) flick.contentY = Math.max(0, y - 60)
                 delegate: PosterCard {
@@ -260,6 +265,49 @@ FocusScope {
                     onClicked: Nav.openItem(playedTile.model.id, "album")
                     Keys.onReturnPressed: Nav.openItem(playedTile.model.id, "album")
                     Keys.onEnterPressed: Nav.openItem(playedTile.model.id, "album")
+                }
+            }
+
+            // ---- continue listening (issue #66) --------------------------------------------------
+            Label {
+                visible: listening.total > 0
+                text: qsTr("Continue listening")
+                color: Theme.textDim
+                font.pixelSize: Theme.fontLarge
+                Layout.topMargin: 8
+            }
+            ListView {
+                id: listeningList
+                visible: listening.total > 0
+                Layout.fillWidth: true
+                Layout.preferredHeight: Appearance.cardHeight(Appearance.coverWidth, 1) + 16
+                orientation: ListView.Horizontal
+                spacing: Math.round(22 * Appearance.textScale(Appearance.coverWidth))
+                model: listening
+                keyNavigationEnabled: true
+                Accessible.role: Accessible.List
+                Accessible.name: qsTr("Continue listening")
+                KeyNavigation.up: played.total > 0 ? playedList : albums.total > 0 ? albumList : added.count > 0 ? addedList : recent.count > 0 ? recentList : null
+                Keys.onLeftPressed: (e) => { if (currentIndex === 0) Nav.focusRail(); else e.accepted = false }
+                onActiveFocusChanged: if (activeFocus) flick.contentY = Math.max(0, y - 60)
+                delegate: PosterCard {
+                    id: bookTile
+                    required property var model
+                    y: 8
+                    focus: ListView.isCurrentItem
+                    title: model.title
+                    caption: model.subtitle ?? ""
+                    poster: model.poster
+                    posterLarge: model.posterLarge ?? ""
+                    posterWidth: Appearance.coverWidth
+                    posterRatio: 1
+                    coverRatio: Number(model.ratio ?? 0)
+                    progress: model.progress
+                    // Enter resumes the book; Menu-free: I opens its page.
+                    onClicked: Nav.openItem(bookTile.model.id, "audiobook")
+                    Keys.onReturnPressed: { Book.playBook(bookTile.model.id); Nav.nowPlaying() }
+                    Keys.onEnterPressed: { Book.playBook(bookTile.model.id); Nav.nowPlaying() }
+                    Keys.onPressed: (e) => { if (e.key === Qt.Key_I) { Nav.openItem(bookTile.model.id, "audiobook"); e.accepted = true } }
                 }
             }
 

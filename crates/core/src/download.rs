@@ -773,6 +773,57 @@ pub(crate) async fn resume(inner: &Arc<Inner>, id: i64) -> CResult<()> {
     Ok(())
 }
 
+/// Issue #66: a book's files on network sources in timeline order (`None` when the item is not
+/// a book).
+async fn book_files(inner: &Arc<Inner>, item_id: i64) -> CResult<Option<Vec<i64>>> {
+    Ok(inner
+        .lib
+        .read(move |c| {
+            let book: bool = c
+                .query_row(
+                    "SELECT kind = 'audiobook' FROM item WHERE id = ?1",
+                    [item_id],
+                    |r| r.get(0),
+                )
+                .optional()?
+                .unwrap_or(false);
+            if !book {
+                return Ok(None);
+            }
+            let mut st = c.prepare(
+                "SELECT bf.file_id FROM book_file bf JOIN file f ON f.id = bf.file_id JOIN source s ON s.id = f.source_id
+                 WHERE bf.book_id = ?1 AND s.kind != 'local' ORDER BY bf.idx",
+            )?;
+            let rows = st.query_map([item_id], |r| r.get(0))?;
+            Ok(Some(rows.collect::<rusqlite::Result<Vec<i64>>>()?))
+        })
+        .await?)
+}
+
+/// Every file of a book, local ones too ("Save as…" copies them all).
+async fn book_files_all(inner: &Arc<Inner>, item_id: i64) -> CResult<Option<Vec<i64>>> {
+    Ok(inner
+        .lib
+        .read(move |c| {
+            let book: bool = c
+                .query_row(
+                    "SELECT kind = 'audiobook' FROM item WHERE id = ?1",
+                    [item_id],
+                    |r| r.get(0),
+                )
+                .optional()?
+                .unwrap_or(false);
+            if !book {
+                return Ok(None);
+            }
+            let mut st =
+                c.prepare("SELECT file_id FROM book_file WHERE book_id = ?1 ORDER BY idx")?;
+            let rows = st.query_map([item_id], |r| r.get(0))?;
+            Ok(Some(rows.collect::<rusqlite::Result<Vec<i64>>>()?))
+        })
+        .await?)
+}
+
 /// A main row and its companions.
 async fn family(inner: &Arc<Inner>, id: i64) -> CResult<Vec<Copy>> {
     Ok(inner
@@ -789,6 +840,29 @@ async fn family(inner: &Arc<Inner>, id: i64) -> CResult<Vec<Copy>> {
 /// or of every episode of a season or show. Already saved or running copies are kept; failed
 /// and outdated ones are made again. Returns the new main rows.
 pub(crate) async fn save(inner: &Arc<Inner>, item_id: i64, file_id: i64) -> CResult<Vec<i64>> {
+    // Issue #66: an audiobook saves all of its files that are on network sources.
+    if let Some(files) = book_files(inner, item_id).await? {
+        let mut made = Vec::new();
+        for file in files {
+            let existing = inner
+                .lib
+                .read(move |c| copies::saved_for_file(c, file))
+                .await?;
+            if let Some(r) = existing {
+                if matches!(r.state.as_str(), "failed" | "outdated") {
+                    delete_copy(inner, r.id).await?;
+                } else {
+                    if r.state == "paused" {
+                        resume(inner, r.id).await?;
+                    }
+                    continue;
+                }
+            }
+            made.push(add_copy(inner, copies::SAVED, file, None).await?);
+        }
+        inner.mark_changed();
+        return Ok(made);
+    }
     // Issue #63: an album with a file named saves that file's version: each track's file in it.
     let version_files: Option<Vec<(i64, i64)>> = if file_id > 0 {
         inner
@@ -903,6 +977,22 @@ async fn export_plan(
     file_id: i64,
     dest: &Path,
 ) -> CResult<Vec<(i64, PathBuf)>> {
+    // Issue #66: a book's files go into the folder `dest`, under their own names.
+    if let Some(files) = book_files_all(inner, item_id).await? {
+        let mut plan = Vec::new();
+        for file in files {
+            let t = inner
+                .lib
+                .read(move |c| copies::target(c, file))
+                .await?
+                .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("file {file}")))?;
+            plan.push((
+                file,
+                dest.join(clean(t.path.rsplit('/').next().unwrap_or(&t.path))),
+            ));
+        }
+        return Ok(plan);
+    }
     let items = inner
         .lib
         .read(move |c| copies::playable_items(c, item_id))
@@ -1621,7 +1711,7 @@ impl crate::Core {
         self.spawn(request_id, move |inner| async move {
             let items = inner
                 .lib
-                .read(move |c| copies::playable_items(c, item_id))
+                .read(move |c| copies::copy_owners(c, item_id))
                 .await?;
             for it in items {
                 let rows = inner
@@ -1651,7 +1741,7 @@ impl crate::Core {
             let r: CResult<()> = async {
                 let items = inner
                     .lib
-                    .read(move |c| copies::playable_items(c, item_id))
+                    .read(move |c| copies::copy_owners(c, item_id))
                     .await?;
                 for it in items {
                     for row in inner

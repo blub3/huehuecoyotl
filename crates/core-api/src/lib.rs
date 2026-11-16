@@ -129,6 +129,8 @@ mod ffi {
         parent_id: i64,
         /// Issue #63: an album's number of versions (0 otherwise).
         versions: i64,
+        /// Issue #66: a book cover's height / width (0 when unknown or not a book).
+        ratio: f64,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -320,6 +322,13 @@ mod ffi {
             sink: UniquePtr<EventSink>,
         ) -> Result<Box<Core>>;
         fn core_version() -> String;
+        /// Issue #66: chapter navigation on a book's timeline (pure, synchronous): where
+        /// "previous chapter" goes (the chapter's start, or the one before within 3 s of it),
+        /// where "next chapter" goes (-1 in the last chapter), and where the sleep timer's "end
+        /// of chapter" stops. `starts` are the chapters' start times in ms.
+        fn book_previous_chapter(starts: &[i64], position: i64) -> i64;
+        fn book_next_chapter(starts: &[i64], position: i64) -> i64;
+        fn book_end_of_chapter(starts: &[i64], duration: i64, position: i64) -> i64;
         /// Qt's log messages into the core's log file. level: 0 debug … 3 critical.
         fn log_message(level: u8, category: &str, message: &str);
 
@@ -389,6 +398,21 @@ mod ffi {
         /// Issue #63: play this file of a track (one of its files in a version) from now on.
         fn set_track_file(self: &Core, track: i64, file: i64);
         fn artist_detail(self: &Core, request_id: u64, artist: i64);
+        /// Issue #65/#66: a book's, a series' or a person's page (MusicDetail of kind "book",
+        /// "series" or "person").
+        fn book_detail(self: &Core, request_id: u64, id: i64);
+        /// Issue #67: "Search again" (MusicDetail "bookCandidates") and the user's choice
+        /// (MusicDetail "book").
+        fn search_book(self: &Core, request_id: u64, id: i64, title: &str, author: &str);
+        fn choose_book_match(self: &Core, request_id: u64, id: i64, work: &str);
+        /// Issue #66: a book's ticket (MusicDetail "bookTicket"); `position_ms` < 0 resumes.
+        fn book_play(self: &Core, request_id: u64, book: i64, position_ms: i64);
+        fn book_progress(self: &Core, book: i64, position_ms: i64);
+        fn book_mark_finished(self: &Core, request_id: u64, book: i64, finished: bool);
+        /// `speed` <= 0: the default again.
+        fn book_set_speed(self: &Core, book: i64, speed: f64);
+        /// MusicDetail "continueSeries" with the book to play (0: all finished).
+        fn continue_series(self: &Core, request_id: u64, series: i64);
 
         /// Issue #12: TheAudioDB and Fanart.tv keys (answers with MusicKeys; never the key).
         fn music_keys(self: &Core, request_id: u64);
@@ -595,7 +619,18 @@ fn summary(s: core::Summary) -> ffi::ItemSummary {
         subtitle: s.subtitle,
         parent_id: s.parent_id.unwrap_or(0),
         versions: s.versions,
+        ratio: s.ratio,
     }
+}
+
+fn book_previous_chapter(starts: &[i64], position: i64) -> i64 {
+    core::booktime::previous_chapter(starts, position)
+}
+fn book_next_chapter(starts: &[i64], position: i64) -> i64 {
+    core::booktime::next_chapter(starts, position).unwrap_or(-1)
+}
+fn book_end_of_chapter(starts: &[i64], duration: i64, position: i64) -> i64 {
+    core::booktime::end_of_chapter(starts, duration, position)
 }
 
 fn candidate(c: core::CandidateRow) -> ffi::MatchCandidate {
@@ -1182,6 +1217,40 @@ impl Core {
     }
     fn artist_detail(&self, request_id: u64, artist: i64) {
         guard("artist_detail", || self.0.artist_detail(request_id, artist))
+    }
+    fn book_detail(&self, request_id: u64, id: i64) {
+        guard("book_detail", || self.0.book_detail(request_id, id))
+    }
+    fn search_book(&self, request_id: u64, id: i64, title: &str, author: &str) {
+        guard("search_book", || {
+            self.0.search_book(request_id, id, title, author)
+        })
+    }
+    fn choose_book_match(&self, request_id: u64, id: i64, work: &str) {
+        guard("choose_book_match", || {
+            self.0.choose_book_match(request_id, id, work)
+        })
+    }
+    fn book_play(&self, request_id: u64, book: i64, position_ms: i64) {
+        guard("book_play", || {
+            self.0.book_play(request_id, book, position_ms)
+        })
+    }
+    fn book_progress(&self, book: i64, position_ms: i64) {
+        guard("book_progress", || self.0.book_progress(book, position_ms))
+    }
+    fn book_mark_finished(&self, request_id: u64, book: i64, finished: bool) {
+        guard("book_mark_finished", || {
+            self.0.book_mark_finished(request_id, book, finished)
+        })
+    }
+    fn book_set_speed(&self, book: i64, speed: f64) {
+        guard("book_set_speed", || self.0.book_set_speed(book, speed))
+    }
+    fn continue_series(&self, request_id: u64, series: i64) {
+        guard("continue_series", || {
+            self.0.continue_series(request_id, series)
+        })
     }
     fn queue_play(
         &self,

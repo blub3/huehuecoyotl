@@ -5,6 +5,7 @@ qt_add_executable(coyotl WIN32 MACOSX_BUNDLE
   src/mpvvideoitem.h src/mpvvideoitem.cpp
   src/playbackcontroller.h src/playbackcontroller.cpp
   src/musicplayer.h src/musicplayer.cpp src/musicoptions.h src/audiopath.h
+  src/bookplayer.h src/bookplayer.cpp src/bookoptions.h
   src/models.h src/models.cpp
   src/episodemodel.h src/episodemodel.cpp
   src/desktopintegration.h src/desktopintegration.cpp
@@ -34,6 +35,10 @@ qt_add_qml_module(coyotl
     qml/SaveMenu.qml
     qml/TmdbKeyStatus.qml
     qml/MusicPage.qml
+    qml/AudiobooksPage.qml
+    qml/BookPage.qml
+    qml/BookListPage.qml
+    qml/BookPlayerPage.qml
     qml/AlbumPage.qml
     qml/ArtistPage.qml
     qml/NowPlayingPage.qml

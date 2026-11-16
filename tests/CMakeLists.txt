@@ -42,3 +42,13 @@ target_include_directories(tst_musicplayback PRIVATE ${CMAKE_SOURCE_DIR}/app/src
 target_link_libraries(tst_musicplayback PRIVATE Qt6::Test libmpv)
 coyotl_check_qt_modules(tst_musicplayback)
 add_test(NAME musicplayback COMMAND tst_musicplayback)
+
+# Issue #66: audiobook playback: resume inside a later file, one timeline across files, speed and
+# the sleep timer, through the bundled libmpv with the book player's options (null output) and a
+# stub instead of the core.
+qt_add_executable(tst_bookplayback tst_bookplayback.cpp
+  ${CMAKE_SOURCE_DIR}/app/src/bookplayer.h ${CMAKE_SOURCE_DIR}/app/src/bookplayer.cpp)
+target_include_directories(tst_bookplayback PRIVATE ${CMAKE_SOURCE_DIR}/app/src)
+target_link_libraries(tst_bookplayback PRIVATE Qt6::Test Qt6::Qml libmpv)
+coyotl_check_qt_modules(tst_bookplayback)
+add_test(NAME bookplayback COMMAND tst_bookplayback)
