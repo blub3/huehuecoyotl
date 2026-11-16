@@ -4,6 +4,10 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+## 1.6.0 – 2026-11-16 (Linux)
+
+Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled).
+
 - Show page (#48): every episode has its own version dropdown (when it has several files), technical summary with badges, "Details" panel and Save menu (Save, Save as…, Delete saved copy), with progress and saved or outdated marks on the episode. The selected version drives Play, the details and saving. Right moves into an episode's buttons, Back returns, Menu opens its Save menu. Long seasons load page by page as you scroll.
 - Movie and episode pages: Save, Save as… and Delete saved copy are now one Save menu.
 - A version whose server is offline but which has a saved copy can be chosen and plays the copy.

@@ -87,6 +87,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="1.6.0" date="2026-11-16" type="stable">
+      <description>
+        <p>Every episode of a show now has its own version choice, technical details and Save menu (Save, Save as…, Delete saved copy) right in the episode list, with progress and saved marks; long seasons load as you scroll.</p>
+      </description>
+    </release>
     <release version="1.5.2" date="2026-11-16" type="stable">
       <description>
         <p>Keyboard and remote keep working after the "Save as…" and storage-folder dialogs.</p>
