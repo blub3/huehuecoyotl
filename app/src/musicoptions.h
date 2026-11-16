@@ -29,3 +29,19 @@ inline int setMusicOptions(mpv_handle *mpv)
         if (mpv_set_option_string(mpv, o[0], o[1]) < 0) ++rejected;
     return rejected;
 }
+
+// Issue #9: bit-perfect mode on the running handle: exclusive access where the output offers it,
+// no audio filters, ReplayGain off and the software volume at 100 %. Off: shared access and the
+// ReplayGain choice ("no", "track" or "album"). mpv already forces no sample rate or format, and
+// with gapless-audio=weak it reopens the device when the format changes between tracks.
+inline void setBitPerfect(mpv_handle *mpv, bool on, const char *replayGain)
+{
+    mpv_set_property_string(mpv, "audio-exclusive", on ? "yes" : "no");
+    if (on) {
+        mpv_set_property_string(mpv, "af", "");
+        mpv_set_property_string(mpv, "replaygain", "no");
+        mpv_set_property_string(mpv, "volume", "100");
+    } else {
+        mpv_set_property_string(mpv, "replaygain", replayGain);
+    }
+}

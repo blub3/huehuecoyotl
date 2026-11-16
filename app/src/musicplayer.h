@@ -37,9 +37,22 @@ class MusicPlayer : public QObject {
     Q_PROPERTY(QString repeat READ repeat NOTIFY queueChanged)
     // "off", "track" or "album" (mpv's replaygain).
     Q_PROPERTY(QString replayGain READ replayGain WRITE setReplayGain NOTIFY replayGainChanged)
+    // Issue #9: bit-perfect mode, the output device (mpv's audio-device; "auto" is the system's
+    // default), the devices mpv offers ({name, description}), the volume (fixed at 100 in
+    // bit-perfect mode) and the signal path. `devices` holds only those worth offering, each with
+    // `direct` when it can be used exclusively.
+    Q_PROPERTY(bool bitPerfect READ bitPerfect WRITE setBitPerfect NOTIFY outputChanged)
+    Q_PROPERTY(QString audioDevice READ audioDevice WRITE setAudioDevice NOTIFY outputChanged)
+    Q_PROPERTY(QVariantList devices READ devices NOTIFY devicesChanged)
+    Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged)
+    // {sourceRate, sourceFormat, sourceChannels, outRate, outFormat, outChannels, ao, device,
+    //  exclusive, filters, bitPerfect, fallback}: what goes in and what goes out (5.7).
+    Q_PROPERTY(QVariantMap signalPath READ signalPath NOTIFY signalPathChanged)
 
   public:
-    explicit MusicPlayer(QObject *parent = nullptr);
+    // No default argument: QML must not build a second player of its own (it would, for a
+    // default-constructible singleton, instead of calling create()).
+    explicit MusicPlayer(QObject *parent);
     ~MusicPlayer() override;
     static MusicPlayer *create(QQmlEngine *, QJSEngine *);
     static MusicPlayer *instance() { return s_instance; }
@@ -60,6 +73,14 @@ class MusicPlayer : public QObject {
     QString replayGain() const { return m_replayGain; }
     void setReplayGain(const QString &mode);
     void setShuffle(bool on);
+    bool bitPerfect() const { return m_bitPerfect; }
+    void setBitPerfect(bool on);
+    QString audioDevice() const { return m_device; }
+    void setAudioDevice(const QString &name);
+    QVariantList devices() const { return m_devices; }
+    int volume() const { return m_bitPerfect ? 100 : m_volume; }
+    void setVolume(int v);
+    QVariantMap signalPath() const { return m_signal; }
 
     // Items: track, album or artist ids. startItem 0: the first (or a random one with shuffle).
     Q_INVOKABLE void playItems(const QVariantList &items, qint64 startItem = 0, bool shuffle = false);
@@ -88,6 +109,10 @@ class MusicPlayer : public QObject {
     void currentChanged();
     void queueChanged();
     void replayGainChanged();
+    void outputChanged();
+    void devicesChanged();
+    void volumeChanged();
+    void signalPathChanged();
     void failed(const QString &message);
 
   private:
@@ -101,6 +126,9 @@ class MusicPlayer : public QObject {
     void setCurrent(const QVariantMap &entry);
     quint64 ticket() const;
     void track(quint64 requestId) { m_requests.append(requestId); }
+    void applyOutput();
+    void updateSignal();
+    void fallBack();
 
     static inline MusicPlayer *s_instance = nullptr;
     mpv_handle *m_mpv = nullptr;
@@ -117,6 +145,17 @@ class MusicPlayer : public QObject {
     bool m_shuffle = false;
     QString m_repeat = QStringLiteral("off");
     QString m_replayGain = QStringLiteral("off");
+    bool m_bitPerfect = false;
+    QString m_device = QStringLiteral("auto");
+    QVariantList m_devices;
+    int m_volume = 100;
+    QVariantMap m_in, m_out, m_signal;
+    QString m_ao;
+    bool m_filters = false;
+    // The chosen device could not be opened: playing on the default device instead.
+    bool m_fellBack = false;
+    // mpv gives up on the track that found no device: load it again once on the default one.
+    bool m_retry = false;
     QList<quint64> m_requests;
     QTimer m_progress;
 };

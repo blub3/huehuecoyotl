@@ -4,7 +4,7 @@ qt_add_executable(coyotl WIN32 MACOSX_BUNDLE
   src/mpvplayer.h src/mpvplayer.cpp
   src/mpvvideoitem.h src/mpvvideoitem.cpp
   src/playbackcontroller.h src/playbackcontroller.cpp
-  src/musicplayer.h src/musicplayer.cpp src/musicoptions.h
+  src/musicplayer.h src/musicplayer.cpp src/musicoptions.h src/audiopath.h
   src/models.h src/models.cpp
   src/episodemodel.h src/episodemodel.cpp
   src/desktopintegration.h src/desktopintegration.cpp

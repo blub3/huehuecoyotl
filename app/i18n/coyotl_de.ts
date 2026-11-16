@@ -211,7 +211,7 @@
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="902"/>
+        <location filename="../src/corebridge.cpp" line="903"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -1277,8 +1277,24 @@
     </message>
     <message>
         <location filename="../qml/MediaInfo.js" line="295"/>
+        <location filename="../qml/MediaInfo.js" line="305"/>
         <source>%1 bit</source>
         <translation>%1 Bit</translation>
+    </message>
+    <message>
+        <location filename="../qml/MediaInfo.js" line="302"/>
+        <source>32-bit float</source>
+        <translation>32 Bit Gleitkomma</translation>
+    </message>
+    <message>
+        <location filename="../qml/MediaInfo.js" line="303"/>
+        <source>64-bit float</source>
+        <translation>64 Bit Gleitkomma</translation>
+    </message>
+    <message>
+        <location filename="../qml/MediaInfo.js" line="315"/>
+        <source>file</source>
+        <translation>Datei</translation>
     </message>
 </context>
 <context>
@@ -1450,7 +1466,7 @@
 <context>
     <name>MusicPlayer</name>
     <message>
-        <location filename="../src/musicplayer.cpp" line="402"/>
+        <location filename="../src/musicplayer.cpp" line="554"/>
         <source>Cannot play “%1”: %2</source>
         <translation>„%1“ kann nicht abgespielt werden: %2</translation>
     </message>
@@ -1767,83 +1783,143 @@
 <context>
     <name>NowPlayingPage</name>
     <message>
+        <location filename="../qml/NowPlayingPage.qml" line="23"/>
+        <source>Output: %1</source>
+        <translation>Ausgabe: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="23"/>
+        <source>exclusive</source>
+        <translation>exklusiv</translation>
+    </message>
+    <message>
         <location filename="../qml/NowPlayingPage.qml" line="26"/>
+        <source>The chosen audio device could not be opened; playing on the system&apos;s default device.</source>
+        <translation>Das gewählte Audiogerät ließ sich nicht öffnen; die Wiedergabe läuft über das Standardgerät des Systems.</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="30"/>
+        <source>Shared output through %1 at %2. The system mixer may resample.</source>
+        <translation>Gemeinsame Ausgabe über %1 mit %2. Der Mixer des Systems kann die Abtastrate ändern.</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="31"/>
+        <source>Audio filters are active.</source>
+        <translation>Audiofilter sind aktiv.</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="33"/>
+        <source>The device does not take %1; converted to %2.</source>
+        <translation>Das Gerät nimmt %1 nicht an; umgewandelt in %2.</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="34"/>
+        <source>The device does not take this format; converted to %1.</source>
+        <translation>Das Gerät nimmt dieses Format nicht an; umgewandelt in %1.</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="44"/>
         <source>Nothing is playing. Choose Play on an album.</source>
         <translation>Es läuft nichts. Wähle bei einem Album „Abspielen“.</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="88"/>
+        <location filename="../qml/NowPlayingPage.qml" line="107"/>
         <source>Open the artist</source>
         <translation>Zum Künstler</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="100"/>
+        <location filename="../qml/NowPlayingPage.qml" line="119"/>
         <source>Open the album</source>
         <translation>Zum Album</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="118"/>
+        <location filename="../qml/NowPlayingPage.qml" line="137"/>
         <source>Hi-Res</source>
         <translation>Hi-Res</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="136"/>
+        <location filename="../qml/NowPlayingPage.qml" line="156"/>
+        <source>Bit-perfect</source>
+        <translation>Bit-perfekt</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="184"/>
         <source>Position</source>
         <translation>Position</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="175"/>
+        <location filename="../qml/NowPlayingPage.qml" line="223"/>
         <source>Shuffle: on</source>
         <translation>Zufallswiedergabe: an</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="175"/>
+        <location filename="../qml/NowPlayingPage.qml" line="223"/>
         <source>Shuffle: off</source>
         <translation>Zufallswiedergabe: aus</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="185"/>
+        <location filename="../qml/NowPlayingPage.qml" line="234"/>
         <source>Previous</source>
         <translation>Zurück</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="195"/>
+        <location filename="../qml/NowPlayingPage.qml" line="245"/>
         <source>Pause</source>
         <translation>Pause</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="195"/>
+        <location filename="../qml/NowPlayingPage.qml" line="245"/>
         <source>Play</source>
         <translation>Abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="204"/>
+        <location filename="../qml/NowPlayingPage.qml" line="255"/>
         <source>Next</source>
         <translation>Weiter</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="213"/>
+        <location filename="../qml/NowPlayingPage.qml" line="265"/>
         <source>Repeat: this track</source>
         <translation>Wiederholen: dieser Titel</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="214"/>
+        <location filename="../qml/NowPlayingPage.qml" line="266"/>
         <source>Repeat: all</source>
         <translation>Wiederholen: alle</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="214"/>
+        <location filename="../qml/NowPlayingPage.qml" line="266"/>
         <source>Repeat: off</source>
         <translation>Wiederholen: aus</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="231"/>
-        <location filename="../qml/NowPlayingPage.qml" line="245"/>
+        <location filename="../qml/NowPlayingPage.qml" line="282"/>
+        <source>Quieter</source>
+        <translation>Leiser</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="290"/>
+        <source>Volume 100 % (bit-perfect)</source>
+        <translation>Lautstärke 100 % (bit-perfekt)</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="290"/>
+        <source>Volume %1 %</source>
+        <translation>Lautstärke %1 %</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="299"/>
+        <source>Louder</source>
+        <translation>Lauter</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="316"/>
+        <location filename="../qml/NowPlayingPage.qml" line="330"/>
         <source>Queue</source>
         <translation>Warteschlange</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/NowPlayingPage.qml" line="231"/>
+        <location filename="../qml/NowPlayingPage.qml" line="316"/>
         <source>%n track(s)</source>
         <translation>
             <numerusform>%n Titel</numerusform>
@@ -1851,22 +1927,22 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="335"/>
+        <location filename="../qml/NowPlayingPage.qml" line="420"/>
         <source>Really clear the queue?</source>
         <translation>Warteschlange wirklich leeren?</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="335"/>
+        <location filename="../qml/NowPlayingPage.qml" line="420"/>
         <source>Clear queue</source>
         <translation>Warteschlange leeren</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="350"/>
+        <location filename="../qml/NowPlayingPage.qml" line="435"/>
         <source>Play now</source>
         <translation>Jetzt abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="350"/>
+        <location filename="../qml/NowPlayingPage.qml" line="435"/>
         <source>Remove from queue</source>
         <translation>Aus der Warteschlange entfernen</translation>
     </message>
@@ -2141,37 +2217,37 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="149"/>
+        <location filename="../qml/SettingsPage.qml" line="163"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="152"/>
+        <location filename="../qml/SettingsPage.qml" line="166"/>
         <source>Metadata</source>
         <translation>Metadaten</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="173"/>
+        <location filename="../qml/SettingsPage.qml" line="187"/>
         <source>Posters, descriptions and episode titles come from The Movie Database (TMDB). TMDB needs a free personal API key: create an account at themoviedb.org, open Settings → API, request a key for personal use, and paste the “API Key” or the “API Read Access Token” here. Without a key the app still plays everything and shows titles from the file names.</source>
         <translation>Poster, Beschreibungen und Folgentitel kommen von The Movie Database (TMDB). TMDB braucht einen kostenlosen persönlichen API-Schlüssel: Lege ein Konto auf themoviedb.org an, öffne Einstellungen → API, beantrage einen Schlüssel für die private Nutzung und füge hier den „API Key“ oder das „API Read Access Token“ ein. Ohne Schlüssel spielt die App trotzdem alles ab und zeigt die Titel aus den Dateinamen.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="188"/>
+        <location filename="../qml/SettingsPage.qml" line="202"/>
         <source>TMDB API key or read access token</source>
         <translation>TMDB-API-Schlüssel oder Read Access Token</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="192"/>
+        <location filename="../qml/SettingsPage.qml" line="206"/>
         <source>TMDB API key</source>
         <translation>TMDB-API-Schlüssel</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="208"/>
+        <location filename="../qml/SettingsPage.qml" line="222"/>
         <source>Checking…</source>
         <translation>Wird geprüft …</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="208"/>
+        <location filename="../qml/SettingsPage.qml" line="222"/>
         <source>Check and save</source>
         <translation>Prüfen und speichern</translation>
     </message>
@@ -2181,243 +2257,288 @@
         <translation>TMDB hat den Schlüssel akzeptiert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="172"/>
+        <location filename="../qml/SettingsPage.qml" line="186"/>
         <source>Enter the new key. The stored key stays until TMDB accepts the new one.</source>
         <translation>Gib den neuen Schlüssel ein. Der gespeicherte bleibt, bis TMDB den neuen akzeptiert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="220"/>
+        <location filename="../qml/SettingsPage.qml" line="234"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="234"/>
+        <location filename="../qml/SettingsPage.qml" line="248"/>
         <source>Review matches</source>
         <translation>Zuordnungen prüfen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="241"/>
+        <location filename="../qml/SettingsPage.qml" line="255"/>
         <source>%1 tasks queued</source>
         <translation>%1 Aufgaben in der Warteschlange</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="246"/>
+        <location filename="../qml/SettingsPage.qml" line="260"/>
         <source>%1 failed (see the log)</source>
         <translation>%1 fehlgeschlagen (siehe Protokoll)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="260"/>
+        <location filename="../qml/SettingsPage.qml" line="274"/>
         <source>Music information online: on</source>
         <translation>Musikinformationen online: an</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="260"/>
+        <location filename="../qml/SettingsPage.qml" line="274"/>
         <source>Music information online: off</source>
         <translation>Musikinformationen online: aus</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="274"/>
+        <location filename="../qml/SettingsPage.qml" line="288"/>
         <source>Album and artist names from your music are sent to MusicBrainz to find release types, dates and ids, and covers come from the Cover Art Archive. No account or key is needed.</source>
         <translation>Album- und Künstlernamen deiner Musik werden an MusicBrainz geschickt, um Veröffentlichungsart, Datum und IDs zu finden; Cover kommen aus dem Cover Art Archive. Ein Konto oder Schlüssel ist nicht nötig.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="275"/>
+        <location filename="../qml/SettingsPage.qml" line="289"/>
         <source>Music information comes from your files&apos; tags only; nothing is sent.</source>
         <translation>Musikinformationen kommen nur aus den Tags deiner Dateien; nichts wird gesendet.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="286"/>
+        <location filename="../qml/SettingsPage.qml" line="300"/>
         <source>Optional: with your own key, artist images, backgrounds, logos and biographies, and covers for albums without one, come from TheAudioDB and Fanart.tv. Artist and album ids from MusicBrainz are sent to them. Keys stay in the system keystore.</source>
         <translation>Optional: Mit deinem eigenen Schlüssel kommen Künstlerbilder, Hintergründe, Logos und Biografien sowie Cover für Alben ohne Cover von TheAudioDB und Fanart.tv. Dabei werden Künstler- und Album-IDs von MusicBrainz an sie gesendet. Schlüssel bleiben im Schlüsselspeicher des Systems.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="295"/>
+        <location filename="../qml/SettingsPage.qml" line="309"/>
         <source>TheAudioDB gives an API key to supporters on their profile page.</source>
         <translation>TheAudioDB gibt Unterstützern einen API-Schlüssel auf ihrer Profilseite.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="309"/>
+        <location filename="../qml/SettingsPage.qml" line="323"/>
         <source>Create an account at fanart.tv and request an API key on your profile.</source>
         <translation>Lege ein Konto bei fanart.tv an und fordere in deinem Profil einen API-Schlüssel an.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="318"/>
+        <location filename="../qml/SettingsPage.qml" line="332"/>
         <source>Appearance</source>
         <translation>Darstellung</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="321"/>
+        <location filename="../qml/SettingsPage.qml" line="335"/>
         <source>Cover size in window</source>
         <translation>Covergröße im Fenster</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="329"/>
+        <location filename="../qml/SettingsPage.qml" line="343"/>
         <source>Cover size in fullscreen</source>
         <translation>Covergröße im Vollbild</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="337"/>
+        <location filename="../qml/SettingsPage.qml" line="351"/>
         <source>Playback</source>
         <translation>Wiedergabe</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="340"/>
+        <location filename="../qml/SettingsPage.qml" line="354"/>
         <source>Preferred version</source>
         <translation>Bevorzugte Version</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="341"/>
+        <location filename="../qml/SettingsPage.qml" line="355"/>
         <source>Highest quality</source>
         <translation>Höchste Qualität</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="341"/>
+        <location filename="../qml/SettingsPage.qml" line="355"/>
         <source>Smallest file</source>
         <translation>Kleinste Datei</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="352"/>
+        <location filename="../qml/SettingsPage.qml" line="366"/>
         <source>When a movie exists in several versions and none was played yet. “Smallest file” helps on slow networks.</source>
         <translation>Wenn ein Film in mehreren Versionen vorliegt und noch keine abgespielt wurde. „Kleinste Datei“ hilft bei langsamen Netzwerken.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="357"/>
+        <location filename="../qml/SettingsPage.qml" line="371"/>
         <source>ReplayGain</source>
         <translation>ReplayGain</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="358"/>
+        <location filename="../qml/SettingsPage.qml" line="372"/>
         <source>Off</source>
         <translation>Aus</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="358"/>
+        <location filename="../qml/SettingsPage.qml" line="372"/>
         <source>Track</source>
         <translation>Titel</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="358"/>
+        <location filename="../qml/SettingsPage.qml" line="372"/>
         <source>Album</source>
         <translation>Album</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="369"/>
+        <location filename="../qml/SettingsPage.qml" line="383"/>
         <source>Evens out the loudness of music from the ReplayGain tags in the files: per track, or per album so an album keeps its own dynamics.</source>
         <translation>Gleicht die Lautstärke von Musik mit den ReplayGain-Angaben in den Dateien an: pro Titel, oder pro Album, damit ein Album seine eigene Dynamik behält.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="373"/>
+        <location filename="../qml/SettingsPage.qml" line="387"/>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="394"/>
+        <source>Bit-perfect music: on</source>
+        <translation>Bit-perfekte Musik: an</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="394"/>
+        <source>Bit-perfect music: off</source>
+        <translation>Bit-perfekte Musik: aus</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="407"/>
+        <source>Music goes to the device as it is in the file: no resampling by the app, no ReplayGain, volume fixed at 100 %, and exclusive access where the device allows it (an ALSA hardware device). Through PipeWire the system mixer has the last word; Now Playing shows what happens.</source>
+        <translation>Musik geht so zum Gerät, wie sie in der Datei steht: keine Umrechnung durch die App, kein ReplayGain, Lautstärke fest auf 100 % und exklusiver Zugriff, wo das Gerät ihn erlaubt (ein ALSA-Hardwaregerät). Über PipeWire hat der Mixer des Systems das letzte Wort; „Läuft gerade“ zeigt, was passiert.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="416"/>
+        <source>Music output: %1</source>
+        <translation>Musikausgabe: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="416"/>
+        <source>system default</source>
+        <translation>Standard des Systems</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="423"/>
+        <source>System default</source>
+        <translation>Standard des Systems</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="424"/>
+        <source>direct</source>
+        <translation>direkt</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="432"/>
+        <source>Devices marked “direct” are the hardware itself; in bit-perfect mode the app uses them exclusively. Videos always use the system default.</source>
+        <translation>Mit „direkt“ markierte Geräte sind die Hardware selbst; im bit-perfekten Modus nutzt die App sie exklusiv. Videos nutzen immer den Standard des Systems.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="442"/>
         <source>Storage</source>
         <translation>Speicher</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="378"/>
+        <location filename="../qml/SettingsPage.qml" line="447"/>
         <source>Saved copies go to %1</source>
         <translation>Gespeicherte Kopien liegen in %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="384"/>
+        <location filename="../qml/SettingsPage.qml" line="453"/>
         <source>Space used by saved copies: %1</source>
         <translation>Von gespeicherten Kopien belegt: %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="390"/>
+        <location filename="../qml/SettingsPage.qml" line="459"/>
         <source>Change location…</source>
         <translation>Ort ändern …</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="391"/>
+        <location filename="../qml/SettingsPage.qml" line="460"/>
         <source>New saved copies go to the chosen folder; existing ones stay where they are.</source>
         <translation>Neue Kopien landen im gewählten Ordner; vorhandene bleiben, wo sie sind.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="400"/>
+        <location filename="../qml/SettingsPage.qml" line="469"/>
         <source>Use default</source>
         <translation>Standard verwenden</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="410"/>
-        <location filename="../qml/SettingsPage.qml" line="561"/>
+        <location filename="../qml/SettingsPage.qml" line="479"/>
+        <location filename="../qml/SettingsPage.qml" line="630"/>
         <source>Delete all saved copies</source>
         <translation>Alle gespeicherten Kopien löschen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="426"/>
+        <location filename="../qml/SettingsPage.qml" line="495"/>
         <source>Troubleshooting</source>
         <translation>Fehlerbehebung</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="431"/>
+        <location filename="../qml/SettingsPage.qml" line="500"/>
         <source>If something does not work, export a diagnostics file and attach it to a bug report. It contains the app&apos;s log and version information. Server names, user names, addresses, keys and your home folder are removed.</source>
         <translation>Wenn etwas nicht funktioniert, exportiere eine Diagnosedatei und hänge sie an einen Fehlerbericht an. Sie enthält das Protokoll der App und Versionsangaben. Servernamen, Benutzernamen, Adressen, Schlüssel und dein Benutzerordner werden entfernt.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="437"/>
+        <location filename="../qml/SettingsPage.qml" line="506"/>
         <source>Export diagnostics</source>
         <translation>Diagnose exportieren</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="444"/>
+        <location filename="../qml/SettingsPage.qml" line="513"/>
         <source>Saved to %1</source>
         <translation>Gespeichert unter %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="445"/>
+        <location filename="../qml/SettingsPage.qml" line="514"/>
         <source>Export failed: %1</source>
         <translation>Export fehlgeschlagen: %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="458"/>
+        <location filename="../qml/SettingsPage.qml" line="527"/>
         <source>About</source>
         <translation>Über</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="468"/>
+        <location filename="../qml/SettingsPage.qml" line="537"/>
         <source>Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt, all used under the LGPL.</source>
         <translation>Huehuecoyotl %1 · Apache-Lizenz 2.0. Wiedergabe mit libmpv und FFmpeg, Oberfläche mit Qt, jeweils unter der LGPL.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="469"/>
+        <location filename="../qml/SettingsPage.qml" line="538"/>
         <source>%1 (development build %2)</source>
         <translation>%1 (Entwicklungsversion %2)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="474"/>
+        <location filename="../qml/SettingsPage.qml" line="543"/>
         <source>Third-party licences</source>
         <translation>Lizenzen von Drittanbietern</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="490"/>
+        <location filename="../qml/SettingsPage.qml" line="559"/>
         <source>This product uses the TMDB API but is not endorsed or certified by TMDB.</source>
         <translation>Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="498"/>
+        <location filename="../qml/SettingsPage.qml" line="567"/>
         <source>Music information from MusicBrainz (musicbrainz.org, data under CC0). Album covers from the Cover Art Archive (coverartarchive.org), a joint project of the Internet Archive and MusicBrainz.</source>
         <translation>Musikinformationen von MusicBrainz (musicbrainz.org, Daten unter CC0). Albumcover aus dem Cover Art Archive (coverartarchive.org), einem gemeinsamen Projekt des Internet Archive und von MusicBrainz.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="506"/>
+        <location filename="../qml/SettingsPage.qml" line="575"/>
         <source>Artist images, biographies and album art from TheAudioDB (theaudiodb.com), contributed by its community.</source>
         <translation>Künstlerbilder, Biografien und Albumbilder von TheAudioDB (theaudiodb.com), beigetragen von dessen Community.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="513"/>
+        <location filename="../qml/SettingsPage.qml" line="582"/>
         <source>Artist images, logos and album art from Fanart.tv (fanart.tv), contributed by its community.</source>
         <translation>Künstlerbilder, Logos und Albumbilder von Fanart.tv (fanart.tv), beigetragen von dessen Community.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="520"/>
+        <location filename="../qml/SettingsPage.qml" line="589"/>
         <source>Where saved copies go</source>
         <translation>Ordner für gespeicherte Kopien</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="548"/>
+        <location filename="../qml/SettingsPage.qml" line="617"/>
         <source>Delete every saved copy from this computer (%1)? The files on your servers stay, and everything can be streamed or saved again.</source>
         <translation>Alle gespeicherten Kopien von diesem Computer löschen (%1)? Die Dateien auf deinen Servern bleiben erhalten, und alles kann weiter gestreamt oder erneut gespeichert werden.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="554"/>
+        <location filename="../qml/SettingsPage.qml" line="623"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>

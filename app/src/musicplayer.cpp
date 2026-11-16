@@ -1,4 +1,5 @@
 #include "musicplayer.h"
+#include "audiopath.h"
 #include "corebridge.h"
 #include "musicoptions.h"
 
@@ -16,6 +17,35 @@ Q_LOGGING_CATEGORY(lcMusic, "coyotl.music")
 extern "C" int coyotl_stream_open(void *user_data, char *uri, mpv_stream_cb_info *info);
 
 namespace {
+QVariant toVariant(const mpv_node *n)
+{
+    if (!n) return {};
+    switch (n->format) {
+    case MPV_FORMAT_STRING:
+        return QString::fromUtf8(n->u.string);
+    case MPV_FORMAT_FLAG:
+        return bool(n->u.flag);
+    case MPV_FORMAT_INT64:
+        return qint64(n->u.int64);
+    case MPV_FORMAT_DOUBLE:
+        return n->u.double_;
+    case MPV_FORMAT_NODE_ARRAY: {
+        QVariantList l;
+        for (int i = 0; i < n->u.list->num; ++i)
+            l << toVariant(&n->u.list->values[i]);
+        return l;
+    }
+    case MPV_FORMAT_NODE_MAP: {
+        QVariantMap m;
+        for (int i = 0; i < n->u.list->num; ++i)
+            m.insert(QString::fromUtf8(n->u.list->keys[i]), toVariant(&n->u.list->values[i]));
+        return m;
+    }
+    default:
+        return {};
+    }
+}
+
 QList<qint64> idList(const QVariantList &items)
 {
     QList<qint64> out;
@@ -47,6 +77,14 @@ MusicPlayer::MusicPlayer(QObject *parent) : QObject(parent)
     mpv_observe_property(m_mpv, 0, "duration", MPV_FORMAT_DOUBLE);
     mpv_observe_property(m_mpv, 0, "pause", MPV_FORMAT_FLAG);
     mpv_observe_property(m_mpv, 0, "paused-for-cache", MPV_FORMAT_FLAG);
+    // Issue #9: the signal path and the devices.
+    mpv_observe_property(m_mpv, 0, "audio-params", MPV_FORMAT_NODE);
+    mpv_observe_property(m_mpv, 0, "audio-out-params", MPV_FORMAT_NODE);
+    mpv_observe_property(m_mpv, 0, "af", MPV_FORMAT_NODE);
+    mpv_observe_property(m_mpv, 0, "current-ao", MPV_FORMAT_STRING);
+    mpv_observe_property(m_mpv, 0, "audio-device-list", MPV_FORMAT_NODE);
+    // The volume is not observed: only this class sets it, and mpv's first report (100) could
+    // otherwise overwrite the volume restored at start.
     mpv_set_wakeup_callback(
         m_mpv,
         [](void *ctx) {
@@ -223,9 +261,97 @@ void MusicPlayer::setReplayGain(const QString &mode)
     const QString m = (mode == "track" || mode == "album") ? mode : QStringLiteral("off");
     if (m == m_replayGain) return;
     m_replayGain = m;
-    const QByteArray v = m == "off" ? QByteArray("no") : m.toUtf8();
-    mpv_set_property_string(m_mpv, "replaygain", v.constData());
+    // Bit-perfect mode keeps ReplayGain off; the choice applies again when it is turned off.
+    if (!m_bitPerfect) {
+        const QByteArray v = m == "off" ? QByteArray("no") : m.toUtf8();
+        mpv_set_property_string(m_mpv, "replaygain", v.constData());
+    }
     emit replayGainChanged();
+}
+
+// ---- output (issue #9) ------------------------------------------------------------------------
+
+void MusicPlayer::applyOutput()
+{
+    const QByteArray rg = m_replayGain == "off" ? QByteArray("no") : m_replayGain.toUtf8();
+    ::setBitPerfect(m_mpv, m_bitPerfect, rg.constData());
+    // Changing audio-device or audio-exclusive makes mpv reopen the output by itself.
+    const QByteArray dev = (m_fellBack ? QStringLiteral("auto") : m_device).toUtf8();
+    mpv_set_property_string(m_mpv, "audio-device", dev.constData());
+    if (!m_bitPerfect) {
+        double v = m_volume;
+        mpv_set_property(m_mpv, "volume", MPV_FORMAT_DOUBLE, &v);
+    }
+}
+
+void MusicPlayer::setBitPerfect(bool on)
+{
+    if (on == m_bitPerfect) return;
+    m_bitPerfect = on;
+    m_fellBack = false;
+    applyOutput();
+    emit outputChanged();
+    emit volumeChanged();
+    updateSignal();
+}
+
+void MusicPlayer::setAudioDevice(const QString &name)
+{
+    const QString n = name.isEmpty() ? QStringLiteral("auto") : name;
+    if (n == m_device && !m_fellBack) return;
+    m_device = n;
+    m_fellBack = false;
+    applyOutput();
+    emit outputChanged();
+    updateSignal();
+}
+
+void MusicPlayer::setVolume(int v)
+{
+    if (m_bitPerfect) return; // fixed at 100 % (SPEC 5.7)
+    v = qBound(0, v, 100);
+    if (v == m_volume) return;
+    m_volume = v;
+    double d = v;
+    mpv_set_property(m_mpv, "volume", MPV_FORMAT_DOUBLE, &d);
+    emit volumeChanged();
+}
+
+void MusicPlayer::updateSignal()
+{
+    const QString device = m_fellBack ? QStringLiteral("auto") : m_device;
+    const bool exclusive = audiopath::exclusive(m_bitPerfect, m_ao, device);
+    QVariantMap s{
+        {"sourceRate", m_in.value("samplerate").toInt()},
+        {"sourceFormat", m_in.value("format").toString()},
+        {"sourceChannels", m_in.value("channel-count").toInt()},
+        {"outRate", m_out.value("samplerate").toInt()},
+        {"outFormat", m_out.value("format").toString()},
+        {"outChannels", m_out.value("channel-count").toInt()},
+        {"ao", m_ao},
+        {"device", device},
+        {"exclusive", exclusive},
+        {"filters", m_filters},
+        {"bitPerfect", audiopath::bitPerfect(m_in, m_out, exclusive, m_filters)},
+        {"fallback", m_fellBack},
+    };
+    if (s == m_signal) return;
+    m_signal = s;
+    emit signalPathChanged();
+}
+
+// The chosen device could not be opened (busy, gone, or it refused exclusive access): play on the
+// system's default device in shared mode rather than in silence, and say so.
+void MusicPlayer::fallBack()
+{
+    if (m_fellBack || (m_device == "auto" && !m_bitPerfect)) return;
+    qCWarning(lcMusic) << "the audio device could not be opened; using the default device";
+    m_fellBack = true;
+    m_retry = m_loaded;
+    mpv_set_property_string(m_mpv, "audio-exclusive", "no");
+    mpv_set_property_string(m_mpv, "audio-device", "auto");
+    emit outputChanged();
+    updateSignal();
 }
 
 void MusicPlayer::report()
@@ -358,6 +484,23 @@ void MusicPlayer::drainEvents()
             } else if (std::strcmp(p->name, "paused-for-cache") == 0) {
                 m_buffering = !none && *static_cast<int *>(p->data);
                 updateState();
+            } else if (std::strcmp(p->name, "audio-params") == 0) {
+                m_in = none ? QVariantMap() : toVariant(static_cast<mpv_node *>(p->data)).toMap();
+                updateSignal();
+            } else if (std::strcmp(p->name, "audio-out-params") == 0) {
+                m_out = none ? QVariantMap() : toVariant(static_cast<mpv_node *>(p->data)).toMap();
+                updateSignal();
+            } else if (std::strcmp(p->name, "af") == 0) {
+                m_filters = !none && !toVariant(static_cast<mpv_node *>(p->data)).toList().isEmpty();
+                updateSignal();
+            } else if (std::strcmp(p->name, "current-ao") == 0) {
+                m_ao = none ? QString() : QString::fromUtf8(*static_cast<char **>(p->data));
+                updateSignal();
+            } else if (std::strcmp(p->name, "audio-device-list") == 0) {
+                m_devices = none ? QVariantList()
+                                 : audiopath::offered(toVariant(static_cast<mpv_node *>(p->data)).toList(),
+                                                      qEnvironmentVariableIsSet("FLATPAK_ID"));
+                emit devicesChanged();
             }
             break;
         }
@@ -396,6 +539,15 @@ void MusicPlayer::drainEvents()
                     m_awaitNext = more;
                     setState(more ? Buffering : Ended);
                 }
+            } else if (ef->reason == MPV_END_FILE_REASON_ERROR && m_retry) {
+                // The device could not be opened for it: start it again on the default device.
+                m_retry = false;
+                m_loaded = false;
+                m_entries.clear();
+                const char *args[] = {"stop", nullptr};
+                mpv_command(m_mpv, args);
+                track(CoreBridge::instance()->queueResume(false));
+                setState(Opening);
             } else if (ef->reason == MPV_END_FILE_REASON_ERROR) {
                 const QString title = m_current.value("title").toString();
                 emit failed(
@@ -408,7 +560,10 @@ void MusicPlayer::drainEvents()
         }
         case MPV_EVENT_LOG_MESSAGE: {
             auto *m = static_cast<mpv_event_log_message *>(e->data);
-            qCWarning(lcMusic).noquote() << m->prefix << QString::fromUtf8(m->text).trimmed();
+            const QString text = QString::fromUtf8(m->text).trimmed();
+            qCWarning(lcMusic).noquote() << m->prefix << text;
+            // Only the final failure: with the automatic choice mpv tries several drivers.
+            if (text.contains("Could not open/initialize audio device")) fallBack();
             break;
         }
         default:

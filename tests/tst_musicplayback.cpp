@@ -4,6 +4,9 @@
 //    back as one tone, sample for sample: no gap, no extra samples, no discontinuity;
 //  - formats: one generated fixture per format of SPEC section 2 decodes to about a second of
 //    sound.
+//  - bit-perfect (issue #9): a 24-bit, 96 kHz FLAC played in bit-perfect mode comes out
+//    byte for byte as FFmpeg's reference decode (with the volume at 50 % it does not, so the
+//    comparison can tell); and the rules for "exclusive" and "Bit-perfect" on Now Playing.
 // Fixtures are generated with ffmpeg in a temporary folder; without ffmpeg the tests skip.
 #include <QElapsedTimer>
 #include <QFile>
@@ -15,6 +18,7 @@
 #include <cmath>
 #include <mpv/client.h>
 
+#include "audiopath.h"
 #include "musicoptions.h"
 
 namespace {
@@ -39,8 +43,9 @@ bool ffmpeg(const QStringList &args)
     return true;
 }
 
-// Play the files back to back into `out` as raw signed 16-bit mono at 44.1 kHz.
-bool render(const QStringList &files, const QString &out)
+// Play the files back to back into `out` as raw signed 16-bit mono at 44.1 kHz, or (`native`)
+// in bit-perfect mode as they are, at `volume`.
+bool render(const QStringList &files, const QString &out, bool native = false, int volume = 100)
 {
     std::setlocale(LC_NUMERIC, "C");
     mpv_handle *mpv = mpv_create();
@@ -50,13 +55,20 @@ bool render(const QStringList &files, const QString &out)
     mpv_set_option_string(mpv, "ao", "pcm");
     mpv_set_option_string(mpv, "ao-pcm-file", file.constData());
     mpv_set_option_string(mpv, "ao-pcm-waveheader", "no");
-    mpv_set_option_string(mpv, "audio-format", "s16");
-    mpv_set_option_string(mpv, "audio-channels", "mono");
-    mpv_set_option_string(mpv, "audio-samplerate", "44100");
+    if (!native) {
+        mpv_set_option_string(mpv, "audio-format", "s16");
+        mpv_set_option_string(mpv, "audio-channels", "mono");
+        mpv_set_option_string(mpv, "audio-samplerate", "44100");
+    }
     mpv_set_option_string(mpv, "terminal", "no");
     if (mpv_initialize(mpv) < 0) {
         mpv_terminate_destroy(mpv);
         return false;
+    }
+    if (native) {
+        setBitPerfect(mpv, volume == 100, "no");
+        const QByteArray v = QByteArray::number(volume);
+        mpv_set_property_string(mpv, "volume", v.constData());
     }
     bool first = true;
     for (const QString &f : files) {
@@ -135,6 +147,79 @@ class TestMusicPlayback : public QObject {
             }
         }
         QVERIFY2(worst < amp * 0.02, qPrintable(QStringLiteral("off by %1 at sample %2").arg(worst).arg(at)));
+    }
+
+    void bitPerfect()
+    {
+        // A 997 Hz tone on one channel, noise on the other, at 24 bit and 96 kHz.
+        const QString in = m_dir.filePath("hires.flac"), ref = m_dir.filePath("hires-ref.raw");
+        QVERIFY(ffmpeg({"-f", "lavfi", "-i", "sine=frequency=997:sample_rate=96000:duration=1", "-f", "lavfi",
+                        "-i", "anoisesrc=r=96000:a=0.05:d=1", "-filter_complex", "[0][1]amerge=inputs=2",
+                        "-c:a", "flac", "-sample_fmt", "s32", "-bits_per_raw_sample", "24", in}));
+        QVERIFY(ffmpeg({"-i", in, "-f", "s32le", "-c:a", "pcm_s32le", ref}));
+        QFile r(ref);
+        QVERIFY(r.open(QIODevice::ReadOnly));
+        const QByteArray expected = r.readAll();
+        QCOMPARE(expected.size(), 96000 * 2 * 4);
+
+        const QString out = m_dir.filePath("hires-out.raw");
+        QVERIFY(render({in}, out, true));
+        QFile o(out);
+        QVERIFY(o.open(QIODevice::ReadOnly));
+        const QByteArray got = o.readAll();
+        QCOMPARE(got.size(), expected.size());
+        QVERIFY2(got == expected, "bit-perfect output differs from the reference decode");
+
+        // The comparison can tell: at 50 % volume the samples differ.
+        const QString quieter = m_dir.filePath("hires-50.raw");
+        QVERIFY(render({in}, quieter, true, 50));
+        QFile q(quieter);
+        QVERIFY(q.open(QIODevice::ReadOnly));
+        QVERIFY(q.readAll() != expected);
+    }
+
+    void signalPathRules()
+    {
+        const QVariantMap in{{"samplerate", 96000}, {"format", "s32p"}, {"channel-count", 2}};
+        const QVariantMap same{{"samplerate", 96000}, {"format", "s32"}, {"channel-count", 2}};
+        const QVariantMap resampled{{"samplerate", 48000}, {"format", "s32"}, {"channel-count", 2}};
+        const QVariantMap s16{{"samplerate", 96000}, {"format", "s16"}, {"channel-count", 2}};
+        // Exclusive only on hardware devices with exclusive access requested; never shared.
+        QVERIFY(audiopath::exclusive(true, "alsa", "alsa/hw:1,0"));
+        QVERIFY(audiopath::exclusive(true, "alsa", "alsa/front:CARD=DAC,DEV=0"));
+        QVERIFY(audiopath::exclusive(true, "alsa", "alsa/iec958:CARD=DAC,DEV=0"));
+        QVERIFY(!audiopath::exclusive(true, "alsa", "alsa"));
+        QVERIFY(!audiopath::exclusive(true, "alsa", "alsa/sysdefault:CARD=DAC"));
+        QVERIFY(!audiopath::exclusive(true, "alsa", "alsa/dmix:CARD=DAC,DEV=0"));
+        QVERIFY(!audiopath::exclusive(true, "alsa", "alsa/plughw:CARD=DAC,DEV=0"));
+        QVERIFY(!audiopath::exclusive(true, "pipewire", "pipewire/alsa_output.usb"));
+        QVERIFY(!audiopath::exclusive(true, "pulse", "auto"));
+        QVERIFY(!audiopath::exclusive(false, "alsa", "alsa/hw:1,0"));
+        QVERIFY(audiopath::exclusive(true, "wasapi", "wasapi/{id}"));
+        // Bit-perfect only exclusive, unfiltered and unchanged.
+        QVERIFY(audiopath::bitPerfect(in, same, true, false));
+        QVERIFY(!audiopath::bitPerfect(in, same, false, false)); // shared: never
+        QVERIFY(!audiopath::bitPerfect(in, same, true, true));   // a filter
+        QVERIFY(!audiopath::bitPerfect(in, resampled, true, false));
+        QVERIFY(!audiopath::bitPerfect(in, s16, true, false));
+        QVERIFY(!audiopath::bitPerfect({}, same, true, false));
+        // The devices offered: default, PipeWire's outputs (not PulseAudio's next to them),
+        // direct ALSA hardware; no plug-ins, no mixing or converting ALSA devices.
+        auto dev = [](const char *n) { return QVariantMap{{"name", n}, {"description", n}}; };
+        const QVariantList all{dev("auto"),
+                               dev("pipewire"),
+                               dev("pipewire/usb-dac"),
+                               dev("pulse/usb-dac"),
+                               dev("alsa"),
+                               dev("alsa/speex"),
+                               dev("alsa/plughw:CARD=DAC,DEV=0"),
+                               dev("alsa/dmix:CARD=DAC,DEV=0"),
+                               dev("alsa/front:CARD=DAC,DEV=0")};
+        QStringList names;
+        for (const QVariant &v : audiopath::offered(all))
+            names << v.toMap().value("name").toString() + (v.toMap().value("direct").toBool() ? "*" : "");
+        QCOMPARE(names, (QStringList{"auto", "pipewire/usb-dac", "alsa/front:CARD=DAC,DEV=0*"}));
+        QCOMPARE(audiopath::offered(all, true).size(), 2); // the Flatpak: no direct hardware
     }
 
     void formats_data()

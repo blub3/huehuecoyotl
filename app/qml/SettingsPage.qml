@@ -135,10 +135,24 @@ FocusScope {
     }
 
     Flickable {
+        id: flick
         anchors.fill: parent
         contentHeight: col.implicitHeight + 64
         clip: true
         ScrollBar.vertical: ScrollBar {}
+        // Keyboard and remote: keep the focused control in view (the page is longer than a
+        // screen since the music settings).
+        function reveal(item) {
+            if (!item || !col.contains(col.mapFromItem(item, 0, 0))) return
+            const p = item.mapToItem(contentItem, 0, 0)
+            if (p.y < contentY + 24) contentY = Math.max(0, p.y - 24)
+            else if (p.y + item.height > contentY + height - 24)
+                contentY = Math.min(p.y + item.height - height + 24, Math.max(0, contentHeight - height))
+        }
+        Connections {
+            target: flick.Window.window
+            function onActiveFocusItemChanged() { flick.reveal(flick.Window.activeFocusItem) }
+        }
 
         ColumnLayout {
             id: col
@@ -359,7 +373,7 @@ FocusScope {
                 value: Music.replayGain
                 onPicked: (key) => Music.replayGain = key
                 onUpRequested: versionChoice.focusSelected()
-                onDownRequested: storageButton.forceActiveFocus()
+                onDownRequested: bitPerfectButton.forceActiveFocus()
             }
             Label {
                 Layout.fillWidth: true
@@ -367,6 +381,61 @@ FocusScope {
                 color: Theme.textDim
                 font.pixelSize: Theme.fontSmall
                 text: qsTr("Evens out the loudness of music from the ReplayGain tags in the files: per track, or per album so an album keeps its own dynamics.")
+            }
+
+            // ---- Audio (issue #9) --------------------------------------------------------------
+            Label { text: qsTr("Audio"); color: Theme.textDim; font.pixelSize: Theme.fontLarge; Layout.topMargin: 24 }
+            RowLayout {
+                spacing: 12
+                Layout.fillWidth: true
+                FocusButton {
+                    id: bitPerfectButton
+                    glyph: Music.bitPerfect ? "✓" : ""
+                    text: Music.bitPerfect ? qsTr("Bit-perfect music: on") : qsTr("Bit-perfect music: off")
+                    Accessible.description: bitPerfectNote.text
+                    Keys.onUpPressed: replayGainChoice.focusSelected()
+                    KeyNavigation.down: deviceButton
+                    Keys.onLeftPressed: Nav.focusRail()
+                    onClicked: Music.bitPerfect = !Music.bitPerfect
+                }
+                Label {
+                    id: bitPerfectNote
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    color: Theme.textDim
+                    font.pixelSize: Theme.fontSmall
+                    text: qsTr("Music goes to the device as it is in the file: no resampling by the app, no ReplayGain, volume fixed at 100 %, and exclusive access where the device allows it (an ALSA hardware device). Through PipeWire the system mixer has the last word; Now Playing shows what happens.")
+                }
+            }
+            RowLayout {
+                spacing: 12
+                Layout.fillWidth: true
+                FocusButton {
+                    id: deviceButton
+                    readonly property var current: (Music.devices || []).find(d => d.name === Music.audioDevice)
+                    text: qsTr("Music output: %1").arg(Music.audioDevice === "auto" ? qsTr("system default")
+                                                       : current ? current.description : Music.audioDevice) + "  ▾"
+                    KeyNavigation.up: bitPerfectButton
+                    KeyNavigation.down: storageButton
+                    Keys.onLeftPressed: Nav.focusRail()
+                    onClicked: deviceMenu.show(deviceButton, (Music.devices || []).map(d => ({
+                        value: d.name,
+                        label: d.name === "auto" ? qsTr("System default")
+                             : (d.description || d.name) + (d.direct ? "  ·  " + qsTr("direct") : "")
+                    })))
+                }
+                Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    color: Theme.textDim
+                    font.pixelSize: Theme.fontSmall
+                    text: qsTr("Devices marked “direct” are the hardware itself; in bit-perfect mode the app uses them exclusively. Videos always use the system default.")
+                }
+            }
+            ActionMenu {
+                id: deviceMenu
+                menuWidth: Math.min(640, page.width - 120)
+                onChosen: (v) => Music.audioDevice = v
             }
 
             // ---- Storage (issue #4) -----------------------------------------------------------
@@ -389,7 +458,7 @@ FocusScope {
                     id: storageButton
                     text: qsTr("Change location…")
                     Accessible.description: qsTr("New saved copies go to the chosen folder; existing ones stay where they are.")
-                    Keys.onUpPressed: replayGainChoice.focusSelected()
+                    Keys.onUpPressed: deviceButton.forceActiveFocus()
                     KeyNavigation.right: storageDefault
                     KeyNavigation.down: deleteAllButton
                     Keys.onLeftPressed: Nav.focusRail()
@@ -401,7 +470,7 @@ FocusScope {
                     KeyNavigation.left: storageButton
                     KeyNavigation.right: deleteAllButton
                     KeyNavigation.down: deleteAllButton
-                    Keys.onUpPressed: replayGainChoice.focusSelected()
+                    Keys.onUpPressed: deviceButton.forceActiveFocus()
                     onClicked: { page.storageMessage = ""; page.storageRequest = Core.setStorageDir("") }
                 }
                 FocusButton {

@@ -20,8 +20,10 @@ Popup {
         open()
     }
 
-    width: 240
-    height: list.contentHeight + 16
+    width: menuWidth
+    property int menuWidth: 240
+    // At most the window's height; longer lists scroll (and follow the keyboard).
+    height: Math.min(list.contentHeight + 16, (Overlay.overlay ? Overlay.overlay.height : 600) - 2 * margins)
     margins: 12
     modal: true
     padding: 8
@@ -33,7 +35,8 @@ Popup {
     ListView {
         id: list
         anchors.fill: parent
-        interactive: false
+        interactive: contentHeight > height
+        clip: true
         model: menu.visible ? menu.actions : []
         keyNavigationEnabled: true
         Accessible.role: Accessible.List

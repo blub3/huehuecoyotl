@@ -15,6 +15,24 @@ FocusScope {
     readonly property bool isPlayer: false
     readonly property var e: Music.current
     readonly property double length: Music.duration > 0 ? Music.duration : (e.durationMs || 0) / 1000
+    // Issue #9: what goes out, and what to say about it (SPEC 5.7, "Signal path").
+    readonly property var sp: Music.signalPath
+    readonly property string outputLine: {
+        if (!(sp.outRate > 0)) return ""
+        const parts = [MediaInfo.rate(sp.outRate), MediaInfo.sampleFormat(sp.outFormat), MediaInfo.outputName(sp.ao)]
+        return qsTr("Output: %1").arg(parts.filter(p => p).join(" · ")) + (sp.exclusive ? "  ·  " + qsTr("exclusive") : "")
+    }
+    readonly property string signalNote: {
+        if (sp.fallback) return qsTr("The chosen audio device could not be opened; playing on the system's default device.")
+        if (!(sp.outRate > 0)) return ""
+        if (sp.bitPerfect) return ""
+        if (!sp.exclusive)
+            return qsTr("Shared output through %1 at %2. The system mixer may resample.").arg(MediaInfo.outputName(sp.ao)).arg(MediaInfo.rate(sp.outRate))
+        if (sp.filters) return qsTr("Audio filters are active.")
+        if (sp.sourceRate !== sp.outRate)
+            return qsTr("The device does not take %1; converted to %2.").arg(MediaInfo.rate(sp.sourceRate)).arg(MediaInfo.rate(sp.outRate))
+        return qsTr("The device does not take this format; converted to %1.").arg(MediaInfo.sampleFormat(sp.outFormat))
+    }
 
     Component.onCompleted: Qt.callLater(() => playButton.forceActiveFocus())
     onActiveFocusChanged: if (activeFocus && !content.activeFocus) playButton.forceActiveFocus()
@@ -38,8 +56,9 @@ FocusScope {
         // ---- the track ---------------------------------------------------------------------
         ColumnLayout {
             id: trackColumn
-            // The cover is square: as wide as the column, at most 45 % of the page's height.
-            readonly property real side: Math.min(width, page.height * 0.45)
+            // The cover is square: as wide as the column, and small enough to leave room for the
+            // title, the signal path, the seek bar, the transport and the volume below it.
+            readonly property real side: Math.max(120, Math.min(width, page.height - 96 - 470))
             Layout.preferredWidth: Math.min(520, (page.width - 96) * 0.48)
             Layout.maximumWidth: Layout.preferredWidth
             Layout.fillHeight: true
@@ -124,6 +143,35 @@ FocusScope {
                 }
             }
 
+            // Issue #9: the signal path. "Bit-perfect" only when it is (exclusive, unchanged).
+            RowLayout {
+                spacing: 8
+                visible: page.outputLine !== ""
+                Rectangle {
+                    visible: page.sp.bitPerfect === true
+                    implicitWidth: bpText.implicitWidth + 12
+                    implicitHeight: 22
+                    radius: 4
+                    color: Theme.accent
+                    Label { id: bpText; anchors.centerIn: parent; text: qsTr("Bit-perfect"); color: Theme.bg; font.pixelSize: 12; font.bold: true }
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: page.outputLine
+                    color: Theme.textDim
+                    font.pixelSize: Theme.fontSmall
+                    elide: Text.ElideRight
+                }
+            }
+            Label {
+                Layout.fillWidth: true
+                visible: page.signalNote !== ""
+                text: page.signalNote
+                wrapMode: Text.Wrap
+                color: page.sp.fallback ? Theme.danger : Theme.textDim
+                font.pixelSize: Theme.fontSmall
+            }
+
             // Seek bar: Left and Right jump 10 s.
             Slider {
                 id: seek
@@ -176,6 +224,7 @@ FocusScope {
                     primary: Music.shuffle
                     KeyNavigation.right: prevButton
                     KeyNavigation.up: seek
+                    KeyNavigation.down: quieter
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: Music.shuffle = !Music.shuffle
                 }
@@ -186,6 +235,7 @@ FocusScope {
                     KeyNavigation.left: shuffleButton
                     KeyNavigation.right: playButton
                     KeyNavigation.up: seek
+                    KeyNavigation.down: quieter
                     onClicked: Music.previous()
                 }
                 FocusButton {
@@ -196,6 +246,7 @@ FocusScope {
                     KeyNavigation.left: prevButton
                     KeyNavigation.right: nextButton
                     KeyNavigation.up: seek
+                    KeyNavigation.down: quieter
                     onClicked: Music.togglePause()
                 }
                 FocusButton {
@@ -205,6 +256,7 @@ FocusScope {
                     KeyNavigation.left: playButton
                     KeyNavigation.right: repeatButton
                     KeyNavigation.up: seek
+                    KeyNavigation.down: quieter
                     onClicked: Music.next()
                 }
                 FocusButton {
@@ -216,7 +268,40 @@ FocusScope {
                     KeyNavigation.left: nextButton
                     KeyNavigation.right: queueList
                     KeyNavigation.up: seek
+                    KeyNavigation.down: quieter
                     onClicked: Music.cycleRepeat()
+                }
+            }
+            // Volume; fixed at 100 % in bit-perfect mode (issue #9).
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 12
+                FocusButton {
+                    id: quieter
+                    glyph: "−"
+                    tip: qsTr("Quieter")
+                    enabled: !Music.bitPerfect && Music.volume > 0
+                    KeyNavigation.up: playButton
+                    KeyNavigation.right: louder
+                    Keys.onLeftPressed: Nav.focusRail()
+                    onClicked: Music.volume = Music.volume - 5
+                }
+                Label {
+                    text: Music.bitPerfect ? qsTr("Volume 100 % (bit-perfect)") : qsTr("Volume %1 %").arg(Music.volume)
+                    color: Theme.textDim
+                    font.pixelSize: Theme.fontSmall
+                    Layout.preferredWidth: 180
+                    horizontalAlignment: Text.AlignHCenter
+                }
+                FocusButton {
+                    id: louder
+                    glyph: "+"
+                    tip: qsTr("Louder")
+                    enabled: !Music.bitPerfect && Music.volume < 100
+                    KeyNavigation.up: playButton
+                    KeyNavigation.left: quieter
+                    KeyNavigation.right: queueList
+                    onClicked: Music.volume = Music.volume + 5
                 }
             }
             Item { Layout.fillHeight: true }
