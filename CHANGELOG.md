@@ -2,6 +2,11 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased
+
+- Audiobook library (#65, part of 2.5): library folders can hold audiobooks. Adding a folder asks for **Movies and shows**, **Music** or **Audiobooks**, and a network share's **Contains** offers audiobooks too. Each book is one file (M4B, M4A, MP3, FLAC, Ogg, Opus) or one folder of files, with `CD1`/`Disc 1` subfolders in order, on one timeline. Title, authors, narrators, series and number, publisher, year, language, ISBN and description come from `metadata.opf`, `desc.txt`/`reader.txt`, `.nfo`, the tags and the names, in that order. Chapters come from the files (M4B and MP3 chapters), else one per file. Covers from the tags or `cover.jpg`. Audible `.aax`/`.aaxc` books are listed and marked as protected. Rescans read only changed books, and only file headers. So far through `coyotl-cli library add PATH --audiobooks`, `books`, `authors`, `series` and `book ID`; the Audiobooks section follows.
+- The database moves to schema 10 on first start (the audiobook tables). A copy of the previous database is kept as `library.db.before-10`.
+
 ## 2.1.0 – 2026-11-16 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled).

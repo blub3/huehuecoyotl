@@ -43,9 +43,9 @@ Open **Sources** and choose **Add folder**. Pick the folder that contains your f
 and choose **Add this folder**. Huehuecoyotl scans it straight away and again whenever you
 choose **Rescan all**. Subfolders are included.
 
-After you pick a folder, Huehuecoyotl asks what is in it: **Movies and shows** or **Music**
-(from 2.0). A folder holds one kind; if a folder has both, add its video and music
-subfolders separately. For a network share, **Contains** in its settings does the same.
+After you pick a folder, Huehuecoyotl asks what is in it: **Movies and shows**, **Music**
+(from 2.0) or **Audiobooks** (from 2.5). A folder holds one kind; if a folder has more than
+one, add its subfolders separately. For a network share, **Contains** in its settings does the same.
 
 A folder on a disk that is not connected (an unplugged USB drive) is shown as unreachable;
 nothing is removed from the library until the folder is back and a scan finds the files gone.
@@ -211,6 +211,30 @@ or per album so an album keeps its own dynamics.
 
 Without a music folder the Music page explains how to add one.
 
+## Audiobooks
+
+From 2.5, a folder added as **Audiobooks** becomes a library of books, authors, narrators and
+series. Each book is either one file (an `.m4b` or an `.mp3` with chapters) or one folder of
+files that play in a row; parts in `CD1`, `CD2` or `Disc 1` subfolders belong to the book above
+them. Names like these work best:
+
+```text
+Audiobooks/Ursula K. Le Guin/A Wizard of Earthsea.m4b
+Audiobooks/Ursula K. Le Guin/Earthsea/Book 2 - The Tombs of Atuan/01.mp3
+Audiobooks/Ursula K. Le Guin/The Dispossessed/CD1/01.mp3
+```
+
+Huehuecoyotl takes what a book says about itself, in this order: a `metadata.opf` file (as
+Calibre and many download tools write it), `desc.txt` and `reader.txt`, a `.nfo` file, the tags
+of the first file (album = title, artist = author, composer = narrator, the movement fields =
+series and number), and last the folder and file names. Chapters come from the file (M4B, MP3
+with chapters); a book of many files gets one chapter per file. Covers come from the tags or a
+`cover.jpg` or `folder.jpg` next to the files.
+
+Books with copy protection (Audible `.aax` and `.aaxc`) are listed with a note but cannot be
+played. Rescans read only books whose files changed, and a book is read by its headers, not
+whole, also on a network share.
+
 ## Watch without the network: Save and Save as…
 
 - **Save** in the Save menu of a film, an episode or an episode in a series' list
@@ -283,6 +307,8 @@ Shows/Firefly/Firefly 1x02 The Train Job.mkv
 
 Release-group noise (resolution, codec, group names) is ignored. Files named `sample` and
 folders called `Extras` or `Featurettes` are kept out of the library.
+
+For audiobooks see [Audiobooks](#audiobooks).
 
 ## Privacy
 

@@ -268,6 +268,53 @@ impl Core {
         });
     }
 
+    /// Issue #65: a book's page (answers with `MusicDetail`, kind "book": the book with its
+    /// people, series, chapters, files and progress), a series' or a person's books ("series",
+    /// "person").
+    pub fn book_detail(&self, request_id: u64, id: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let (kind, json) = inner
+                .lib
+                .read(move |c| {
+                    let kind: Option<String> = c
+                        .query_row("SELECT kind FROM item WHERE id = ?1", [id], |r| r.get(0))
+                        .map(Some)
+                        .or_else(|e| match e {
+                            huehuecoyotl_library::rusqlite::Error::QueryReturnedNoRows => Ok(None),
+                            e => Err(e),
+                        })?;
+                    use huehuecoyotl_library::books;
+                    Ok(match kind.as_deref() {
+                        Some("audiobook") => (
+                            "book",
+                            serde_json::to_string(&books::detail(c, id)?).unwrap_or_default(),
+                        ),
+                        Some("book_series") => (
+                            "series",
+                            serde_json::to_string(&books::series_books(c, id)?).unwrap_or_default(),
+                        ),
+                        Some("person") => (
+                            "person",
+                            serde_json::to_string(&books::person_books(c, id)?).unwrap_or_default(),
+                        ),
+                        _ => ("none", "null".to_string()),
+                    })
+                })
+                .await?;
+            if kind == "none" {
+                return Err(crate::CoreError::new(
+                    crate::ErrorKind::NotFound,
+                    format!("book {id}"),
+                ));
+            }
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: kind.into(),
+                json,
+            })
+        });
+    }
+
     /// Issue #10: an artist's page: albums by release type and year, and "appears on".
     pub fn artist_detail(&self, request_id: u64, artist: i64) {
         self.spawn(request_id, move |inner| async move {

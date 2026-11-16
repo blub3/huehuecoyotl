@@ -45,7 +45,7 @@ const SKIP_DIRS: &[&str] = &[
 ];
 const FP_CHUNK: u32 = 64 * 1024;
 
-fn now_ms() -> i64 {
+pub(crate) fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_millis() as i64)

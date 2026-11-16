@@ -42,7 +42,7 @@ FocusScope {
         }
     }
 
-    // 2.0: "video" or "music".
+    // 2.0: "video" or "music"; 2.5: "audiobooks".
     property string content: "video"
 
     function spec(path) {
@@ -361,11 +361,12 @@ FocusScope {
                 FocusButton {
                     id: contentButton
                     visible: page.connected
-                    text: page.content === "music" ? qsTr("Contains: music") : qsTr("Contains: video")
-                    tip: qsTr("Video folders become Movies and Shows, music folders Music")
+                    text: page.content === "music" ? qsTr("Contains: music")
+                          : page.content === "audiobooks" ? qsTr("Contains: audiobooks") : qsTr("Contains: video")
+                    tip: qsTr("Video folders become Movies and Shows, music folders Music, audiobook folders Audiobooks")
                     KeyNavigation.left: addButton
                     KeyNavigation.down: folderList
-                    onClicked: page.content = page.content === "music" ? "video" : "music"
+                    onClicked: page.content = page.content === "video" ? "music" : page.content === "music" ? "audiobooks" : "video"
                 }
                 Label {
                     text: page.status

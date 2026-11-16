@@ -106,6 +106,14 @@
     </message>
     <message numerus="yes">
         <location filename="../qml/SourcesPage.qml" line="140"/>
+        <source>Audiobooks · %n file(s)</source>
+        <translation>
+            <numerusform>Audiobooks · %n file</numerusform>
+            <numerusform>Audiobooks · %n files</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/SourcesPage.qml" line="141"/>
         <source>%n video(s)</source>
         <translation>
             <numerusform>%n video</numerusform>

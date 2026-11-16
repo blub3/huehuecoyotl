@@ -183,7 +183,7 @@ class LibraryFoldersModel : public VariantListModel {
     QML_ELEMENT
   public:
     explicit LibraryFoldersModel(QObject *parent = nullptr);
-    // content: "video" or "music" (2.0).
+    // content: "video", "music" (2.0) or "audiobooks" (2.5).
     Q_INVOKABLE void add(const QString &path, const QString &content = QStringLiteral("video"));
     Q_INVOKABLE void remove(qint64 id);
 

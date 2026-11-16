@@ -1,6 +1,7 @@
 //! The library database (SPEC 7): SQLite in WAL mode, exactly one writer thread fed by a
 //! channel, and a small pool of read-only connections for UI queries (SPEC 4, threading).
 
+pub mod books;
 pub mod catalog;
 pub mod copies;
 pub mod jobs;
@@ -378,6 +379,86 @@ mod tests {
             .unwrap();
         assert_eq!(v, 7);
         assert_eq!(dump(&copy, "playstate"), before.0[2]);
+    }
+
+    /// Issue #65: migration 10 rebuilds `item` and `source` for audiobooks and keeps a
+    /// version-9 library with music: album versions, credits, the queue with its files, play
+    /// counts, music and video folders. A copy is kept as `library.db.before-10`.
+    #[test]
+    fn audiobook_migration_keeps_music_libraries() {
+        let d = tempfile::tempdir().unwrap();
+        let path = d.path().join("library.db");
+        {
+            let mut c = Connection::open(&path).unwrap();
+            c.pragma_update(None, "foreign_keys", "ON").unwrap();
+            for m in &MIGRATIONS[..9] {
+                let tx = c.transaction().unwrap();
+                match m {
+                    Migration::Sql(sql) => tx.execute_batch(sql).unwrap(),
+                    Migration::Rust(f) | Migration::Rebuild(f) | Migration::Merge(f) => {
+                        f(&tx).unwrap()
+                    }
+                }
+                tx.commit().unwrap();
+            }
+            c.pragma_update(None, "user_version", 9).unwrap();
+            c.execute_batch(
+                "INSERT INTO source(id, kind, name, root, content) VALUES (2, 'local', 'Music', '/mu', 'music'), (3, 'local', 'Films', '/f', 'video');
+                 INSERT INTO item(id, kind, title, sort_title) VALUES (10, 'artist', 'Band', 'band'), (11, 'album', 'Album', 'album'),
+                   (12, 'track', 'Song', 'song'), (20, 'movie', 'Alien', 'alien');
+                 UPDATE item SET parent_id = 11 WHERE id = 12;
+                 INSERT INTO credit(item_id, artist_id, role, position) VALUES (11, 10, 'album_artist', 0), (12, 10, 'artist', 0);
+                 INSERT INTO album_version(id, album_id, key, source_id, title) VALUES (5, 11, 'v:2:band|album', 2, '');
+                 INSERT INTO file(id, source_id, path, size, item_id, version_id) VALUES (100, 2, 'Band/Album/01.flac', 5, 12, 5), (101, 3, 'Alien.mkv', 5, 20, NULL);
+                 INSERT INTO playstate(item_id, profile_id, position_ms, duration_ms, watched, updated_at, last_file_id, play_count, last_played_at)
+                   VALUES (12, 1, 0, 200000, 0, 5, 100, 7, 5), (20, 1, 60000, 7000000, 0, 6, 101, 0, NULL);
+                 INSERT INTO play_queue(position, item_id, file_id, shuffled_position) VALUES (0, 12, 100, NULL);",
+            )
+            .unwrap();
+        }
+        let tables = [
+            "source",
+            "item",
+            "credit",
+            "album_version",
+            "file",
+            "playstate",
+            "play_queue",
+        ];
+        let (before, indexes) = {
+            let c = Connection::open(&path).unwrap();
+            let rows: Vec<Vec<String>> = tables.iter().map(|t| dump(&c, t)).collect();
+            (rows, dump_indexes(&c))
+        };
+
+        drop(Library::open(&path).unwrap());
+        let c = Connection::open(&path).unwrap();
+        for (i, t) in tables.iter().enumerate() {
+            assert_eq!(dump(&c, t), before[i], "{t}");
+        }
+        let after = dump_indexes(&c);
+        for ix in &indexes {
+            assert!(after.contains(ix), "{ix} missing");
+        }
+        c.execute_batch(
+            "INSERT INTO source(id, kind, name, root, content) VALUES (4, 'local', 'Books', '/b', 'audiobooks');
+             INSERT INTO item(id, kind, title) VALUES (30, 'audiobook', 'Book'), (31, 'person', 'Writer'), (32, 'book_series', 'Saga');
+             INSERT INTO book(item_id, key) VALUES (30, 'b:4:Book');
+             INSERT INTO book_credit(book_id, person_id, role, position) VALUES (30, 31, 'author', 0);",
+        )
+        .unwrap();
+        let broken: i64 = c
+            .query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(broken, 0);
+        let copy = Connection::open(d.path().join("library.db.before-10")).unwrap();
+        let v: i64 = copy
+            .pragma_query_value(None, "user_version", |r| r.get(0))
+            .unwrap();
+        assert_eq!(v, 9);
+        assert_eq!(dump(&copy, "play_queue"), before[6]);
     }
 
     fn dump_indexes(c: &Connection) -> Vec<String> {

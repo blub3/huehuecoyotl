@@ -348,6 +348,9 @@ const VISIBLE: &str = "(
  OR (i.kind = 'album' AND EXISTS (SELECT 1 FROM item t JOIN file f ON f.item_id = t.id WHERE t.parent_id = i.id))
  OR (i.kind = 'artist' AND (EXISTS (SELECT 1 FROM item a JOIN item t ON t.parent_id = a.id JOIN file f ON f.item_id = t.id WHERE a.parent_id = i.id)
                             OR EXISTS (SELECT 1 FROM credit c JOIN file f ON f.item_id = c.item_id WHERE c.artist_id = i.id)))
+ OR (i.kind = 'audiobook' AND EXISTS (SELECT 1 FROM book_file bf WHERE bf.book_id = i.id))
+ OR (i.kind = 'person' AND EXISTS (SELECT 1 FROM book_credit bc WHERE bc.person_id = i.id))
+ OR (i.kind = 'book_series' AND EXISTS (SELECT 1 FROM item b WHERE b.parent_id = i.id AND b.kind = 'audiobook'))
  OR (i.kind = 'season' AND EXISTS (SELECT 1 FROM item e JOIN file f ON f.item_id = e.id WHERE e.parent_id = i.id))
  OR (i.kind = 'show' AND EXISTS (SELECT 1 FROM item s JOIN item e ON e.parent_id = s.id JOIN file f ON f.item_id = e.id WHERE s.parent_id = i.id)))";
 
@@ -356,7 +359,10 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
     let filter = match q.parent {
         Some(_) => "i.parent_id = ?1".to_string(),
         // Albums and tracks hang below artists and albums, but are listed on their own too.
-        None if q.kind == "album" || q.kind == "track" => "i.kind = ?1".to_string(),
+        // Audiobooks hang below their series, but are listed on their own too.
+        None if q.kind == "album" || q.kind == "track" || q.kind == "audiobook" => {
+            "i.kind = ?1".to_string()
+        }
         None => "i.kind = ?1 AND i.parent_id IS NULL".to_string(),
     };
     let unwatched = if q.unwatched_only {
@@ -780,7 +786,7 @@ pub fn probe_target(c: &Connection, file_id: i64) -> Result<Option<ProbeTarget>>
         &format!(
             "SELECT f.source_id, s.kind, {ABS_PATH_SQL}, coalesce(f.size, 0), f.item_id
              FROM file f JOIN source s ON s.id = f.source_id
-             WHERE f.id = ?1 AND f.item_id IS NOT NULL AND s.content = 'video'"
+             WHERE f.id = ?1 AND f.item_id IS NOT NULL AND s.content IN ('video', 'audiobooks')"
         ),
         [file_id],
         |r| {

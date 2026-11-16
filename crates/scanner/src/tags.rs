@@ -52,6 +52,22 @@ pub struct TrackTags {
     pub audio: AudioInfo,
     /// The front cover (or the first picture), when the tags hold one.
     pub cover: Option<Vec<u8>>,
+    /// Audiobooks (2.5): the narrators (composer), the series and the position in it (movement
+    /// name and number, or `SERIES` and `SERIES-PART`), publisher, description, language, ISBN
+    /// and ASIN.
+    pub book: BookTags,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BookTags {
+    pub narrators: Vec<String>,
+    pub series: Option<String>,
+    pub series_part: Option<String>,
+    pub publisher: Option<String>,
+    pub description: Option<String>,
+    pub language: Option<String>,
+    pub isbn: Option<String>,
+    pub asin: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -371,6 +387,20 @@ fn extract(file: &lofty::file::TaggedFile, file_type: FileType) -> TrackTags {
         rg_album_peak: gain(tag, ItemKey::ReplayGainAlbumPeak),
         audio,
         cover,
+        book: BookTags {
+            narrators: strings(tag, ItemKey::Composer),
+            // lofty's generic tag carries no free-form keys such as SERIES; the movement fields
+            // (MP4 ©mvn/©mvi, ID3 MVNM/MVIN, Vorbis MOVEMENTNAME/MOVEMENT) are the common carriers.
+            series: first(tag, ItemKey::Movement),
+            series_part: first(tag, ItemKey::MovementNumber),
+            publisher: first(tag, ItemKey::Publisher).or_else(|| first(tag, ItemKey::Label)),
+            description: first(tag, ItemKey::Description)
+                .or_else(|| first(tag, ItemKey::Comment))
+                .filter(|d| d.len() > 20),
+            language: first(tag, ItemKey::Language),
+            isbn: None,
+            asin: None,
+        },
     }
 }
 
