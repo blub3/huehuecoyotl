@@ -880,7 +880,7 @@ Blocked by "Decide the architecture for iOS and tvOS" and by "Core for iOS and t
 
 ### Context
 
-Blocked by "Decide the architecture for iOS and tvOS" and by "Core for iOS and tvOS: build targets, Swift bindings and libmpv frameworks". The Apple TV is the device where an app in the spirit of Infuse is used most, so playback quality matters most here. Adjust the scope to the approved specification before starting.
+Blocked by "Decide the architecture for iOS and tvOS" and by "Core for iOS and tvOS: build targets, Swift bindings and libmpv frameworks". The Apple TV is the device where a living-room media player is used most, so playback quality matters most here. Adjust the scope to the approved specification before starting.
 
 ### What to build
 
