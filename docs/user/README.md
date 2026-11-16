@@ -167,6 +167,31 @@ in English), and albums without a cover get one. Without keys the music section 
 same, with initials instead of artist images. TheAudioDB gives keys to supporters; for
 Fanart.tv, request a key on your profile there.
 
+**Bit-perfect music.** Under **Settings → Audio**, **Bit-perfect music** sends music to the
+device as it is in the file: the app does not resample it, ReplayGain is off and the volume is
+fixed at 100 % (turn the volume down on your amplifier or DAC). **Music output** chooses the
+device for music; videos always use the system default.
+
+- Devices marked **direct** are the sound card or DAC itself (ALSA). In bit-perfect mode the
+  app uses them exclusively, so no other program can play at the same time, and the DAC gets
+  each track at its own sample rate. Now Playing then shows **Bit-perfect**.
+- Through PipeWire (the system default, and every device in the Flatpak, which has no direct
+  device access) the system's mixer has the last word: Now Playing shows the rate that goes
+  out and never says **Bit-perfect**. PipeWire switches the device's rate only for rates you
+  allow, and only while no other program plays. To allow the usual music rates, create
+  `~/.config/pipewire/pipewire.conf.d/10-rates.conf` with
+
+  ```
+  context.properties = {
+      default.clock.allowed-rates = [ 44100 48000 88200 96000 176400 192000 ]
+  }
+  ```
+
+  and restart PipeWire (`systemctl --user restart pipewire`).
+- If the chosen device cannot be opened (another program holds it, or it was unplugged), music
+  plays on the system default instead and Now Playing says so. If the device does not take a
+  track's rate, the music is converted to one it takes, and Now Playing says that too.
+
 **ReplayGain** (Settings → Playback) evens out loudness from the tags in your files: per track,
 or per album so an album keeps its own dynamics.
 

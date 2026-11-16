@@ -67,7 +67,7 @@
 <context>
     <name>NowPlayingPage</name>
     <message numerus="yes">
-        <location filename="../qml/NowPlayingPage.qml" line="231"/>
+        <location filename="../qml/NowPlayingPage.qml" line="316"/>
         <source>%n track(s)</source>
         <translation>
             <numerusform>%n track</numerusform>

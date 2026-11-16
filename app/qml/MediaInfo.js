@@ -295,3 +295,22 @@ function audioLine(codec, rate, depth) {
     if (lossless && depth > 0) parts.push(qsTr("%1 bit").arg(depth))
     return parts.filter(p => p !== "").join(" · ")
 }
+
+// Issue #9: mpv's sample format as a bit depth ("s32" → "32 bit", "float" → "32-bit float").
+function sampleFormat(fmt) {
+    const f = (fmt || "").replace(/p$/, "")
+    if (f === "float") return qsTr("32-bit float")
+    if (f === "double") return qsTr("64-bit float")
+    const m = /^[su](\d+)$/.exec(f)
+    return m ? qsTr("%1 bit").arg(m[1]) : f
+}
+
+function rate(hz) {
+    return hz > 0 ? (hz % 1000 === 0 ? hz / 1000 : (hz / 1000).toFixed(1)) + " kHz" : ""
+}
+
+// An audio output's name for people.
+function outputName(ao) {
+    return ({ pipewire: "PipeWire", pulse: "PulseAudio", alsa: "ALSA", wasapi: "WASAPI",
+              coreaudio: "Core Audio", pcm: qsTr("file") })[ao] || ao
+}

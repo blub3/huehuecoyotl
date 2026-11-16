@@ -88,6 +88,7 @@ MprisPlayer::MprisPlayer(QObject *parent, MpvPlayer *player, PlaybackController 
     });
     connect(music, &MusicPlayer::durationChanged, this, [this] { notify({"Metadata"}); });
     connect(music, &MusicPlayer::queueChanged, this, [this] { notify({"CanGoNext", "CanGoPrevious"}); });
+    connect(music, &MusicPlayer::volumeChanged, this, [this] { notify({"Volume"}); });
     connect(player, &MpvPlayer::stateChanged, this,
             [this] { notify({"PlaybackStatus", "CanPlay", "CanPause", "CanSeek"}); });
     connect(player, &MpvPlayer::speedChanged, this, [this] { notify({"Rate"}); });
@@ -181,12 +182,17 @@ QVariantMap MprisPlayer::metadata() const
 
 double MprisPlayer::volume() const
 {
+    if (music()) return m_music->volume() / 100.0;
     return m_player->muted() ? 0.0 : m_player->volume() / 100.0;
 }
 
 void MprisPlayer::setVolume(double v)
 {
-    m_player->setVolume(int(qBound(0.0, v, 1.0) * 100 + 0.5));
+    const int pct = int(qBound(0.0, v, 1.0) * 100 + 0.5);
+    if (music())
+        m_music->setVolume(pct); // ignored in bit-perfect mode (fixed at 100 %)
+    else
+        m_player->setVolume(pct);
 }
 
 qlonglong MprisPlayer::position() const
