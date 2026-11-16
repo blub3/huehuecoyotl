@@ -93,6 +93,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="2.1.0" date="2026-11-16" type="stable">
+      <description>
+        <p>An album that is in your library more than once — in two formats, on two shares, or as a remaster next to the original — now appears once. Its page lets you choose the version, and Play, the track list and the Hi-Res badge follow it. The preferred version setting gains "Lossless only", and a wrong match can be split off.</p>
+      </description>
+    </release>
     <release version="2.0.0" date="2026-11-16" type="stable">
       <description>
         <p>Music: add folders as music, browse albums and artists, and play them in a queue that keeps going while you browse, gapless between tracks, with a mini player, Now Playing and your desktop's media controls.</p>
