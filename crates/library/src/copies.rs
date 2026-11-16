@@ -276,6 +276,13 @@ pub fn network_files(c: &Connection, item_id: i64) -> Result<Vec<i64>> {
     Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
+/// Every file of an item, largest first.
+pub fn all_files(c: &Connection, item_id: i64) -> Result<Vec<i64>> {
+    let mut st = c.prepare("SELECT id FROM file WHERE item_id = ?1 ORDER BY size DESC, id")?;
+    let rows = st.query_map([item_id], |r| r.get(0))?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
 /// Movies and episodes under an item: itself, a season's episodes, a show's episodes (in
 /// season and episode order).
 pub fn playable_items(c: &Connection, item_id: i64) -> Result<Vec<i64>> {

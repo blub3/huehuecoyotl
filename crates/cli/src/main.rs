@@ -10,6 +10,7 @@
 //!   coyotl-cli [--data-dir DIR] key KEY        (validates and stores the TMDB key)
 //!   coyotl-cli [--data-dir DIR] download ITEM [FILE] | downloads list | downloads delete ID
 //!   coyotl-cli [--data-dir DIR] downloads pause ID | downloads resume ID | storage [DIR]
+//!   coyotl-cli [--data-dir DIR] export ITEM DEST [--overwrite]
 //!
 //! Commands that start background work (library add, rescan) wait until the job queue is
 //! empty, so the harness can scan and match a library headless.
@@ -46,6 +47,7 @@ fn usage() -> ExitCode {
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | review | key KEY\n\
          \x20      | probe FILE (technical details as JSON; FFmpeg from COYOTL_FFMPEG_DIR or the system)\n\
          \x20      | download ITEM [FILE] (save offline copies and wait for them) | downloads list\n\
+         \x20      | export ITEM DEST [--overwrite] (Save as…: a file, or a folder for a season or show)\n\
          \x20      | downloads delete|pause|resume ID | storage [DIR] (where saved copies go)\n\
          network shares: SPEC_JSON is {{\"protocol\":\"smb\",\"host\":\"nas\",\"share\":\"media\",\"user\":\"me\",\"path\":\"/Movies\"}};\n\
          the password comes from COYOTL_SHARE_PASSWORD (never from the command line)"
@@ -355,6 +357,20 @@ fn main() -> ExitCode {
                 e => e,
             }
         }
+        ("export", [item, dest, rest @ ..]) if rest.len() <= 1 => {
+            let Ok(item) = item.parse() else {
+                return usage();
+            };
+            let overwrite = rest.first().is_some_and(|f| f == "--overwrite");
+            if !rest.is_empty() && !overwrite {
+                return usage();
+            }
+            core.export_item(1, item, 0, dest, overwrite);
+            match wait() {
+                Event::Downloads { .. } => follow_downloads(&core, &rx),
+                e => e,
+            }
+        }
         ("downloads", [sub]) if sub == "list" => {
             core.downloads(1);
             wait()
@@ -550,6 +566,13 @@ fn main() -> ExitCode {
         | Event::ScanState { .. }
         | Event::DownloadProgress { .. }
         | Event::SaveState { .. } => {}
+        Event::ExportConflict { paths, .. } => {
+            eprintln!("these files exist already (add --overwrite):");
+            for p in paths {
+                eprintln!("  {p}");
+            }
+            return ExitCode::FAILURE;
+        }
         Event::Error { kind, message, .. } => {
             eprintln!("error ({kind:?}): {message}");
             return ExitCode::FAILURE;

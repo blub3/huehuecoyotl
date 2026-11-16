@@ -32,6 +32,7 @@ mod ffi {
         Downloads,
         DownloadProgress,
         SaveState,
+        ExportConflict,
     }
 
     #[derive(Debug)]
@@ -268,6 +269,8 @@ mod ffi {
         used_bytes: u64,
         /// SaveState (with `item_id`).
         save: SaveInfo,
+        /// ExportConflict: the files that exist already.
+        paths: Vec<String>,
     }
 
     extern "Rust" {
@@ -352,8 +355,17 @@ mod ffi {
         /// Save a movie or episode (`file_id` picks a version, 0 = the largest network file),
         /// or every episode of a season or show.
         fn save_item(self: &Core, request_id: u64, item_id: i64, file_id: i64);
-        /// Save as…: copy one file to `dest` (the caller has asked about overwriting).
-        fn export_file(self: &Core, request_id: u64, file_id: i64, dest: &str);
+        /// Save as…: a movie or episode to the file `dest` (`file_id` picks a version), or a
+        /// season or show into the folder `dest`. Without `overwrite`, existing files answer
+        /// with ExportConflict and nothing starts.
+        fn export_item(
+            self: &Core,
+            request_id: u64,
+            item_id: i64,
+            file_id: i64,
+            dest: &str,
+            overwrite: bool,
+        );
         fn pause_download(self: &Core, id: i64);
         fn resume_download(self: &Core, id: i64);
         /// Cancel or delete a copy (local files only; the source file stays).
@@ -424,6 +436,7 @@ fn event(kind: ffi::EventKind, request_id: u64) -> ffi::CoreEvent {
         download: ffi::DownloadEntry::default(),
         used_bytes: 0,
         save: ffi::SaveInfo::default(),
+        paths: Vec::new(),
     }
 }
 
@@ -725,6 +738,10 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                 .collect(),
             ..event(K::Discovered, request_id)
         },
+        core::Event::ExportConflict { request_id, paths } => ffi::CoreEvent {
+            paths,
+            ..event(K::ExportConflict, request_id)
+        },
         core::Event::SaveState {
             request_id,
             item_id,
@@ -815,9 +832,17 @@ impl Core {
             self.0.save_item(request_id, item_id, file_id)
         })
     }
-    fn export_file(&self, request_id: u64, file_id: i64, dest: &str) {
-        guard("export_file", || {
-            self.0.export_file(request_id, file_id, dest)
+    fn export_item(
+        &self,
+        request_id: u64,
+        item_id: i64,
+        file_id: i64,
+        dest: &str,
+        overwrite: bool,
+    ) {
+        guard("export_item", || {
+            self.0
+                .export_item(request_id, item_id, file_id, dest, overwrite)
         })
     }
     fn pause_download(&self, id: i64) {

@@ -2,6 +2,8 @@
 #include <QObject>
 #include <QSet>
 #include <QString>
+#include <QStringList>
+#include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
@@ -86,7 +88,13 @@ class CoreBridge : public QObject {
     // deleteSavedItem, deleteAllSaved, downloads and setStorageDir answer with downloadsListed;
     // progress arrives as downloadProgress, an item's state as saveStateReady.
     Q_INVOKABLE quint64 saveItem(qint64 itemId, qint64 fileId = 0);
-    Q_INVOKABLE quint64 exportFile(qint64 fileId, const QString &dest);
+    // Save as… (issue #5): a movie or episode to the file `dest`, or a season or show into the
+    // folder `dest`. Without `overwrite`, existing files answer with exportConflict.
+    Q_INVOKABLE quint64 exportItem(qint64 itemId, qint64 fileId, const QString &dest, bool overwrite);
+    // A dialog's file:// URL as a local path (portal paths under Flatpak included).
+    Q_INVOKABLE static QString localPath(const QUrl &url);
+    // Where Save as… starts: the Videos folder, else the home folder.
+    Q_INVOKABLE static QUrl exportFolder();
     Q_INVOKABLE void pauseDownload(qint64 copyId);
     Q_INVOKABLE void resumeDownload(qint64 copyId);
     Q_INVOKABLE quint64 deleteDownload(qint64 copyId);
@@ -145,6 +153,7 @@ class CoreBridge : public QObject {
     // One copied file moved on or changed state; `mainId` is the row Downloads shows.
     void downloadProgress(const QVariantMap &entry);
     void saveStateReady(quint64 requestId, qint64 itemId, const QVariantMap &info);
+    void exportConflict(quint64 requestId, const QStringList &paths);
 
   private:
     void dispatch(const coyotl::core::CoreEvent &e);

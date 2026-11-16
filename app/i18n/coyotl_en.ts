@@ -2,9 +2,20 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en" sourcelanguage="en">
 <context>
+    <name>DetailPage</name>
+    <message numerus="yes">
+        <location filename="../qml/DetailPage.qml" line="922"/>
+        <source>%n file(s) exist already in %1. Replace them?</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>MediaInfo</name>
     <message numerus="yes">
-        <location filename="../qml/MediaInfo.js" line="92"/>
+        <location filename="../qml/MediaInfo.js" line="93"/>
         <source>%n subtitle(s)</source>
         <translation>
             <numerusform>%n subtitle</numerusform>
