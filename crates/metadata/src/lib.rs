@@ -2,9 +2,11 @@
 //! implementation, local `.nfo` files or other databases can follow without touching it.
 
 pub mod artwork;
+pub mod fanarttv;
 pub mod matching;
 pub mod music;
 pub mod musicbrainz;
+pub mod theaudiodb;
 pub mod tmdb;
 
 use async_trait::async_trait;

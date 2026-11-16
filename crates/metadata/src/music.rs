@@ -59,20 +59,104 @@ pub struct ReleaseHit {
     pub score: u32,
 }
 
+/// Issue #12: an album's images from an optional provider (URLs).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AlbumArt {
+    pub cover: Option<String>,
+    pub disc: Option<String>,
+}
+
+/// Issue #12: what an optional provider knows about an artist (image URLs, biographies), and
+/// the art of the artist's albums by release group when it comes with the artist.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ArtistExtras {
+    pub image: Option<String>,
+    pub background: Option<String>,
+    pub logo: Option<String>,
+    /// (ISO 639-1 language, text); "en" for English.
+    pub biographies: Vec<(String, String)>,
+    pub albums: Vec<(String, AlbumArt)>,
+}
+
+impl ArtistExtras {
+    /// The biography in `language` ("de-DE" or "de"), else in English.
+    pub fn biography(&self, language: &str) -> Option<&str> {
+        let want = language
+            .split(['-', '_'])
+            .next()
+            .unwrap_or("en")
+            .to_ascii_lowercase();
+        let find = |l: &str| {
+            self.biographies
+                .iter()
+                .find(|(k, t)| k == l && !t.trim().is_empty())
+                .map(|(_, t)| t.as_str())
+        };
+        find(&want).or_else(|| find("en"))
+    }
+
+    /// Fill what is missing here from `other` (a provider later in the order).
+    pub fn merge(&mut self, other: ArtistExtras) {
+        self.image = self.image.take().or(other.image);
+        self.background = self.background.take().or(other.background);
+        self.logo = self.logo.take().or(other.logo);
+        for (l, t) in other.biographies {
+            if !self.biographies.iter().any(|(k, _)| *k == l) {
+                self.biographies.push((l, t));
+            }
+        }
+        for (g, a) in other.albums {
+            match self.albums.iter_mut().find(|(k, _)| *k == g) {
+                Some((_, mine)) => {
+                    mine.cover = mine.cover.take().or(a.cover);
+                    mine.disc = mine.disc.take().or(a.disc);
+                }
+                None => self.albums.push((g, a)),
+            }
+        }
+    }
+}
+
+/// Music metadata providers. MusicBrainz and the Cover Art Archive (issue #11) do releases and
+/// covers; the optional TheAudioDB and Fanart.tv (issue #12) do artist images, biographies,
+/// covers for albums without one, and disc art. Each implements what it offers; the rest
+/// answers "not offered" (`NotFound`, `None`).
 #[async_trait]
 pub trait MusicProvider: Send + Sync {
     /// A release by its id, in one request with artists, recordings and the release group.
-    async fn release(&self, id: &str) -> Result<Release>;
+    async fn release(&self, _id: &str) -> Result<Release> {
+        Err(crate::MetaError::NotFound)
+    }
     /// Releases by album artist, title and (when known) track count, best first.
     async fn search_releases(
         &self,
-        artist: &str,
-        title: &str,
-        tracks: Option<u32>,
-    ) -> Result<Vec<ReleaseHit>>;
+        _artist: &str,
+        _title: &str,
+        _tracks: Option<u32>,
+    ) -> Result<Vec<ReleaseHit>> {
+        Ok(vec![])
+    }
     /// The front cover of a release, else of its release group, at most 1200 px. `None` when
     /// neither has one.
-    async fn front_cover(&self, release: &str, group: Option<&str>) -> Result<Option<Bytes>>;
+    async fn front_cover(&self, _release: &str, _group: Option<&str>) -> Result<Option<Bytes>> {
+        Ok(None)
+    }
+    /// Issue #12: an artist by MusicBrainz artist id; `None` when the provider has nothing.
+    async fn artist_extras(&self, _artist: &str) -> Result<Option<ArtistExtras>> {
+        Ok(None)
+    }
+    /// Issue #12: an album's art by MusicBrainz release group id.
+    async fn album_art(&self, _group: &str) -> Result<Option<AlbumArt>> {
+        Ok(None)
+    }
+    /// Issue #12: download an image the provider named.
+    async fn image(&self, _url: &str) -> Result<Bytes> {
+        Err(crate::MetaError::NotFound)
+    }
+    /// Issue #12: check the key with a cheap request (`Auth` when it is rejected).
+    async fn validate(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// What a search means for an album.

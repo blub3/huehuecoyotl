@@ -50,6 +50,29 @@ FocusScope {
         function onLibraryChanged() { page.request = Core.artistDetail(page.itemId) }
     }
 
+    // Issue #12: a background from an optional provider, faded into the page.
+    Image {
+        id: backdrop
+        anchors { left: parent.left; right: parent.right; top: parent.top }
+        height: Math.min(parent.height * 0.6, width * 9 / 16)
+        source: page.d.background || ""
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        sourceSize.width: 1920
+        opacity: status === Image.Ready ? 0.28 : 0
+        Behavior on opacity { NumberAnimation { duration: 250 } }
+    }
+    // Fades the background into the page (at full strength, so its lower edge disappears).
+    Rectangle {
+        anchors.fill: backdrop
+        visible: backdrop.status === Image.Ready
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: "transparent" }
+            GradientStop { position: 0.55; color: Qt.rgba(Theme.bg.r, Theme.bg.g, Theme.bg.b, 0.5) }
+            GradientStop { position: 1.0; color: Theme.bg }
+        }
+    }
+
     Flickable {
         id: flick
         anchors.fill: parent
@@ -76,7 +99,8 @@ FocusScope {
                 Rectangle {
                     Layout.preferredWidth: 200
                     Layout.preferredHeight: 200
-                    radius: 100
+                    // Like the album covers.
+                    radius: Theme.radius
                     clip: true
                     color: Qt.hsla(((page.d.title || "").length * 53 % 360) / 360, 0.32, 0.28, 1)
                     Label {
@@ -99,6 +123,17 @@ FocusScope {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 10
+                    // Issue #12: the artist's logo when a provider has one; the name stays.
+                    Image {
+                        visible: status === Image.Ready
+                        Layout.preferredHeight: visible ? 72 : 0
+                        Layout.preferredWidth: visible ? Math.min(360, implicitWidth * 72 / Math.max(1, implicitHeight)) : 0
+                        source: page.d.logo || ""
+                        fillMode: Image.PreserveAspectFit
+                        asynchronous: true
+                        sourceSize.height: 144
+                        Accessible.ignored: true
+                    }
                     Label {
                         Layout.fillWidth: true
                         text: page.d.title || ""

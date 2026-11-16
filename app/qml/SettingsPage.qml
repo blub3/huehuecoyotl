@@ -25,7 +25,34 @@ FocusScope {
     property real storageUsed: 0
     property var storageRequest: 0
     property string storageMessage: ""
-    Component.onCompleted: storageRequest = Core.downloads()
+    // Issue #12: TheAudioDB and Fanart.tv keys (their states only; never a key).
+    property var musicKeys: ({ fanarttv: "none", theaudiodb: "none" })
+    property var musicKeyRequest: 0
+    property string musicKeyBusy: ""
+    property string musicKeyFor: ""
+    property string musicKeyMessage: ""
+    function setMusicKey(provider, key) {
+        musicKeyBusy = provider
+        musicKeyFor = provider
+        musicKeyMessage = ""
+        musicKeyRequest = Core.setMusicKey(provider, key)
+    }
+    Connections {
+        target: Core
+        function onMusicKeysReady(requestId, keys) {
+            page.musicKeys = keys
+            if (requestId !== 0 && requestId !== page.musicKeyRequest) return
+            if (requestId !== 0) {
+                page.musicKeyMessage = keys.message || ""
+                if (page.musicKeyMessage === "" || keys[page.musicKeyFor] === "session") {
+                    if (page.musicKeyFor === "fanarttv") fanartKey.clear(); else audioDbKey.clear()
+                }
+                page.musicKeyBusy = ""
+            }
+        }
+    }
+
+    Component.onCompleted: { storageRequest = Core.downloads(); Core.musicKeys() }
 
     // One cover-size setting: a label and Small / Medium / Large, moved through with the arrows.
     component SizeChoice: RowLayout {
@@ -233,7 +260,7 @@ FocusScope {
                     text: Core.musicOnline ? qsTr("Music information online: on") : qsTr("Music information online: off")
                     Accessible.description: musicNote.text
                     KeyNavigation.up: reviewButton
-                    Keys.onDownPressed: windowSizes.focusSelected()
+                    Keys.onDownPressed: audioDbKey.firstItem.forceActiveFocus()
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: Core.musicOnline = !Core.musicOnline
                 }
@@ -249,6 +276,44 @@ FocusScope {
                 }
             }
 
+            // Issue #12: optional providers, each off until the user enters their own key.
+            Label {
+                Layout.fillWidth: true
+                Layout.topMargin: 6
+                wrapMode: Text.Wrap
+                color: Theme.textDim
+                font.pixelSize: Theme.fontSmall
+                text: qsTr("Optional: with your own key, artist images, backgrounds, logos and biographies, and covers for albums without one, come from TheAudioDB and Fanart.tv. Artist and album ids from MusicBrainz are sent to them. Keys stay in the system keystore.")
+            }
+            MusicKeyRow {
+                id: audioDbKey
+                Layout.fillWidth: true
+                name: "TheAudioDB"
+                keyState: page.musicKeys.theaudiodb || "none"
+                busy: page.musicKeyBusy === "theaudiodb"
+                message: page.musicKeyFor === "theaudiodb" ? page.musicKeyMessage : ""
+                hint: qsTr("TheAudioDB gives an API key to supporters on their profile page.")
+                link: "https://www.theaudiodb.com"
+                onSaveRequested: (key) => page.setMusicKey("theaudiodb", key)
+                onRemoveRequested: page.setMusicKey("theaudiodb", "")
+                onUpRequested: musicOnline.forceActiveFocus()
+                onDownRequested: fanartKey.firstItem.forceActiveFocus()
+            }
+            MusicKeyRow {
+                id: fanartKey
+                Layout.fillWidth: true
+                name: "Fanart.tv"
+                keyState: page.musicKeys.fanarttv || "none"
+                busy: page.musicKeyBusy === "fanarttv"
+                message: page.musicKeyFor === "fanarttv" ? page.musicKeyMessage : ""
+                hint: qsTr("Create an account at fanart.tv and request an API key on your profile.")
+                link: "https://fanart.tv"
+                onSaveRequested: (key) => page.setMusicKey("fanarttv", key)
+                onRemoveRequested: page.setMusicKey("fanarttv", "")
+                onUpRequested: audioDbKey.firstItem.forceActiveFocus()
+                onDownRequested: windowSizes.focusSelected()
+            }
+
             // ---- Appearance ----------------------------------------------------------------
             Label { text: qsTr("Appearance"); color: Theme.textDim; font.pixelSize: Theme.fontLarge; Layout.topMargin: 24 }
             SizeChoice {
@@ -256,7 +321,7 @@ FocusScope {
                 label: qsTr("Cover size in window")
                 value: Appearance.coverWindow
                 onPicked: (key) => Appearance.coverWindow = key
-                onUpRequested: musicOnline.forceActiveFocus()
+                onUpRequested: fanartKey.firstItem.forceActiveFocus()
                 onDownRequested: fullscreenSizes.focusSelected()
             }
             SizeChoice {
@@ -431,6 +496,21 @@ FocusScope {
                 wrapMode: Text.Wrap
                 color: Theme.textDim
                 text: qsTr("Music information from MusicBrainz (musicbrainz.org, data under CC0). Album covers from the Cover Art Archive (coverartarchive.org), a joint project of the Internet Archive and MusicBrainz.")
+            }
+            // Issue #12: only when used (a key is entered).
+            Label {
+                Layout.fillWidth: true
+                visible: page.musicKeys.theaudiodb === "keystore" || page.musicKeys.theaudiodb === "session"
+                wrapMode: Text.Wrap
+                color: Theme.textDim
+                text: qsTr("Artist images, biographies and album art from TheAudioDB (theaudiodb.com), contributed by its community.")
+            }
+            Label {
+                Layout.fillWidth: true
+                visible: page.musicKeys.fanarttv === "keystore" || page.musicKeys.fanarttv === "session"
+                wrapMode: Text.Wrap
+                color: Theme.textDim
+                text: qsTr("Artist images, logos and album art from Fanart.tv (fanart.tv), contributed by its community.")
             }
         }
     }

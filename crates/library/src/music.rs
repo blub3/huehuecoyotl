@@ -205,6 +205,83 @@ pub fn apply_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result
     Ok(())
 }
 
+// ---- artist extras (issue #12) ---------------------------------------------------------------
+
+/// An artist to look up at TheAudioDB and Fanart.tv: its MusicBrainz id, and its albums with
+/// their release groups and whether they have a cover and disc art already.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ArtistTarget {
+    pub id: i64,
+    pub mbid: String,
+    pub albums: Vec<AlbumArtTarget>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AlbumArtTarget {
+    pub id: i64,
+    pub group: Option<String>,
+    pub has_cover: bool,
+    pub has_disc: bool,
+}
+
+pub fn artist_target(c: &Connection, artist: i64) -> Result<Option<ArtistTarget>> {
+    let Some(mbid) = external(c, artist, "artist")? else {
+        return Ok(None);
+    };
+    let mut st = c.prepare(
+        "SELECT a.id,
+                (SELECT value FROM external_id e WHERE e.item_id = a.id AND e.provider = 'musicbrainz' AND e.kind = 'release_group'),
+                EXISTS (SELECT 1 FROM artwork w WHERE w.item_id = a.id AND w.role = 'poster' AND w.local_path IS NOT NULL),
+                EXISTS (SELECT 1 FROM artwork w WHERE w.item_id = a.id AND w.role = 'disc' AND w.local_path IS NOT NULL)
+         FROM item a WHERE a.kind = 'album' AND a.parent_id = ?1 ORDER BY a.id",
+    )?;
+    let albums = st
+        .query_map([artist], |r| {
+            Ok(AlbumArtTarget {
+                id: r.get(0)?,
+                group: r.get(1)?,
+                has_cover: r.get(2)?,
+                has_disc: r.get(3)?,
+            })
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+    Ok(Some(ArtistTarget {
+        id: artist,
+        mbid,
+        albums,
+    }))
+}
+
+/// Artists with a MusicBrainz id that were not looked up at the optional providers yet.
+pub fn artists_due(c: &Connection) -> Result<Vec<i64>> {
+    let mut st = c.prepare(
+        "SELECT i.id FROM item i WHERE i.kind = 'artist' AND i.meta_fetched_at IS NULL
+           AND EXISTS (SELECT 1 FROM external_id e WHERE e.item_id = i.id AND e.provider = 'musicbrainz' AND e.kind = 'artist')
+         ORDER BY i.id",
+    )?;
+    Ok(st
+        .query_map([], |r| r.get(0))?
+        .collect::<rusqlite::Result<_>>()?)
+}
+
+/// A new key: every artist is looked up again.
+pub fn reset_artists(c: &Connection) -> Result<()> {
+    c.execute(
+        "UPDATE item SET meta_fetched_at = NULL WHERE kind = 'artist'",
+        [],
+    )?;
+    Ok(())
+}
+
+/// The artist was looked up; keep the biography when there is one.
+pub fn set_artist_looked_up(c: &Connection, artist: i64, biography: Option<&str>) -> Result<()> {
+    c.execute(
+        "UPDATE item SET overview = coalesce(?2, overview), meta_fetched_at = ?3 WHERE id = ?1",
+        params![artist, biography, now_ms()],
+    )?;
+    Ok(())
+}
+
 /// One candidate for "Review matches": the release id, its title, artist, year, score and track
 /// count.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -287,6 +364,8 @@ pub struct AlbumDetail {
     pub genre: String,
     pub poster: String,
     pub poster_full: String,
+    /// Issue #12: disc art from an optional provider (a local path), else "".
+    pub disc: String,
     pub duration_ms: i64,
     /// Every track's codec, sample rate and bit depth, when they are all the same; else "".
     pub codec: String,
@@ -352,6 +431,7 @@ pub fn album_detail(c: &Connection, album: i64) -> Result<Option<AlbumDetail>> {
     };
     d.poster = art(c, album, "poster_grid")?;
     d.poster_full = art(c, album, "poster")?;
+    d.disc = art(c, album, "disc")?;
     let mut st = c.prepare(
         "SELECT t.id, coalesce(t.season_no, 1), coalesce(t.episode_no, 0), coalesce(t.title, ''),
                 coalesce(fa.duration_ms, 0), coalesce(fa.codec, ''), coalesce(fa.sample_rate, 0),
@@ -417,8 +497,11 @@ pub struct AlbumCard {
 pub struct ArtistDetail {
     pub id: i64,
     pub title: String,
-    /// From an optional provider (issue #12); "" otherwise.
+    /// From an optional provider (issue #12); "" otherwise: the artist's image, a background
+    /// and a logo (local paths), and the biography in the UI language or English.
     pub image: String,
+    pub background: String,
+    pub logo: String,
     pub biography: String,
     /// Grouped in this order: album, ep, single, compilation, other; each by year.
     pub albums: Vec<AlbumCard>,
@@ -501,11 +584,18 @@ pub fn artist_detail(c: &Connection, artist: i64) -> Result<Option<ArtistDetail>
         ),
         artist,
     )?;
+    let biography: String = c.query_row(
+        "SELECT coalesce(overview, '') FROM item WHERE id = ?1",
+        [artist],
+        |r| r.get(0),
+    )?;
     Ok(Some(ArtistDetail {
         id: artist,
         title,
         image: art(c, artist, "poster")?,
-        biography: String::new(),
+        background: art(c, artist, "backdrop")?,
+        logo: art(c, artist, "logo")?,
+        biography,
         albums,
         appears_on,
     }))

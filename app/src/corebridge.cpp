@@ -467,6 +467,21 @@ quint64 CoreBridge::clearTmdbKey()
     return id;
 }
 
+quint64 CoreBridge::musicKeys()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->music_keys(id);
+    return id;
+}
+
+quint64 CoreBridge::setMusicKey(const QString &provider, const QString &key)
+{
+    const quint64 id = nextId();
+    const QByteArray p = provider.toUtf8(), k = key.trimmed().toUtf8();
+    if (m_core) (*m_core)->set_music_key(id, rs(p), rs(k));
+    return id;
+}
+
 quint64 CoreBridge::albumDetail(qint64 albumId)
 {
     const quint64 id = nextId();
@@ -776,7 +791,8 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                             .object()
                             .toVariantMap();
         const auto urls = [](QVariantMap &x) {
-            for (const char *k : {"poster", "posterFull", "posterLarge", "image"})
+            for (const char *k :
+                 {"poster", "posterFull", "posterLarge", "image", "background", "logo", "disc"})
                 if (!x.value(k).toString().isEmpty())
                     x[k] = QUrl::fromLocalFile(x.value(k).toString()).toString();
         };
@@ -791,6 +807,11 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
             if (m.contains(list)) m[list] = l;
         }
         emit musicDetailReady(e.request_id, qs(e.path), m);
+    } else if (e.kind == K::MusicKeys) {
+        emit musicKeysReady(e.request_id,
+                            QJsonDocument::fromJson(QByteArray::fromStdString(std::string(e.message)))
+                                .object()
+                                .toVariantMap());
     } else if (e.kind == K::QueueChanged || e.kind == K::MusicTickets) {
         QVariantMap m = QJsonDocument::fromJson(QByteArray::fromStdString(std::string(e.message)))
                             .object()

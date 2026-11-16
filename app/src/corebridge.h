@@ -88,6 +88,10 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 clearTmdbKey();
     // Issue #52: ask TMDB whether the key in use is accepted (answers with keyStatusChanged).
     Q_INVOKABLE quint64 testTmdbKey();
+    // Issue #12: which of TheAudioDB and Fanart.tv have a key (answers with musicKeysReady);
+    // entering a key checks it first, an empty key removes it.
+    Q_INVOKABLE quint64 musicKeys();
+    Q_INVOKABLE quint64 setMusicKey(const QString &provider, const QString &key);
     // Issue #10: an album's or an artist's page (answers with musicDetailReady).
     Q_INVOKABLE quint64 albumDetail(qint64 albumId);
     Q_INVOKABLE quint64 artistDetail(qint64 artistId);
@@ -197,6 +201,8 @@ class CoreBridge : public QObject {
     // Issue #8: the play queue (count, position, shuffle, repeat, offset, entries) and what the
     // music player loads ({action, startMs, current, next}); cover paths are file URLs.
     void queueChanged(quint64 requestId, const QVariantMap &state);
+    // Issue #12: {fanarttv, theaudiodb: none|keystore|session|rejected, message}.
+    void musicKeysReady(quint64 requestId, const QVariantMap &keys);
     void musicTickets(const QVariantMap &tickets);
 
   private:

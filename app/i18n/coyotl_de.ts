@@ -147,7 +147,7 @@
         <translation>Mitwirkend bei</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ArtistPage.qml" line="112"/>
+        <location filename="../qml/ArtistPage.qml" line="147"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n Album</numerusform>
@@ -181,37 +181,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="645"/>
+        <location filename="../src/corebridge.cpp" line="660"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="647"/>
+        <location filename="../src/corebridge.cpp" line="662"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="649"/>
+        <location filename="../src/corebridge.cpp" line="664"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="651"/>
+        <location filename="../src/corebridge.cpp" line="666"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="653"/>
+        <location filename="../src/corebridge.cpp" line="668"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="655"/>
+        <location filename="../src/corebridge.cpp" line="670"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="882"/>
+        <location filename="../src/corebridge.cpp" line="902"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -1362,6 +1362,64 @@
     </message>
 </context>
 <context>
+    <name>MusicKeyRow</name>
+    <message>
+        <location filename="../qml/MusicKeyRow.qml" line="36"/>
+        <source>Key stored. Artist images and more are looked up.</source>
+        <translation>Schlüssel gespeichert. Künstlerbilder und mehr werden abgerufen.</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicKeyRow.qml" line="37"/>
+        <source>Key in use until the app closes (no keystore to keep it).</source>
+        <translation>Schlüssel bis zum Schließen der App in Gebrauch (kein Schlüsselspeicher, der ihn behält).</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicKeyRow.qml" line="38"/>
+        <source>The service no longer accepts the stored key. Enter a new one.</source>
+        <translation>Der Dienst nimmt den gespeicherten Schlüssel nicht mehr an. Gib einen neuen ein.</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicKeyRow.qml" line="39"/>
+        <source>Off: no key. Nothing is sent to %1.</source>
+        <translation>Aus: kein Schlüssel. An %1 wird nichts gesendet.</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicKeyRow.qml" line="48"/>
+        <source>Enter a new key to replace the stored one</source>
+        <translation>Neuen Schlüssel eingeben, um den gespeicherten zu ersetzen</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicKeyRow.qml" line="48"/>
+        <source>Your %1 API key</source>
+        <translation>Dein API-Schlüssel für %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicKeyRow.qml" line="52"/>
+        <source>%1 API key</source>
+        <translation>API-Schlüssel für %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicKeyRow.qml" line="69"/>
+        <source>Checking…</source>
+        <translation>Wird geprüft …</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicKeyRow.qml" line="69"/>
+        <source>Check and save</source>
+        <translation>Prüfen und speichern</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicKeyRow.qml" line="82"/>
+        <source>Really remove?</source>
+        <translation>Wirklich entfernen?</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicKeyRow.qml" line="82"/>
+        <source>Remove key</source>
+        <translation>Schlüssel entfernen</translation>
+    </message>
+</context>
+<context>
     <name>MusicPage</name>
     <message>
         <location filename="../qml/MusicPage.qml" line="7"/>
@@ -1392,7 +1450,7 @@
 <context>
     <name>MusicPlayer</name>
     <message>
-        <location filename="../src/musicplayer.cpp" line="400"/>
+        <location filename="../src/musicplayer.cpp" line="402"/>
         <source>Cannot play “%1”: %2</source>
         <translation>„%1“ kann nicht abgespielt werden: %2</translation>
     </message>
@@ -2083,258 +2141,283 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="122"/>
+        <location filename="../qml/SettingsPage.qml" line="149"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="125"/>
+        <location filename="../qml/SettingsPage.qml" line="152"/>
         <source>Metadata</source>
         <translation>Metadaten</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="146"/>
+        <location filename="../qml/SettingsPage.qml" line="173"/>
         <source>Posters, descriptions and episode titles come from The Movie Database (TMDB). TMDB needs a free personal API key: create an account at themoviedb.org, open Settings → API, request a key for personal use, and paste the “API Key” or the “API Read Access Token” here. Without a key the app still plays everything and shows titles from the file names.</source>
         <translation>Poster, Beschreibungen und Folgentitel kommen von The Movie Database (TMDB). TMDB braucht einen kostenlosen persönlichen API-Schlüssel: Lege ein Konto auf themoviedb.org an, öffne Einstellungen → API, beantrage einen Schlüssel für die private Nutzung und füge hier den „API Key“ oder das „API Read Access Token“ ein. Ohne Schlüssel spielt die App trotzdem alles ab und zeigt die Titel aus den Dateinamen.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="161"/>
+        <location filename="../qml/SettingsPage.qml" line="188"/>
         <source>TMDB API key or read access token</source>
         <translation>TMDB-API-Schlüssel oder Read Access Token</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="165"/>
+        <location filename="../qml/SettingsPage.qml" line="192"/>
         <source>TMDB API key</source>
         <translation>TMDB-API-Schlüssel</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="181"/>
+        <location filename="../qml/SettingsPage.qml" line="208"/>
         <source>Checking…</source>
         <translation>Wird geprüft …</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="181"/>
+        <location filename="../qml/SettingsPage.qml" line="208"/>
         <source>Check and save</source>
         <translation>Prüfen und speichern</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="95"/>
+        <location filename="../qml/SettingsPage.qml" line="122"/>
         <source>TMDB accepted the key.</source>
         <translation>TMDB hat den Schlüssel akzeptiert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="145"/>
+        <location filename="../qml/SettingsPage.qml" line="172"/>
         <source>Enter the new key. The stored key stays until TMDB accepts the new one.</source>
         <translation>Gib den neuen Schlüssel ein. Der gespeicherte bleibt, bis TMDB den neuen akzeptiert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="193"/>
+        <location filename="../qml/SettingsPage.qml" line="220"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="207"/>
+        <location filename="../qml/SettingsPage.qml" line="234"/>
         <source>Review matches</source>
         <translation>Zuordnungen prüfen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="214"/>
+        <location filename="../qml/SettingsPage.qml" line="241"/>
         <source>%1 tasks queued</source>
         <translation>%1 Aufgaben in der Warteschlange</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="219"/>
+        <location filename="../qml/SettingsPage.qml" line="246"/>
         <source>%1 failed (see the log)</source>
         <translation>%1 fehlgeschlagen (siehe Protokoll)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="233"/>
+        <location filename="../qml/SettingsPage.qml" line="260"/>
         <source>Music information online: on</source>
         <translation>Musikinformationen online: an</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="233"/>
+        <location filename="../qml/SettingsPage.qml" line="260"/>
         <source>Music information online: off</source>
         <translation>Musikinformationen online: aus</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="247"/>
+        <location filename="../qml/SettingsPage.qml" line="274"/>
         <source>Album and artist names from your music are sent to MusicBrainz to find release types, dates and ids, and covers come from the Cover Art Archive. No account or key is needed.</source>
         <translation>Album- und Künstlernamen deiner Musik werden an MusicBrainz geschickt, um Veröffentlichungsart, Datum und IDs zu finden; Cover kommen aus dem Cover Art Archive. Ein Konto oder Schlüssel ist nicht nötig.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="248"/>
+        <location filename="../qml/SettingsPage.qml" line="275"/>
         <source>Music information comes from your files&apos; tags only; nothing is sent.</source>
         <translation>Musikinformationen kommen nur aus den Tags deiner Dateien; nichts wird gesendet.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="253"/>
+        <location filename="../qml/SettingsPage.qml" line="286"/>
+        <source>Optional: with your own key, artist images, backgrounds, logos and biographies, and covers for albums without one, come from TheAudioDB and Fanart.tv. Artist and album ids from MusicBrainz are sent to them. Keys stay in the system keystore.</source>
+        <translation>Optional: Mit deinem eigenen Schlüssel kommen Künstlerbilder, Hintergründe, Logos und Biografien sowie Cover für Alben ohne Cover von TheAudioDB und Fanart.tv. Dabei werden Künstler- und Album-IDs von MusicBrainz an sie gesendet. Schlüssel bleiben im Schlüsselspeicher des Systems.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="295"/>
+        <source>TheAudioDB gives an API key to supporters on their profile page.</source>
+        <translation>TheAudioDB gibt Unterstützern einen API-Schlüssel auf ihrer Profilseite.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="309"/>
+        <source>Create an account at fanart.tv and request an API key on your profile.</source>
+        <translation>Lege ein Konto bei fanart.tv an und fordere in deinem Profil einen API-Schlüssel an.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="318"/>
         <source>Appearance</source>
         <translation>Darstellung</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="256"/>
+        <location filename="../qml/SettingsPage.qml" line="321"/>
         <source>Cover size in window</source>
         <translation>Covergröße im Fenster</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="264"/>
+        <location filename="../qml/SettingsPage.qml" line="329"/>
         <source>Cover size in fullscreen</source>
         <translation>Covergröße im Vollbild</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="272"/>
+        <location filename="../qml/SettingsPage.qml" line="337"/>
         <source>Playback</source>
         <translation>Wiedergabe</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="275"/>
+        <location filename="../qml/SettingsPage.qml" line="340"/>
         <source>Preferred version</source>
         <translation>Bevorzugte Version</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="276"/>
+        <location filename="../qml/SettingsPage.qml" line="341"/>
         <source>Highest quality</source>
         <translation>Höchste Qualität</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="276"/>
+        <location filename="../qml/SettingsPage.qml" line="341"/>
         <source>Smallest file</source>
         <translation>Kleinste Datei</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="287"/>
+        <location filename="../qml/SettingsPage.qml" line="352"/>
         <source>When a movie exists in several versions and none was played yet. “Smallest file” helps on slow networks.</source>
         <translation>Wenn ein Film in mehreren Versionen vorliegt und noch keine abgespielt wurde. „Kleinste Datei“ hilft bei langsamen Netzwerken.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="292"/>
+        <location filename="../qml/SettingsPage.qml" line="357"/>
         <source>ReplayGain</source>
         <translation>ReplayGain</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="293"/>
+        <location filename="../qml/SettingsPage.qml" line="358"/>
         <source>Off</source>
         <translation>Aus</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="293"/>
+        <location filename="../qml/SettingsPage.qml" line="358"/>
         <source>Track</source>
         <translation>Titel</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="293"/>
+        <location filename="../qml/SettingsPage.qml" line="358"/>
         <source>Album</source>
         <translation>Album</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="304"/>
+        <location filename="../qml/SettingsPage.qml" line="369"/>
         <source>Evens out the loudness of music from the ReplayGain tags in the files: per track, or per album so an album keeps its own dynamics.</source>
         <translation>Gleicht die Lautstärke von Musik mit den ReplayGain-Angaben in den Dateien an: pro Titel, oder pro Album, damit ein Album seine eigene Dynamik behält.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="308"/>
+        <location filename="../qml/SettingsPage.qml" line="373"/>
         <source>Storage</source>
         <translation>Speicher</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="313"/>
+        <location filename="../qml/SettingsPage.qml" line="378"/>
         <source>Saved copies go to %1</source>
         <translation>Gespeicherte Kopien liegen in %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="319"/>
+        <location filename="../qml/SettingsPage.qml" line="384"/>
         <source>Space used by saved copies: %1</source>
         <translation>Von gespeicherten Kopien belegt: %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="325"/>
+        <location filename="../qml/SettingsPage.qml" line="390"/>
         <source>Change location…</source>
         <translation>Ort ändern …</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="326"/>
+        <location filename="../qml/SettingsPage.qml" line="391"/>
         <source>New saved copies go to the chosen folder; existing ones stay where they are.</source>
         <translation>Neue Kopien landen im gewählten Ordner; vorhandene bleiben, wo sie sind.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="335"/>
+        <location filename="../qml/SettingsPage.qml" line="400"/>
         <source>Use default</source>
         <translation>Standard verwenden</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="345"/>
-        <location filename="../qml/SettingsPage.qml" line="481"/>
+        <location filename="../qml/SettingsPage.qml" line="410"/>
+        <location filename="../qml/SettingsPage.qml" line="561"/>
         <source>Delete all saved copies</source>
         <translation>Alle gespeicherten Kopien löschen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="361"/>
+        <location filename="../qml/SettingsPage.qml" line="426"/>
         <source>Troubleshooting</source>
         <translation>Fehlerbehebung</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="366"/>
+        <location filename="../qml/SettingsPage.qml" line="431"/>
         <source>If something does not work, export a diagnostics file and attach it to a bug report. It contains the app&apos;s log and version information. Server names, user names, addresses, keys and your home folder are removed.</source>
         <translation>Wenn etwas nicht funktioniert, exportiere eine Diagnosedatei und hänge sie an einen Fehlerbericht an. Sie enthält das Protokoll der App und Versionsangaben. Servernamen, Benutzernamen, Adressen, Schlüssel und dein Benutzerordner werden entfernt.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="372"/>
+        <location filename="../qml/SettingsPage.qml" line="437"/>
         <source>Export diagnostics</source>
         <translation>Diagnose exportieren</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="379"/>
+        <location filename="../qml/SettingsPage.qml" line="444"/>
         <source>Saved to %1</source>
         <translation>Gespeichert unter %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="380"/>
+        <location filename="../qml/SettingsPage.qml" line="445"/>
         <source>Export failed: %1</source>
         <translation>Export fehlgeschlagen: %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="393"/>
+        <location filename="../qml/SettingsPage.qml" line="458"/>
         <source>About</source>
         <translation>Über</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="403"/>
+        <location filename="../qml/SettingsPage.qml" line="468"/>
         <source>Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt, all used under the LGPL.</source>
         <translation>Huehuecoyotl %1 · Apache-Lizenz 2.0. Wiedergabe mit libmpv und FFmpeg, Oberfläche mit Qt, jeweils unter der LGPL.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="404"/>
+        <location filename="../qml/SettingsPage.qml" line="469"/>
         <source>%1 (development build %2)</source>
         <translation>%1 (Entwicklungsversion %2)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="409"/>
+        <location filename="../qml/SettingsPage.qml" line="474"/>
         <source>Third-party licences</source>
         <translation>Lizenzen von Drittanbietern</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="425"/>
+        <location filename="../qml/SettingsPage.qml" line="490"/>
         <source>This product uses the TMDB API but is not endorsed or certified by TMDB.</source>
         <translation>Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="433"/>
+        <location filename="../qml/SettingsPage.qml" line="498"/>
         <source>Music information from MusicBrainz (musicbrainz.org, data under CC0). Album covers from the Cover Art Archive (coverartarchive.org), a joint project of the Internet Archive and MusicBrainz.</source>
         <translation>Musikinformationen von MusicBrainz (musicbrainz.org, Daten unter CC0). Albumcover aus dem Cover Art Archive (coverartarchive.org), einem gemeinsamen Projekt des Internet Archive und von MusicBrainz.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="440"/>
+        <location filename="../qml/SettingsPage.qml" line="506"/>
+        <source>Artist images, biographies and album art from TheAudioDB (theaudiodb.com), contributed by its community.</source>
+        <translation>Künstlerbilder, Biografien und Albumbilder von TheAudioDB (theaudiodb.com), beigetragen von dessen Community.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="513"/>
+        <source>Artist images, logos and album art from Fanart.tv (fanart.tv), contributed by its community.</source>
+        <translation>Künstlerbilder, Logos und Albumbilder von Fanart.tv (fanart.tv), beigetragen von dessen Community.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="520"/>
         <source>Where saved copies go</source>
         <translation>Ordner für gespeicherte Kopien</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="468"/>
+        <location filename="../qml/SettingsPage.qml" line="548"/>
         <source>Delete every saved copy from this computer (%1)? The files on your servers stay, and everything can be streamed or saved again.</source>
         <translation>Alle gespeicherten Kopien von diesem Computer löschen (%1)? Die Dateien auf deinen Servern bleiben erhalten, und alles kann weiter gestreamt oder erneut gespeichert werden.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="474"/>
+        <location filename="../qml/SettingsPage.qml" line="554"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>

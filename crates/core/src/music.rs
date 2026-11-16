@@ -161,6 +161,8 @@ pub(crate) async fn match_album(inner: &Arc<Inner>, album: i64) -> Result<(), Me
                 .await
                 .map_err(db)?;
             release = Some(r);
+            // Issue #12: the album's artists now have their MusicBrainz ids.
+            crate::extras::enqueue_artists(inner, &[]).await;
         }
     }
     if !t.has_cover {
