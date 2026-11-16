@@ -272,11 +272,23 @@ quint64 CoreBridge::saveItem(qint64 itemId, qint64 fileId)
     return id;
 }
 
-quint64 CoreBridge::exportFile(qint64 fileId, const QString &dest)
+quint64 CoreBridge::exportItem(qint64 itemId, qint64 fileId, const QString &dest, bool overwrite)
 {
     const quint64 id = nextId();
-    if (m_core) (*m_core)->export_file(id, fileId, rs(dest.toUtf8()));
+    if (m_core) (*m_core)->export_item(id, itemId, fileId, rs(dest.toUtf8()), overwrite);
     return id;
+}
+
+QUrl CoreBridge::exportFolder()
+{
+    QString dir = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
+    if (dir.isEmpty() || !QDir(dir).exists()) dir = QDir::homePath();
+    return QUrl::fromLocalFile(dir);
+}
+
+QString CoreBridge::localPath(const QUrl &url)
+{
+    return url.isLocalFile() ? url.toLocalFile() : url.toString();
 }
 
 void CoreBridge::pauseDownload(qint64 copyId)
@@ -606,6 +618,8 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
         emit downloadsListed(e.request_id, items, double(e.used_bytes), qs(e.path));
     } else if (e.kind == K::DownloadProgress) {
         emit downloadProgress(downloadMap(e.download));
+    } else if (e.kind == K::ExportConflict) {
+        emit exportConflict(e.request_id, stringList(e.paths));
     } else if (e.kind == K::SaveState) {
         emit saveStateReady(e.request_id, qlonglong(e.item_id), saveMap(e.save));
     } else if (e.kind == K::Error) {

@@ -172,7 +172,76 @@ fn every_protocol() {
             matches!(e, Event::Downloads { request_id: 5, .. })
         });
         assert!(!path.exists() && !path.parent().unwrap().exists());
+        // Save as… from the network, then again from a saved copy.
+        export(&core, &rx, item, d.path(), "network", spec);
+        save_and_wait(&core, &rx, item, 60);
+        export(&core, &rx, item, d.path(), "copy", spec);
+        // After a restart the app holds no record of the exports.
+        drop(core);
+        let (core, rx) = open(d.path());
+        core.downloads(9);
+        let Event::Downloads { items, .. } = wait(&rx, "list", 10, |e| {
+            matches!(e, Event::Downloads { request_id: 9, .. })
+        }) else {
+            unreachable!()
+        };
+        assert!(items.iter().all(|d| d.kind == "saved"), "{items:?}");
+        assert!(
+            d.path().join("out-copy/My Alien.mkv").exists(),
+            "the user's file stays"
+        );
     }
+}
+
+/// "Save as…" into `dir/out-<tag>/My Alien.mkv`: byte-identical, subtitles renamed alongside,
+/// and a second export to the same place asks first.
+fn export(core: &Core, rx: &Receiver<Event>, item: i64, dir: &Path, tag: &str, spec: &str) {
+    let dest = dir.join(format!("out-{tag}/My Alien.mkv"));
+    std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
+    core.export_item(6, item, 0, &dest.to_string_lossy(), false);
+    let Event::Downloads { items, .. } = wait(rx, "export", 30, |e| {
+        matches!(
+            e,
+            Event::Downloads { request_id: 6, .. } | Event::Error { request_id: 6, .. }
+        )
+    }) else {
+        panic!("{spec}: export failed")
+    };
+    let id = items
+        .iter()
+        .find(|d| d.kind == "export" && Path::new(&d.path) == dest)
+        .expect("export row")
+        .id;
+    finish(core, rx, id, 60);
+    assert!(
+        std::fs::read(&dest).unwrap() == fixture(MOVIE),
+        "{spec} {tag}: export differs"
+    );
+    assert_eq!(
+        std::fs::read(dest.with_file_name("My Alien.en.srt")).unwrap(),
+        fixture(SUBS),
+        "{spec} {tag}: subtitles"
+    );
+    core.export_item(7, item, 0, &dest.to_string_lossy(), false);
+    let ev = wait(rx, "conflict", 10, |e| {
+        matches!(
+            e,
+            Event::ExportConflict { request_id: 7, .. } | Event::Downloads { request_id: 7, .. }
+        )
+    });
+    assert!(
+        matches!(ev, Event::ExportConflict { ref paths, .. } if paths.len() == 1),
+        "{ev:?}"
+    );
+    if tag != "network" {
+        return; // left for the restart to forget
+    }
+    // Dismissing a finished export forgets it and keeps the file.
+    core.delete_download(8, id);
+    wait(rx, "dismissed", 10, |e| {
+        matches!(e, Event::Downloads { request_id: 8, .. })
+    });
+    assert!(dest.exists());
 }
 
 /// A TCP proxy that counts what the server sends, can be slowed down, and can drop every

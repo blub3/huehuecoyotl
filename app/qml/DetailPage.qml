@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import Coyotl
 import "MediaInfo.js" as MediaInfo
 
@@ -114,7 +115,16 @@ FocusScope {
         return many && sv.saved > 0 ? qsTr("%1 of %2 episodes saved").arg(sv.saved).arg(sv.saveable) : ""
     }
     readonly property bool hasCopy: sv.state !== "none" || sv.saved > 0
-    function belowActions() { return canSave ? saveButton : childView() }
+    // Issue #5: Save as… (a file for a movie or episode, a folder for a season or show).
+    readonly property bool canExport: loaded && (hasFiles || kind === "season" || kind === "show")
+    property var exportRequest: 0
+    property string exportDest: ""
+    property var conflicts: []
+    function exportTo(dest, overwrite) {
+        exportDest = dest
+        exportRequest = Core.exportItem(itemId, hasFiles && file ? file.id : 0, dest, overwrite)
+    }
+    function belowActions() { return canSave ? saveButton : canExport ? exportButton : childView() }
     Timer {
         id: saveTimer
         interval: 1000
@@ -192,9 +202,18 @@ FocusScope {
         }
         function onDownloadsListed(requestId, items, used, dir) {
             if (requestId === page.saveRequest) page.saveRequest = Core.saveState(page.itemId)
+            if (requestId === page.exportRequest) {
+                page.exportRequest = 0
+                (page.Window.window as Main).showError(qsTr("Saving a copy to %1. Progress is under Downloads.").arg(page.exportDest))
+            }
+        }
+        function onExportConflict(requestId, paths) {
+            if (requestId !== page.exportRequest) return
+            page.conflicts = paths
+            overwriteConfirm.open()
         }
         function onRequestFailed(requestId, kind, message) {
-            if (requestId === page.saveRequest) (page.Window.window as Main).showError(message)
+            if (requestId === page.saveRequest || requestId === page.exportRequest) (page.Window.window as Main).showError(message)
         }
         function onItemChanged(id) { if (id === page.itemId || page.kind === "show" || page.kind === "season") page.load() }
         function onLibraryChanged() { page.load() }
@@ -426,16 +445,17 @@ FocusScope {
 
                         // Issue #4: Save (an offline copy), its progress, and deleting it.
                         RowLayout {
-                            visible: page.canSave
+                            visible: page.canSave || page.canExport
                             spacing: 12
                             FocusButton {
                                 id: saveButton
+                                visible: page.canSave
                                 // One button that changes its role, so focus never falls off the row.
                                 glyph: page.saveBusy ? "❚❚" : page.sv.state === "done" ? "" : "⤓"
                                 text: page.saveLabel()
                                 Accessible.description: page.saveStatus()
                                 KeyNavigation.up: playButton
-                                KeyNavigation.right: deleteSavedButton.visible ? deleteSavedButton : null
+                                KeyNavigation.right: deleteSavedButton.visible ? deleteSavedButton : exportButton
                                 KeyNavigation.down: page.childView()
                                 Keys.onLeftPressed: Nav.focusRail()
                                 onActiveFocusChanged: if (activeFocus) page.reveal(this)
@@ -447,9 +467,35 @@ FocusScope {
                                 text: page.saveBusy || page.sv.state === "paused" ? qsTr("Cancel") : page.deleteLabel()
                                 KeyNavigation.up: playButton
                                 KeyNavigation.left: saveButton
+                                KeyNavigation.right: exportButton
                                 KeyNavigation.down: page.childView()
                                 onActiveFocusChanged: if (activeFocus) page.reveal(this)
                                 onClicked: deleteSavedConfirm.open()
+                            }
+                            FocusButton {
+                                id: exportButton
+                                visible: page.canExport
+                                text: qsTr("Save as…")
+                                Accessible.description: page.hasFiles ? qsTr("Copy the file to a place you choose")
+                                                                      : qsTr("Copy every episode into a folder you choose")
+                                KeyNavigation.up: playButton
+                                KeyNavigation.left: deleteSavedButton.visible ? deleteSavedButton : saveButton.visible ? saveButton : null
+                                KeyNavigation.down: page.childView()
+                                Keys.onLeftPressed: (e) => {
+                                    if (deleteSavedButton.visible) deleteSavedButton.forceActiveFocus()
+                                    else if (saveButton.visible) saveButton.forceActiveFocus()
+                                    else Nav.focusRail()
+                                }
+                                onActiveFocusChanged: if (activeFocus) page.reveal(this)
+                                onClicked: {
+                                    if (page.hasFiles) {
+                                        const name = page.file.path.substring(page.file.path.lastIndexOf("/") + 1)
+                                        exportFileDialog.selectedFile = exportFileDialog.currentFolder + "/" + encodeURIComponent(name)
+                                        exportFileDialog.open()
+                                    } else {
+                                        exportFolderDialog.open()
+                                    }
+                                }
                             }
                             Label {
                                 Layout.fillWidth: true
@@ -484,7 +530,7 @@ FocusScope {
                         id: detailsToggle
                         glyph: page.detailsOpen ? "▾" : "▸"
                         text: qsTr("Technical details")
-                        Keys.onUpPressed: (page.canSave ? saveButton : playButton).forceActiveFocus()
+                        Keys.onUpPressed: (page.canSave ? saveButton : page.canExport ? exportButton : playButton).forceActiveFocus()
                         Keys.onLeftPressed: Nav.focusRail()
                         KeyNavigation.right: analyseButton.visible ? analyseButton : null
                         onActiveFocusChanged: if (activeFocus) page.reveal(this)
@@ -833,6 +879,64 @@ FocusScope {
                     onClicked: {
                         page.saveRequest = Core.deleteSavedItem(page.itemId)
                         deleteSavedConfirm.close()
+                    }
+                }
+            }
+        }
+    }
+
+    // Issue #5: Save as…. The native dialog asks before replacing a file; for a folder the core
+    // reports existing files and the page asks.
+    FileDialog {
+        id: exportFileDialog
+        title: qsTr("Save a copy as")
+        fileMode: FileDialog.SaveFile
+        currentFolder: Core.exportFolder()
+        onAccepted: page.exportTo(Core.localPath(selectedFile), true)
+        onRejected: exportButton.forceActiveFocus()
+    }
+    FolderDialog {
+        id: exportFolderDialog
+        title: qsTr("Copy every episode into")
+        currentFolder: Core.exportFolder()
+        onAccepted: page.exportTo(Core.localPath(selectedFolder), false)
+        onRejected: exportButton.forceActiveFocus()
+    }
+    Popup {
+        id: overwriteConfirm
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(560, parent.width - 80)
+        modal: true
+        padding: 24
+        background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
+        onOpened: overwriteKeep.forceActiveFocus()
+        onClosed: exportButton.forceActiveFocus()
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 16
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.text
+                text: qsTr("%n file(s) exist already in %1. Replace them?", "", page.conflicts.length).arg(page.exportDest)
+            }
+            RowLayout {
+                spacing: 12
+                FocusButton {
+                    id: overwriteKeep
+                    text: qsTr("Cancel")
+                    KeyNavigation.right: overwriteOk
+                    onClicked: overwriteConfirm.close()
+                }
+                FocusButton {
+                    id: overwriteOk
+                    primary: true
+                    text: qsTr("Replace")
+                    KeyNavigation.left: overwriteKeep
+                    onClicked: {
+                        page.exportTo(page.exportDest, true)
+                        overwriteConfirm.close()
                     }
                 }
             }

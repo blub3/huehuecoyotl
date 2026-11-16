@@ -627,14 +627,25 @@ async fn add_copy(
             }
         }
     };
+    // Issue #5: an export reads from a complete saved copy when there is one, not the network.
+    let saved = if kind == copies::EXPORT && t.source_kind != "local" {
+        let f = t.file_id;
+        inner.lib.read(move |c| copies::usable_path(c, f)).await?
+    } else {
+        None
+    };
+    let (source_id, source_path, src_mtime) = match saved {
+        Some(p) => (huehuecoyotl_library::LOCAL_SOURCE_ID, p, None),
+        None => (t.source_id, t.path.clone(), t.mtime),
+    };
     let row = NewCopy {
         kind: kind.into(),
         main_id: None,
         file_id: Some(t.file_id),
         item_id: Some(t.item_id),
-        source_id: t.source_id,
-        source_path: t.path.clone(),
-        src_mtime: t.mtime,
+        source_id,
+        source_path,
+        src_mtime,
         path: dest.to_string_lossy().to_string(),
         size: t.size,
     };
@@ -839,8 +850,85 @@ pub(crate) async fn save(inner: &Arc<Inner>, item_id: i64, file_id: i64) -> CRes
 }
 
 /// "Save as…": copy one file to `dest`, a file path chosen by the user.
-pub(crate) async fn export(inner: &Arc<Inner>, file_id: i64, dest: PathBuf) -> CResult<i64> {
-    add_copy(inner, copies::EXPORT, file_id, Some(dest)).await
+/// What "Save as…" would write: (file, destination) per movie or episode.
+async fn export_plan(
+    inner: &Arc<Inner>,
+    item_id: i64,
+    file_id: i64,
+    dest: &Path,
+) -> CResult<Vec<(i64, PathBuf)>> {
+    let items = inner
+        .lib
+        .read(move |c| copies::playable_items(c, item_id))
+        .await?;
+    let single = items.len() == 1 && items[0] == item_id;
+    let mut plan = Vec::new();
+    for it in items {
+        let file = if single && file_id > 0 {
+            Some(file_id)
+        } else {
+            // The version with a saved copy, else the largest.
+            inner
+                .lib
+                .read(move |c| {
+                    let files = copies::all_files(c, it)?;
+                    for f in &files {
+                        if copies::usable_path(c, *f)?.is_some() {
+                            return Ok(Some(*f));
+                        }
+                    }
+                    Ok(files.first().copied())
+                })
+                .await?
+        };
+        let Some(file) = file else { continue };
+        let to = if single {
+            dest.to_path_buf()
+        } else {
+            let t = inner
+                .lib
+                .read(move |c| copies::target(c, file))
+                .await?
+                .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("file {file}")))?;
+            dest.join(clean(t.path.rsplit('/').next().unwrap_or(&t.path)))
+        };
+        plan.push((file, to));
+    }
+    if plan.is_empty() {
+        return Err(CoreError::new(
+            ErrorKind::NotFound,
+            format!("item {item_id} has no file"),
+        ));
+    }
+    Ok(plan)
+}
+
+/// "Save as…" (issue #5): a movie or episode to the file `dest`, or every episode of a season
+/// or show into the folder `dest`. Without `overwrite`, files that exist already are returned
+/// and nothing starts.
+pub(crate) async fn export(
+    inner: &Arc<Inner>,
+    item_id: i64,
+    file_id: i64,
+    dest: PathBuf,
+    overwrite: bool,
+) -> CResult<Result<Vec<i64>, Vec<String>>> {
+    let plan = export_plan(inner, item_id, file_id, &dest).await?;
+    if !overwrite {
+        let existing: Vec<String> = plan
+            .iter()
+            .filter(|(_, p)| p.exists())
+            .map(|(_, p)| p.to_string_lossy().to_string())
+            .collect();
+        if !existing.is_empty() {
+            return Ok(Err(existing));
+        }
+    }
+    let mut ids = Vec::new();
+    for (file, to) in plan {
+        ids.push(add_copy(inner, copies::EXPORT, file, Some(to)).await?);
+    }
+    Ok(Ok(ids))
 }
 
 /// Sidecar subtitles next to the main file, and the other parts of a multi-part file: rows of
@@ -863,8 +951,23 @@ async fn add_companions(inner: &Arc<Inner>, main: &Copy, src: &dyn Source) {
     let mut new = Vec::new();
     if let Some(dir) = vp.parent() {
         if let Ok(siblings) = src.list(&dir).await {
+            // Subtitles take the video's new base name ("Alien.en.srt" next to "My Alien.mkv").
+            let stem = |n: &str| n.rsplit_once('.').map_or(n, |(s, _)| s).to_string();
+            let (from, to) = (
+                stem(vp.file_name()),
+                stem(
+                    &PathBuf::from(&main.path)
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy(),
+                ),
+            );
             for e in find_sidecar_subtitles(vp.file_name(), &siblings) {
-                new.push((None, e.path.to_string(), e.mtime, e.size, e.name.clone()));
+                let name = match e.name.strip_prefix(&from) {
+                    Some(rest) if from != to => format!("{to}{rest}"),
+                    _ => e.name.clone(),
+                };
+                new.push((None, e.path.to_string(), e.mtime, e.size, name));
             }
         }
     }
@@ -1406,11 +1509,24 @@ impl crate::Core {
     }
 
     /// "Save as…" (issue #5): copy one file to `dest`. The caller has asked about overwriting.
-    pub fn export_file(&self, request_id: u64, file_id: i64, dest: &str) {
+    /// "Save as…" (issue #5): a movie or episode (`file_id` picks a version, 0 = the best) to
+    /// the file `dest`, or a season or show into the folder `dest`. Answers with the Downloads
+    /// list, or with `ExportConflict` (nothing started) when files exist and `overwrite` is
+    /// false.
+    pub fn export_item(
+        &self,
+        request_id: u64,
+        item_id: i64,
+        file_id: i64,
+        dest: &str,
+        overwrite: bool,
+    ) {
         let dest = PathBuf::from(dest);
         self.spawn(request_id, move |inner| async move {
-            export(&inner, file_id, dest).await?;
-            downloads_event(&inner, request_id).await
+            match export(&inner, item_id, file_id, dest, overwrite).await? {
+                Ok(_) => downloads_event(&inner, request_id).await,
+                Err(paths) => Ok(Event::ExportConflict { request_id, paths }),
+            }
         });
     }
 
@@ -1774,6 +1890,34 @@ mod tests {
         let e = fetch(&f, &mut |_| {}).await.unwrap_err();
         assert!(matches!(e, FetchError::NoSpace(_)), "{e:?}");
         assert!(!part.exists(), "no partial file after a full disk");
+    }
+
+    #[tokio::test]
+    async fn a_target_that_went_away_is_a_clear_write_error() {
+        // A removed drive: the target folder cannot be created or written any more.
+        let d = tempfile::tempdir().unwrap();
+        std::fs::write(d.path().join("usb"), b"not a folder").unwrap();
+        let part = d.path().join("usb/Movies/m.mkv.part");
+        let src = Mem::new(1000);
+        let path = VPath::new("/m.mkv");
+        let ctl = Ctl::new();
+        let f = Fetch {
+            src: &*src,
+            path: &path,
+            size: 1000,
+            part: &part,
+            fingerprint: None,
+            ctl: &ctl,
+            free: &plenty,
+        };
+        let e = fetch(&f, &mut |_| {}).await.unwrap_err();
+        assert!(matches!(e, FetchError::Write(_)), "{e:?}");
+        let dest = d.path().join("usb/Movies/m.mkv");
+        assert!(
+            e.message(&dest).starts_with("Could not write to"),
+            "{}",
+            e.message(&dest)
+        );
     }
 
     #[tokio::test]

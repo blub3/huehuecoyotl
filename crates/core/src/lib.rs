@@ -254,6 +254,11 @@ pub enum Event {
         item_id: i64,
         info: huehuecoyotl_library::copies::SaveInfo,
     },
+    /// "Save as…" (issue #5) would overwrite these files; nothing was started.
+    ExportConflict {
+        request_id: u64,
+        paths: Vec<String>,
+    },
     /// Saved copies and exports (issue #3), with the space saved copies use.
     Downloads {
         request_id: u64,
@@ -464,6 +469,9 @@ impl Core {
                     ErrorKind::Internal | ErrorKind::NoSpace => VfsError::Internal(e.message),
                 })
         }));
+        // Offline copies: clean up after the last session (exports are forgotten) and queue
+        // unfinished ones, before the first request can list them.
+        rt.block_on(download::startup(&inner));
         let start = inner.clone();
         rt.spawn(async move {
             // Crash-safe queue: running jobs from a previous session run again.
@@ -506,8 +514,6 @@ impl Core {
                     Err(e) => tracing::error!("TMDB client: {e}"),
                 }
             }
-            // Offline copies: clean up after the last session and continue unfinished ones.
-            download::startup(&start).await;
             worker::spawn_workers(&start);
             download::spawn_worker(&start);
             network::spawn_reconnect(&start);
