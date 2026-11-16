@@ -22,6 +22,8 @@ mod ffi {
         Error,
         Page,
         Detail,
+        /// Issue #48: a page of a season's episodes (`episodes`).
+        Episodes,
         Libraries,
         Review,
         Candidates,
@@ -127,6 +129,20 @@ mod ffi {
         /// Issue #34: the edition from the file name, and this version's own resume position.
         edition: String,
         position_ms: u64,
+        /// Issue #48: a complete saved copy of this file is on this computer (plays offline).
+        saved: bool,
+    }
+
+    /// Issue #48: one episode tile on the show page.
+    #[derive(Clone, Debug, Default)]
+    struct EpisodeEntry {
+        item: ItemSummary,
+        /// The versions; `probe_json` trimmed to labels and the summary line.
+        files: Vec<FileRef>,
+        last_file_id: i64,
+        duration_ms: u64,
+        position_ms: u64,
+        save: SaveInfo,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -271,6 +287,8 @@ mod ffi {
         save: SaveInfo,
         /// ExportConflict: the files that exist already.
         paths: Vec<String>,
+        /// Episodes (issue #48), with `total` and `offset`.
+        episodes: Vec<EpisodeEntry>,
     }
 
     extern "Rust" {
@@ -324,6 +342,8 @@ mod ffi {
         fn recently_added(self: &Core, request_id: u64, limit: u32);
         fn search(self: &Core, request_id: u64, text: &str);
         fn item_detail(self: &Core, request_id: u64, item_id: i64);
+        /// Issue #48: one page of a season's episodes with versions and saved-copy state.
+        fn season_episodes(self: &Core, request_id: u64, season_id: i64, offset: u32, limit: u32);
         /// Issue #33: analyse this file before the others.
         fn probe_now(self: &Core, file_id: i64);
         fn review(self: &Core, request_id: u64);
@@ -437,6 +457,7 @@ fn event(kind: ffi::EventKind, request_id: u64) -> ffi::CoreEvent {
         used_bytes: 0,
         save: ffi::SaveInfo::default(),
         paths: Vec::new(),
+        episodes: Vec::new(),
     }
 }
 
@@ -516,6 +537,32 @@ fn strings(v: &serde_json::Value, key: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
+fn file_ref(f: core::FileInfo) -> ffi::FileRef {
+    ffi::FileRef {
+        id: f.id,
+        path: f.path,
+        size: f.size,
+        source_name: f.source_name,
+        source_kind: f.source_kind,
+        probe_json: f.probe_json,
+        online: f.online,
+        edition: f.edition,
+        position_ms: f.position_ms,
+        saved: f.saved,
+    }
+}
+
+fn episode(e: core::EpisodeRow) -> ffi::EpisodeEntry {
+    ffi::EpisodeEntry {
+        item: summary(e.item),
+        files: e.files.into_iter().map(file_ref).collect(),
+        last_file_id: e.last_file_id,
+        duration_ms: e.duration_ms,
+        position_ms: e.position_ms,
+        save: save_info(e.save),
+    }
+}
+
 fn detail(d: core::Detail) -> ffi::ItemDetail {
     let meta: serde_json::Value = serde_json::from_str(&d.meta_json).unwrap_or_default();
     ffi::ItemDetail {
@@ -530,21 +577,7 @@ fn detail(d: core::Detail) -> ffi::ItemDetail {
         match_state: d.match_state,
         tmdb_id: d.tmdb_id.unwrap_or(0),
         parent_title: d.parent_title,
-        files: d
-            .files
-            .into_iter()
-            .map(|f| ffi::FileRef {
-                id: f.id,
-                path: f.path,
-                size: f.size,
-                source_name: f.source_name,
-                source_kind: f.source_kind,
-                probe_json: f.probe_json,
-                online: f.online,
-                edition: f.edition,
-                position_ms: f.position_ms,
-            })
-            .collect(),
+        files: d.files.into_iter().map(file_ref).collect(),
         position_ms: d.position_ms,
         duration_ms: d.duration_ms,
         last_file_id: d.last_file_id,
@@ -649,6 +682,17 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
             offset,
             items: items.into_iter().map(summary).collect(),
             ..event(K::Page, request_id)
+        },
+        core::Event::Episodes {
+            request_id,
+            total,
+            offset,
+            items,
+        } => ffi::CoreEvent {
+            total,
+            offset,
+            episodes: items.into_iter().map(episode).collect(),
+            ..event(K::Episodes, request_id)
         },
         core::Event::Detail {
             request_id,
@@ -766,6 +810,7 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
             id,
             main_id,
             item_id,
+            kind,
             state,
             bytes_done,
             size,
@@ -777,6 +822,7 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                 id,
                 main_id,
                 item_id,
+                kind,
                 state,
                 bytes_done,
                 size,
@@ -977,6 +1023,11 @@ impl Core {
     }
     fn item_detail(&self, request_id: u64, item_id: i64) {
         guard("item_detail", || self.0.item_detail(request_id, item_id))
+    }
+    fn season_episodes(&self, request_id: u64, season_id: i64, offset: u32, limit: u32) {
+        guard("season_episodes", || {
+            self.0.season_episodes(request_id, season_id, offset, limit)
+        })
     }
     fn review(&self, request_id: u64) {
         guard("review", || self.0.review(request_id))

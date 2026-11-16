@@ -44,7 +44,7 @@ fn usage() -> ExitCode {
     eprintln!(
         "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent\n\
          \x20      | library add PATH | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
-         \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | review | key KEY\n\
+         \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review | key KEY\n\
          \x20      | probe FILE (technical details as JSON; FFmpeg from COYOTL_FFMPEG_DIR or the system)\n\
          \x20      | download ITEM [FILE] (save offline copies and wait for them) | downloads list\n\
          \x20      | export ITEM DEST [--overwrite] (Save as…: a file, or a folder for a season or show)\n\
@@ -336,6 +336,11 @@ fn main() -> ExitCode {
             core.item_detail(1, id);
             wait()
         }
+        ("episodes", [id]) => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.season_episodes(1, id, 0, 500);
+            wait()
+        }
         ("review", []) => {
             core.review(1);
             wait()
@@ -486,6 +491,42 @@ fn main() -> ExitCode {
                 println!("  next   {} (id {})", n.title, n.id);
             }
             page(&d.children);
+        }
+        Event::Episodes { total, items, .. } => {
+            println!("{total} episodes");
+            for e in items {
+                let i = &e.item;
+                println!(
+                    "  {:>6}  E{:<3} {}{}{}",
+                    i.id,
+                    i.episode_no.unwrap_or(0),
+                    i.title,
+                    if i.on_disk {
+                        ""
+                    } else {
+                        "  (not in the library)"
+                    },
+                    if e.save.state == "none" {
+                        String::new()
+                    } else {
+                        format!("  [saved: {}]", e.save.state)
+                    }
+                );
+                for f in &e.files {
+                    println!(
+                        "            file {} ({} MB, {}{}{})",
+                        f.id,
+                        f.size / 1_000_000,
+                        f.source_name,
+                        if f.online { "" } else { ", offline" },
+                        if f.probe_json.is_empty() {
+                            ", not analysed"
+                        } else {
+                            ""
+                        }
+                    );
+                }
+            }
         }
         Event::Review { items, .. } => {
             for r in items {

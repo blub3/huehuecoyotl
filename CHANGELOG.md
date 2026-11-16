@@ -4,6 +4,12 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+- Show page (#48): every episode has its own version dropdown (when it has several files), technical summary with badges, "Details" panel and Save menu (Save, Save as…, Delete saved copy), with progress and saved or outdated marks on the episode. The selected version drives Play, the details and saving. Right moves into an episode's buttons, Back returns, Menu opens its Save menu. Long seasons load page by page as you scroll.
+- Movie and episode pages: Save, Save as… and Delete saved copy are now one Save menu.
+- A version whose server is offline but which has a saved copy can be chosen and plays the copy.
+- `coyotl --benchmark episodes` measures scrolling a show's episodes while ten of them save.
+- `coyotl-cli episodes SEASON` lists a season's episodes with their versions and saved state.
+
 ## 1.5.2 – 2026-11-16 (Linux)
 
 - Fixed: after choosing a file or folder in the "Save as…" or storage-folder dialog, the app no longer reacted to the keyboard or a remote until it was clicked.

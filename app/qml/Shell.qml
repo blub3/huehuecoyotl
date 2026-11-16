@@ -50,6 +50,7 @@ FocusScope {
     Component.onCompleted: {
         Nav.shell = shell
         if (Bench.mode === "scroll") shell.go("movies")
+        if (Bench.mode === "episodes") shell.go("shows")
     }
     // Returning from the player: give focus back to the page.
     StackView.onActivated: focusContent()

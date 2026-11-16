@@ -405,6 +405,38 @@ pub struct FileInfo {
     pub edition: String,
     /// This version's own resume position, for a cut of a different length (issue #34).
     pub position_ms: u64,
+    /// Issue #48: a complete, current saved copy of this file is on this computer, so it plays
+    /// even while its source cannot be reached.
+    pub saved: bool,
+}
+
+/// The files (versions) of a movie or episode, largest first.
+pub fn files_of(c: &Connection, item_id: i64) -> Result<Vec<FileInfo>> {
+    let mut st = c.prepare_cached(&format!(
+        "SELECT {ABS_PATH_SQL}, coalesce(f.size, 0), f.id, s.id, s.name, s.kind, coalesce(f.probe_json, ''),
+                coalesce(fs.position_ms, 0),
+                EXISTS (SELECT 1 FROM local_copy lc WHERE lc.file_id = f.id AND lc.kind = 'saved'
+                          AND lc.main_id IS NULL AND lc.state = 'done')
+         FROM file f JOIN source s ON s.id = f.source_id
+         LEFT JOIN file_state fs ON fs.file_id = f.id AND fs.profile_id = {DEFAULT_PROFILE}
+         WHERE f.item_id = ?1 ORDER BY f.size DESC"
+    ))?;
+    let rows = st.query_map([item_id], |r| {
+        Ok(FileInfo {
+            path: r.get(0)?,
+            size: r.get(1)?,
+            id: r.get(2)?,
+            source_id: r.get(3)?,
+            source_name: r.get(4)?,
+            source_kind: r.get(5)?,
+            probe_json: r.get(6)?,
+            online: true,
+            edition: String::new(),
+            position_ms: r.get::<_, i64>(7)? as u64,
+            saved: r.get(8)?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -498,40 +530,10 @@ pub fn detail(c: &Connection, id: i64) -> Result<Option<Detail>> {
             .unwrap_or_default(),
         None => String::new(),
     };
-    let files = {
-        let mut st = c.prepare(&format!(
-            "SELECT {ABS_PATH_SQL}, coalesce(f.size, 0), f.id, s.id, s.name, s.kind, coalesce(f.probe_json, ''),
-                    coalesce(fs.position_ms, 0)
-             FROM file f JOIN source s ON s.id = f.source_id
-             LEFT JOIN file_state fs ON fs.file_id = f.id AND fs.profile_id = {DEFAULT_PROFILE}
-             WHERE f.item_id = ?1 ORDER BY f.size DESC"
-        ))?;
-        st.query_map([id], |r| {
-            Ok(FileInfo {
-                path: r.get(0)?,
-                size: r.get(1)?,
-                id: r.get(2)?,
-                source_id: r.get(3)?,
-                source_name: r.get(4)?,
-                source_kind: r.get(5)?,
-                probe_json: r.get(6)?,
-                online: true,
-                edition: String::new(),
-                position_ms: r.get::<_, i64>(7)? as u64,
-            })
-        })?
-        .collect::<rusqlite::Result<Vec<_>>>()?
-    };
+    let files = files_of(c, id)?;
     let st = crate::queries::playstate(c, id)?;
     let (position_ms, duration_ms) = (st.position_ms, st.duration_ms);
-    let last_file_id: i64 = c
-        .query_row(
-            "SELECT coalesce(last_file_id, 0) FROM playstate WHERE item_id = ?1 AND profile_id = ?2",
-            params![id, DEFAULT_PROFILE],
-            |r| r.get(0),
-        )
-        .optional()?
-        .unwrap_or(0);
+    let last_file_id = last_file_id(c, id)?;
     let children = match item.kind.as_str() {
         "show" | "season" => children(c, id)?,
         _ => vec![],
@@ -559,6 +561,77 @@ pub fn detail(c: &Connection, id: i64) -> Result<Option<Detail>> {
         next_up,
         save: crate::copies::save_info(c, id)?,
     }))
+}
+
+/// The version played last (0 = none).
+fn last_file_id(c: &Connection, item_id: i64) -> Result<i64> {
+    Ok(c.prepare_cached(
+        "SELECT coalesce(last_file_id, 0) FROM playstate WHERE item_id = ?1 AND profile_id = ?2",
+    )?
+    .query_row(params![item_id, DEFAULT_PROFILE], |r| r.get(0))
+    .optional()?
+    .unwrap_or(0))
+}
+
+/// Issue #48: one episode tile of the show page, everything it shows without a further query.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct EpisodeRow {
+    pub item: Summary,
+    /// The versions, largest first. `probe_json` is the full probe here; the core trims it to
+    /// what labels and the summary line need before it reaches the UI.
+    pub files: Vec<FileInfo>,
+    pub last_file_id: i64,
+    /// The episode's duration as last played (another cut keeps its own resume position).
+    pub duration_ms: u64,
+    pub position_ms: u64,
+    pub save: crate::copies::SaveInfo,
+}
+
+/// Issue #48: one page of a season's episodes for the show page, including the ones only TMDB
+/// knows, with their versions and saved-copy state. Plus the season's episode count.
+pub fn episodes(
+    c: &Connection,
+    season: i64,
+    offset: u32,
+    limit: u32,
+) -> Result<(u32, Vec<EpisodeRow>)> {
+    let total: u32 = c.query_row(
+        "SELECT count(*) FROM item WHERE parent_id = ?1 AND kind = 'episode'",
+        [season],
+        |r| r.get(0),
+    )?;
+    let items: Vec<Summary> = {
+        let mut st = c.prepare(&format!(
+            "SELECT {SUMMARY_COLS} FROM item i
+             LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = {DEFAULT_PROFILE}
+             WHERE i.parent_id = ?1 AND i.kind = 'episode'
+             ORDER BY i.episode_no, i.id LIMIT ?2 OFFSET ?3"
+        ))?;
+        st.query_map(params![season, limit, offset], summary)?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    let mut out = Vec::with_capacity(items.len());
+    for item in items {
+        let id = item.id;
+        let st = crate::queries::playstate(c, id)?;
+        let on_disk = item.on_disk;
+        out.push(EpisodeRow {
+            files: if on_disk { files_of(c, id)? } else { vec![] },
+            last_file_id: last_file_id(c, id)?,
+            duration_ms: st.duration_ms,
+            position_ms: st.position_ms,
+            save: if on_disk {
+                crate::copies::save_info(c, id)?
+            } else {
+                crate::copies::SaveInfo {
+                    state: "none".into(),
+                    ..Default::default()
+                }
+            },
+            item,
+        });
+    }
+    Ok((total, out))
 }
 
 /// Seasons of a show or episodes of a season for the show page, including the ones only TMDB
@@ -1376,5 +1449,103 @@ mod tests {
             pending_artwork(&c, 1).unwrap().is_empty(),
             "same remote image is not refetched"
         );
+    }
+
+    /// Issue #48: the fixture show of the episode tiles. One season of six episodes: E1 in two
+    /// versions (one on the NAS), E2 only TMDB knows, E3 saved, E4 not analysed yet.
+    pub(crate) fn example_show(c: &Connection) {
+        c.execute_batch(
+            r#"INSERT INTO source(id, kind, name, root) VALUES (2, 'local', 'Media', '/m'), (3, 'smb', 'NAS', '/share');
+             INSERT INTO item(id, kind, title, sort_title, year) VALUES (50, 'show', 'Example Show', 'example show', 2020);
+             INSERT INTO item(id, kind, title, parent_id, season_no) VALUES (51, 'season', 'Season 1', 50, 1);
+             INSERT INTO item(id, kind, title, parent_id, season_no, episode_no) VALUES
+               (61, 'episode', 'One', 51, 1, 1), (62, 'episode', 'Two', 51, 1, 2), (63, 'episode', 'Three', 51, 1, 3),
+               (64, 'episode', 'Four', 51, 1, 4), (65, 'episode', 'Five', 51, 1, 5), (66, 'episode', 'Six', 51, 1, 6);
+             INSERT INTO file(id, source_id, path, size, item_id, probe_json) VALUES
+               (701, 2, 'Example Show/S01E01.1080p.mkv', 2000, 61, '{"schema":3,"video":[{"codec":"h264","width":1920,"height":1080}]}'),
+               (702, 3, 'Example Show/S01E01.2160p.mkv', 9000, 61, '{"schema":3,"video":[{"codec":"hevc","width":3840,"height":2160,"hdr":"HDR10"}]}'),
+               (703, 3, 'Example Show/S01E03.mkv', 3000, 63, '{"schema":3}'),
+               (704, 2, 'Example Show/S01E04.mkv', 3000, 64, NULL),
+               (705, 2, 'Example Show/S01E05.mkv', 3000, 65, '{"schema":3}'),
+               (706, 2, 'Example Show/S01E06.mkv', 3000, 66, '{"schema":3}');
+             INSERT INTO local_copy(id, kind, file_id, item_id, source_id, source_path, path, size, bytes_done, state, created_at)
+               VALUES (900, 'saved', 703, 63, 3, '/share/Example Show/S01E03.mkv', '/store/S01E03.mkv', 3000, 3000, 'done', 1),
+                      (901, 'export', 702, 61, 3, '/share/Example Show/S01E01.2160p.mkv', '/home/me/E01.mkv', 9000, 9000, 'done', 1);
+             INSERT INTO playstate(item_id, profile_id, position_ms, duration_ms, watched, updated_at, last_file_id)
+               VALUES (61, 1, 60000, 1200000, 0, 5, 702);"#,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn episode_tiles_carry_versions_and_saved_state() {
+        let c = db();
+        example_show(&c);
+        let (total, eps) = episodes(&c, 51, 0, 50).unwrap();
+        assert_eq!(total, 6);
+        assert_eq!(
+            eps.iter()
+                .map(|e| e.item.episode_no.unwrap())
+                .collect::<Vec<_>>(),
+            [1, 2, 3, 4, 5, 6]
+        );
+        // E1: both versions, largest first, with the one played last and its resume point.
+        let e1 = &eps[0];
+        assert_eq!(
+            e1.files.iter().map(|f| f.id).collect::<Vec<_>>(),
+            [702, 701]
+        );
+        assert_eq!(e1.files[0].source_name, "NAS");
+        assert_eq!(
+            (e1.last_file_id, e1.position_ms, e1.duration_ms),
+            (702, 60000, 1200000)
+        );
+        assert!(e1.files[0].probe_json.contains("HDR10"));
+        // E1 was only exported with Save as…: no saved copy, nothing to delete.
+        assert_eq!(e1.save.state, "none");
+        assert_eq!(e1.save.saveable, 1);
+        assert!(!e1.item.saved && !e1.files[0].saved);
+        // E2: only TMDB knows it; no versions, nothing to save.
+        assert!(!eps[1].item.on_disk);
+        assert!(eps[1].files.is_empty());
+        assert_eq!(eps[1].save.saveable, 0);
+        // E3: saved, and the file says so (it plays while the NAS is away).
+        assert_eq!(eps[2].save.state, "done");
+        assert!(eps[2].item.saved);
+        assert!(eps[2].files[0].saved);
+        assert!(!e1.files[0].saved);
+        // E4: not analysed yet.
+        assert_eq!(eps[3].files[0].probe_json, "");
+        // The detail page reads the same files.
+        let d = detail(&c, 61).unwrap().unwrap();
+        assert_eq!(d.files, e1.files);
+    }
+
+    #[test]
+    fn episode_pages_cover_a_long_season() {
+        let c = db();
+        example_show(&c);
+        let mut sql = String::new();
+        for n in 7..=200 {
+            sql.push_str(&format!(
+                "INSERT INTO item(id, kind, title, parent_id, season_no, episode_no) VALUES ({}, 'episode', 'E{n}', 51, 1, {n});
+                 INSERT INTO file(source_id, path, size, item_id) VALUES (2, 'Example Show/S01E{n:03}.mkv', 10, {});",
+                1000 + n,
+                1000 + n
+            ));
+        }
+        c.execute_batch(&sql).unwrap();
+        let mut seen = Vec::new();
+        let mut offset = 0;
+        loop {
+            let (total, page) = episodes(&c, 51, offset, 60).unwrap();
+            assert_eq!(total, 200);
+            if page.is_empty() {
+                break;
+            }
+            offset += page.len() as u32;
+            seen.extend(page.into_iter().map(|e| e.item.episode_no.unwrap()));
+        }
+        assert_eq!(seen, (1..=200).collect::<Vec<_>>());
     }
 }

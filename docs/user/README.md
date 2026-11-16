@@ -109,6 +109,10 @@ changed by later scans.
 - **Search** finds films and series by title.
 - An item's page shows its description, files and, for series, seasons and episodes.
   **Resume** continues where you stopped; **Start over** begins again.
+- On a series, every episode shows the technical summary of its file (for example
+  "1080p · H.264 · AAC 2.0 · 2 subtitles"). Press Right on an episode to reach its own
+  buttons: the **version** to play when there are several files, **Details** for the full
+  technical details under the episode, and the **Save** menu. Back returns to the episode.
 
 A film counts as watched once you have seen 92 % of it. A resume point is kept after
 30 seconds. Your choice of audio and subtitle language is remembered per series.
@@ -118,11 +122,12 @@ the video with the same name (`Film.mkv` and `Film.en.srt` or `Film.de.forced.sr
 
 ## Watch without the network: Save and Save as…
 
-- **Save** on a film or episode page (**Save season**, **Save all** on a series) keeps a copy
-  of a file from a network share on this computer. It then plays from the copy, also when the
-  server is off; resume points and watched marks stay the same. While it copies, the button
-  pauses and resumes it, **Cancel** stops it. Copying continues after the network drops or
-  the app restarts. A cover with a ⤓ mark is saved.
+- **Save** in the Save menu of a film, an episode or an episode in a series' list
+  (**Save season**, **Save all** on a series) keeps a copy of a file from a network share on
+  this computer. It then plays from the copy, also when the server is off; resume points and
+  watched marks stay the same. While it copies, the menu pauses, resumes or cancels it.
+  Copying continues after the network drops or the app restarts. A cover or episode with a ⤓
+  mark is saved. The Menu key opens the Save menu of the selected episode.
 - **Delete saved copy** removes only the copy on this computer; the file on the server stays.
   When the file on the server changes, the copy is marked outdated and offers **Save again**.
 - **Downloads** in the navigation lists copies in progress, failed and done, and the space
@@ -151,6 +156,8 @@ left: press Left on the first column of any page to reach it.
 | P or Play | Play the selected item |
 | W | Mark as watched or unwatched |
 | I | Open an episode's page |
+| Right | Move into an episode's buttons (version, Details, Save menu); Back returns |
+| Menu | Open the selected episode's Save menu |
 
 | During playback | |
 | --- | --- |

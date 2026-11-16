@@ -9,8 +9,10 @@ import "MediaInfo.js" as MediaInfo
 // Detail page for a movie, show, season or episode. A show (issue #32) has a season switcher
 // (tabs, or a list for many seasons) above the selected season's episodes, including episodes
 // only TMDB knows (dimmed). Seasons list their episodes. Re-queries when the library changes.
-// Keys on a show: left/right switch seasons, up/down move through episodes, W marks the focused
-// episode or (on the season tabs) the whole season watched or unwatched.
+// Episodes are tiles (issue #48) with their own version, technical summary, details panel and
+// Save menu; they are the page's list, loaded page by page as it scrolls, with everything above
+// them as its header. Keys on a show: left/right on the season tabs switch seasons, up/down move
+// through episodes, W marks the focused episode or (on the season tabs) the whole season watched.
 FocusScope {
     id: page
     readonly property bool isPlayer: false
@@ -24,17 +26,16 @@ FocusScope {
     // Show page: the seasons (specials last), the selected one and its episodes.
     readonly property var seasons: kind === "show" ? childItems : []
     property int seasonIndex: -1
-    property var seasonD: ({})
-    property var seasonRequest: 0
     readonly property var season: seasonIndex >= 0 && seasonIndex < seasons.length ? seasons[seasonIndex] : null
-    readonly property var episodes: kind === "show" ? (seasonD.children || []) : (kind === "season" ? childItems : [])
     readonly property bool manySeasons: seasons.length > 8
+    // The season whose episodes the tiles show (issue #48).
+    readonly property var tileSeason: kind === "show" ? (season ? season.id : 0) : kind === "season" ? itemId : 0
+    readonly property bool hasTiles: tileSeason > 0 && episodeModel.count > 0
 
     function load() { request = Core.itemDetail(itemId) }
     function selectSeason(i) {
         if (seasons.length === 0) return
         seasonIndex = Math.max(0, Math.min(i, seasons.length - 1))
-        seasonRequest = Core.itemDetail(seasons[seasonIndex].id)
     }
     // Opens on the season that holds the next episode.
     function initialSeason() {
@@ -46,7 +47,7 @@ FocusScope {
     function seasonBar() { return manySeasons ? seasonPicker : seasonTabs }
     function childView() {
         if (kind === "show" && seasons.length > 0) return seasonBar()
-        if (kind === "season" && episodeList.count > 0) return episodeList
+        if (kind === "season" && hasTiles) return flick.itemAtIndex(0)
         if (hasFiles) return detailsToggle
         return null
     }
@@ -68,6 +69,42 @@ FocusScope {
     function chooseVersion(i) {
         fileIndex = i
         selectedFileId = files[i].id
+    }
+
+    // Issue #48: the episode tiles' view state: chosen versions, the one open details panel.
+    property var chosen: ({})
+    property var expandedId: 0
+    property var expandedRequest: 0
+    property var expandedDetail: null
+    property var tileRequests: []
+    function chooseTileVersion(epId, fileId) {
+        const c = Object.assign({}, chosen)
+        c[epId] = fileId
+        chosen = c
+    }
+    function toggleTileDetails(epId) {
+        if (expandedId === epId) { expandedId = 0; expandedDetail = null; return }
+        expandedId = epId
+        expandedDetail = null
+        expandedRequest = Core.itemDetail(epId)
+    }
+    function fullFileOf(epId, fileId) {
+        if (expandedId !== epId || !expandedDetail) return null
+        return expandedDetail.files.find(f => f.id === fileId) || null
+    }
+    // A tile, by its index in the list, gets focus (and is scrolled into view).
+    function focusTile(i) {
+        if (i < 0 || i >= episodeModel.count) return
+        flick.currentIndex = i
+        const t = flick.currentItem
+        if (!t) return
+        t.forceActiveFocus()
+        reveal(t)
+    }
+    // Above the first tile: the season switcher (show) or the save row (season page).
+    function aboveTiles() {
+        if (kind === "show") return seasonBar()
+        return canSave ? saveButton : canExport ? exportButton : playButton
     }
     readonly property var files: d.files || []
     readonly property bool hasFiles: (kind === "movie" || kind === "episode") && files.length > 0
@@ -96,7 +133,12 @@ FocusScope {
         return kind === "season" || kind === "show" ? qsTr("Delete saved copies") : qsTr("Delete saved copy")
     }
     function saveAction() {
-        if (sv.state === "done") { deleteSavedConfirm.open(); return }
+        if (sv.state === "done") {
+            returnFocus = saveButton
+            confirmTarget = { itemId: itemId, busy: false, many: true }
+            deleteSavedConfirm.open()
+            return
+        }
         if (sv.state === "paused" || sv.state === "failed") Core.resumeSavedItem(itemId)
         else if (saveBusy) Core.pauseSavedItem(itemId)
         else saveRequest = Core.saveItem(itemId, hasFiles && file ? file.id : 0)
@@ -120,11 +162,43 @@ FocusScope {
     property var exportRequest: 0
     property string exportDest: ""
     property var conflicts: []
+    // What Save as… copies (this page's item, or an episode tile's) and where focus returns.
+    property var exportTarget: ({ itemId: 0, fileId: 0 })
+    property Item returnFocus: null
     function exportTo(dest, overwrite) {
         exportDest = dest
-        exportRequest = Core.exportItem(itemId, hasFiles && file ? file.id : 0, dest, overwrite)
+        exportRequest = Core.exportItem(exportTarget.itemId, exportTarget.fileId, dest, overwrite)
     }
-    function belowActions() { return canSave ? saveButton : canExport ? exportButton : childView() }
+    function refocus() { (returnFocus || playButton).forceActiveFocus() }
+    // Issue #48: one Save menu action (SaveMenu.triggered) for a movie or episode, from this
+    // page's menu or an episode tile's. `sv` is that item's save state, `from` gets focus back.
+    function saveFor(id, fileId, path, action, info, from) {
+        returnFocus = from
+        const req = (r) => { if (id !== itemId) tileRequests = tileRequests.concat([r]); else saveRequest = r }
+        switch (action) {
+        case "save": case "saveAgain": req(Core.saveItem(id, fileId)); break
+        case "pause": Core.pauseSavedItem(id); break
+        case "resume": case "retry": Core.resumeSavedItem(id); break
+        case "cancel": case "delete":
+            confirmTarget = { itemId: id, busy: info.state === "queued" || info.state === "running" || info.state === "paused", many: false }
+            deleteSavedConfirm.open()
+            return
+        case "export":
+            exportTarget = { itemId: id, fileId: fileId }
+            const name = path.substring(path.lastIndexOf("/") + 1)
+            exportFileDialog.selectedFile = exportFileDialog.currentFolder + "/" + encodeURIComponent(name)
+            exportFileDialog.open()
+            return
+        }
+        if (id === itemId) saveTimer.restart()
+        else episodeModel.refresh()
+    }
+    // The item a delete or cancel asks about.
+    property var confirmTarget: ({ itemId: 0, busy: false, many: false })
+    function belowActions() {
+        if (hasFiles) return pageSave.visible ? pageSave : childView()
+        return canSave ? saveButton : canExport ? exportButton : childView()
+    }
     Timer {
         id: saveTimer
         interval: 1000
@@ -135,10 +209,14 @@ FocusScope {
     // Keep the focused episode row inside the visible part of the page.
     function reveal(item) {
         const p = item.mapToItem(flick.contentItem, 0, 0)
-        if (p.y < flick.contentY + 40) flick.contentY = Math.max(0, p.y - 40)
+        const top = flick.originY, bottom = Math.max(flick.originY, flick.originY + flick.contentHeight - flick.height)
+        if (p.y < flick.contentY + 40) flick.contentY = Math.max(top, p.y - 40)
         else if (p.y + item.height > flick.contentY + flick.height - 40)
-            flick.contentY = Math.min(p.y + item.height - flick.height + 40, Math.max(0, flick.contentHeight - flick.height))
+            flick.contentY = Math.min(p.y + item.height - flick.height + 40, bottom)
+        stickTop = flick.contentY <= top + 1
     }
+    // The view shows the top of the page (until it is scrolled or focus moves down).
+    property bool stickTop: true
     function play() {
         if (hasFiles && file) Playback.openItemFile(itemId, file.id)
         else Playback.openItem(d.nextUp ? d.nextUp.id : itemId)
@@ -164,17 +242,52 @@ FocusScope {
     }
 
     Component.onCompleted: load()
-    onActiveFocusChanged: if (activeFocus && loaded && !content.activeFocus) playButton.forceActiveFocus()
+    onActiveFocusChanged: if (activeFocus && loaded && !flick.activeFocus) playButton.forceActiveFocus()
+
+    EpisodeModel {
+        id: episodeModel
+        season: page.tileSeason
+        onTotalChanged: if (Bench.mode === "episodes" && total > 0 && !benchSave.running && !benchScroll.running) benchSave.start()
+    }
+
+    // --benchmark episodes (issue #48): save the first ten episodes that can be saved, then
+    // scroll the tiles on their own while they copy, and record frame times.
+    Timer {
+        id: benchSave
+        interval: 1500
+        onTriggered: {
+            let n = 0
+            for (let i = 0; i < episodeModel.count && n < 10; ++i) {
+                const ep = episodeModel.get(i)
+                const f = (ep.files || []).find(x => x.sourceKind !== "local" && x.online)
+                if (!f || ep.save.state !== "none") continue
+                Core.saveItem(ep.id, f.id)
+                n++
+            }
+            benchStart.start()
+        }
+    }
+    Timer { id: benchStart; interval: 1000; onTriggered: { Bench.beginFrames(); benchScroll.start() } }
+    FrameAnimation {
+        id: benchScroll
+        property real travelled: 0
+        onTriggered: {
+            const step = Math.min(frameTime, 0.05) * 2500
+            const max = flick.originY + flick.contentHeight - flick.height
+            flick.contentY = Math.min(flick.contentY + step, max)
+            travelled += step
+            if (elapsedTime > 20 || (flick.contentY >= max && episodeModel.count >= episodeModel.total)) {
+                stop()
+                Bench.endFrames(episodeModel.count, travelled)
+            }
+        }
+    }
 
     Connections {
         target: Core
         function onDetailReady(requestId, detail) {
-            // A reload of the same list keeps the focused episode (marking one watched reloads it).
-            const keep = episodeList.currentIndex
-            if (requestId === page.seasonRequest) {
-                const same = page.seasonD.id === detail.id
-                page.seasonD = detail
-                if (same) episodeList.currentIndex = Math.min(keep, episodeList.count - 1)
+            if (requestId === page.expandedRequest) {
+                if (detail.id === page.expandedId) page.expandedDetail = detail
                 return
             }
             if (requestId === page.splitRequest) {
@@ -189,7 +302,6 @@ FocusScope {
             page.liveSave = null
             page.d = detail
             if (page.hasFiles) page.pickVersion()
-            if (page.kind === "season" && !first) episodeList.currentIndex = Math.min(keep, episodeList.count - 1)
             if (page.kind === "show")
                 page.selectSeason(first || page.seasonIndex < 0 ? page.initialSeason() : page.seasonIndex)
             if (first) playButton.forceActiveFocus()
@@ -202,6 +314,10 @@ FocusScope {
         }
         function onDownloadsListed(requestId, items, used, dir) {
             if (requestId === page.saveRequest) page.saveRequest = Core.saveState(page.itemId)
+            if (page.tileRequests.indexOf(requestId) >= 0) {
+                page.tileRequests = page.tileRequests.filter(r => r !== requestId)
+                episodeModel.refresh()
+            }
             if (requestId === page.exportRequest) {
                 page.exportRequest = 0;
                 (page.Window.window as Main).showError((Core.isPortalPath(page.exportDest)
@@ -215,9 +331,14 @@ FocusScope {
             overwriteConfirm.open()
         }
         function onRequestFailed(requestId, kind, message) {
-            if (requestId === page.saveRequest || requestId === page.exportRequest) (page.Window.window as Main).showError(message)
+            if (requestId === page.saveRequest || requestId === page.exportRequest || page.tileRequests.indexOf(requestId) >= 0)
+                (page.Window.window as Main).showError(message)
         }
-        function onItemChanged(id) { if (id === page.itemId || page.kind === "show" || page.kind === "season") page.load() }
+        function onItemChanged(id) {
+            if (id === page.itemId || page.kind === "show" || page.kind === "season") page.load()
+            // The open details panel follows its episode (a finished analysis, a new version).
+            if (id === page.expandedId) page.expandedRequest = Core.itemDetail(id)
+        }
         function onLibraryChanged() { page.load() }
     }
 
@@ -238,20 +359,74 @@ FocusScope {
         }
     }
 
-    Flickable {
+    // The page scrolls as one list: the episode tiles, with everything above them as the header
+    // (`content`, placed into the list's content over a header of its height). Only tiles near the
+    // visible part exist, and pages of episodes load as the list scrolls.
+    ListView {
         id: flick
+        objectName: "tileList"
         anchors.fill: parent
-        contentHeight: content.implicitHeight + 80
         clip: true
+        focus: true
+        keyNavigationEnabled: false
+        spacing: 8
+        cacheBuffer: 800
+        model: page.tileSeason > 0 ? episodeModel : null
         ScrollBar.vertical: ScrollBar {}
-
+        // The header grows while the page loads; at the top of the page, the view stays there.
+        header: Item {
+            width: flick.width
+            height: content.implicitHeight + 48 + 22
+            onHeightChanged: if (page.stickTop) Qt.callLater(() => flick.positionViewAtBeginning())
+        }
+        onMovementStarted: page.stickTop = false
+        footer: Item { width: flick.width; height: 80 }
+        // Scrolled with the mouse: the focused tile stays the current one, so it is never released.
+        Accessible.role: Accessible.List
+        Accessible.name: qsTr("Episodes")
+        delegate: FocusScope {
+            id: cell
+            required property var model
+            required property int index
+            width: flick.width
+            height: tile.implicitHeight
+            EpisodeTile {
+                id: tile
+                x: 48
+                width: parent.width - 96
+                height: parent.height
+                focus: true
+                ep: cell.model
+                chosenFileId: page.chosen[cell.model.id] || 0
+                preference: Appearance.preferredVersion
+                expanded: page.expandedId === cell.model.id
+                fullFile: expanded && file ? page.fullFileOf(cell.model.id, file.id) : null
+                onActiveFocusChanged: if (activeFocus) { flick.currentIndex = cell.index; page.reveal(cell) }
+                onHeightChanged: if (activeFocus) Qt.callLater(() => page.reveal(cell))
+                onPlay: (fileId) => { if (fileId) Playback.openItemFile(cell.model.id, fileId); else Playback.openItem(cell.model.id) }
+                onInfo: Nav.openItem(cell.model.id)
+                onToggleWatched: Core.setWatched(cell.model.id, !cell.model.watched)
+                onChooseVersion: (fileId) => page.chooseTileVersion(cell.model.id, fileId)
+                onToggleDetails: page.toggleTileDetails(cell.model.id)
+                onAnalyse: (fileId) => Core.probeNow(fileId)
+                onSaveAction: (action, fileId) => page.saveFor(cell.model.id, fileId, file ? file.path : "", action, sv, cell.Window.activeFocusItem || tile)
+                onMoveUp: cell.index > 0 ? page.focusTile(cell.index - 1) : page.aboveTiles().forceActiveFocus()
+                onMoveDown: page.focusTile(cell.index + 1)
+                onLeave: Nav.focusRail()
+            }
+        }
+    }
         FocusScope {
             id: content
+            parent: flick.contentItem
             x: 48
-            y: 48
+            y: (flick.headerItem ? flick.headerItem.y : 0) + 48
             width: flick.width - 96
             implicitHeight: col.implicitHeight
             focus: true
+            Keys.onPressed: (e) => {
+                if (e.key === Qt.Key_Menu && page.hasFiles && pageSave.visible) { pageSave.openMenu(content.Window.activeFocusItem); e.accepted = true }
+            }
 
             ColumnLayout {
                 id: col
@@ -315,34 +490,11 @@ FocusScope {
                             font.pixelSize: Theme.fontBody
                         }
                         // "4K · HDR10 · HEVC 10-bit · TrueHD Atmos 7.1 · 3 subtitles" and badges.
-                        RowLayout {
-                            visible: page.hasFiles && page.info !== null && !page.info.error
-                            spacing: 8
-                            Repeater {
-                                model: page.info ? MediaInfo.badges(page.info) : []
-                                Rectangle {
-                                    required property string modelData
-                                    implicitWidth: badgeText.implicitWidth + 12
-                                    implicitHeight: 22
-                                    radius: 4
-                                    color: "transparent"
-                                    border.width: 1
-                                    border.color: Theme.textDim
-                                    Label {
-                                        id: badgeText
-                                        anchors.centerIn: parent
-                                        text: parent.modelData
-                                        color: Theme.text
-                                        font.pixelSize: 12
-                                        font.bold: true
-                                    }
-                                }
-                            }
-                            Label {
-                                text: page.info ? MediaInfo.summary(page.info) : ""
-                                color: Theme.textDim
-                                font.pixelSize: Theme.fontSmall
-                            }
+                        TechSummary {
+                            Layout.fillWidth: true
+                            visible: page.hasFiles && usable
+                            showPending: false
+                            info: page.info
                         }
                         Label {
                             visible: (page.kind === "movie" || page.kind === "show") && (page.d.matchState === "needs_review" || page.d.matchState === "unmatched")
@@ -377,16 +529,14 @@ FocusScope {
                             Layout.topMargin: 10
                             spacing: 12
                             Label { text: qsTr("Version"); color: Theme.textDim; font.pixelSize: Theme.fontSmall }
-                            FocusButton {
+                            VersionPicker {
                                 id: versionButton
-                                text: (page.file ? MediaInfo.versionLabel(page.file) : "") + "  ▾"
-                                tip: qsTr("Choose a version")
-                                font.pixelSize: Theme.fontSmall
-                                Accessible.name: qsTr("Version: %1").arg(page.file ? MediaInfo.versionLabel(page.file) : "")
+                                files: page.files
+                                index: page.fileIndex
                                 KeyNavigation.down: playButton
                                 KeyNavigation.right: splitButton.visible ? splitButton : null
                                 Keys.onLeftPressed: Nav.focusRail()
-                                onClicked: versionMenu.open()
+                                onChosen: (i) => page.chooseVersion(i)
                             }
                             FocusButton {
                                 id: splitButton
@@ -400,7 +550,8 @@ FocusScope {
                         }
                         Label {
                             visible: page.hasFiles && page.file !== null && !page.file.online
-                            text: qsTr("This version's source cannot be reached right now.")
+                            text: page.file && page.file.saved ? qsTr("This version's source cannot be reached right now; the saved copy plays.")
+                                                               : qsTr("This version's source cannot be reached right now.")
                             color: Theme.danger
                             font.pixelSize: Theme.fontSmall
                         }
@@ -420,7 +571,7 @@ FocusScope {
                                 focus: true
                                 glyph: "▶"
                                 text: page.loaded ? page.playLabel() : qsTr("Play")
-                                enabled: !(page.hasFiles && page.file !== null && !page.file.online)
+                                enabled: !(page.hasFiles && page.file !== null && !MediaInfo.playable(page.file))
                                 KeyNavigation.up: page.manyVersions ? versionButton : null
                                 KeyNavigation.right: watchedButton
                                 KeyNavigation.down: page.belowActions()
@@ -445,13 +596,36 @@ FocusScope {
                             }
                         }
 
-                        // Issue #4: Save (an offline copy), its progress, and deleting it.
+                        // Issues #4, #5 and #48: a movie's or episode's Save menu (Save, Save as…, Delete
+                        // saved copy), with its state and progress beside it.
                         RowLayout {
-                            visible: page.canSave || page.canExport
+                            visible: page.hasFiles
+                            spacing: 12
+                            SaveMenu {
+                                id: pageSave
+                                sv: page.sv
+                                networkFile: page.file !== null && page.file.sourceKind !== "local"
+                                KeyNavigation.up: playButton
+                                KeyNavigation.down: page.childView()
+                                Keys.onLeftPressed: Nav.focusRail()
+                                onActiveFocusChanged: if (activeFocus) page.reveal(this)
+                                onTriggered: (action) => page.saveFor(page.itemId, page.file ? page.file.id : 0, page.file ? page.file.path : "", action, page.sv, pageSave)
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                text: page.saveStatus()
+                                color: page.sv.state === "failed" || page.sv.state === "outdated" ? Theme.danger : Theme.textDim
+                                font.pixelSize: Theme.fontSmall
+                                wrapMode: Text.Wrap
+                            }
+                        }
+                        // Seasons and shows (issue #4): Save season or Save all, its progress, and deleting.
+                        RowLayout {
+                            visible: !page.hasFiles && (page.canSave || page.canExport)
                             spacing: 12
                             FocusButton {
                                 id: saveButton
-                                visible: page.canSave
+                                visible: page.canSave && !page.hasFiles
                                 // One button that changes its role, so focus never falls off the row.
                                 glyph: page.saveBusy ? "❚❚" : page.sv.state === "done" ? "" : "⤓"
                                 text: page.saveLabel()
@@ -465,18 +639,22 @@ FocusScope {
                             }
                             FocusButton {
                                 id: deleteSavedButton
-                                visible: page.hasCopy && page.sv.state !== "done"
+                                visible: !page.hasFiles && page.hasCopy && page.sv.state !== "done"
                                 text: page.saveBusy || page.sv.state === "paused" ? qsTr("Cancel") : page.deleteLabel()
                                 KeyNavigation.up: playButton
                                 KeyNavigation.left: saveButton
                                 KeyNavigation.right: exportButton
                                 KeyNavigation.down: page.childView()
                                 onActiveFocusChanged: if (activeFocus) page.reveal(this)
-                                onClicked: deleteSavedConfirm.open()
+                                onClicked: {
+                                    page.returnFocus = deleteSavedButton
+                                    page.confirmTarget = { itemId: page.itemId, busy: page.saveBusy || page.sv.state === "paused", many: true }
+                                    deleteSavedConfirm.open()
+                                }
                             }
                             FocusButton {
                                 id: exportButton
-                                visible: page.canExport
+                                visible: page.canExport && !page.hasFiles
                                 text: qsTr("Save as…")
                                 Accessible.description: page.hasFiles ? qsTr("Copy the file to a place you choose")
                                                                       : qsTr("Copy every episode into a folder you choose")
@@ -490,13 +668,9 @@ FocusScope {
                                 }
                                 onActiveFocusChanged: if (activeFocus) page.reveal(this)
                                 onClicked: {
-                                    if (page.hasFiles) {
-                                        const name = page.file.path.substring(page.file.path.lastIndexOf("/") + 1)
-                                        exportFileDialog.selectedFile = exportFileDialog.currentFolder + "/" + encodeURIComponent(name)
-                                        exportFileDialog.open()
-                                    } else {
-                                        exportFolderDialog.open()
-                                    }
+                                    page.returnFocus = exportButton
+                                    page.exportTarget = { itemId: page.itemId, fileId: 0 }
+                                    exportFolderDialog.open()
                                 }
                             }
                             Label {
@@ -508,7 +682,7 @@ FocusScope {
                             }
                         }
                         Rectangle {
-                            visible: page.canSave && (page.saveBusy || page.sv.state === "paused")
+                            visible: (page.canSave || page.hasFiles) && (page.saveBusy || page.sv.state === "paused")
                             Layout.preferredWidth: 360
                             Layout.preferredHeight: 4
                             radius: 2
@@ -532,7 +706,7 @@ FocusScope {
                         id: detailsToggle
                         glyph: page.detailsOpen ? "▾" : "▸"
                         text: qsTr("Technical details")
-                        Keys.onUpPressed: (page.canSave ? saveButton : page.canExport ? exportButton : playButton).forceActiveFocus()
+                        Keys.onUpPressed: (pageSave.visible ? pageSave : playButton).forceActiveFocus()
                         Keys.onLeftPressed: Nav.focusRail()
                         KeyNavigation.right: analyseButton.visible ? analyseButton : null
                         onActiveFocusChanged: if (activeFocus) page.reveal(this)
@@ -556,36 +730,12 @@ FocusScope {
                         onClicked: Core.probeNow(page.file.id)
                     }
                 }
-                GridLayout {
+                TechDetails {
                     id: detailsPanel
                     visible: page.hasFiles && page.detailsOpen && page.info !== null && !page.info.error
                     Layout.fillWidth: true
                     Layout.maximumWidth: 1100
-                    columns: Math.max(1, Math.min(3, Math.floor(width / 340)))
-                    columnSpacing: 32
-                    rowSpacing: 18
-                    Repeater {
-                        model: page.info && !page.info.error ? MediaInfo.groups(page.file, page.info) : []
-                        ColumnLayout {
-                            id: group
-                            required property var modelData
-                            Layout.alignment: Qt.AlignTop
-                            Layout.fillWidth: true
-                            spacing: 4
-                            Label { text: group.modelData.title; color: Theme.accent; font.pixelSize: Theme.fontBody; font.bold: true }
-                            Repeater {
-                                model: group.modelData.rows
-                                RowLayout {
-                                    id: line
-                                    required property var modelData
-                                    spacing: 10
-                                    Layout.fillWidth: true
-                                    Label { text: line.modelData[0]; color: Theme.textDim; font.pixelSize: Theme.fontSmall; Layout.preferredWidth: 130 }
-                                    Label { text: line.modelData[1]; color: Theme.text; font.pixelSize: Theme.fontSmall; Layout.fillWidth: true; wrapMode: Text.WrapAnywhere }
-                                }
-                            }
-                        }
-                    }
+                    file: page.file
                 }
 
                 Label {
@@ -621,7 +771,7 @@ FocusScope {
                         }
                         Keys.onPressed: (e) => { if (e.key === Qt.Key_W) { seasonWatched.toggle(); e.accepted = true } }
                         Keys.onUpPressed: playButton.forceActiveFocus()
-                        Keys.onDownPressed: if (episodeList.count > 0) episodeList.forceActiveFocus()
+                        Keys.onDownPressed: if (page.hasTiles) page.focusTile(0)
                         onActiveFocusChanged: if (activeFocus) page.reveal(this)
                         delegate: FocusButton {
                             id: tab
@@ -650,7 +800,7 @@ FocusScope {
                         }
                         Keys.onPressed: (e) => { if (e.key === Qt.Key_W) { seasonWatched.toggle(); e.accepted = true } }
                         Keys.onUpPressed: playButton.forceActiveFocus()
-                        Keys.onDownPressed: if (episodeList.count > 0) episodeList.forceActiveFocus()
+                        Keys.onDownPressed: if (page.hasTiles) page.focusTile(0)
                         onActiveFocusChanged: if (activeFocus) page.reveal(this)
                         onClicked: seasonMenu.open()
                     }
@@ -662,50 +812,15 @@ FocusScope {
                         text: done ? qsTr("Mark season unwatched") : qsTr("Mark season watched")
                         Keys.onLeftPressed: page.seasonBar().forceActiveFocus()
                         Keys.onUpPressed: playButton.forceActiveFocus()
-                        Keys.onDownPressed: if (episodeList.count > 0) episodeList.forceActiveFocus()
+                        Keys.onDownPressed: if (page.hasTiles) page.focusTile(0)
                         // W on the season tabs does the same.
                         function toggle() { if (visible) Core.setWatched(page.season.id, !done) }
                         onClicked: toggle()
                     }
                 }
 
-                // The episodes of the selected season (show) or of this season (season page).
-                ListView {
-                    id: episodeList
-                    visible: (page.kind === "season" || page.kind === "show") && count > 0
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: contentHeight
-                    interactive: false
-                    spacing: 8
-                    model: page.episodes
-                    keyNavigationEnabled: true
-                    Keys.onUpPressed: (e) => {
-                        if (currentIndex > 0) { e.accepted = false; return }
-                        if (page.kind === "show") page.seasonBar().forceActiveFocus()
-                        else playButton.forceActiveFocus()
-                    }
-                    Keys.onLeftPressed: {
-                        if (page.kind === "show" && page.seasonIndex > 0) { page.selectSeason(page.seasonIndex - 1); currentIndex = 0 }
-                        else Nav.focusRail()
-                    }
-                    Keys.onRightPressed: {
-                        if (page.kind === "show" && page.seasonIndex < page.seasons.length - 1) { page.selectSeason(page.seasonIndex + 1); currentIndex = 0 }
-                    }
-                    onCurrentIndexChanged: if (activeFocus && currentItem) page.reveal(currentItem)
-                    onActiveFocusChanged: if (activeFocus && currentItem) page.reveal(currentItem)
-                    delegate: EpisodeRow {
-                        required property var modelData
-                        width: episodeList.width
-                        ep: modelData
-                        focus: ListView.isCurrentItem
-                        onPlay: Playback.openItem(modelData.id)
-                        onInfo: Nav.openItem(modelData.id)
-                        onToggleWatched: Core.setWatched(modelData.id, !modelData.watched)
-                    }
-                }
             }
         }
-    }
 
     // Many seasons: the list behind the season button.
     Popup {
@@ -744,57 +859,6 @@ FocusScope {
                     border.color: Theme.focus
                 }
                 onClicked: { page.selectSeason(index); seasonMenu.close() }
-                Keys.onReturnPressed: clicked()
-                Keys.onEnterPressed: clicked()
-            }
-        }
-    }
-
-    // Issue #34: the versions, offline ones listed but not selectable.
-    Popup {
-        id: versionMenu
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: Math.min(720, parent.width - 80)
-        height: Math.min(480, versionList.contentHeight + 24)
-        modal: true
-        padding: 12
-        background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
-        // After opening, so the list has its rows: start on the selected version.
-        onOpened: Qt.callLater(() => { versionList.currentIndex = page.fileIndex; versionList.forceActiveFocus() })
-        onClosed: versionButton.forceActiveFocus()
-        ListView {
-            id: versionList
-            anchors.fill: parent
-            clip: true
-            spacing: 4
-            model: page.files
-            keyNavigationEnabled: true
-            Accessible.role: Accessible.List
-            Accessible.name: qsTr("Versions")
-            delegate: ItemDelegate {
-                id: versionRow
-                required property var modelData
-                required property int index
-                width: versionList.width
-                focus: ListView.isCurrentItem
-                enabled: modelData.online
-                highlighted: index === page.fileIndex
-                text: MediaInfo.versionLabel(modelData) + (modelData.online ? "" : "  ·  " + qsTr("offline"))
-                Accessible.name: text
-                contentItem: Label {
-                    text: versionRow.text
-                    color: versionRow.enabled ? Theme.text : Theme.textDim
-                    font.bold: versionRow.highlighted
-                    elide: Text.ElideRight
-                }
-                background: Rectangle {
-                    color: versionRow.activeFocus ? Theme.surfaceHi : "transparent"
-                    radius: 6
-                    border.width: versionRow.activeFocus ? Theme.focusWidth : 0
-                    border.color: Theme.focus
-                }
-                onClicked: { page.chooseVersion(index); versionMenu.close() }
                 Keys.onReturnPressed: clicked()
                 Keys.onEnterPressed: clicked()
             }
@@ -853,7 +917,7 @@ FocusScope {
         padding: 24
         background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
         onOpened: deleteKeep.forceActiveFocus()
-        onClosed: saveButton.forceActiveFocus()
+        onClosed: page.refocus()
         ColumnLayout {
             anchors.fill: parent
             spacing: 16
@@ -861,7 +925,7 @@ FocusScope {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
                 color: Theme.text
-                text: page.saveBusy || page.sv.state === "paused"
+                text: page.confirmTarget.busy
                       ? qsTr("Stop saving and remove what was copied so far? The file on the server stays.")
                       : qsTr("Delete the saved copy from this computer? Only the local copy is removed; the file on the server stays and can be streamed or saved again.")
             }
@@ -876,10 +940,13 @@ FocusScope {
                 FocusButton {
                     id: deleteOk
                     primary: true
-                    text: page.saveBusy || page.sv.state === "paused" ? qsTr("Stop and remove") : qsTr("Delete saved copy")
+                    text: page.confirmTarget.busy ? qsTr("Stop and remove") : page.confirmTarget.many ? qsTr("Delete saved copies") : qsTr("Delete saved copy")
                     KeyNavigation.left: deleteKeep
                     onClicked: {
-                        page.saveRequest = Core.deleteSavedItem(page.itemId)
+                        const id = page.confirmTarget.itemId
+                        const r = Core.deleteSavedItem(id)
+                        if (id === page.itemId) page.saveRequest = r
+                        else page.tileRequests = page.tileRequests.concat([r])
                         deleteSavedConfirm.close()
                     }
                 }
@@ -895,15 +962,15 @@ FocusScope {
         fileMode: FileDialog.SaveFile
         currentFolder: Core.exportFolder()
         // Focus goes back to the page either way, or keyboard and remote stop working.
-        onAccepted: { exportButton.forceActiveFocus(); page.exportTo(Core.localPath(selectedFile), true) }
-        onRejected: exportButton.forceActiveFocus()
+        onAccepted: { page.refocus(); page.exportTo(Core.localPath(selectedFile), true) }
+        onRejected: page.refocus()
     }
     FolderDialog {
         id: exportFolderDialog
         title: qsTr("Copy every episode into")
         currentFolder: Core.exportFolder()
-        onAccepted: { exportButton.forceActiveFocus(); page.exportTo(Core.localPath(selectedFolder), false) }
-        onRejected: exportButton.forceActiveFocus()
+        onAccepted: { page.refocus(); page.exportTo(Core.localPath(selectedFolder), false) }
+        onRejected: page.refocus()
     }
     Popup {
         id: overwriteConfirm
@@ -914,7 +981,7 @@ FocusScope {
         padding: 24
         background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
         onOpened: overwriteKeep.forceActiveFocus()
-        onClosed: exportButton.forceActiveFocus()
+        onClosed: page.refocus()
         ColumnLayout {
             anchors.fill: parent
             spacing: 16

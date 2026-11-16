@@ -5,6 +5,7 @@ qt_add_executable(coyotl WIN32 MACOSX_BUNDLE
   src/mpvvideoitem.h src/mpvvideoitem.cpp
   src/playbackcontroller.h src/playbackcontroller.cpp
   src/models.h src/models.cpp
+  src/episodemodel.h src/episodemodel.cpp
   src/desktopintegration.h src/desktopintegration.cpp
   src/benchmark.h src/benchmark.cpp)
 
@@ -25,7 +26,11 @@ qt_add_qml_module(coyotl
     qml/Toast.qml
     qml/AppLogo.qml
     qml/Appearance.qml
-    qml/EpisodeRow.qml
+    qml/EpisodeTile.qml
+    qml/VersionPicker.qml
+    qml/TechSummary.qml
+    qml/TechDetails.qml
+    qml/SaveMenu.qml
     qml/MediaInfo.js
     qml/Nav.qml
     qml/NavRail.qml

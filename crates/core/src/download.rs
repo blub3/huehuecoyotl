@@ -559,6 +559,7 @@ fn progress_event(row: &Copy) -> Event {
         id: row.id,
         main_id: row.main_id.unwrap_or(row.id),
         item_id: row.item_id.unwrap_or(0),
+        kind: row.kind.clone(),
         state: row.state.clone(),
         bytes_done: row.bytes_done,
         size: row.size,
@@ -710,6 +711,7 @@ pub(crate) async fn delete_copy(inner: &Arc<Inner>, id: i64) -> CResult<()> {
         id,
         main_id: id,
         item_id: main.item_id.unwrap_or(0),
+        kind: main.kind.clone(),
         state: "removed".into(),
         bytes_done: 0,
         size: 0,
@@ -1203,11 +1205,12 @@ async fn transfer(inner: &Arc<Inner>, row: &Copy, ctl: &Ctl) -> Result<(), Fetch
         free,
     };
     let (mut last_ev, mut last_db) = (Instant::now() - EVENT_EVERY, Instant::now());
-    let (id, main_id, item_id, total) = (
+    let (id, main_id, item_id, total, kind) = (
         row.id,
         row.main_id.unwrap_or(row.id),
         row.item_id.unwrap_or(0),
         entry.size,
+        row.kind.clone(),
     );
     let sink = inner.clone();
     let mut on_progress = move |done: u64| {
@@ -1217,6 +1220,7 @@ async fn transfer(inner: &Arc<Inner>, row: &Copy, ctl: &Ctl) -> Result<(), Fetch
                 id,
                 main_id,
                 item_id,
+                kind: kind.clone(),
                 state: "running".into(),
                 bytes_done: done,
                 size: total,

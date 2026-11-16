@@ -19,6 +19,7 @@ FocusScope {
         { key: "year", label: qsTr("Year") }
     ]
 
+    property bool benchOpened: false
     LibraryModel {
         id: lib
         kind: page.kind
@@ -26,6 +27,11 @@ FocusScope {
         onTotalChanged: {
             if (grid.currentIndex < 0 && grid.count > 0) grid.currentIndex = 0
             if (Bench.mode === "scroll" && total > 0 && !benchScroll.running) benchStart.start()
+            // --benchmark episodes: open the first show.
+            if (Bench.mode === "episodes" && total > 0 && page.kind === "show" && grid.count > 0 && !page.benchOpened) {
+                page.benchOpened = true
+                Qt.callLater(() => Nav.openItem(lib.get(0).id))
+            }
         }
     }
 
