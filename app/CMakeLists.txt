@@ -39,6 +39,7 @@ qt_add_qml_module(coyotl
     qml/NowPlayingPage.qml
     qml/MiniPlayer.qml
     qml/ActionMenu.qml
+    qml/MusicKeyRow.qml
     qml/MediaInfo.js
     qml/Nav.qml
     qml/NavRail.qml

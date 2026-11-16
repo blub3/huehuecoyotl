@@ -13,6 +13,22 @@ pub const GRID_LARGE_WIDTH: u32 = 540;
 
 /// Decode any supported image and re-encode it as a JPEG no wider than `max_width`.
 /// CPU-bound: call from `spawn_blocking`.
+/// Issue #12: an image kept as it is (logos, disc art): its file extension and size, or why it
+/// cannot be read.
+pub fn inspect(data: &[u8]) -> Result<(&'static str, u32, u32), String> {
+    let reader = ImageReader::new(Cursor::new(data))
+        .with_guessed_format()
+        .map_err(|e| e.to_string())?;
+    let ext = match reader.format() {
+        Some(image::ImageFormat::Png) => "png",
+        Some(image::ImageFormat::WebP) => "webp",
+        Some(image::ImageFormat::Jpeg) => "jpg",
+        _ => return Err("not a PNG, JPEG or WebP image".into()),
+    };
+    let (w, h) = reader.into_dimensions().map_err(|e| e.to_string())?;
+    Ok((ext, w, h))
+}
+
 pub fn scale_to_jpeg(data: &[u8], max_width: u32) -> Result<(Vec<u8>, u32, u32), String> {
     let img = ImageReader::new(Cursor::new(data))
         .with_guessed_format()

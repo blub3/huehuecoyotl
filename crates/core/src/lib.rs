@@ -7,6 +7,7 @@
 
 pub mod diagnostics;
 mod download;
+mod extras;
 pub mod lang;
 mod library;
 mod music;
@@ -270,6 +271,12 @@ pub enum Event {
     MusicTickets {
         json: String,
     },
+    /// Issue #12: which optional music providers have a key (JSON: `fanarttv`, `theaudiodb` →
+    /// none | keystore | session | rejected; `message`). Never the key.
+    MusicKeys {
+        request_id: u64,
+        json: String,
+    },
     MusicOnline {
         request_id: u64,
         online: bool,
@@ -373,6 +380,8 @@ struct Inner {
     queue_tx: Mutex<Option<tokio::sync::mpsc::UnboundedSender<(u64, playqueue::Op)>>>,
     music_ticket: AtomicU64,
     counted: Mutex<HashSet<u64>>,
+    /// Issue #12: TheAudioDB and Fanart.tv, when the user entered keys.
+    extras: RwLock<extras::Extras>,
 }
 
 impl Inner {
@@ -582,6 +591,7 @@ impl Core {
             queue_tx: Mutex::default(),
             music_ticket: AtomicU64::new(playqueue::FIRST_MUSIC_TICKET),
             counted: Mutex::default(),
+            extras: RwLock::default(),
         });
         // mpv's demuxer threads open coyotl:// URLs through this (SPEC 5.3).
         let weak = Arc::downgrade(&inner);
@@ -607,6 +617,9 @@ impl Core {
         let start = inner.clone();
         rt.spawn(async move {
             start.load_key().await;
+            start.load_music_keys().await;
+            // Artists not looked up at the optional providers yet (only with a key).
+            extras::enqueue_artists(&start, &[]).await;
             // Crash-safe queue: running jobs from a previous session run again.
             let _ = start
                 .lib

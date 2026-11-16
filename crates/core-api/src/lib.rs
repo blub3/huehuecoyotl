@@ -36,6 +36,8 @@ mod ffi {
         MusicDetail,
         /// Issue #8: the play queue changed; `message` holds its JSON (core `playqueue`).
         QueueChanged,
+        /// Issue #12: which optional music providers have a key; `message` holds the JSON.
+        MusicKeys,
         /// Issue #8: what the music player loads; `message` holds the tickets' JSON.
         MusicTickets,
         Discovered,
@@ -379,6 +381,11 @@ mod ffi {
         /// Issue #10: an album's or an artist's page (answers with MusicDetail).
         fn album_detail(self: &Core, request_id: u64, album: i64);
         fn artist_detail(self: &Core, request_id: u64, artist: i64);
+
+        /// Issue #12: TheAudioDB and Fanart.tv keys (answers with MusicKeys; never the key).
+        fn music_keys(self: &Core, request_id: u64);
+        /// `provider`: "theaudiodb" or "fanarttv"; an empty key removes it.
+        fn set_music_key(self: &Core, request_id: u64, provider: &str, key: &str);
 
         // Issue #8: the music play queue (answers with QueueChanged and MusicTickets).
         /// Play items (tracks, albums, artists) from `start_item` (0: the first, or a random
@@ -823,6 +830,10 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
             message: json,
             ..event(K::QueueChanged, request_id)
         },
+        core::Event::MusicKeys { request_id, json } => ffi::CoreEvent {
+            message: json,
+            ..event(K::MusicKeys, request_id)
+        },
         core::Event::MusicTickets { json } => ffi::CoreEvent {
             message: json,
             ..event(K::MusicTickets, 0)
@@ -1184,6 +1195,14 @@ impl Core {
     fn music_progress(&self, ticket: u64, position_ms: u64, duration_ms: u64) {
         guard("music_progress", || {
             self.0.music_progress(ticket, position_ms, duration_ms)
+        })
+    }
+    fn music_keys(&self, request_id: u64) {
+        guard("music_keys", || self.0.music_keys(request_id))
+    }
+    fn set_music_key(&self, request_id: u64, provider: &str, key: &str) {
+        guard("set_music_key", || {
+            self.0.set_music_key(request_id, provider, key)
         })
     }
     fn music_online(&self, request_id: u64) {

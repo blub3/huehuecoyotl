@@ -20,7 +20,7 @@ use crate::{Event, Inner};
 pub const SCAN_KINDS: &[&str] = &["scan", "tiers", "regroup"];
 pub const META_KINDS: &[&str] = &["match", "details", "artwork"];
 /// Issue #11: music lookups have their own worker; MusicBrainz's pace never holds up TMDB.
-pub const MUSIC_KINDS: &[&str] = &["music_match"];
+pub const MUSIC_KINDS: &[&str] = &["music_match", "music_artist"];
 
 enum Outcome {
     Done,
@@ -99,6 +99,14 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
             Ok(()) | Err(MetaError::NotFound) => Ok(()),
             Err(MetaError::RateLimited(s)) => {
                 return Outcome::Retry("MusicBrainz is busy".into(), Some(s as i64));
+            }
+            Err(e) => Err(e.to_string()),
+        },
+        // Issue #12: TheAudioDB and Fanart.tv.
+        "music_artist" => match crate::extras::lookup_artist(inner, item_of(payload)).await {
+            Ok(()) | Err(MetaError::NotFound) | Err(MetaError::Auth) => Ok(()),
+            Err(MetaError::RateLimited(s)) => {
+                return Outcome::Retry("rate limited".into(), Some(s as i64));
             }
             Err(e) => Err(e.to_string()),
         },

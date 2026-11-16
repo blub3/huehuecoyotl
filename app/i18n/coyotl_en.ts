@@ -23,7 +23,7 @@
 <context>
     <name>ArtistPage</name>
     <message numerus="yes">
-        <location filename="../qml/ArtistPage.qml" line="112"/>
+        <location filename="../qml/ArtistPage.qml" line="147"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n album</numerusform>

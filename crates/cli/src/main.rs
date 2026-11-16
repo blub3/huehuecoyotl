@@ -46,6 +46,7 @@ fn usage() -> ExitCode {
          \x20      | library add PATH [--music] | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
          \x20      | music artists | music albums | music tracks ALBUM | music album ID | music artist ID (a music folder's artists, albums, tracks)\n\
          \x20      | music online [on|off] (look music up at MusicBrainz and the Cover Art Archive)\n\
+         \x20      | music keys | music key theaudiodb|fanarttv (key from COYOTL_MUSIC_KEY; none removes it)\n\
          \x20      | queue | queue play|shuffle|next|add ID... | queue clear (the music play queue; tracks, albums or artists)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
          \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
@@ -329,6 +330,17 @@ fn main() -> ExitCode {
             core.browse_items(1, &what[..what.len() - 1], 0, "title", "", 0, 500);
             wait()
         }
+        // Issue #12: keys of TheAudioDB and Fanart.tv. The key comes from COYOTL_MUSIC_KEY, never
+        // from the command line; without it the key is removed.
+        ("music", [what]) if what == "keys" => {
+            core.music_keys(1);
+            wait()
+        }
+        ("music", [what, provider]) if what == "key" => {
+            let key = std::env::var("COYOTL_MUSIC_KEY").unwrap_or_default();
+            core.set_music_key(1, provider, &key);
+            wait()
+        }
         // Issue #8: the play queue (the CLI shows it; it does not play).
         ("queue", []) => {
             core.queue_state(1);
@@ -572,7 +584,9 @@ fn main() -> ExitCode {
             }
             page(&d.children);
         }
-        Event::QueueChanged { json, .. } | Event::MusicTickets { json } => {
+        Event::QueueChanged { json, .. }
+        | Event::MusicTickets { json }
+        | Event::MusicKeys { json, .. } => {
             let v: serde_json::Value = serde_json::from_str(&json).unwrap_or_default();
             println!("{}", serde_json::to_string_pretty(&v).unwrap_or(json));
         }

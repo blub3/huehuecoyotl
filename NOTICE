@@ -22,3 +22,9 @@ CC0 1.0 (public domain); see https://musicbrainz.org/doc/About/Data_License. Alb
 from the Cover Art Archive (https://coverartarchive.org), a joint project of the Internet
 Archive and MusicBrainz; the images belong to their rights holders and are fetched for display
 only. Both can be turned off in Settings (music information from file tags only).
+
+Optionally, with the user's own keys (none are shipped), artist images, backgrounds, logos and
+biographies, covers for albums without one, and disc art come from TheAudioDB
+(https://www.theaudiodb.com) and Fanart.tv (https://fanart.tv). Their images and texts are
+contributed by their communities, belong to their rights holders, and are fetched for display
+only; the app credits both under Settings → About while they are used.

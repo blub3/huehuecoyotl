@@ -159,6 +159,14 @@ format play without a gap between them. The queue and where you were come back a
 restart; press Play to go on. Starting a film or an episode pauses the music. The media keys
 and your desktop's media controls work too.
 
+**Artist images and biographies** (optional). Under **Settings → Metadata** you can enter
+your own key for TheAudioDB and for Fanart.tv. Each key is checked with the service before it
+is kept; a key the service does not accept is reported at once. With a key, artist pages show
+the artist's image, logo, background and biography (in your language when there is one, else
+in English), and albums without a cover get one. Without keys the music section works just the
+same, with initials instead of artist images. TheAudioDB gives keys to supporters; for
+Fanart.tv, request a key on your profile there.
+
 **ReplayGain** (Settings → Playback) evens out loudness from the tags in your files: per track,
 or per album so an album keeps its own dynamics.
 
@@ -246,7 +254,11 @@ folders called `Extras` or `Featurettes` are kept out of the library.
   release types, dates and ids, and album covers come from the Cover Art Archive. Turn this
   off under **Settings → Metadata → Music information online**; music information then comes
   from your files' tags only and nothing is sent.
-- Network share passwords and your TMDB key stay in your system's keyring.
+- Optionally, with your own keys (see *Music*), MusicBrainz ids of your artists and albums
+  are sent to TheAudioDB and Fanart.tv for artist images, biographies and album art. Without
+  a key nothing is sent to either.
+- Network share passwords, your TMDB key and your TheAudioDB and Fanart.tv keys stay in your
+  system's keyring.
 - Discovery listens for servers that announce themselves on your local network (mDNS); it
   does not scan the network.
 
