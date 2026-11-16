@@ -2,7 +2,7 @@
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
 
-**Changes in v1.11:** 2.1 (issue #63): album versions and editions, migration 9 and how a version is chosen (section 7, *Album versions and editions*; section 9).
+**Changes in v1.11:** 2.1 is released for Linux on Nov 16, 2026 (issue #63): album versions and editions, migration 9 and how a version is chosen (section 7, *Album versions and editions*; section 9).
 
 **Changes in v1.10:** 2.0 is released for Linux on Nov 16, 2026: the music issues (#7 to #12) are built, each section noting what was built and how it was checked (sections 5.7, 7, 8, 9, 10, 11).
 
@@ -63,7 +63,7 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | 1.1 (Linux, released) | SFTP sources; the logo; cover sizes per display mode; one item per show, with the repair of libraries from older versions; the show page with season switching and episodes not on disk |
 | Windows (no version yet) | The Windows build; MSIX and winget packages; code signing; Windows media keys (SMTC) |
 | 2.0 (Linux, released) | Music: a music library from tags (FLAC, ALAC, WAV, AIFF, MP3, AAC, Ogg Vorbis, Opus, WavPack), Albums and Artists, a play queue with gapless playback and a mini player, Hi-Res badges, MusicBrainz and the Cover Art Archive, optional TheAudioDB and Fanart.tv, a bit-perfect output mode (see **Music in 2.0** below) |
-| 2.1 (Linux, planned) | Music: versions and editions of an album (several formats, sources or a remaster) and of a track, chosen on the album page, with the preferred version and "This is a different album" (issue #63) |
+| 2.1 (Linux, released) | Music: versions and editions of an album (several formats, sources or a remaster) and of a track, chosen on the album page, with the preferred version and "This is a different album" (issue #63) |
 | Unscheduled | HDR passthrough on Windows through direct mode (needs a Windows PC with an HDR display for tests W1–W8) |
 | After 1.1 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
 | Non-goals | Phones, tablets and TV boxes; DRM streaming services; transcoding or acting as a media server; SMB1; cloud accounts run by the project |
@@ -590,6 +590,8 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 - **M5 Windows release** (was "Release 1.1" until v1.4). The Windows parts of the M0 to M4 gates (first run on Windows, Windows servers, Intel and AMD graphics); MSIX and winget packages; code signing; SMTC media keys; SFTP in the app. Direct mode with HDR passthrough was part of M5 until v1.3 and is now unscheduled.
 
 **M5 status (Nov 12, 2026).** Paused: GitHub Actions has no minutes left, and the Windows build needs it (or a Windows build machine). The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). The Windows release workflow is ready in PR #31 but untested. Open: that PR, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
+
+**2.1 (Nov 16, 2026): released for Linux.** Versions and editions of albums and tracks (#63), with migration 9. Built and checked locally, with GitHub Actions disabled; the migration was checked on a copy of the maintainer's library.
 
 **2.0 (Nov 16, 2026): released for Linux.** Music, from the seven issues below. The manual Hi-Res checklist (`docs/testing/hires-audio.md`) was run by the maintainer with a USB DAC and passed. Built and checked locally, with GitHub Actions disabled.
 
