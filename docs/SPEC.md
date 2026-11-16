@@ -1,6 +1,8 @@
-# Huehuecoyotl – Architecture Specification v1.9
+# Huehuecoyotl – Architecture Specification v1.10
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
+
+**Changes in v1.10:** 2.0 is released for Linux on Nov 16, 2026: the music issues (#7 to #12) are built, each section noting what was built and how it was checked (sections 5.7, 7, 8, 9, 10, 11).
 
 **Changes in v1.9:** Music for 2.0 (issue #6): scope and formats (section 2), the music data model and its migration, the music scan pipeline, music metadata providers, artwork order and the privacy setting (7), library content types (6), the play queue, gapless playback and the bit-perfect path (5.7), bridge additions (8), the Music section (9), the bundle (10), the 2.0 plan (11) and the maintainer's decisions for music: online lookups by default, user-supplied keys for TheAudioDB and Fanart.tv, no ALSA device permission in the Flatpak, 2.0 waits for all seven issues, two mpv handles (12).
 
@@ -58,7 +60,7 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | 1.2 (Linux, released) | Technical details of every file (codecs, HDR, audio and subtitle tracks, bit rates), analysed in the background; choosing between several versions of a movie or episode |
 | 1.1 (Linux, released) | SFTP sources; the logo; cover sizes per display mode; one item per show, with the repair of libraries from older versions; the show page with season switching and episodes not on disk |
 | Windows (no version yet) | The Windows build; MSIX and winget packages; code signing; Windows media keys (SMTC) |
-| 2.0 (Linux, planned) | Music: a music library from tags (FLAC, ALAC, WAV, AIFF, MP3, AAC, Ogg Vorbis, Opus, WavPack), Albums and Artists, a play queue with gapless playback and a mini player, Hi-Res badges, MusicBrainz and the Cover Art Archive, optional TheAudioDB and Fanart.tv, a bit-perfect output mode (see **Music in 2.0** below) |
+| 2.0 (Linux, released) | Music: a music library from tags (FLAC, ALAC, WAV, AIFF, MP3, AAC, Ogg Vorbis, Opus, WavPack), Albums and Artists, a play queue with gapless playback and a mini player, Hi-Res badges, MusicBrainz and the Cover Art Archive, optional TheAudioDB and Fanart.tv, a bit-perfect output mode (see **Music in 2.0** below) |
 | Unscheduled | HDR passthrough on Windows through direct mode (needs a Windows PC with an HDR display for tests W1–W8) |
 | After 1.1 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
 | Non-goals | Phones, tablets and TV boxes; DRM streaming services; transcoding or acting as a media server; SMB1; cloud accounts run by the project |
@@ -581,6 +583,8 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 - **M5 Windows release** (was "Release 1.1" until v1.4). The Windows parts of the M0 to M4 gates (first run on Windows, Windows servers, Intel and AMD graphics); MSIX and winget packages; code signing; SMTC media keys; SFTP in the app. Direct mode with HDR passthrough was part of M5 until v1.3 and is now unscheduled.
 
 **M5 status (Nov 12, 2026).** Paused: GitHub Actions has no minutes left, and the Windows build needs it (or a Windows build machine). The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). The Windows release workflow is ready in PR #31 but untested. Open: that PR, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
+
+**2.0 (Nov 16, 2026): released for Linux.** Music, from the seven issues below. The manual Hi-Res checklist (`docs/testing/hires-audio.md`) was run by the maintainer with a USB DAC and passed. Built and checked locally, with GitHub Actions disabled.
 
 **2.0 (planned): music.** The specification (#6) comes first; then, in this order: the music library from tags (#7), MusicBrainz and the Cover Art Archive (#11), the Music section (#10, which can start once #7 is merged), the play queue, gapless playback and Now Playing (#8), TheAudioDB and Fanart.tv (#12), and the bit-perfect output (#9). 2.0 is released when all seven are done (decided in v1.9); #9's manual checklist needs a USB DAC with a rate display and is run by the maintainer. Where an issue's work is Windows-only (SMTC metadata for music, WASAPI exclusive mode) it is built with the Windows release.
 

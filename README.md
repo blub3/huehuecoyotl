@@ -1,13 +1,14 @@
 # Huehuecoyotl
 
-A desktop media player for Windows and Linux: local and network playback, a scanned library and
-TMDB metadata, built on libmpv with a Qt Quick interface and a Rust core. Made for the desk and
+A desktop media player for Windows and Linux: films, series and music from local folders and
+network shares, a scanned library with TMDB and MusicBrainz metadata, built on libmpv with a Qt
+Quick interface and a Rust core. Made for the desk and
 the living-room PC alike: everything works with a keyboard or remote.
 
 The name honours Huehuecoyotl, the dancing coyote of the Nahua tradition, patron of music,
 dance and storytelling. The command and config folder use the short form `coyotl`.
 
-**Status:** version 1.6 is released for Linux (Flatpak). The Windows release follows without a
+**Status:** version 2.0 (music) is released for Linux (Flatpak). The Windows release follows without a
 version number yet. See the [user guide](docs/user/README.md), the
 [architecture specification](docs/SPEC.md) and the [M4 status](docs/milestones/M4.md).
 

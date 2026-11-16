@@ -12,21 +12,23 @@
   </developer>
   <description>
     <p>
-      Huehuecoyotl is a media player for the films and series you already own. Point it at
-      folders on your computer or on a NAS, and it builds a library with posters, descriptions
-      and episode lists, remembers where you stopped, and plays everything with libmpv.
+      Huehuecoyotl is a media player for the films, series and music you already own. Point it
+      at folders on your computer or on a NAS, and it builds a library with posters,
+      descriptions, episode lists, albums and artists, remembers where you stopped, and plays
+      everything with libmpv.
     </p>
     <p xml:lang="de">
-      Huehuecoyotl ist eine Medienwiedergabe für die Filme und Serien, die du schon besitzt.
-      Gib Ordner auf deinem Rechner oder einem NAS an, und es baut eine Bibliothek mit Postern,
-      Beschreibungen und Episodenlisten, merkt sich, wo du aufgehört hast, und spielt alles mit
-      libmpv ab.
+      Huehuecoyotl ist eine Medienwiedergabe für die Filme, Serien und Musik, die du schon
+      besitzt. Gib Ordner auf deinem Rechner oder einem NAS an, und es baut eine Bibliothek mit
+      Postern, Beschreibungen, Episodenlisten, Alben und Künstlern, merkt sich, wo du aufgehört
+      hast, und spielt alles mit libmpv ab.
     </p>
     <ul>
       <li>Libraries from local folders and SMB, NFS, WebDAV and FTP shares, found automatically on the network</li>
       <li>Posters and descriptions from The Movie Database (needs a free personal API key)</li>
       <li>Resume, watched state and "continue watching"</li>
       <li>Hardware decoding, subtitles and audio tracks, chapters</li>
+      <li>Music from your files' tags: albums, artists, a play queue with gapless playback, Hi-Res badges and an optional bit-perfect output</li>
       <li>Fully usable with keyboard or remote, in a window or fullscreen on the TV</li>
       <li>No account, no server, no telemetry</li>
     </ul>
@@ -35,6 +37,7 @@
       <li>Poster und Beschreibungen von The Movie Database (braucht einen kostenlosen persönlichen API-Schlüssel)</li>
       <li>Fortsetzen, Gesehen-Status und „Weiterschauen“</li>
       <li>Hardware-Dekodierung, Untertitel und Tonspuren, Kapitel</li>
+      <li>Musik aus den Tags deiner Dateien: Alben, Künstler, eine Warteschlange mit lückenloser Wiedergabe, Hi-Res-Kennzeichnung und eine optionale bit-perfekte Ausgabe</li>
       <li>Vollständig mit Tastatur oder Fernbedienung bedienbar, im Fenster oder im Vollbild am Fernseher</li>
       <li>Kein Konto, kein Server, keine Telemetrie</li>
     </ul>
@@ -77,6 +80,7 @@
   <categories>
     <category>AudioVideo</category>
     <category>Video</category>
+    <category>Audio</category>
     <category>Player</category>
   </categories>
   <keywords>
@@ -84,9 +88,22 @@
     <keyword>movie</keyword>
     <keyword>series</keyword>
     <keyword>NAS</keyword>
+    <keyword>music</keyword>
+    <keyword>FLAC</keyword>
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="2.0.0" date="2026-11-16" type="stable">
+      <description>
+        <p>Music: add folders as music, browse albums and artists, and play them in a queue that keeps going while you browse, gapless between tracks, with a mini player, Now Playing and your desktop's media controls.</p>
+        <ul>
+          <li>Albums and artists from your files' tags, matched with MusicBrainz; covers from the Cover Art Archive (can be turned off)</li>
+          <li>Optional artist images and biographies from TheAudioDB and Fanart.tv with your own keys</li>
+          <li>Hi-Res badges and an optional bit-perfect output with the signal path on Now Playing</li>
+          <li>Search finds artists, albums and tracks</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.6.1" date="2026-11-16" type="stable">
       <description>
         <p>Settings now shows that your TMDB key is stored, where it comes from and when TMDB last accepted it, with Replace, Test and Remove. The key field no longer looks empty after a restart, and a missing keyring is explained.</p>
