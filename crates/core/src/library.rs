@@ -392,13 +392,19 @@ impl Core {
         });
     }
 
+    /// The TMDB key's state (issue #52). Answers once the start-up has looked for the key, so a
+    /// stored key is never reported missing because the keystore answered late.
     pub fn key_status(&self, request_id: u64) {
         self.spawn(request_id, move |inner| async move {
+            let mut loaded = inner.key_loaded.subscribe();
+            let _ = loaded.wait_for(|done| *done).await;
             Ok(inner.key_status_event(request_id, String::new()))
         });
     }
 
     /// Validate a TMDB key with a test request, store it in the OS keystore and start fetching.
+    /// Without a keystore the key works until the app closes and the UI says why; it is never
+    /// kept anywhere else.
     pub fn set_tmdb_key(&self, request_id: u64, key: &str) {
         let key = key.trim().to_string();
         self.spawn(request_id, move |inner| async move {
@@ -419,18 +425,60 @@ impl Core {
             let stored = tokio::task::spawn_blocking(move || secrets::store_tmdb_key(&key))
                 .await
                 .map_err(internal)?;
-            inner.set_provider(Some(Arc::new(tmdb)), Some(KeySource::Keystore));
+            let source = match &stored {
+                Ok(()) => {
+                    *inner.keystore.lock().unwrap() = Ok(());
+                    KeySource::Keystore
+                }
+                Err(why) => {
+                    tracing::warn!("the TMDB key could not be stored in the keystore");
+                    *inner.keystore.lock().unwrap() = Err(why.clone());
+                    KeySource::Session
+                }
+            };
+            inner.set_provider(Some(Arc::new(tmdb)), Some(source));
+            inner.set_key_validated(now_s()).await;
             Ok(inner.key_status_event(request_id, stored.err().unwrap_or_default()))
         });
     }
 
+    /// "Test key" (issue #52): ask TMDB whether the key in use is accepted.
+    pub fn test_tmdb_key(&self, request_id: u64) {
+        self.spawn(request_id, move |inner| async move {
+            let Some(p) = inner.provider() else {
+                return Ok(inner.key_status_event(request_id, "No key is set.".into()));
+            };
+            let message = match p.validate().await {
+                Ok(()) => {
+                    tracing::info!("TMDB key tested: accepted");
+                    inner.set_key_validated(now_s()).await;
+                    String::new()
+                }
+                Err(MetaError::Auth) => {
+                    tracing::info!("TMDB key tested: rejected");
+                    "TMDB rejected this key. Replace it with a new one.".into()
+                }
+                Err(e) => {
+                    tracing::info!("TMDB key tested: TMDB not reached ({e})");
+                    format!("TMDB could not be reached: {e}")
+                }
+            };
+            Ok(inner.key_status_event(request_id, message))
+        });
+    }
+
+    /// "Remove key": the keystore entry goes too, so no key is found after a restart.
     pub fn clear_tmdb_key(&self, request_id: u64) {
         self.spawn(request_id, move |inner| async move {
-            tokio::task::spawn_blocking(secrets::clear_tmdb_key)
+            let removed = tokio::task::spawn_blocking(secrets::clear_tmdb_key)
                 .await
                 .map_err(internal)?;
-            inner.set_provider(None, None);
-            Ok(inner.key_status_event(request_id, String::new()))
+            let from_env = *inner.key_source.lock().unwrap() == Some(KeySource::Environment);
+            if !from_env {
+                inner.set_provider(None, None);
+                inner.set_key_validated(0).await;
+            }
+            Ok(inner.key_status_event(request_id, removed.err().unwrap_or_default()))
         });
     }
 
@@ -440,6 +488,12 @@ impl Core {
         self.inner
             .set_provider(Some(p), Some(KeySource::Environment));
     }
+}
+
+fn now_s() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as i64)
 }
 
 /// Whether each file's source can be reached, and its edition from the file name (issue #34).

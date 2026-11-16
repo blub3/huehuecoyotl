@@ -289,6 +289,10 @@ mod ffi {
         paths: Vec<String>,
         /// Episodes (issue #48), with `total` and `offset`.
         episodes: Vec<EpisodeEntry>,
+        /// KeyStatus (issue #52): keystore, environment, session, none or unavailable, and when
+        /// TMDB last accepted the key (Unix seconds, 0: never).
+        key_state: String,
+        validated_at: i64,
     }
 
     extern "Rust" {
@@ -352,6 +356,8 @@ mod ffi {
         fn key_status(self: &Core, request_id: u64);
         fn set_tmdb_key(self: &Core, request_id: u64, key: &str);
         fn clear_tmdb_key(self: &Core, request_id: u64);
+        /// Issue #52: "Test key", ask TMDB whether the key in use is accepted.
+        fn test_tmdb_key(self: &Core, request_id: u64);
 
         // M3: network sources. `spec_json`: {protocol, host, port, share, user, tls, key_file,
         // path, name}; for SFTP with a key file, `password` is the key's passphrase.
@@ -458,6 +464,8 @@ fn event(kind: ffi::EventKind, request_id: u64) -> ffi::CoreEvent {
         save: ffi::SaveInfo::default(),
         paths: Vec::new(),
         episodes: Vec::new(),
+        key_state: String::new(),
+        validated_at: 0,
     }
 }
 
@@ -760,7 +768,11 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
             has_key,
             from_env,
             message,
+            state,
+            validated_at,
         } => ffi::CoreEvent {
+            key_state: state,
+            validated_at,
             flag: has_key,
             flag2: from_env,
             message,
@@ -1048,6 +1060,9 @@ impl Core {
     }
     fn clear_tmdb_key(&self, request_id: u64) {
         guard("clear_tmdb_key", || self.0.clear_tmdb_key(request_id))
+    }
+    fn test_tmdb_key(&self, request_id: u64) {
+        guard("test_tmdb_key", || self.0.test_tmdb_key(request_id))
     }
     fn browse_network(&self, request_id: u64, spec_json: &str, password: &str, path: &str) {
         guard("browse_network", || {

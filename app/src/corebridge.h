@@ -1,4 +1,5 @@
 #pragma once
+#include <QDateTime>
 #include <QObject>
 #include <QSet>
 #include <QString>
@@ -24,6 +25,10 @@ class CoreBridge : public QObject {
     QML_SINGLETON
     Q_PROPERTY(bool hasTmdbKey READ hasTmdbKey NOTIFY keyStatusChanged)
     Q_PROPERTY(bool tmdbKeyFromEnvironment READ tmdbKeyFromEnvironment NOTIFY keyStatusChanged)
+    // Issue #52: keystore, environment, session, none or unavailable ("" until the core looked),
+    // and when TMDB last accepted the key (invalid: never).
+    Q_PROPERTY(QString tmdbKeyState READ tmdbKeyState NOTIFY keyStatusChanged)
+    Q_PROPERTY(QDateTime tmdbKeyValidatedAt READ tmdbKeyValidatedAt NOTIFY keyStatusChanged)
     Q_PROPERTY(bool scanning READ scanning NOTIFY activityChanged)
     Q_PROPERTY(int pendingJobs READ pendingJobs NOTIFY activityChanged)
     Q_PROPERTY(int failedJobs READ failedJobs NOTIFY activityChanged)
@@ -77,6 +82,8 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 refreshKeyStatus();
     Q_INVOKABLE quint64 setTmdbKey(const QString &key);
     Q_INVOKABLE quint64 clearTmdbKey();
+    // Issue #52: ask TMDB whether the key in use is accepted (answers with keyStatusChanged).
+    Q_INVOKABLE quint64 testTmdbKey();
 
     // M3: network sources. `spec`: protocol, host, port, share, user, tls, path, name.
     // browseNetwork answers with folderListed (or requestFailed: wrong password, unreachable).
@@ -123,6 +130,8 @@ class CoreBridge : public QObject {
 
     bool hasTmdbKey() const { return m_hasKey; }
     bool tmdbKeyFromEnvironment() const { return m_keyFromEnv; }
+    QString tmdbKeyState() const { return m_keyState; }
+    QDateTime tmdbKeyValidatedAt() const { return m_keyValidatedAt; }
     bool scanning() const { return !m_scanning.isEmpty(); }
     int pendingJobs() const { return m_pending; }
     int failedJobs() const { return m_failed; }
@@ -169,6 +178,8 @@ class CoreBridge : public QObject {
     QString m_openError;
     quint64 m_lastId = 0;
     bool m_hasKey = false, m_keyFromEnv = false;
+    QString m_keyState;
+    QDateTime m_keyValidatedAt;
     QSet<qint64> m_scanning;
     int m_pending = 0, m_failed = 0;
     std::function<QString()> m_appInfo;

@@ -92,8 +92,13 @@ Posters, descriptions, ratings and episode titles come from [The Movie Database
 3. In Huehuecoyotl, open **Settings**, paste the **API Key** or the **API Read Access Token**,
    and choose **Check and save**.
 
-The key is checked once and stored in your system's keyring. Metadata is downloaded in the
-language of the app (German or English), with English as the fallback.
+The key is checked once and stored in your system's keyring, so you enter it only once.
+**Settings → Metadata** then shows **Key stored** and when TMDB last accepted it (the key itself
+is never shown), with **Replace key**, **Test key** and **Remove key**. If your desktop has no
+keyring (or it is locked), Settings says so: install or unlock one (for example GNOME Keyring
+or KWallet) and restart the app; until then a key you enter works only until the app closes.
+Metadata is downloaded in the language of the app (German or English), with English as the
+fallback.
 
 When the app is not sure which film a file is (two films with the same title, a missing year),
 it puts the item on the **Review matches** list in Settings. Choose the right one there, or

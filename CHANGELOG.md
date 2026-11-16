@@ -4,6 +4,9 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+- Fixed (#52): the TMDB key field in Settings was empty after every restart, although the key was stored and in use. The app asked for the key's state before it had read the system keyring and was not told afterwards. Settings now shows "Key stored", where the key comes from and when TMDB last accepted it, with Replace key, Test key and Remove key. If no system keyring is available, Settings explains what to do instead of showing an empty field. The key is never shown or logged.
+- `coyotl-cli key status`, `key test` and `key remove`.
+
 ## 1.6.0 – 2026-11-16 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled).

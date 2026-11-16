@@ -44,7 +44,8 @@ fn usage() -> ExitCode {
     eprintln!(
         "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent\n\
          \x20      | library add PATH | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
-         \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review | key KEY\n\
+         \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
+         \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
          \x20      | probe FILE (technical details as JSON; FFmpeg from COYOTL_FFMPEG_DIR or the system)\n\
          \x20      | download ITEM [FILE] (save offline copies and wait for them) | downloads list\n\
          \x20      | export ITEM DEST [--overwrite] (Save as…: a file, or a folder for a season or show)\n\
@@ -165,7 +166,9 @@ fn main() -> ExitCode {
             Event::ItemChanged { .. }
             | Event::LibraryChanged { .. }
             | Event::ScanState { .. }
-            | Event::DownloadProgress { .. } => {
+            | Event::DownloadProgress { .. }
+            // The start-up's key lookup (issue #52), not an answer.
+            | Event::KeyStatus { request_id: 0, .. } => {
                 continue;
             }
             e => break e,
@@ -343,6 +346,19 @@ fn main() -> ExitCode {
         }
         ("review", []) => {
             core.review(1);
+            wait()
+        }
+        // Issue #52: the key's state, a check with TMDB, removing it.
+        ("key", [w]) if w == "status" => {
+            core.key_status(1);
+            wait()
+        }
+        ("key", [w]) if w == "test" => {
+            core.test_tmdb_key(1);
+            wait()
+        }
+        ("key", [w]) if w == "remove" => {
+            core.clear_tmdb_key(1);
             wait()
         }
         ("key", [key]) => {
@@ -543,11 +559,25 @@ fn main() -> ExitCode {
             }
         }
         Event::KeyStatus {
-            has_key, message, ..
+            message,
+            state,
+            validated_at,
+            ..
         } => {
             println!(
-                "TMDB key {}{}",
-                if has_key { "set" } else { "not set" },
+                "TMDB key: {}{}{}",
+                match state.as_str() {
+                    "keystore" => "stored in the system keystore",
+                    "environment" => "from COYOTL_TMDB_KEY",
+                    "session" => "set until the program ends (the keystore could not keep it)",
+                    "unavailable" => "not set; no system keystore is available",
+                    _ => "not set",
+                },
+                if validated_at > 0 {
+                    format!(" (accepted by TMDB at {validated_at}, Unix time)")
+                } else {
+                    String::new()
+                },
                 if message.is_empty() {
                     String::new()
                 } else {

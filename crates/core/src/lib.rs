@@ -16,7 +16,7 @@ mod worker;
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
 use huehuecoyotl_library::{DbError, Library, catalog, queries};
@@ -35,6 +35,9 @@ pub use huehuecoyotl_library::copies::SaveInfo;
 pub use network::{Discovered, NetworkSpec};
 pub use queries::TrackPref;
 use secrets::KeySource;
+
+/// Issue #52: the `setting` key that holds when TMDB last accepted the key (Unix seconds).
+const KEY_VALIDATED: &str = "tmdb_key_validated_at";
 pub use worker::find_match;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -249,6 +252,10 @@ pub enum Event {
         has_key: bool,
         from_env: bool,
         message: String,
+        /// Issue #52: keystore, environment, session, none or unavailable (secrets::key_state).
+        state: String,
+        /// When TMDB last accepted the key (Unix seconds, 0: never).
+        validated_at: i64,
     },
     Error {
         request_id: u64,
@@ -314,6 +321,11 @@ struct Inner {
     language: String,
     provider: RwLock<Option<Arc<dyn MetadataProvider>>>,
     key_source: Mutex<Option<KeySource>>,
+    /// Issue #52: whether a keystore that keeps secrets is available (else why not), the time
+    /// TMDB last accepted the key, and whether the start-up has looked for the key yet.
+    keystore: Mutex<Result<(), String>>,
+    key_validated_at: AtomicI64,
+    key_loaded: tokio::sync::watch::Sender<bool>,
     /// Wakes the job workers: new work, a new key.
     wake: Notify,
     changed: AtomicBool,
@@ -363,13 +375,80 @@ impl Inner {
     }
 
     fn key_status_event(&self, request_id: u64, message: String) -> Event {
-        let src = *self.key_source.lock().unwrap();
+        let has_key = self.provider().is_some();
+        let src = if has_key {
+            *self.key_source.lock().unwrap()
+        } else {
+            None
+        };
+        let keystore = self.keystore.lock().unwrap().clone();
         Event::KeyStatus {
             request_id,
-            has_key: self.provider().is_some(),
+            has_key,
             from_env: src == Some(KeySource::Environment),
             message,
+            state: secrets::key_state(src, &keystore).to_string(),
+            validated_at: self.key_validated_at.load(Ordering::Relaxed),
         }
+    }
+
+    /// Issue #52: TMDB accepted the key now (or, with `at` 0, the key is gone).
+    async fn set_key_validated(self: &Arc<Self>, at: i64) {
+        self.key_validated_at.store(at, Ordering::Relaxed);
+        let value = (at > 0).then(|| at.to_string());
+        let _ = self
+            .lib
+            .write(move |c| {
+                huehuecoyotl_library::copies::set_setting(c, KEY_VALIDATED, value.as_deref())
+            })
+            .await;
+    }
+
+    /// Issue #52: look for the TMDB key once at start-up (before anything else waits on the
+    /// network) and tell the UI what was found. Status requests wait for this.
+    async fn load_key(self: &Arc<Self>) {
+        let at = self
+            .lib
+            .read(|c| huehuecoyotl_library::copies::setting(c, KEY_VALIDATED))
+            .await
+            .ok()
+            .flatten()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0);
+        self.key_validated_at.store(at, Ordering::Relaxed);
+        let (load, keystore) = tokio::task::spawn_blocking(|| {
+            let keystore = if std::env::var_os("COYOTL_DISABLE_KEYSTORE").is_some() {
+                Ok(())
+            } else {
+                secrets::keystore_status()
+            };
+            (secrets::load_tmdb_key(), keystore)
+        })
+        .await
+        .unwrap_or((secrets::KeyLoad::Absent, Ok(())));
+        *self.keystore.lock().unwrap() = match &load {
+            secrets::KeyLoad::Unavailable(why) => Err(why.clone()),
+            _ => keystore,
+        };
+        if let secrets::KeyLoad::Found(key, src) = load {
+            match huehuecoyotl_metadata::tmdb::Tmdb::new(key, self.language.clone()) {
+                // A provider set meanwhile (tests, the CLI) wins over the keystore.
+                Ok(t) if self.provider().is_none() => {
+                    self.set_provider(Some(Arc::new(t)), Some(src))
+                }
+                Ok(_) => {}
+                Err(e) => tracing::error!("TMDB client: {e}"),
+            }
+        }
+        tracing::info!(
+            state = secrets::key_state(
+                *self.key_source.lock().unwrap(),
+                &self.keystore.lock().unwrap()
+            ),
+            "TMDB key looked up"
+        );
+        self.key_loaded.send_replace(true);
+        self.sink.post(self.key_status_event(0, String::new()));
     }
 
     /// Post a debounced LibraryChanged so grids re-query at most a few times per second.
@@ -451,6 +530,9 @@ impl Core {
             },
             provider: RwLock::new(None),
             key_source: Mutex::new(None),
+            keystore: Mutex::new(Ok(())),
+            key_validated_at: AtomicI64::new(0),
+            key_loaded: tokio::sync::watch::channel(false).0,
             wake: Notify::new(),
             changed: AtomicBool::new(false),
             scanning: Mutex::default(),
@@ -483,6 +565,7 @@ impl Core {
         rt.block_on(download::startup(&inner));
         let start = inner.clone();
         rt.spawn(async move {
+            start.load_key().await;
             // Crash-safe queue: running jobs from a previous session run again.
             let _ = start
                 .lib
@@ -510,17 +593,6 @@ impl Core {
                         huehuecoyotl_library::jobs::priority::BACKGROUND,
                     )
                     .await;
-                }
-            }
-            if let Ok(Some((key, src))) = tokio::task::spawn_blocking(secrets::load_tmdb_key).await
-            {
-                match huehuecoyotl_metadata::tmdb::Tmdb::new(key, start.language.clone()) {
-                    // A provider set meanwhile (tests, the CLI) wins over the keystore.
-                    Ok(t) if start.provider().is_none() => {
-                        start.set_provider(Some(Arc::new(t)), Some(src))
-                    }
-                    Ok(_) => {}
-                    Err(e) => tracing::error!("TMDB client: {e}"),
                 }
             }
             worker::spawn_workers(&start);
@@ -1041,8 +1113,14 @@ mod tests {
         (d, c, rx)
     }
 
+    /// The next answer; the start-up's key lookup (issue #52) is not one.
     fn next(rx: &Receiver<Event>) -> Event {
-        rx.recv_timeout(Duration::from_secs(5)).expect("event")
+        loop {
+            match rx.recv_timeout(Duration::from_secs(5)).expect("event") {
+                Event::KeyStatus { request_id: 0, .. } => continue,
+                e => return e,
+            }
+        }
     }
 
     #[test]

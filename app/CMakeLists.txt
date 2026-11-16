@@ -31,6 +31,7 @@ qt_add_qml_module(coyotl
     qml/TechSummary.qml
     qml/TechDetails.qml
     qml/SaveMenu.qml
+    qml/TmdbKeyStatus.qml
     qml/MediaInfo.js
     qml/Nav.qml
     qml/NavRail.qml

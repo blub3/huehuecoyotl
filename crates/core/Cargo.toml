@@ -17,6 +17,8 @@ huehuecoyotl-scanner.workspace = true
 huehuecoyotl-metadata.workspace = true
 huehuecoyotl-stream.workspace = true
 keyring = "4"
+# Issue #52: the store's persistence (never the in-memory mock store); the version keyring 4 uses.
+keyring-core = "1.0.1"
 mdns-sd = { version = "0.21", default-features = false }
 regex = "1"
 serde.workspace = true
