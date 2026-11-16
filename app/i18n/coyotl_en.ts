@@ -4,7 +4,7 @@
 <context>
     <name>AlbumPage</name>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="165"/>
+        <location filename="../qml/AlbumPage.qml" line="185"/>
         <source>%n track(s)</source>
         <translation>
             <numerusform>%n track</numerusform>
@@ -12,11 +12,19 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="166"/>
+        <location filename="../qml/AlbumPage.qml" line="186"/>
         <source>%n disc(s)</source>
         <translation>
             <numerusform>%n disc</numerusform>
             <numerusform>%n discs</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/AlbumPage.qml" line="399"/>
+        <source>%n version(s)</source>
+        <translation>
+            <numerusform>%n version</numerusform>
+            <numerusform>%n versions</numerusform>
         </translation>
     </message>
 </context>
@@ -72,6 +80,17 @@
         <translation>
             <numerusform>%n track</numerusform>
             <numerusform>%n tracks</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>PosterCard</name>
+    <message numerus="yes">
+        <location filename="../qml/PosterCard.qml" line="30"/>
+        <source>%n version(s)</source>
+        <translation>
+            <numerusform>%n version</numerusform>
+            <numerusform>%n versions</numerusform>
         </translation>
     </message>
 </context>

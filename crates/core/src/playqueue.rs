@@ -30,6 +30,9 @@ pub(crate) struct QueueState {
     /// The tickets handed out for the current entry and the following one (0: none).
     current: u64,
     following: u64,
+    /// Issue #63: entries (track, queued file) that played another version of their track
+    /// because the queued file could not be reached.
+    fallback: std::collections::HashSet<(i64, i64)>,
 }
 
 pub(crate) enum Op {
@@ -37,10 +40,14 @@ pub(crate) enum Op {
         items: Vec<i64>,
         start_item: i64,
         shuffle: bool,
+        version: i64,
+        preference: String,
     },
     Insert {
         items: Vec<i64>,
         next: bool,
+        version: i64,
+        preference: String,
     },
     Step {
         delta: i32,
@@ -82,13 +89,17 @@ fn now_ms() -> i64 {
         .map_or(0, |d| d.as_millis() as i64)
 }
 
-async fn state_json(inner: &Arc<Inner>, q: &Queue) -> CResult<String> {
+async fn state_json(inner: &Arc<Inner>, st: &QueueState) -> CResult<String> {
+    let q = &st.q;
     let snapshot = q.clone();
     let from = q.pos().saturating_sub(BEFORE);
-    let entries = inner
+    let mut entries = inner
         .lib
         .read(move |c| queue::entries(c, &snapshot, from, WINDOW))
         .await?;
+    for e in &mut entries {
+        e.fallback = st.fallback.contains(&(e.id, e.file_id));
+    }
     Ok(json!({
         "count": q.len(),
         "position": q.pos(),
@@ -100,15 +111,45 @@ async fn state_json(inner: &Arc<Inner>, q: &Queue) -> CResult<String> {
     .to_string())
 }
 
-async fn ticket_json(inner: &Arc<Inner>, item_id: i64) -> CResult<Value> {
+/// A ticket for an entry: its queued file (issue #63), else, when that cannot be reached,
+/// another version of the track (`fallback` set), else any file of it.
+async fn ticket_json(
+    inner: &Arc<Inner>,
+    st: &mut QueueState,
+    entry: queue::Track,
+) -> CResult<Value> {
+    let (item_id, file) = entry;
     let id = inner.music_ticket.fetch_add(1, Ordering::Relaxed);
-    let t = prepare_item(inner, item_id, None, id).await?;
+    let t = match file {
+        Some(f) => match prepare_item(inner, item_id, Some(f), id).await {
+            Ok(t) => t,
+            Err(e) => {
+                tracing::info!(
+                    item_id,
+                    "queued file not playable ({}); trying another version",
+                    e.message
+                );
+                let t = prepare_item(inner, item_id, None, id).await?;
+                st.fallback.insert((item_id, f));
+                t
+            }
+        },
+        None => prepare_item(inner, item_id, None, id).await?,
+    };
+    let played = inner
+        .ticket_files
+        .lock()
+        .unwrap()
+        .get(&t.ticket)
+        .copied()
+        .or(file);
     let entry = inner
         .lib
-        .read(move |c| queue::entry(c, item_id))
+        .read(move |c| queue::entry(c, item_id, played))
         .await?
         .unwrap_or_default();
     Ok(json!({
+        "fileId": played,
         "ticket": t.ticket,
         "itemId": item_id,
         "url": t.url,
@@ -121,10 +162,11 @@ async fn ticket_json(inner: &Arc<Inner>, item_id: i64) -> CResult<Value> {
 /// prepared: the queue then stops after the current track, and a later change tries again).
 async fn following_json(inner: &Arc<Inner>, st: &mut QueueState) -> Value {
     st.following = 0;
-    let Some(item) = st.q.following().and_then(|p| st.q.at(p)) else {
+    let Some(entry) = st.q.following().and_then(|p| st.q.entry(p)) else {
         return Value::Null;
     };
-    match ticket_json(inner, item).await {
+    let item = entry.0;
+    match ticket_json(inner, st, entry).await {
         Ok(v) => {
             st.following = v["ticket"].as_u64().unwrap_or(0);
             v
@@ -141,9 +183,23 @@ async fn run(inner: &Arc<Inner>, st: &mut QueueState, op: Op, request_id: u64) -
         st.q = inner.lib.read(queue::load).await?;
         st.loaded = true;
     }
-    let expand = |items: Vec<i64>| {
+    let expand = |items: Vec<i64>, version: i64, preference: String| {
         let inner = inner.clone();
-        async move { inner.lib.read(move |c| queue::expand(c, &items)).await }
+        let offline = inner.offline.lock().unwrap().clone();
+        async move {
+            inner
+                .lib
+                .read(move |c| {
+                    queue::expand(
+                        c,
+                        &items,
+                        (version > 0).then_some(version),
+                        &preference,
+                        &offline,
+                    )
+                })
+                .await
+        }
     };
     let mut save = true;
     let then = match op {
@@ -151,12 +207,14 @@ async fn run(inner: &Arc<Inner>, st: &mut QueueState, op: Op, request_id: u64) -
             items,
             start_item,
             shuffle,
+            version,
+            preference,
         } => {
-            let tracks = expand(items).await?;
+            let tracks = expand(items, version, preference).await?;
             if tracks.is_empty() {
                 return Err(CoreError::new(ErrorKind::NotFound, "nothing to play"));
             }
-            let start = match tracks.iter().position(|&t| t == start_item) {
+            let start = match tracks.iter().position(|t| t.0 == start_item) {
                 Some(i) => i,
                 None if shuffle => (seed() % tracks.len() as u64) as usize,
                 None => 0,
@@ -164,8 +222,13 @@ async fn run(inner: &Arc<Inner>, st: &mut QueueState, op: Op, request_id: u64) -
             st.q.play(tracks, start, shuffle, seed());
             Then::Play(0)
         }
-        Op::Insert { items, next } => {
-            let tracks = expand(items).await?;
+        Op::Insert {
+            items,
+            next,
+            version,
+            preference,
+        } => {
+            let tracks = expand(items, version, preference).await?;
             let was_empty = st.q.is_empty();
             st.q.insert(&tracks, next);
             if was_empty && !st.q.is_empty() {
@@ -212,6 +275,10 @@ async fn run(inner: &Arc<Inner>, st: &mut QueueState, op: Op, request_id: u64) -
             st.current = ticket;
             st.following = 0;
             inner.lib.write(|c| queue::save_position(c, 0)).await?;
+            if let Some(item) = st.q.current() {
+                let file = inner.ticket_files.lock().unwrap().get(&ticket).copied();
+                remember(inner, item, file).await;
+            }
             Then::Following
         }
         Op::Resume { after_end } => {
@@ -242,15 +309,16 @@ async fn run(inner: &Arc<Inner>, st: &mut QueueState, op: Op, request_id: u64) -
     }
     inner.sink.post(Event::QueueChanged {
         request_id,
-        json: state_json(inner, &st.q).await?,
+        json: state_json(inner, st).await?,
     });
     let tickets = match then {
         Then::Play(start_ms) => {
-            let Some(item) = st.q.current() else {
+            let Some(entry) = st.q.entry(st.q.pos()) else {
                 return Ok(());
             };
-            let current = ticket_json(inner, item).await?;
+            let current = ticket_json(inner, st, entry).await?;
             st.current = current["ticket"].as_u64().unwrap_or(0);
+            remember(inner, entry.0, current["fileId"].as_i64()).await;
             if start_ms == 0 {
                 inner.lib.write(|c| queue::save_position(c, 0)).await?;
             }
@@ -302,20 +370,46 @@ impl Core {
     }
 
     /// Play items (tracks, albums, artists) from `start_item` (0: the first, or a random one
-    /// with shuffle).
-    pub fn queue_play(&self, request_id: u64, items: Vec<i64>, start_item: i64, shuffle: bool) {
+    /// with shuffle). Issue #63: an album plays `version` (0: the one played last, else by
+    /// `preference`), the same for all its tracks.
+    pub fn queue_play(
+        &self,
+        request_id: u64,
+        items: Vec<i64>,
+        start_item: i64,
+        shuffle: bool,
+        version: i64,
+        preference: &str,
+    ) {
         self.queue_op(
             request_id,
             Op::Play {
                 items,
                 start_item,
                 shuffle,
+                version,
+                preference: preference.to_string(),
             },
         );
     }
-    /// "Play next" (`next`) or "add to queue".
-    pub fn queue_insert(&self, request_id: u64, items: Vec<i64>, next: bool) {
-        self.queue_op(request_id, Op::Insert { items, next });
+    /// "Play next" (`next`) or "add to queue", in `version` (see `queue_play`).
+    pub fn queue_insert(
+        &self,
+        request_id: u64,
+        items: Vec<i64>,
+        next: bool,
+        version: i64,
+        preference: &str,
+    ) {
+        self.queue_op(
+            request_id,
+            Op::Insert {
+                items,
+                next,
+                version,
+                preference: preference.to_string(),
+            },
+        );
     }
     /// Next (`delta` 1) or previous (-1) as the user asks.
     pub fn queue_step(&self, request_id: u64, delta: i32, position_ms: u64) {
@@ -385,5 +479,18 @@ impl Core {
                 Err(e) => tracing::error!(item_id, "saving music progress failed: {e}"),
             }
         });
+    }
+}
+
+/// Issue #63: the file now playing is the one its track and album were played with last.
+async fn remember(inner: &Arc<Inner>, track: i64, file: Option<i64>) {
+    let Some(file) = file else { return };
+    let now = now_ms();
+    if let Err(e) = inner
+        .lib
+        .write(move |c| huehuecoyotl_library::versions::remember_played(c, track, file, now))
+        .await
+    {
+        tracing::warn!(track, "remembering the version failed: {e}");
     }
 }

@@ -10,13 +10,18 @@ FocusButton {
     id: picker
     property var files: []
     property int index: 0
+    // Issue #63: other labels (album versions): the button's and the list's, by index.
+    property var labels: []
+    property var choices: []
     signal chosen(int index)
 
     readonly property var file: files.length > 0 ? files[Math.min(index, files.length - 1)] : null
-    text: (file ? MediaInfo.versionLabel(file) : "") + "  ▾"
+    text: (labels.length > 0 ? (labels[Math.min(index, labels.length - 1)] || "")
+                              : file ? MediaInfo.versionLabel(file) : "") + "  ▾"
     tip: qsTr("Choose a version")
     font.pixelSize: Theme.fontSmall
-    Accessible.name: qsTr("Version: %1").arg(file ? MediaInfo.versionChoice(file) : "")
+    Accessible.name: qsTr("Version: %1").arg(choices.length > 0 ? (choices[Math.min(index, choices.length - 1)] || "")
+                                             : file ? MediaInfo.versionChoice(file) : "")
     onClicked: menu.open()
     function close() { menu.close() }
 
@@ -50,7 +55,7 @@ FocusButton {
                 focus: ListView.isCurrentItem
                 enabled: MediaInfo.playable(modelData)
                 highlighted: index === picker.index
-                text: MediaInfo.versionChoice(modelData)
+                text: picker.choices.length > index ? picker.choices[index] : MediaInfo.versionChoice(modelData)
                 Accessible.name: text
                 contentItem: Label {
                     text: versionRow.text

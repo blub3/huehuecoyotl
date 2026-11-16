@@ -86,7 +86,7 @@ fn db(e: huehuecoyotl_library::DbError) -> MetaError {
 }
 
 /// Look one album up, and fetch its cover when it has none.
-pub(crate) async fn match_album(inner: &Arc<Inner>, album: i64) -> Result<(), MetaError> {
+pub(crate) async fn match_album(inner: &Arc<Inner>, mut album: i64) -> Result<(), MetaError> {
     let Some(t) = inner
         .lib
         .read(move |c| {
@@ -155,9 +155,14 @@ pub(crate) async fn match_album(inner: &Arc<Inner>, album: i64) -> Result<(), Me
         if let Some(id) = id {
             let r = p.release(&id).await?;
             let f = facts(&r);
-            inner
+            // Issue #63: other copies of this release or editions of its group join this album
+            // (the oldest of them remains).
+            album = inner
                 .lib
-                .write(move |c| music::apply_release(c, album, &f))
+                .write(move |c| {
+                    music::apply_release(c, album, &f)?;
+                    huehuecoyotl_library::versions::merge_same_release(c, album)
+                })
                 .await
                 .map_err(db)?;
             release = Some(r);
@@ -187,12 +192,24 @@ impl Core {
         *self.inner.music.write().unwrap() = p;
     }
 
-    /// Issue #10: an album's page: its tracks by disc, durations, format and Hi-Res.
-    pub fn album_detail(&self, request_id: u64, album: i64) {
+    /// Issue #10: an album's page: its tracks by disc, durations, format and Hi-Res. Issue #63:
+    /// for a version (`version` 0: the one played last, else by `preference`: quality, smallest
+    /// or lossless), with every version and whether it can be played.
+    pub fn album_detail(&self, request_id: u64, album: i64, version: i64, preference: &str) {
+        let preference = preference.to_string();
         self.spawn(request_id, move |inner| async move {
+            let offline = inner.offline.lock().unwrap().clone();
             let d = inner
                 .lib
-                .read(move |c| music::album_detail(c, album))
+                .read(move |c| {
+                    music::album_detail(
+                        c,
+                        album,
+                        (version > 0).then_some(version),
+                        &preference,
+                        &offline,
+                    )
+                })
                 .await?
                 .ok_or_else(|| {
                     crate::CoreError::new(crate::ErrorKind::NotFound, format!("album {album}"))
@@ -203,6 +220,51 @@ impl Core {
                 kind: "album".into(),
                 json: serde_json::to_string(&d).unwrap_or_default(),
             })
+        });
+    }
+
+    /// Issue #63: "This is a different album": the version becomes an album of its own, which
+    /// scans and lookups leave alone. Answers with the new album's page.
+    pub fn split_album_version(&self, request_id: u64, version: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |d| d.as_millis() as i64);
+            let album = inner
+                .lib
+                .write(move |c| huehuecoyotl_library::versions::split_version(c, version, now))
+                .await?;
+            inner.mark_changed();
+            let offline = inner.offline.lock().unwrap().clone();
+            let d = inner
+                .lib
+                .read(move |c| music::album_detail(c, album, None, "quality", &offline))
+                .await?
+                .ok_or_else(|| {
+                    crate::CoreError::new(crate::ErrorKind::NotFound, format!("album {album}"))
+                })?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "album".into(),
+                json: serde_json::to_string(&d).unwrap_or_default(),
+            })
+        });
+    }
+
+    /// Issue #63: play this file of a track (one of its files in a version), from now on.
+    pub fn set_track_file(&self, track: i64, file: i64) {
+        let inner = self.inner.clone();
+        let fut = self.inner.lib.submit(move |c| {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |d| d.as_millis() as i64);
+            huehuecoyotl_library::versions::remember_played(c, track, file, now)
+        });
+        self.rt.spawn(async move {
+            match fut.await {
+                Ok(()) => inner.sink.post(Event::ItemChanged { item_id: track }),
+                Err(e) => tracing::error!(track, "choosing the file failed: {e}"),
+            }
         });
     }
 

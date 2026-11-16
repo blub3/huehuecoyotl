@@ -398,7 +398,10 @@ FocusScope {
                             }
                             Label {
                                 Layout.fillWidth: true
-                                text: [row.modelData.artists, row.modelData.album].filter(x => x).join("  ·  ")
+                                // Issue #63: the queued version could not be reached; another one plays.
+                                text: [row.modelData.artists, row.modelData.album,
+                                       row.modelData.fallback ? qsTr("another version (the queued one is offline)") : ""]
+                                      .filter(x => x).join("  ·  ")
                                 color: Theme.textDim
                                 font.pixelSize: Theme.fontSmall
                                 elide: Text.ElideRight

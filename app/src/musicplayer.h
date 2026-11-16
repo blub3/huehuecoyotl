@@ -35,6 +35,9 @@ class MusicPlayer : public QObject {
     Q_PROPERTY(int queuePosition READ queuePosition NOTIFY queueChanged)
     Q_PROPERTY(bool shuffle READ shuffle WRITE setShuffle NOTIFY queueChanged)
     Q_PROPERTY(QString repeat READ repeat NOTIFY queueChanged)
+    // Issue #63: which version of an album plays when none was chosen: quality, smallest or
+    // lossless (the "Preferred version" setting).
+    Q_PROPERTY(QString preference MEMBER m_preference NOTIFY preferenceChanged)
     // "off", "track" or "album" (mpv's replaygain).
     Q_PROPERTY(QString replayGain READ replayGain WRITE setReplayGain NOTIFY replayGainChanged)
     // Issue #9: bit-perfect mode, the output device (mpv's audio-device; "auto" is the system's
@@ -83,9 +86,12 @@ class MusicPlayer : public QObject {
     QVariantMap signalPath() const { return m_signal; }
 
     // Items: track, album or artist ids. startItem 0: the first (or a random one with shuffle).
-    Q_INVOKABLE void playItems(const QVariantList &items, qint64 startItem = 0, bool shuffle = false);
-    Q_INVOKABLE void playNext(const QVariantList &items);
-    Q_INVOKABLE void addToQueue(const QVariantList &items);
+    // Issue #63: `version` is an album version to play (0: the one played last, else by
+    // preference).
+    Q_INVOKABLE void playItems(const QVariantList &items, qint64 startItem = 0, bool shuffle = false,
+                               qint64 version = 0);
+    Q_INVOKABLE void playNext(const QVariantList &items, qint64 version = 0);
+    Q_INVOKABLE void addToQueue(const QVariantList &items, qint64 version = 0);
     Q_INVOKABLE void togglePause();
     Q_INVOKABLE void play();
     Q_INVOKABLE void pause();
@@ -109,6 +115,7 @@ class MusicPlayer : public QObject {
     void currentChanged();
     void queueChanged();
     void replayGainChanged();
+    void preferenceChanged();
     void outputChanged();
     void devicesChanged();
     void volumeChanged();
@@ -145,6 +152,7 @@ class MusicPlayer : public QObject {
     bool m_shuffle = false;
     QString m_repeat = QStringLiteral("off");
     QString m_replayGain = QStringLiteral("off");
+    QString m_preference = QStringLiteral("quality");
     bool m_bitPerfect = false;
     QString m_device = QStringLiteral("auto");
     QVariantList m_devices;

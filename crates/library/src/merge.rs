@@ -268,7 +268,9 @@ mod tests {
         for m in &crate::MIGRATIONS[..3] {
             match m {
                 crate::Migration::Sql(sql) => c.execute_batch(sql).unwrap(),
-                crate::Migration::Rust(_) | crate::Migration::Rebuild(_) => {
+                crate::Migration::Rust(_)
+                | crate::Migration::Rebuild(_)
+                | crate::Migration::Merge(_) => {
                     unreachable!("1.1.0 had SQL migrations only")
                 }
             }

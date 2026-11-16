@@ -5,8 +5,8 @@
 
 use std::collections::{HashMap, HashSet};
 
-use huehuecoyotl_library::Library;
 use huehuecoyotl_library::rusqlite::{self, OptionalExtension, Transaction, params};
+use huehuecoyotl_library::{Library, versions};
 use huehuecoyotl_vfs::{Source, VPath, VfsError};
 
 use crate::scan::{ScanError, fingerprint_with_data, normalize, sort_title};
@@ -466,7 +466,7 @@ pub async fn scan_music_source(
             let mut touched: HashSet<i64> = HashSet::new();
             let mut covers: HashMap<i64, Cover> = HashMap::new();
             for (file_id, rel, t) in &placed {
-                let (album, created) = place(&tx, file_id, rel, t, scan_id)?;
+                let (album, created) = place(&tx, source_id, file_id, rel, t, scan_id)?;
                 if created {
                     new_albums.push(album);
                 }
@@ -481,6 +481,25 @@ pub async fn scan_music_source(
             }
             for album in &touched {
                 settle_album(&tx, *album)?;
+                versions::settle_title(&tx, *album)?;
+            }
+            // Issue #63: a folder with the album in several formats holds several versions; copies
+            // whose track lists differ are not versions of one album.
+            for album in touched.clone() {
+                let vs: Vec<i64> = {
+                    let mut st = tx.prepare("SELECT id FROM album_version WHERE album_id = ?1")?;
+                    st.query_map([album], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?
+                };
+                for v in vs {
+                    versions::split_by_format(&tx, v)?;
+                }
+            }
+            for album in touched.clone() {
+                for made in huehuecoyotl_library::versions::check_track_lists(&tx, album, scan_id)? {
+                    settle_album(&tx, made)?;
+                    new_albums.push(made);
+                    touched.insert(made);
+                }
             }
             prune(&tx)?;
             // Covers only for albums that have none yet (and still exist).
@@ -622,36 +641,81 @@ fn set_credits(
     Ok(ids)
 }
 
-/// Put one file's track into its album. Returns (album, whether the album is new).
+/// Put one file's track into its album version and album (issue #63). Returns (album, whether
+/// the album is new).
 fn place(
     tx: &Transaction,
+    source_id: i64,
     file_id: &i64,
     rel: &str,
     t: &TrackInput,
     now: i64,
 ) -> rusqlite::Result<(i64, bool)> {
-    let key = album_key(rel, t);
+    let tg = &t.tags;
+    let title = if t.album.is_empty() {
+        "Unknown album".to_string()
+    } else {
+        t.album.clone()
+    };
+    // The version: this copy of the album (its folder on this source), keyed as 2.0 keyed albums.
+    let vkey = versions::version_key(source_id, &album_key(rel, t));
     let mut created = false;
-    let album: i64 = match tx
-        .query_row(
-            "SELECT id FROM item WHERE kind = 'album' AND group_key = ?1",
-            [&key],
-            |r| r.get(0),
+    // The folder's copy in this file's format, when the folder holds the album in several formats
+    // (split by an earlier scan); else the folder's copy.
+    let fmt = format!(
+        "{vkey}|{}",
+        versions::format_key(
+            &tg.audio.codec,
+            tg.audio.sample_rate,
+            tg.audio.bit_depth.map(u32::from)
         )
-        .optional()?
-    {
-        Some(id) => id,
+    );
+    let found: Option<(i64, i64)> = tx
+        .query_row(
+            "SELECT id, album_id FROM album_version WHERE key IN (?1, ?2) ORDER BY key = ?2 DESC LIMIT 1",
+            params![vkey, fmt],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .optional()?;
+    let (version, album) = match found {
+        Some(v) => v,
         None => {
-            let title = if t.album.is_empty() {
-                "Unknown album".to_string()
-            } else {
-                t.album.clone()
+            // A new copy joins the album it is a version or edition of.
+            let identity = versions::album_identity(
+                tg.mb_release_group.as_deref(),
+                tg.mb_release.as_deref(),
+                &album_key(rel, t),
+            );
+            let album = match tx
+                .query_row(
+                    "SELECT id FROM item WHERE kind = 'album' AND group_key = ?1 AND locked = 0 ORDER BY id LIMIT 1",
+                    [&identity],
+                    |r| r.get(0),
+                )
+                .optional()?
+            {
+                Some(id) => id,
+                None => {
+                    created = true;
+                    insert_item(tx, "album", &title, t.year, None, &identity, now)?
+                }
             };
-            created = true;
-            insert_item(tx, "album", &title, t.year, None, &key, now)?
+            tx.execute(
+                "INSERT INTO album_version(album_id, key, source_id, title, year, release_id, release_group)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    album,
+                    vkey,
+                    source_id,
+                    title,
+                    t.year,
+                    tg.mb_release.as_ref().map(|r| r.to_lowercase()),
+                    tg.mb_release_group.as_ref().map(|g| g.to_lowercase())
+                ],
+            )?;
+            (tx.last_insert_rowid(), album)
         }
     };
-    let tg = &t.tags;
     if !t.album_artists.is_empty() {
         set_credits(
             tx,
@@ -693,20 +757,32 @@ fn place(
             params![album, t.year],
         )?;
     }
-    // The track: the file's item when it has one (play counts stay), else a new one.
-    let existing: Option<i64> = tx
+    // The track: the album's track with this disc and title (another version, or a replaced
+    // file, has it already); else the file's own track when no other file shares it (play
+    // counts stay); else a new one.
+    let tkey = versions::track_key(
+        i64::from(t.disc_no.unwrap_or(1)),
+        &t.title,
+        t.track_no.map(i64::from),
+    );
+    let (same, tkey) = versions::find_track(tx, album, version, &tkey, t.track_no.map(i64::from))
+        .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+    let own: Option<i64> = tx
         .query_row(
-            "SELECT f.item_id FROM file f JOIN item i ON i.id = f.item_id WHERE f.id = ?1 AND i.kind = 'track'",
+            "SELECT f.item_id FROM file f JOIN item i ON i.id = f.item_id
+             WHERE f.id = ?1 AND i.kind = 'track'
+               AND NOT EXISTS (SELECT 1 FROM file o WHERE o.item_id = f.item_id AND o.id != f.id)",
             [file_id],
             |r| r.get(0),
         )
         .optional()?
         .flatten();
-    let track = match existing {
-        Some(id) => {
+    let track = match (same, own) {
+        (Some(id), _) => id,
+        (None, Some(id)) => {
             tx.execute(
-                "UPDATE item SET parent_id = ?2, title = ?3, sort_title = ?4, year = ?5 WHERE id = ?1",
-                params![id, album, t.title, sort_title(&t.title), t.year],
+                "UPDATE item SET parent_id = ?2, title = ?3, sort_title = ?4, year = ?5, group_key = ?6 WHERE id = ?1",
+                params![id, album, t.title, sort_title(&t.title), t.year, tkey],
             )?;
             tx.execute(
                 "UPDATE item_fts SET title = ?2 WHERE rowid = ?1",
@@ -714,23 +790,12 @@ fn place(
             )?;
             id
         }
-        None => {
-            let id = insert_item(
-                tx,
-                "track",
-                &t.title,
-                t.year,
-                Some(album),
-                &format!("file:{file_id}"),
-                now,
-            )?;
-            tx.execute(
-                "UPDATE file SET item_id = ?2 WHERE id = ?1",
-                params![file_id, id],
-            )?;
-            id
-        }
+        (None, None) => insert_item(tx, "track", &t.title, t.year, Some(album), &tkey, now)?,
     };
+    tx.execute(
+        "UPDATE file SET item_id = ?2, version_id = ?3 WHERE id = ?1",
+        params![file_id, track, version],
+    )?;
     // Disc and track also in the item's season and episode columns: ordered child queries (the
     // album's tracks) sort by them, as for a season's episodes.
     tx.execute(
@@ -818,6 +883,7 @@ fn settle_album(tx: &Transaction, album: i64) -> rusqlite::Result<()> {
 fn prune(tx: &Transaction) -> rusqlite::Result<()> {
     tx.execute_batch(
         "DELETE FROM item WHERE kind = 'track' AND NOT EXISTS (SELECT 1 FROM file f WHERE f.item_id = item.id);
+         DELETE FROM album_version WHERE NOT EXISTS (SELECT 1 FROM file f WHERE f.version_id = album_version.id);
          DELETE FROM item WHERE kind = 'album' AND NOT EXISTS (SELECT 1 FROM item t WHERE t.parent_id = item.id);
          DELETE FROM item WHERE kind = 'artist'
            AND NOT EXISTS (SELECT 1 FROM item a WHERE a.parent_id = item.id)

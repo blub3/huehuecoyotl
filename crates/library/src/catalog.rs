@@ -253,6 +253,8 @@ pub struct Summary {
     /// Music (2.0): an album's artist, a track's album; "" otherwise.
     pub subtitle: String,
     pub parent_id: Option<i64>,
+    /// Issue #63: how many versions an album has (0 for everything else).
+    pub versions: i64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -307,7 +309,8 @@ const SUMMARY_COLS: &str = concat!("i.id, i.kind, i.title, i.year, i.season_no, 
       ELSE EXISTS (SELECT 1 FROM file f WHERE f.item_id = i.id) END,
     i.runtime_min, ", saved_sql!(), ",
     CASE WHEN i.kind IN ('album','track') THEN (SELECT p2.title FROM item p2 WHERE p2.id = i.parent_id) ELSE '' END,
-    i.parent_id");
+    i.parent_id,
+    CASE WHEN i.kind = 'album' THEN (SELECT count(*) FROM album_version v WHERE v.album_id = i.id) ELSE 0 END");
 
 fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
     let st = PlayState {
@@ -329,6 +332,7 @@ fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
         saved: r.get(15)?,
         subtitle: r.get::<_, Option<String>>(16)?.unwrap_or_default(),
         parent_id: r.get(17)?,
+        versions: r.get(18)?,
         progress: st.progress(),
         watched: st.watched,
         unwatched: r.get(10)?,

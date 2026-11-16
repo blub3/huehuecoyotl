@@ -22,6 +22,7 @@ use std::time::{Duration, Instant};
 use async_trait::async_trait;
 use bytes::Bytes;
 use huehuecoyotl_library::copies::{self, Copy, NewCopy};
+use huehuecoyotl_library::rusqlite::OptionalExtension;
 use huehuecoyotl_library::{catalog, jobs};
 use huehuecoyotl_vfs::{Caps, Entry, LocalSource, Source, VPath, VfsError, find_sidecar_subtitles};
 use serde_json::json;
@@ -788,14 +789,51 @@ async fn family(inner: &Arc<Inner>, id: i64) -> CResult<Vec<Copy>> {
 /// or of every episode of a season or show. Already saved or running copies are kept; failed
 /// and outdated ones are made again. Returns the new main rows.
 pub(crate) async fn save(inner: &Arc<Inner>, item_id: i64, file_id: i64) -> CResult<Vec<i64>> {
-    let items = inner
-        .lib
-        .read(move |c| copies::playable_items(c, item_id))
-        .await?;
+    // Issue #63: an album with a file named saves that file's version: each track's file in it.
+    let version_files: Option<Vec<(i64, i64)>> = if file_id > 0 {
+        inner
+            .lib
+            .read(move |c| {
+                let v: Option<i64> = c
+                    .query_row(
+                        "SELECT f.version_id FROM file f JOIN item i ON i.id = ?2 AND i.kind = 'album' WHERE f.id = ?1",
+                        [file_id, item_id],
+                        |r| r.get(0),
+                    )
+                    .optional()?
+                    .flatten();
+                match v {
+                    Some(v) => Ok(Some(huehuecoyotl_library::versions::version_tracks(c, v, "quality")?)),
+                    None => Ok(None),
+                }
+            })
+            .await?
+    } else {
+        None
+    };
+    let items = match &version_files {
+        Some(pairs) => pairs.iter().map(|(t, _)| *t).collect(),
+        None => {
+            inner
+                .lib
+                .read(move |c| copies::playable_items(c, item_id))
+                .await?
+        }
+    };
     let single = items.len() == 1 && items[0] == item_id;
     let mut made = Vec::new();
     for it in items {
-        let file = if single && file_id > 0 {
+        let in_version = version_files
+            .as_ref()
+            .and_then(|p| p.iter().find(|(t, _)| *t == it).map(|(_, f)| *f));
+        let file = if let Some(f) = in_version {
+            // A file of the version on this computer needs no copy.
+            let t = inner.lib.read(move |c| copies::target(c, f)).await?;
+            match t {
+                Some(t) if t.source_kind != "local" => Some(f),
+                _ => None,
+            }
+        } else if single && file_id > 0 {
             let t = inner
                 .lib
                 .read(move |c| copies::target(c, file_id))

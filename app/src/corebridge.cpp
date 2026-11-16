@@ -62,7 +62,8 @@ QVariantMap summaryMap(const coyotl::core::ItemSummary &s)
             {"runtimeMin", s.runtime_min},
             {"saved", s.saved},
             {"subtitle", qs(s.subtitle)},
-            {"parentId", qlonglong(s.parent_id)}};
+            {"parentId", qlonglong(s.parent_id)},
+            {"versions", qlonglong(s.versions)}};
 }
 
 // Issue #4: the state of an item's saved copies.
@@ -482,11 +483,24 @@ quint64 CoreBridge::setMusicKey(const QString &provider, const QString &key)
     return id;
 }
 
-quint64 CoreBridge::albumDetail(qint64 albumId)
+quint64 CoreBridge::albumDetail(qint64 albumId, qint64 version, const QString &preference)
 {
     const quint64 id = nextId();
-    if (m_core) (*m_core)->album_detail(id, albumId);
+    const QByteArray p = (preference.isEmpty() ? QStringLiteral("quality") : preference).toUtf8();
+    if (m_core) (*m_core)->album_detail(id, albumId, version, rs(p));
     return id;
+}
+
+quint64 CoreBridge::splitAlbumVersion(qint64 version)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->split_album_version(id, version);
+    return id;
+}
+
+void CoreBridge::setTrackFile(qint64 track, qint64 file)
+{
+    if (m_core) (*m_core)->set_track_file(track, file);
 }
 
 quint64 CoreBridge::artistDetail(qint64 artistId)
@@ -556,19 +570,26 @@ std::vector<int64_t> ids(const QList<qint64> &items)
 }
 } // namespace
 
-quint64 CoreBridge::queuePlay(const QList<qint64> &items, qint64 startItem, bool shuffle)
+quint64 CoreBridge::queuePlay(const QList<qint64> &items, qint64 startItem, bool shuffle, qint64 version,
+                              const QString &preference)
 {
     const quint64 id = nextId();
     const auto v = ids(items);
-    if (m_core) (*m_core)->queue_play(id, rust::Slice<const int64_t>(v.data(), v.size()), startItem, shuffle);
+    const QByteArray p = (preference.isEmpty() ? QStringLiteral("quality") : preference).toUtf8();
+    if (m_core)
+        (*m_core)->queue_play(id, rust::Slice<const int64_t>(v.data(), v.size()), startItem, shuffle, version,
+                              rs(p));
     return id;
 }
 
-quint64 CoreBridge::queueInsert(const QList<qint64> &items, bool next)
+quint64 CoreBridge::queueInsert(const QList<qint64> &items, bool next, qint64 version,
+                                const QString &preference)
 {
     const quint64 id = nextId();
     const auto v = ids(items);
-    if (m_core) (*m_core)->queue_insert(id, rust::Slice<const int64_t>(v.data(), v.size()), next);
+    const QByteArray p = (preference.isEmpty() ? QStringLiteral("quality") : preference).toUtf8();
+    if (m_core)
+        (*m_core)->queue_insert(id, rust::Slice<const int64_t>(v.data(), v.size()), next, version, rs(p));
     return id;
 }
 

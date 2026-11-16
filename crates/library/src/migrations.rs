@@ -10,6 +10,9 @@ pub enum Migration {
     /// A table rebuild (SQLite's twelve-step procedure): runs with foreign keys off, so dropping
     /// the old table cascades nothing, and commits only when `PRAGMA foreign_key_check` is clean.
     Rebuild(fn(&Transaction) -> crate::Result<()>),
+    /// Rust that merges rows (9: album versions): the database is copied first, as before a
+    /// rebuild, so the user can go back.
+    Merge(fn(&Transaction) -> crate::Result<()>),
 }
 
 pub const MIGRATIONS: &[Migration] = &[
@@ -174,6 +177,9 @@ CREATE TABLE setting(key TEXT PRIMARY KEY, value TEXT NOT NULL);
     // of library folders, and the music tables. Ids are kept, so files, play state, artwork and
     // offline copies stay attached.
     Migration::Rebuild(music_schema),
+    // 9 (issue #63): album versions and editions. Every album becomes a version of an album keyed
+    // by its release group, release, or album artist, title and year; copies are merged.
+    Migration::Merge(music_versions),
 ];
 
 /// The old and new kind constraint of `item`.
@@ -253,3 +259,7 @@ CREATE TABLE play_queue (position INTEGER PRIMARY KEY,
 ALTER TABLE playstate ADD COLUMN play_count INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE playstate ADD COLUMN last_played_at INTEGER;
 "#;
+
+fn music_versions(tx: &Transaction) -> crate::Result<()> {
+    crate::versions::migration_9(tx)
+}

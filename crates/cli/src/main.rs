@@ -46,6 +46,7 @@ fn usage() -> ExitCode {
          \x20      | library add PATH [--music] | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
          \x20      | music artists | music albums | music tracks ALBUM | music album ID | music artist ID (a music folder's artists, albums, tracks)\n\
          \x20      | music online [on|off] (look music up at MusicBrainz and the Cover Art Archive)\n\
+         \x20      | music album ID VERSION (an album's page for one version) | music split VERSION (this is a different album)\n\
          \x20      | music keys | music key theaudiodb|fanarttv (key from COYOTL_MUSIC_KEY; none removes it)\n\
          \x20      | queue | queue play|shuffle|next|add ID... | queue clear (the music play queue; tracks, albums or artists)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
@@ -341,6 +342,21 @@ fn main() -> ExitCode {
             core.set_music_key(1, provider, &key);
             wait()
         }
+        // Issue #63: an album's page for one of its versions; "this is a different album".
+        ("music", [what, album, version]) if what == "album" => {
+            let (Ok(album), Ok(version)) = (album.parse(), version.parse()) else {
+                return usage();
+            };
+            core.album_detail(1, album, version, "quality");
+            wait()
+        }
+        ("music", [what, version]) if what == "split" => {
+            let Ok(version) = version.parse() else {
+                return usage();
+            };
+            core.split_album_version(1, version);
+            wait()
+        }
         // Issue #8: the play queue (the CLI shows it; it does not play).
         ("queue", []) => {
             core.queue_state(1);
@@ -355,10 +371,10 @@ fn main() -> ExitCode {
                 return usage();
             };
             match what.as_str() {
-                "play" => core.queue_play(1, ids, 0, false),
-                "shuffle" => core.queue_play(1, ids, 0, true),
-                "next" => core.queue_insert(1, ids, true),
-                "add" => core.queue_insert(1, ids, false),
+                "play" => core.queue_play(1, ids, 0, false, 0, "quality"),
+                "shuffle" => core.queue_play(1, ids, 0, true, 0, "quality"),
+                "next" => core.queue_insert(1, ids, true, 0, "quality"),
+                "add" => core.queue_insert(1, ids, false, 0, "quality"),
                 _ => return usage(),
             }
             wait()
@@ -380,7 +396,7 @@ fn main() -> ExitCode {
         ("music", [what, id]) if what == "album" || what == "artist" => {
             let Ok(id) = id.parse() else { return usage() };
             if what == "album" {
-                core.album_detail(1, id);
+                core.album_detail(1, id, 0, "quality");
             } else {
                 core.artist_detail(1, id);
             }

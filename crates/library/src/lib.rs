@@ -9,6 +9,8 @@ mod migrations;
 pub mod music;
 pub mod queries;
 pub mod queue;
+pub mod text;
+pub mod versions;
 
 use std::path::Path;
 use std::thread;
@@ -70,7 +72,7 @@ pub fn migrate(c: &mut Connection) -> Result<usize> {
             let tx = c.transaction()?;
             match &MIGRATIONS[v] {
                 Migration::Sql(sql) => tx.execute_batch(sql)?,
-                Migration::Rust(f) | Migration::Rebuild(f) => f(&tx)?,
+                Migration::Rust(f) | Migration::Rebuild(f) | Migration::Merge(f) => f(&tx)?,
             }
             if rebuild {
                 let broken: i64 =
@@ -98,13 +100,13 @@ pub fn migrate(c: &mut Connection) -> Result<usize> {
     Ok(v)
 }
 
-/// Before a migration that rebuilds a table (8: music), keep a copy of the database next to it
+/// Before a migration that rebuilds a table (8: music) or merges rows (9: album versions), keep a copy of the database next to it
 /// (`library.db.before-8`), made with `VACUUM INTO`, so the user can go back to the previous
 /// version. An existing copy is kept.
 fn backup_before_rebuild(c: &Connection, path: &Path) -> Result<()> {
     let v: usize = c.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))? as usize;
-    let Some(next) =
-        (v..MIGRATIONS.len()).find(|i| matches!(MIGRATIONS[*i], Migration::Rebuild(_)))
+    let Some(next) = (v..MIGRATIONS.len())
+        .find(|i| matches!(MIGRATIONS[*i], Migration::Rebuild(_) | Migration::Merge(_)))
     else {
         return Ok(());
     };
@@ -259,7 +261,9 @@ mod tests {
                 let tx = c.transaction().unwrap();
                 match m {
                     Migration::Sql(sql) => tx.execute_batch(sql).unwrap(),
-                    Migration::Rust(f) | Migration::Rebuild(f) => f(&tx).unwrap(),
+                    Migration::Rust(f) | Migration::Rebuild(f) | Migration::Merge(f) => {
+                        f(&tx).unwrap()
+                    }
                 }
                 tx.commit().unwrap();
             }
@@ -322,6 +326,13 @@ mod tests {
                 let trimmed: Vec<String> = now
                     .iter()
                     .map(|r| r.rsplitn(3, '|').nth(2).unwrap().to_string())
+                    .collect();
+                assert_eq!(trimmed, before.0[i], "{t}");
+            } else if *t == "file" {
+                // Migration 9 adds the version (none for video files) at the end.
+                let trimmed: Vec<String> = now
+                    .iter()
+                    .map(|r| r.rsplit_once('|').unwrap().0.to_string())
                     .collect();
                 assert_eq!(trimmed, before.0[i], "{t}");
             } else {
