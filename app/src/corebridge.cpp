@@ -1,4 +1,5 @@
 #include "corebridge.h"
+#include "episodemodel.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -93,6 +94,35 @@ QVariantMap downloadMap(const coyotl::core::DownloadEntry &d)
             {"completedAt", qlonglong(d.completed_at)}};
 }
 
+// A movie's or episode's file (version), with its probe as an object for QML (null until the
+// file is analysed; trimmed for episode tiles, issue #48).
+QVariantMap fileMap(const coyotl::core::FileRef &f)
+{
+    return {{"id", qlonglong(f.id)},
+            {"path", qs(f.path)},
+            {"size", qlonglong(f.size)},
+            {"sourceName", qs(f.source_name)},
+            {"sourceKind", qs(f.source_kind)},
+            {"online", f.online},
+            {"saved", f.saved},
+            {"edition", qs(f.edition)},
+            {"positionMs", qulonglong(f.position_ms)},
+            {"probe", f.probe_json.empty()
+                          ? QVariant()
+                          : QJsonDocument::fromJson(QByteArray::fromStdString(std::string(f.probe_json)))
+                                .object()
+                                .toVariantMap()}};
+}
+
+QVariantList fileList(const rust::Vec<coyotl::core::FileRef> &v)
+{
+    QVariantList out;
+    out.reserve(qsizetype(v.size()));
+    for (const auto &f : v)
+        out.append(fileMap(f));
+    return out;
+}
+
 QVariantList summaries(const rust::Vec<coyotl::core::ItemSummary> &v)
 {
     QVariantList out;
@@ -134,6 +164,16 @@ CoreBridge::CoreBridge(const QString &dataDir, const QString &language, QObject 
         m_core.emplace(coyotl::core::core_open(rs(dir), rs(lang), std::move(sink)));
         refreshKeyStatus();
         qCInfo(lcCore) << "core" << version() << "opened in" << dataDir;
+        EpisodeModel::setBackend(
+            {[this](qint64 season, int offset, int limit) { return seasonEpisodes(season, offset, limit); },
+             [this](quint64 id) { cancel(id); },
+             [this](EpisodeModel *m) {
+                 connect(this, &CoreBridge::episodesReady, m, &EpisodeModel::onPage);
+                 connect(this, &CoreBridge::requestFailed, m, [m](quint64 id) { m->onFailed(id); });
+                 connect(this, &CoreBridge::downloadProgress, m, &EpisodeModel::onProgress);
+                 connect(this, &CoreBridge::itemChanged, m, &EpisodeModel::onItemChanged);
+                 connect(this, &CoreBridge::libraryChanged, m, &EpisodeModel::refresh);
+             }});
     } catch (const rust::Error &e) {
         m_openError = QString::fromUtf8(e.what());
         qCCritical(lcCore) << "cannot open core:" << m_openError;
@@ -377,6 +417,13 @@ quint64 CoreBridge::itemDetail(qint64 itemId)
     return id;
 }
 
+quint64 CoreBridge::seasonEpisodes(qint64 seasonId, int offset, int limit)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->season_episodes(id, seasonId, uint32_t(qMax(0, offset)), uint32_t(qMax(1, limit)));
+    return id;
+}
+
 quint64 CoreBridge::review()
 {
     const quint64 id = nextId();
@@ -531,25 +578,21 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
         emit itemChanged(e.item_id);
     } else if (e.kind == K::Page) {
         emit pageReady(e.request_id, int(e.total), int(e.offset), summaries(e.items));
+    } else if (e.kind == K::Episodes) {
+        QVariantList rows;
+        rows.reserve(qsizetype(e.episodes.size()));
+        for (const auto &ep : e.episodes) {
+            QVariantMap m = summaryMap(ep.item);
+            m.insert({{"files", fileList(ep.files)},
+                      {"lastFileId", qlonglong(ep.last_file_id)},
+                      {"durationMs", qulonglong(ep.duration_ms)},
+                      {"positionMs", qulonglong(ep.position_ms)},
+                      {"save", saveMap(ep.save)}});
+            rows.append(m);
+        }
+        emit episodesReady(e.request_id, int(e.total), int(e.offset), rows);
     } else if (e.kind == K::Detail) {
         const auto &d = e.detail;
-        QVariantList files;
-        for (const auto &f : d.files)
-            files.append(QVariantMap{
-                {"id", qlonglong(f.id)},
-                {"path", qs(f.path)},
-                {"size", qlonglong(f.size)},
-                {"sourceName", qs(f.source_name)},
-                {"sourceKind", qs(f.source_kind)},
-                {"online", f.online},
-                {"edition", qs(f.edition)},
-                {"positionMs", qulonglong(f.position_ms)},
-                // The probe as an object for QML (null until the file is analysed).
-                {"probe", f.probe_json.empty()
-                              ? QVariant()
-                              : QJsonDocument::fromJson(QByteArray::fromStdString(std::string(f.probe_json)))
-                                    .object()
-                                    .toVariantMap()}});
         QVariantMap m = summaryMap(d.item);
         m.insert({{"originalTitle", qs(d.original_title)},
                   {"rating", d.rating},
@@ -561,7 +604,7 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                   {"matchState", qs(d.match_state)},
                   {"tmdbId", qlonglong(d.tmdb_id)},
                   {"parentTitle", qs(d.parent_title)},
-                  {"files", files},
+                  {"files", fileList(d.files)},
                   {"positionMs", qulonglong(d.position_ms)},
                   {"durationMs", qulonglong(d.duration_ms)},
                   {"lastFileId", qlonglong(d.last_file_id)},

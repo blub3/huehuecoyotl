@@ -235,16 +235,26 @@ function better(a, b) {
     return false
 }
 
-// Which version the page opens with: the one played last when it can be reached, else the
-// best reachable one by `preference` ("quality" or "smallest"); offline ones only when nothing
+// A version can be played when its source can be reached or a saved copy of it is on this
+// computer (issue #48).
+function playable(file) { return !!file && (file.online || file.saved === true) }
+
+// The version list's entry: the label, and why an unreachable one is (not) playable.
+function versionChoice(file) {
+    if (file.online) return versionLabel(file)
+    return versionLabel(file) + "  ·  " + (file.saved ? qsTr("offline, plays the saved copy") : qsTr("offline"))
+}
+
+// Which version the page opens with: the one played last when it can be played, else the
+// best playable one by `preference` ("quality" or "smallest"); unplayable ones only when nothing
 // else is left.
 function preselect(files, lastFileId, preference) {
     if (!files || files.length === 0) return 0
-    const last = files.findIndex(f => f.id === lastFileId && f.online)
+    const last = files.findIndex(f => f.id === lastFileId && playable(f))
     if (last >= 0) return last
     let best = -1
     files.forEach((f, i) => {
-        if (!f.online) return
+        if (!playable(f)) return
         if (best < 0) { best = i; return }
         const b = files[best]
         const pick = preference === "smallest" ? f.size < b.size : better(f, b)

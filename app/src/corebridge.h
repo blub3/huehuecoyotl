@@ -67,6 +67,8 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 recentlyAdded(int limit = 20);
     Q_INVOKABLE quint64 search(const QString &text);
     Q_INVOKABLE quint64 itemDetail(qint64 itemId);
+    // Issue #48: one page of a season's episodes for the tiles (answers with episodesReady).
+    Q_INVOKABLE quint64 seasonEpisodes(qint64 seasonId, int offset, int limit);
     // Issue #33: analyse this file before the others ("Analyse now").
     Q_INVOKABLE void probeNow(qint64 fileId);
     Q_INVOKABLE quint64 review();
@@ -140,6 +142,7 @@ class CoreBridge : public QObject {
     void requestFailed(quint64 requestId, int kind, const QString &message);
     void pageReady(quint64 requestId, int total, int offset, const QVariantList &items);
     void detailReady(quint64 requestId, const QVariantMap &detail);
+    void episodesReady(quint64 requestId, int total, int offset, const QVariantList &episodes);
     void librariesListed(quint64 requestId, const QVariantList &libraries);
     void reviewReady(quint64 requestId, const QVariantList &items);
     void candidatesReady(quint64 requestId, qint64 itemId, const QVariantList &candidates);

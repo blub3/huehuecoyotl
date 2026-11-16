@@ -30,7 +30,7 @@ use tokio::sync::Notify;
 use tokio::task::AbortHandle;
 
 pub use download::{DownloadInfo, available_space, is_portal_path};
-pub use huehuecoyotl_library::catalog::{CandidateRow, Detail, FileInfo, Summary};
+pub use huehuecoyotl_library::catalog::{CandidateRow, Detail, EpisodeRow, FileInfo, Summary};
 pub use huehuecoyotl_library::copies::SaveInfo;
 pub use network::{Discovered, NetworkSpec};
 pub use queries::TrackPref;
@@ -205,6 +205,13 @@ pub enum Event {
         offset: u32,
         items: Vec<Summary>,
     },
+    /// Issue #48: a page of a season's episodes (`Core::season_episodes`).
+    Episodes {
+        request_id: u64,
+        total: u32,
+        offset: u32,
+        items: Vec<EpisodeRow>,
+    },
     Detail {
         request_id: u64,
         detail: Box<Detail>,
@@ -273,6 +280,8 @@ pub enum Event {
         id: i64,
         main_id: i64,
         item_id: i64,
+        /// saved | export (issue #48: tiles show only saved copies' progress).
+        kind: String,
         state: String,
         bytes_done: u64,
         size: u64,

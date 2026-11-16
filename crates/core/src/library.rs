@@ -269,11 +269,7 @@ impl Core {
                 message: format!("item {item_id}"),
             })?;
             let offline = inner.offline.lock().unwrap().clone();
-            for f in &mut d.files {
-                f.online = !offline.contains(&f.source_id);
-                let name = f.path.rsplit('/').next().unwrap_or(&f.path);
-                f.edition = huehuecoyotl_scanner::parse::edition(name).unwrap_or_default();
-            }
+            decorate(&mut d.files, &offline);
             let _ = inner
                 .lib
                 .write(move |c| jobs::bump_items(c, &[item_id]))
@@ -281,6 +277,35 @@ impl Core {
             Ok(Event::Detail {
                 request_id,
                 detail: Box::new(d),
+            })
+        });
+    }
+
+    /// Issue #48: one page of a season's episodes with their versions (probe data trimmed to
+    /// labels and the summary line) and saved-copy state. The full probe of an episode comes with
+    /// `item_detail`, when its details panel is opened.
+    pub fn season_episodes(&self, request_id: u64, season_id: i64, offset: u32, limit: u32) {
+        let limit = limit.clamp(1, 500);
+        self.spawn(request_id, move |inner| async move {
+            let (total, mut items) = inner
+                .lib
+                .read(move |c| catalog::episodes(c, season_id, offset, limit))
+                .await?;
+            let offline = inner.offline.lock().unwrap().clone();
+            for e in &mut items {
+                decorate(&mut e.files, &offline);
+                for f in &mut e.files {
+                    f.probe_json = compact_probe(&f.probe_json);
+                }
+            }
+            let ids: Vec<i64> = items.iter().map(|e| e.item.id).collect();
+            // Episodes on screen are matched and probed first (SPEC 7).
+            let _ = inner.lib.write(move |c| jobs::bump_items(c, &ids)).await;
+            Ok(Event::Episodes {
+                request_id,
+                total,
+                offset,
+                items,
             })
         });
     }
@@ -417,6 +442,71 @@ impl Core {
     }
 }
 
+/// Whether each file's source can be reached, and its edition from the file name (issue #34).
+fn decorate(files: &mut [catalog::FileInfo], offline: &std::collections::HashSet<i64>) {
+    for f in files {
+        f.online = !offline.contains(&f.source_id);
+        let name = f.path.rsplit('/').next().unwrap_or(&f.path);
+        f.edition = huehuecoyotl_scanner::parse::edition(name).unwrap_or_default();
+    }
+}
+
+/// Issue #48: the part of a probe that version labels, badges and the summary line use (the first
+/// video track; codec, profile, layout and default flag of each audio track; the subtitle
+/// languages; duration and overall bit rate). "" stays "".
+pub(crate) fn compact_probe(json: &str) -> String {
+    use serde_json::{Map, Value};
+    let Ok(Value::Object(full)) = serde_json::from_str::<Value>(json) else {
+        return String::new();
+    };
+    let pick = |v: &Value, keys: &[&str]| -> Value {
+        let mut m = Map::new();
+        for k in keys {
+            if let Some(x) = v.get(*k) {
+                if !x.is_null() {
+                    m.insert((*k).to_string(), x.clone());
+                }
+            }
+        }
+        Value::Object(m)
+    };
+    let list = |key: &str, keys: &[&str], first_only: bool| -> Value {
+        let items = full
+            .get(key)
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        let n = if first_only {
+            items.len().min(1)
+        } else {
+            items.len()
+        };
+        Value::Array(items[..n].iter().map(|v| pick(v, keys)).collect())
+    };
+    let mut out = match pick(
+        &Value::Object(full.clone()),
+        &["schema", "error", "duration_ms", "bitrate"],
+    ) {
+        Value::Object(m) => m,
+        _ => Map::new(),
+    };
+    out.insert(
+        "video".into(),
+        list(
+            "video",
+            &["codec", "width", "height", "hdr", "dv_profile", "bit_depth"],
+            true,
+        ),
+    );
+    out.insert(
+        "audio".into(),
+        list("audio", &["codec", "profile", "layout", "default"], false),
+    );
+    out.insert("subtitles".into(), list("subtitles", &["language"], false));
+    out.insert("compact".into(), Value::Bool(true));
+    Value::Object(out).to_string()
+}
+
 fn meta_err(e: MetaError) -> CoreError {
     let kind = match e {
         MetaError::Auth => ErrorKind::Auth,
@@ -427,5 +517,58 @@ fn meta_err(e: MetaError) -> CoreError {
     CoreError {
         kind,
         message: e.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compact_probe_keeps_what_labels_need() {
+        let full = r#"{"schema":3,"source":"ffmpeg","container":"matroska","duration_ms":1200000,"size":5,
+            "bitrate":{"bps":8000000,"estimated":false},"chapters":12,
+            "video":[{"codec":"hevc","profile":"Main 10","width":3840,"height":2160,"bit_depth":10,"hdr":"Dolby Vision",
+                      "dv_profile":"8.1","primaries":"bt2020","fps":23.976},{"codec":"mjpeg","width":1,"height":1}],
+            "audio":[{"codec":"truehd","profile":"Dolby TrueHD + Dolby Atmos","layout":"7.1","channels":8,"default":true,
+                      "language":"eng","sample_rate":48000},{"codec":"ac3","layout":"5.1","default":false}],
+            "subtitles":[{"language":"eng","format":"subrip","forced":false},{"language":"ger","format":"pgs"}]}"#;
+        let v: serde_json::Value = serde_json::from_str(&compact_probe(full)).unwrap();
+        assert_eq!(v["duration_ms"], 1200000);
+        assert_eq!(v["bitrate"]["bps"], 8000000);
+        assert_eq!(v["video"].as_array().unwrap().len(), 1);
+        assert_eq!(v["video"][0]["dv_profile"], "8.1");
+        assert!(v["video"][0].get("primaries").is_none());
+        assert_eq!(v["audio"][0]["profile"], "Dolby TrueHD + Dolby Atmos");
+        assert!(v["audio"][0].get("sample_rate").is_none());
+        assert_eq!(v["audio"].as_array().unwrap().len(), 2);
+        assert_eq!(v["subtitles"].as_array().unwrap().len(), 2);
+        assert!(v["subtitles"][0].get("format").is_none());
+        assert!(v.get("chapters").is_none());
+        assert_eq!(v["compact"], true);
+        // Not analysed, or unreadable JSON: nothing.
+        assert_eq!(compact_probe(""), "");
+        let err: serde_json::Value =
+            serde_json::from_str(&compact_probe(r#"{"schema":3,"error":"bad file"}"#)).unwrap();
+        assert_eq!(err["error"], "bad file");
+    }
+
+    #[test]
+    fn decorate_marks_offline_sources_and_editions() {
+        let mut files = vec![
+            catalog::FileInfo {
+                source_id: 3,
+                path: "/share/Alien (1979) Director's Cut.mkv".into(),
+                ..Default::default()
+            },
+            catalog::FileInfo {
+                source_id: 2,
+                path: "/m/Alien.mkv".into(),
+                ..Default::default()
+            },
+        ];
+        decorate(&mut files, &[3].into_iter().collect());
+        assert!(!files[0].online && files[1].online);
+        assert_eq!(files[0].edition, "Director's Cut");
     }
 }

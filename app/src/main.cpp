@@ -70,10 +70,10 @@ int main(int argc, char *argv[])
     cli.addVersionOption();
     cli.addOption({"fullscreen", QCoreApplication::translate("main", "Start in fullscreen.")});
     cli.addOption({"data-dir", QCoreApplication::translate("main", "Use this data folder."), "dir"});
-    cli.addOption(
-        {"benchmark",
-         QCoreApplication::translate("main", "Measure a performance budget and quit: startup or scroll."),
-         "name"});
+    cli.addOption({"benchmark",
+                   QCoreApplication::translate(
+                       "main", "Measure a performance budget and quit: startup, scroll or episodes."),
+                   "name"});
     cli.addOption({"benchmark-out",
                    QCoreApplication::translate("main", "Also write the benchmark result to this file."),
                    "file"});
