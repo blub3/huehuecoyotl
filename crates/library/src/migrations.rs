@@ -180,6 +180,9 @@ CREATE TABLE setting(key TEXT PRIMARY KEY, value TEXT NOT NULL);
     // 9 (issue #63): album versions and editions. Every album becomes a version of an album keyed
     // by its release group, release, or album artist, title and year; copies are merged.
     Migration::Merge(music_versions),
+    // 10 (2.5, SPEC 7 "Audiobook library"): the kinds audiobook, person and book_series, the
+    // content type audiobooks, and the book tables. Ids are kept.
+    Migration::Rebuild(audiobook_schema),
 ];
 
 /// The old and new kind constraint of `item`.
@@ -263,3 +266,95 @@ ALTER TABLE playstate ADD COLUMN last_played_at INTEGER;
 fn music_versions(tx: &Transaction) -> crate::Result<()> {
     crate::versions::migration_9(tx)
 }
+
+const KINDS_10: &str = "CHECK (kind IN ('movie','show','season','episode','video','artist','album','track','audiobook','person','book_series'))";
+const CONTENT_8: &str = "CHECK (content IN ('video','music'))";
+const CONTENT_10: &str = "CHECK (content IN ('video','music','audiobooks'))";
+
+/// SQLite's twelve-step table rebuild for a changed CHECK: `table` is recreated from its own
+/// current SQL with `from` replaced by `to`, its rows copied with their ids, and its indexes
+/// recreated. Runs with foreign keys off (a `Rebuild` migration).
+fn rebuild_with(tx: &Transaction, table: &str, from: &str, to: &str) -> crate::Result<()> {
+    let sql: String = tx.query_row(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?1",
+        [table],
+        |r| r.get(0),
+    )?;
+    if !sql.contains(from) {
+        return Err(crate::DbError::Other(format!(
+            "unexpected {table} table, not migrating: {sql}"
+        )));
+    }
+    let tmp = format!("{table}_new");
+    let new_sql = sql
+        .replacen(from, to, 1)
+        .replacen(
+            &format!("CREATE TABLE {table} "),
+            &format!("CREATE TABLE {tmp} "),
+            1,
+        )
+        .replacen(
+            &format!("CREATE TABLE \"{table}\""),
+            &format!("CREATE TABLE {tmp}"),
+            1,
+        );
+    if !new_sql.contains(&tmp) {
+        return Err(crate::DbError::Other(format!(
+            "cannot rename {table}: {sql}"
+        )));
+    }
+    let indexes: Vec<String> = {
+        let mut st = tx.prepare(
+            "SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = ?1 AND sql IS NOT NULL",
+        )?;
+        st.query_map([table], |r| r.get(0))?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    tx.execute_batch(&new_sql)?;
+    tx.execute_batch(&format!(
+        "INSERT INTO {tmp} SELECT * FROM {table}; DROP TABLE {table}; ALTER TABLE {tmp} RENAME TO {table};"
+    ))?;
+    for ix in &indexes {
+        tx.execute_batch(ix)?;
+    }
+    Ok(())
+}
+
+fn audiobook_schema(tx: &Transaction) -> crate::Result<()> {
+    rebuild_with(tx, "item", KINDS_8, KINDS_10)?;
+    rebuild_with(tx, "source", CONTENT_8, CONTENT_10)?;
+    tx.execute_batch(AUDIOBOOK_TABLES)?;
+    Ok(())
+}
+
+const AUDIOBOOK_TABLES: &str = r#"
+CREATE TABLE book       (item_id INTEGER PRIMARY KEY REFERENCES item(id) ON DELETE CASCADE,
+                         key TEXT NOT NULL,
+                         series_position REAL,
+                         publisher TEXT, published TEXT,
+                         language TEXT,
+                         isbn TEXT, asin TEXT,
+                         duration_ms INTEGER NOT NULL DEFAULT 0,
+                         cover_ratio REAL,
+                         speed REAL,
+                         locked TEXT NOT NULL DEFAULT '[]',
+                         drm INTEGER NOT NULL DEFAULT 0);
+CREATE UNIQUE INDEX book_key ON book(key);
+CREATE TABLE book_credit(book_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         person_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         role TEXT NOT NULL CHECK (role IN ('author','narrator')),
+                         position INTEGER NOT NULL,
+                         PRIMARY KEY (book_id, role, position));
+CREATE INDEX book_credit_person ON book_credit(person_id, role);
+CREATE TABLE book_file  (file_id INTEGER PRIMARY KEY REFERENCES file(id) ON DELETE CASCADE,
+                         book_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         idx INTEGER NOT NULL,
+                         start_ms INTEGER NOT NULL, duration_ms INTEGER NOT NULL);
+CREATE INDEX book_file_book ON book_file(book_id, idx);
+CREATE TABLE chapter    (book_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         idx INTEGER NOT NULL,
+                         title TEXT NOT NULL,
+                         start_ms INTEGER NOT NULL, end_ms INTEGER NOT NULL,
+                         file_id INTEGER REFERENCES file(id) ON DELETE SET NULL,
+                         PRIMARY KEY (book_id, idx));
+"#;

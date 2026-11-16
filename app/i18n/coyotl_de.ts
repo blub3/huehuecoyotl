@@ -224,37 +224,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="679"/>
+        <location filename="../src/corebridge.cpp" line="681"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="681"/>
+        <location filename="../src/corebridge.cpp" line="683"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="683"/>
+        <location filename="../src/corebridge.cpp" line="685"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="685"/>
+        <location filename="../src/corebridge.cpp" line="687"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="687"/>
+        <location filename="../src/corebridge.cpp" line="689"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="689"/>
+        <location filename="../src/corebridge.cpp" line="691"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="922"/>
+        <location filename="../src/corebridge.cpp" line="924"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -1785,38 +1785,43 @@
         <translation>Enthält: Musik</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="364"/>
+        <location filename="../qml/NetworkSharePage.qml" line="365"/>
         <source>Contains: video</source>
         <translation>Enthält: Videos</translation>
     </message>
     <message>
         <location filename="../qml/NetworkSharePage.qml" line="365"/>
-        <source>Video folders become Movies and Shows, music folders Music</source>
-        <translation>Videoordner landen unter Filme und Serien, Musikordner unter Musik</translation>
+        <source>Contains: audiobooks</source>
+        <translation>Enthält: Hörbücher</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="386"/>
+        <location filename="../qml/NetworkSharePage.qml" line="366"/>
+        <source>Video folders become Movies and Shows, music folders Music, audiobook folders Audiobooks</source>
+        <translation>Videoordner landen unter Filme und Serien, Musikordner unter Musik, Hörbuchordner unter Hörbücher</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="387"/>
         <source>Server key fingerprint: %1</source>
         <translation>Fingerabdruck des Server-Schlüssels: %1</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="395"/>
+        <location filename="../qml/NetworkSharePage.qml" line="396"/>
         <source>Compare it with the server&apos;s own fingerprint before adding (on the server: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Adding the library trusts this key; if the server later presents a different key, the connection is refused.</source>
         <translation>Vergleiche ihn vor dem Hinzufügen mit dem Fingerabdruck auf dem Server (dort: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Mit dem Hinzufügen wird diesem Schlüssel vertraut; zeigt der Server später einen anderen, wird die Verbindung abgelehnt.</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="401"/>
+        <location filename="../qml/NetworkSharePage.qml" line="402"/>
         <source>Folder: %1</source>
         <translation>Ordner: %1</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="428"/>
-        <location filename="../qml/NetworkSharePage.qml" line="443"/>
+        <location filename="../qml/NetworkSharePage.qml" line="429"/>
+        <location filename="../qml/NetworkSharePage.qml" line="444"/>
         <source>Up one folder</source>
         <translation>Eine Ebene höher</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="449"/>
+        <location filename="../qml/NetworkSharePage.qml" line="450"/>
         <source>No sub-folders here.</source>
         <translation>Hier gibt es keine Unterordner.</translation>
     </message>
@@ -2686,6 +2691,14 @@
     </message>
     <message numerus="yes">
         <location filename="../qml/SourcesPage.qml" line="140"/>
+        <source>Audiobooks · %n file(s)</source>
+        <translation>
+            <numerusform>Hörbücher · %n Datei</numerusform>
+            <numerusform>Hörbücher · %n Dateien</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/SourcesPage.qml" line="141"/>
         <source>%n video(s)</source>
         <translation>
             <numerusform>%n Video</numerusform>
@@ -2693,47 +2706,52 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="147"/>
+        <location filename="../qml/SourcesPage.qml" line="148"/>
         <source>Rescan</source>
         <translation>Neu durchsuchen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="154"/>
+        <location filename="../qml/SourcesPage.qml" line="155"/>
         <source>Really remove?</source>
         <translation>Wirklich entfernen?</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="154"/>
+        <location filename="../qml/SourcesPage.qml" line="155"/>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="163"/>
+        <location filename="../qml/SourcesPage.qml" line="164"/>
         <source>Browse this computer</source>
         <translation>Diesen Computer durchsuchen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="223"/>
+        <location filename="../qml/SourcesPage.qml" line="224"/>
         <source>What is in “%1”?</source>
         <translation>Was liegt in „%1“?</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="230"/>
-        <source>Video folders become Movies and Shows, music folders Music. A folder with both is added twice, once per subfolder.</source>
-        <translation>Videoordner landen unter Filme und Serien, Musikordner unter Musik. Einen Ordner mit beidem fügst du zweimal hinzu, je einmal pro Unterordner.</translation>
+        <location filename="../qml/SourcesPage.qml" line="231"/>
+        <source>Video folders become Movies and Shows, music folders Music, audiobook folders Audiobooks. A folder with more than one is added once per subfolder.</source>
+        <translation>Videoordner landen unter Filme und Serien, Musikordner unter Musik, Hörbuchordner unter Hörbücher. Einen Ordner mit mehreren Arten fügst du je Unterordner einmal hinzu.</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="237"/>
+        <location filename="../qml/SourcesPage.qml" line="238"/>
         <source>Movies and shows</source>
         <translation>Filme und Serien</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="243"/>
+        <location filename="../qml/SourcesPage.qml" line="244"/>
         <source>Music</source>
         <translation>Musik</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="250"/>
+        <location filename="../qml/SourcesPage.qml" line="251"/>
+        <source>Audiobooks</source>
+        <translation>Hörbücher</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="258"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>

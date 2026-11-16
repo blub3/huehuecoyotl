@@ -495,10 +495,12 @@ impl Core {
     }
 }
 
-/// A library folder's content type: `music`, anything else is `video`.
+/// A library folder's content type: `music`, `audiobooks`, anything else is `video`.
 pub(crate) fn content_type(s: &str) -> &'static str {
     if s.eq_ignore_ascii_case("music") {
         "music"
+    } else if s.eq_ignore_ascii_case("audiobooks") {
+        "audiobooks"
     } else {
         "video"
     }

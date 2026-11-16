@@ -35,12 +35,24 @@ pub struct ProbeInfo {
     /// Overall bit rate in bit/s.
     pub bitrate: Option<Bitrate>,
     pub chapters: u32,
+    /// Issue #65 (audiobooks): the chapters with their times and titles. Empty in data written
+    /// before 2.5; the schema stays 1, since nothing else changed.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub chapter_list: Vec<Chapter>,
     pub video: Vec<Video>,
     pub audio: Vec<Audio>,
     pub subtitles: Vec<Subtitle>,
     /// Why the file could not be analysed (then it is not tried again until it changes).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+}
+
+/// A chapter of the file.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Chapter {
+    pub title: String,
+    pub start_ms: u64,
+    pub end_ms: u64,
 }
 
 /// A bit rate in bit/s; `estimated` when it was derived from size and duration rather than
@@ -400,6 +412,26 @@ unsafe fn read_info(
         chapters: c.nb_chapters,
         ..Default::default()
     };
+    for i in 0..c.nb_chapters as usize {
+        // SAFETY: `chapters` holds `nb_chapters` valid pointers.
+        let ch = unsafe { &**c.chapters.add(i) };
+        let tb = ch.time_base;
+        let ms = |t: i64| -> u64 {
+            if tb.den == 0 || t < 0 {
+                0
+            } else {
+                (t as i128 * tb.num as i128 * 1000 / tb.den as i128) as u64
+            }
+        };
+        // SAFETY: the chapter's metadata dictionary is live.
+        let title =
+            unsafe { tag(ff, ch.metadata, &[c"title"]) }.unwrap_or_else(|| format!("{}", i + 1));
+        info.chapter_list.push(Chapter {
+            title,
+            start_ms: ms(ch.start),
+            end_ms: ms(ch.end),
+        });
+    }
     for i in 0..c.nb_streams as usize {
         // SAFETY: `streams` holds `nb_streams` valid pointers.
         let s = unsafe { &**c.streams.add(i) };

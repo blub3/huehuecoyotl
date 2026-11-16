@@ -184,6 +184,9 @@ async fn scan(inner: &Arc<Inner>, source_id: i64) -> Result<(), String> {
     if content == "music" {
         return scan_music(inner, src, source_id, &VPath::new(root)).await;
     }
+    if content == "audiobooks" {
+        return scan_books(inner, src, source_id, &VPath::new(root)).await;
+    }
     let res = scan_source(&inner.lib, src, source_id, &VPath::new(root)).await;
     if let Err(ScanError::Vfs(huehuecoyotl_vfs::VfsError::Unreachable(_))) = &res {
         inner.set_online(source_id, false);
@@ -262,6 +265,85 @@ async fn scan_music(
                 format!(
                     "{} files, {} new, {} removed",
                     r.files_seen, r.added, r.removed
+                ),
+                Ok(()),
+            )
+        }
+        Err(ScanError::LooksUnreachable | ScanError::Vfs(_)) => {
+            ("The folder cannot be read right now.".to_string(), Ok(()))
+        }
+        Err(e) => (e.to_string(), Err(e.to_string())),
+    };
+    inner.sink.post(Event::ScanState {
+        source_id,
+        running: false,
+        message,
+    });
+    out
+}
+
+/// Issue #65: an audiobook folder.
+async fn scan_books(
+    inner: &Arc<Inner>,
+    src: &dyn huehuecoyotl_vfs::Source,
+    source_id: i64,
+    root: &VPath,
+) -> Result<(), String> {
+    let res =
+        huehuecoyotl_scanner::audiobooks::scan_audiobook_source(&inner.lib, src, source_id, root)
+            .await;
+    if let Err(ScanError::Vfs(huehuecoyotl_vfs::VfsError::Unreachable(_))) = &res {
+        inner.set_online(source_id, false);
+    }
+    inner.scanning.lock().unwrap().remove(&source_id);
+    let (message, out) = match res {
+        Ok(r) => {
+            for (book, cover) in r.covers {
+                write_cover(inner, src, book, cover).await;
+                // One grid shows square and portrait covers: keep the cover's aspect.
+                let _ = inner
+                    .lib
+                    .write(move |c| {
+                        c.execute(
+                            "UPDATE book SET cover_ratio = (SELECT CAST(height AS REAL) / width FROM artwork
+                               WHERE item_id = ?1 AND role = 'poster' AND width > 0) WHERE item_id = ?1",
+                            [book],
+                        )?;
+                        Ok(())
+                    })
+                    .await;
+            }
+            // Embedded chapters come from the probe (single files, M4B).
+            let books = r.probe.clone();
+            let _ = inner
+                .lib
+                .write(move |c| {
+                    for b in &books {
+                        let files: Vec<i64> = {
+                            let mut st =
+                                c.prepare("SELECT file_id FROM book_file WHERE book_id = ?1")?;
+                            st.query_map([b], |r| r.get(0))?
+                                .collect::<huehuecoyotl_library::rusqlite::Result<_>>()?
+                        };
+                        for f in files {
+                            huehuecoyotl_library::jobs::enqueue(
+                                c,
+                                "probe",
+                                &serde_json::json!({ "file_id": f }).to_string(),
+                                huehuecoyotl_library::jobs::priority::NORMAL,
+                                Some(&format!("probe:{f}")),
+                            )?;
+                        }
+                    }
+                    Ok(())
+                })
+                .await;
+            inner.wake.notify_waiters();
+            inner.mark_changed();
+            (
+                format!(
+                    "{} files, {} books, {} read again, {} removed",
+                    r.files_seen, r.books, r.read, r.removed
                 ),
                 Ok(()),
             )

@@ -137,6 +137,7 @@ FocusScope {
                                 text: row.model.root + "  ·  " + (row.model.scanning ? qsTr("scanning…")
                                       : !row.model.online ? qsTr("offline")
                                       : row.model.content === "music" ? qsTr("Music · %n file(s)", "", row.model.files)
+                                      : row.model.content === "audiobooks" ? qsTr("Audiobooks · %n file(s)", "", row.model.files)
                                       : qsTr("%n video(s)", "", row.model.files))
                                 color: Theme.textDim; font.pixelSize: Theme.fontSmall; elide: Text.ElideMiddle
                             }
@@ -227,7 +228,7 @@ FocusScope {
                 wrapMode: Text.Wrap
                 color: Theme.textDim
                 font.pixelSize: Theme.fontSmall
-                text: qsTr("Video folders become Movies and Shows, music folders Music. A folder with both is added twice, once per subfolder.")
+                text: qsTr("Video folders become Movies and Shows, music folders Music, audiobook folders Audiobooks. A folder with more than one is added once per subfolder.")
             }
             RowLayout {
                 spacing: 12
@@ -242,13 +243,20 @@ FocusScope {
                     id: musicChoice
                     text: qsTr("Music")
                     KeyNavigation.left: videoChoice
-                    KeyNavigation.right: cancelChoice
+                    KeyNavigation.right: bookChoice
                     onClicked: { folders.add(page.picked, "music"); contentQuestion.close() }
+                }
+                FocusButton {
+                    id: bookChoice
+                    text: qsTr("Audiobooks")
+                    KeyNavigation.left: musicChoice
+                    KeyNavigation.right: cancelChoice
+                    onClicked: { folders.add(page.picked, "audiobooks"); contentQuestion.close() }
                 }
                 FocusButton {
                     id: cancelChoice
                     text: qsTr("Cancel")
-                    KeyNavigation.left: musicChoice
+                    KeyNavigation.left: bookChoice
                     onClicked: contentQuestion.close()
                 }
             }

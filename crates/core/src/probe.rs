@@ -136,9 +136,23 @@ pub(crate) async fn run(inner: &Arc<Inner>, file_id: i64) -> Result<(), String> 
         },
     };
     let json = serde_json::to_string(&info).map_err(|e| e.to_string())?;
+    // Issue #65: an audiobook file's embedded chapters become its book's.
+    let chapters: Vec<huehuecoyotl_library::books::Chapter> = info
+        .chapter_list
+        .iter()
+        .map(|c| huehuecoyotl_library::books::Chapter {
+            title: c.title.clone(),
+            start_ms: c.start_ms as i64,
+            end_ms: c.end_ms as i64,
+        })
+        .collect();
     let item = inner
         .lib
-        .write(move |c| catalog::set_probe(c, file_id, &json))
+        .write(move |c| {
+            let item = catalog::set_probe(c, file_id, &json)?;
+            let book = huehuecoyotl_library::books::apply_probe_chapters(c, file_id, &chapters)?;
+            Ok(book.or(item))
+        })
         .await
         .map_err(|e| e.to_string())?;
     if let Some(item_id) = item {

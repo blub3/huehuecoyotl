@@ -48,6 +48,7 @@ fn usage() -> ExitCode {
          \x20      | music online [on|off] (look music up at MusicBrainz and the Cover Art Archive)\n\
          \x20      | music album ID VERSION (an album's page for one version) | music split VERSION (this is a different album)\n\
          \x20      | music keys | music key theaudiodb|fanarttv (key from COYOTL_MUSIC_KEY; none removes it)\n\
+         \x20      | library add PATH --audiobooks | books | authors | series | book ID (audiobooks; a book with its chapters, a series' or person's books)\n\
          \x20      | queue | queue play|shuffle|next|add ID... | queue clear (the music play queue; tracks, albums or artists)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
          \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
@@ -282,9 +283,15 @@ fn main() -> ExitCode {
             wait()
         }
         ("library", [sub, path, rest @ ..])
-            if sub == "add" && (rest.is_empty() || rest == ["--music"]) =>
+            if sub == "add"
+                && (rest.is_empty() || rest == ["--music"] || rest == ["--audiobooks"]) =>
         {
-            core.add_library(1, path, if rest.is_empty() { "video" } else { "music" });
+            let content = match rest.first().map(String::as_str) {
+                Some("--music") => "music",
+                Some("--audiobooks") => "audiobooks",
+                _ => "video",
+            };
+            core.add_library(1, path, content);
             let ev = wait();
             settle();
             ev
@@ -407,6 +414,21 @@ fn main() -> ExitCode {
                 return usage();
             };
             core.browse_items(1, "track", album, "title", "", 0, 500);
+            wait()
+        }
+        // Issue #65: audiobooks, their authors and narrators, series, and one book.
+        ("books" | "authors" | "series", []) => {
+            let kind = match cmd.as_str() {
+                "books" => "audiobook",
+                "authors" => "person",
+                _ => "book_series",
+            };
+            core.browse_items(1, kind, 0, "title", "", 0, 500);
+            wait()
+        }
+        ("book", [id]) => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.book_detail(1, id);
             wait()
         }
         ("movies" | "shows", []) => {
