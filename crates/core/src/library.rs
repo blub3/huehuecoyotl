@@ -171,7 +171,9 @@ impl Core {
             let (total, items) = inner.lib.read(move |c| catalog::browse(c, &q)).await?;
             let ids: Vec<i64> = items.iter().map(|s| s.id).collect();
             // Items on screen are processed first (SPEC 7).
-            let _ = inner.lib.write(move |c| jobs::bump_items(c, &ids)).await;
+            // Queued, not awaited: the writer may be busy with the job queue, and the answer must
+            // not wait for it.
+            drop(inner.lib.submit(move |c| jobs::bump_items(c, &ids)));
             Ok(Event::Page {
                 request_id,
                 total,
@@ -196,12 +198,13 @@ impl Core {
         });
     }
 
-    pub fn search(&self, request_id: u64, text: &str) {
-        let text = text.to_string();
+    /// `kind`: movie, show, artist, album or track; "" for all.
+    pub fn search(&self, request_id: u64, text: &str, kind: &str) {
+        let (text, kind) = (text.to_string(), kind.to_string());
         self.spawn(request_id, move |inner| async move {
             let items = inner
                 .lib
-                .read(move |c| catalog::search(c, &text, 60))
+                .read(move |c| catalog::search(c, &text, &kind, 60))
                 .await?;
             Ok(Event::Page {
                 request_id,
@@ -272,10 +275,7 @@ impl Core {
             })?;
             let offline = inner.offline.lock().unwrap().clone();
             decorate(&mut d.files, &offline);
-            let _ = inner
-                .lib
-                .write(move |c| jobs::bump_items(c, &[item_id]))
-                .await;
+            drop(inner.lib.submit(move |c| jobs::bump_items(c, &[item_id])));
             Ok(Event::Detail {
                 request_id,
                 detail: Box::new(d),
@@ -302,7 +302,9 @@ impl Core {
             }
             let ids: Vec<i64> = items.iter().map(|e| e.item.id).collect();
             // Episodes on screen are matched and probed first (SPEC 7).
-            let _ = inner.lib.write(move |c| jobs::bump_items(c, &ids)).await;
+            // Queued, not awaited: the writer may be busy with the job queue, and the answer must
+            // not wait for it.
+            drop(inner.lib.submit(move |c| jobs::bump_items(c, &ids)));
             Ok(Event::Episodes {
                 request_id,
                 total,

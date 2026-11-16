@@ -43,6 +43,10 @@ Open **Sources** and choose **Add folder**. Pick the folder that contains your f
 and choose **Add this folder**. Huehuecoyotl scans it straight away and again whenever you
 choose **Rescan all**. Subfolders are included.
 
+After you pick a folder, Huehuecoyotl asks what is in it: **Movies and shows** or **Music**
+(from 2.0). A folder holds one kind; if a folder has both, add its video and music
+subfolders separately. For a network share, **Contains** in its settings does the same.
+
 A folder on a disk that is not connected (an unplugged USB drive) is shown as unreachable;
 nothing is removed from the library until the folder is back and a scan finds the files gone.
 
@@ -111,7 +115,7 @@ changed by later scans.
 - **Movies** and **Shows** are poster grids. **Sort** switches between A–Z, recently added
   and year; **All / Unwatched** hides what you have seen.
   **Saved** shows only what is saved on this computer.
-- **Search** finds films and series by title.
+- **Search** finds films and series by title (and music, see below).
 - An item's page shows its description, files and, for series, seasons and episodes.
   **Resume** continues where you stopped; **Start over** begins again.
 - On a series, every episode shows the technical summary of its file (for example
@@ -124,6 +128,24 @@ A film counts as watched once you have seen 92 % of it. A resume point is kept a
 
 Subtitles inside the video file are offered automatically, and so are subtitle files next to
 the video with the same name (`Film.mkv` and `Film.en.srt` or `Film.de.forced.srt`).
+
+## Music
+
+From 2.0, folders you added as **Music** appear under **Music** in the navigation rail, with
+the tabs **Albums**, **Artists** and **Recently added**. Albums and artists come from the tags
+in your files (title, artist, album, album artist, track and disc numbers); untagged files
+are named after their folders and file names.
+
+- An album's page shows its cover, artist, year, length, the format ("FLAC · 96 kHz ·
+  24 bit") with a **Hi-Res** badge for lossless music above CD quality, and the tracks by
+  disc. **Play** and **Shuffle** start it; the **Save** menu keeps a copy on this computer.
+- An artist's page lists their albums, EPs, singles and compilations by year, and under
+  **Appears on** the albums of others they play on.
+- **Search** finds artists, albums and tracks too, in rows of their own. A track opens its
+  album with the track selected.
+- **Home** shows *Recently added albums* once you have music.
+
+Without a music folder the Music page explains how to add one.
 
 ## Watch without the network: Save and Save as…
 

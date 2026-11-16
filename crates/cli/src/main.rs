@@ -44,7 +44,7 @@ fn usage() -> ExitCode {
     eprintln!(
         "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent\n\
          \x20      | library add PATH [--music] | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
-         \x20      | music artists | music albums | music tracks ALBUM (a music folder's artists, albums, tracks)\n\
+         \x20      | music artists | music albums | music tracks ALBUM | music album ID | music artist ID (a music folder's artists, albums, tracks)\n\
          \x20      | music online [on|off] (look music up at MusicBrainz and the Cover Art Archive)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
          \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
@@ -338,6 +338,15 @@ fn main() -> ExitCode {
             }
             wait()
         }
+        ("music", [what, id]) if what == "album" || what == "artist" => {
+            let Ok(id) = id.parse() else { return usage() };
+            if what == "album" {
+                core.album_detail(1, id);
+            } else {
+                core.artist_detail(1, id);
+            }
+            wait()
+        }
         ("music", [what, album]) if what == "tracks" => {
             let Ok(album) = album.parse() else {
                 return usage();
@@ -358,7 +367,7 @@ fn main() -> ExitCode {
             wait()
         }
         ("search", words) if !words.is_empty() => {
-            core.search(1, &words.join(" "));
+            core.search(1, &words.join(" "), "");
             wait()
         }
         ("detail", [id]) => {
@@ -535,6 +544,10 @@ fn main() -> ExitCode {
                 println!("  next   {} (id {})", n.title, n.id);
             }
             page(&d.children);
+        }
+        Event::MusicDetail { json, .. } => {
+            let v: serde_json::Value = serde_json::from_str(&json).unwrap_or_default();
+            println!("{}", serde_json::to_string_pretty(&v).unwrap_or(json));
         }
         Event::MusicOnline { online, .. } => println!(
             "music information: {}",

@@ -250,6 +250,9 @@ pub struct Summary {
     pub runtime_min: Option<u32>,
     /// Issue #4: a complete saved copy of it (or of one of its episodes) is on this computer.
     pub saved: bool,
+    /// Music (2.0): an album's artist, a track's album; "" otherwise.
+    pub subtitle: String,
+    pub parent_id: Option<i64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -299,7 +302,9 @@ const SUMMARY_COLS: &str = concat!("i.id, i.kind, i.title, i.year, i.season_no, 
       WHEN 'show' THEN 1
       WHEN 'season' THEN EXISTS (SELECT 1 FROM item e JOIN file f ON f.item_id = e.id WHERE e.parent_id = i.id)
       ELSE EXISTS (SELECT 1 FROM file f WHERE f.item_id = i.id) END,
-    i.runtime_min, ", saved_sql!());
+    i.runtime_min, ", saved_sql!(), ",
+    CASE WHEN i.kind IN ('album','track') THEN (SELECT p2.title FROM item p2 WHERE p2.id = i.parent_id) ELSE '' END,
+    i.parent_id");
 
 fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
     let st = PlayState {
@@ -319,6 +324,8 @@ fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
         on_disk: r.get(13)?,
         runtime_min: r.get(14)?,
         saved: r.get(15)?,
+        subtitle: r.get::<_, Option<String>>(16)?.unwrap_or_default(),
+        parent_id: r.get(17)?,
         progress: st.progress(),
         watched: st.watched,
         unwatched: r.get(10)?,
@@ -377,8 +384,9 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
     Ok((total, rows.collect::<rusqlite::Result<_>>()?))
 }
 
-/// Full-text search over movies and shows; every word is a prefix.
-pub fn search(c: &Connection, text: &str, limit: u32) -> Result<Vec<Summary>> {
+/// Full-text search over movies, shows and music (artists, albums, tracks); every word is a
+/// prefix. `kind` limits it to one kind ("" for all; issue #10 groups results by kind).
+pub fn search(c: &Connection, text: &str, kind: &str, limit: u32) -> Result<Vec<Summary>> {
     let words: Vec<String> = text
         .split(|ch: char| !ch.is_alphanumeric())
         .filter(|w| !w.is_empty())
@@ -391,9 +399,9 @@ pub fn search(c: &Connection, text: &str, limit: u32) -> Result<Vec<Summary>> {
     let mut st = c.prepare(&format!(
         "SELECT {SUMMARY_COLS} FROM item_fts JOIN item i ON i.id = item_fts.rowid
          LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = {DEFAULT_PROFILE}
-         WHERE item_fts MATCH ?1 AND {VISIBLE} ORDER BY rank LIMIT ?2"
+         WHERE item_fts MATCH ?1 AND {VISIBLE} AND (?3 = '' OR i.kind = ?3) ORDER BY rank LIMIT ?2"
     ))?;
-    let rows = st.query_map(params![fts, limit], summary)?;
+    let rows = st.query_map(params![fts, limit, kind], summary)?;
     Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
@@ -733,11 +741,11 @@ pub fn playable_files(c: &Connection, item_id: i64) -> Result<Vec<PlayableFile>>
 // ---- media probe (issue #33) --------------------------------------------------------------------
 
 /// Library files without probe data, or with data of an older schema (re-probed in the
-/// background). Changed files lose their data in the scan, so they come back here too.
+/// background). Music files are not probed (2.0): their tags give codec, rate, depth, duration. Changed files lose their data in the scan, so they come back here too.
 pub fn files_to_probe(c: &Connection, schema: u32) -> Result<Vec<i64>> {
     let mut st = c.prepare(
         "SELECT f.id FROM file f JOIN source s ON s.id = f.source_id
-         WHERE f.item_id IS NOT NULL AND s.root IS NOT NULL
+         WHERE f.item_id IS NOT NULL AND s.root IS NOT NULL AND s.content = 'video'
            AND (f.probe_json IS NULL OR coalesce(json_extract(f.probe_json, '$.schema'), 0) < ?1)
          ORDER BY f.id",
     )?;
@@ -752,10 +760,19 @@ pub fn probe_target(c: &Connection, file_id: i64) -> Result<Option<ProbeTarget>>
     Ok(c.query_row(
         &format!(
             "SELECT f.source_id, s.kind, {ABS_PATH_SQL}, coalesce(f.size, 0), f.item_id
-             FROM file f JOIN source s ON s.id = f.source_id WHERE f.id = ?1 AND f.item_id IS NOT NULL"
+             FROM file f JOIN source s ON s.id = f.source_id
+             WHERE f.id = ?1 AND f.item_id IS NOT NULL AND s.content = 'video'"
         ),
         [file_id],
-        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get::<_, i64>(3)? as u64, r.get(4)?)),
+        |r| {
+            Ok((
+                r.get(0)?,
+                r.get(1)?,
+                r.get(2)?,
+                r.get::<_, i64>(3)? as u64,
+                r.get(4)?,
+            ))
+        },
     )
     .optional()?)
 }
@@ -1279,13 +1296,16 @@ mod tests {
             ("Firefly", 1)
         );
 
-        assert_eq!(search(&c, "matr", 10).unwrap()[0].id, 1);
+        assert_eq!(search(&c, "matr", "", 10).unwrap()[0].id, 1);
+        // Issue #10: one kind of result at a time.
+        assert_eq!(search(&c, "matr", "movie", 10).unwrap().len(), 1);
+        assert!(search(&c, "matr", "show", 10).unwrap().is_empty());
         assert_eq!(
-            search(&c, "\"firef", 10).unwrap()[0].id,
+            search(&c, "\"firef", "", 10).unwrap()[0].id,
             3,
             "stray quotes do not break FTS"
         );
-        assert!(search(&c, "  ", 10).unwrap().is_empty());
+        assert!(search(&c, "  ", "", 10).unwrap().is_empty());
 
         let d = detail(&c, 3).unwrap().unwrap();
         assert_eq!(d.children.len(), 1);

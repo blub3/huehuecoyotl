@@ -4,13 +4,15 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Coyotl
 
-// Home: continue watching, recently added, and a first-run guide while the library is empty.
+// Home: continue watching, recently added, recently added albums (2.0, only with music), and a
+// first-run guide while the library is empty.
 FocusScope {
     id: page
     readonly property bool isPlayer: false
 
     ContinueWatchingModel { id: recent }
     RecentlyAddedModel { id: added }
+    LibraryModel { id: albums; kind: "album"; sort: "added" }
     LibraryFoldersModel { id: folders }
 
     readonly property bool firstRun: !folders.loading && folders.count === 0
@@ -18,10 +20,11 @@ FocusScope {
     // Keyboard and remote users must always have a focused item on this page.
     function ensureFocus() {
         if (!page.activeFocus) return
-        for (const v of [recentList, addedList, setupButton, keyButton])
+        for (const v of [recentList, addedList, albumList, setupButton, keyButton])
             if (v.activeFocus) return
         if (recent.count > 0) recentList.forceActiveFocus()
         else if (added.count > 0) addedList.forceActiveFocus()
+        else if (albums.total > 0) albumList.forceActiveFocus()
         else if (page.firstRun) setupButton.forceActiveFocus()
         else Nav.focusRail()
     }
@@ -153,6 +156,7 @@ FocusScope {
                 Accessible.role: Accessible.List
                 Accessible.name: qsTr("Recently added")
                 KeyNavigation.up: recent.count > 0 ? recentList : null
+                KeyNavigation.down: albums.total > 0 ? albumList : null
                 Keys.onLeftPressed: (e) => { if (currentIndex === 0) Nav.focusRail(); else e.accepted = false }
                 onActiveFocusChanged: if (activeFocus) flick.contentY = Math.max(0, y - 60)
                 delegate: PosterCard {
@@ -171,6 +175,46 @@ FocusScope {
                     onClicked: Nav.openItem(tile.model.id)
                     Keys.onReturnPressed: Nav.openItem(tile.model.id)
                     Keys.onEnterPressed: Nav.openItem(tile.model.id)
+                }
+            }
+
+            // ---- recently added albums (2.0) -------------------------------------------------
+            Label {
+                visible: albums.total > 0
+                text: qsTr("Recently added albums")
+                color: Theme.textDim
+                font.pixelSize: Theme.fontLarge
+                Layout.topMargin: 8
+            }
+            ListView {
+                id: albumList
+                visible: albums.total > 0
+                Layout.fillWidth: true
+                Layout.preferredHeight: Appearance.cardHeight(Appearance.coverWidth, 1) + 16
+                orientation: ListView.Horizontal
+                spacing: Math.round(22 * Appearance.textScale(Appearance.coverWidth))
+                model: albums
+                keyNavigationEnabled: true
+                Accessible.role: Accessible.List
+                Accessible.name: qsTr("Recently added albums")
+                KeyNavigation.up: added.count > 0 ? addedList : recent.count > 0 ? recentList : null
+                Keys.onLeftPressed: (e) => { if (currentIndex === 0) Nav.focusRail(); else e.accepted = false }
+                onActiveFocusChanged: if (activeFocus) flick.contentY = Math.max(0, y - 60)
+                delegate: PosterCard {
+                    id: albumTile
+                    required property var model
+                    y: 8
+                    focus: ListView.isCurrentItem
+                    title: model.title
+                    caption: model.subtitle ?? ""
+                    poster: model.poster
+                    posterLarge: model.posterLarge ?? ""
+                    posterWidth: Appearance.coverWidth
+                    posterRatio: 1
+                    saved: model.saved === true
+                    onClicked: Nav.openItem(albumTile.model.id, "album")
+                    Keys.onReturnPressed: Nav.openItem(albumTile.model.id, "album")
+                    Keys.onEnterPressed: Nav.openItem(albumTile.model.id, "album")
                 }
             }
 

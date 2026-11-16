@@ -21,6 +21,7 @@ FocusScope {
         { key: "home", glyph: "⌂", label: qsTr("Home") },
         { key: "movies", glyph: "▶", label: qsTr("Movies") },
         { key: "shows", glyph: "▦", label: qsTr("Shows") },
+        { key: "music", glyph: "♫", label: qsTr("Music") },
         { key: "search", glyph: "⌕", label: qsTr("Search") },
         { key: "downloads", glyph: "⤓", label: qsTr("Downloads") },
         { key: "sources", glyph: "▤", label: qsTr("Sources") },

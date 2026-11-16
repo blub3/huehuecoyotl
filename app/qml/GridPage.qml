@@ -12,6 +12,20 @@ FocusScope {
     property string kind: "movie"
     property string heading
     property string emptyText
+    // Music (2.0): square covers, tabs instead of one kind, no "unwatched" filter.
+    property real posterRatio: 1.5
+    readonly property bool music: kind === "album" || kind === "artist"
+    // [{ key, label, kind, sort }]: tabs above the grid (the Music page).
+    property var tabs: []
+    property string tab: tabs.length > 0 ? tabs[0].key : ""
+    function chooseTab(key) {
+        const t = tabs.find(x => x.key === key)
+        if (!t) return
+        tab = key
+        kind = t.kind
+        lib.sort = t.sort
+    }
+    function open(m) { Nav.openItem(m.id, m.kind, m.parentId) }
 
     readonly property var sorts: [
         { key: "title", label: qsTr("A–Z") },
@@ -26,7 +40,7 @@ FocusScope {
         // The first page arrives after the grid took focus: select the first card then.
         onTotalChanged: {
             if (grid.currentIndex < 0 && grid.count > 0) grid.currentIndex = 0
-            if (Bench.mode === "scroll" && total > 0 && !benchScroll.running) benchStart.start()
+            if ((Bench.mode === "scroll" || (Bench.mode === "music" && page.music)) && total > 0 && !benchScroll.running) benchStart.start()
             // --benchmark episodes: open the first show.
             if (Bench.mode === "episodes" && total > 0 && page.kind === "show" && grid.count > 0 && !page.benchOpened) {
                 page.benchOpened = true
@@ -76,6 +90,23 @@ FocusScope {
                     font.bold: true
                     Accessible.role: Accessible.Heading
                 }
+                Repeater {
+                    id: tabButtons
+                    model: page.tabs
+                    FocusButton {
+                        required property var modelData
+                        required property int index
+                        text: modelData.label
+                        primary: page.tab === modelData.key
+                        font.pixelSize: Theme.fontSmall
+                        Accessible.role: Accessible.PageTab
+                        Accessible.selected: page.tab === modelData.key
+                        KeyNavigation.down: grid
+                        Keys.onLeftPressed: index === 0 ? Nav.focusRail() : tabButtons.itemAt(index - 1).forceActiveFocus()
+                        Keys.onRightPressed: index === page.tabs.length - 1 ? sortButton.forceActiveFocus() : tabButtons.itemAt(index + 1).forceActiveFocus()
+                        onClicked: page.chooseTab(modelData.key)
+                    }
+                }
                 Label {
                     text: lib.total > 0 ? String(lib.total) : ""
                     color: Theme.textDim
@@ -85,6 +116,8 @@ FocusScope {
                 FocusButton {
                     id: sortButton
                     focus: true
+                    visible: page.tabs.length === 0
+                    Keys.onLeftPressed: (e) => { if (tabButtons.count > 0) tabButtons.itemAt(tabButtons.count - 1).forceActiveFocus(); else e.accepted = false }
                     text: page.sorts.find(s => s.key === lib.sort).label
                     tip: qsTr("Sort")
                     KeyNavigation.right: unwatchedButton
@@ -96,13 +129,14 @@ FocusScope {
                 }
                 FocusButton {
                     id: unwatchedButton
-                    // All → Unwatched → Saved (issue #4) → All
+                    // All → Unwatched → Saved (issue #4) → All; music: All → Saved → All.
                     text: lib.filter === "unwatched" ? qsTr("Unwatched")
                         : lib.filter === "saved" ? qsTr("Saved") : qsTr("All")
-                    tip: qsTr("Filter: all, unwatched or saved")
-                    KeyNavigation.left: sortButton
+                    tip: page.music ? qsTr("Filter: all or saved") : qsTr("Filter: all, unwatched or saved")
+                    visible: page.kind !== "artist"
+                    KeyNavigation.left: sortButton.visible ? sortButton : (tabButtons.count > 0 ? tabButtons.itemAt(tabButtons.count - 1) : null)
                     KeyNavigation.down: grid
-                    onClicked: lib.filter = lib.filter === "" ? "unwatched" : lib.filter === "unwatched" ? "saved" : ""
+                    onClicked: lib.filter = lib.filter === "" ? (page.music ? "saved" : "unwatched") : lib.filter === "unwatched" ? "saved" : ""
                 }
             }
         }
@@ -120,7 +154,7 @@ FocusScope {
             readonly property int columns: Math.max(1, Math.floor((width - leftMargin) / (Appearance.coverWidth + gap)))
             readonly property real posterWidth: Math.floor((width - leftMargin) / columns) - gap
             cellWidth: posterWidth + gap
-            cellHeight: Appearance.cardHeight(posterWidth) + gap
+            cellHeight: Appearance.cardHeight(posterWidth, page.posterRatio) + gap
             // Keep the focused card in view when the size changes (window and fullscreen).
             onCellWidthChanged: Qt.callLater(() => { if (currentIndex >= 0) positionViewAtIndex(currentIndex, GridView.Contain) })
             // Room for the focused card's scale-up and ring inside the clip.
@@ -136,7 +170,11 @@ FocusScope {
             ScrollBar.vertical: ScrollBar {}
 
             Keys.onLeftPressed: (e) => { if (currentIndex % columns === 0) Nav.focusRail(); else e.accepted = false }
-            Keys.onUpPressed: (e) => { if (currentIndex < columns) sortButton.forceActiveFocus(); else e.accepted = false }
+            Keys.onUpPressed: (e) => {
+                if (currentIndex >= columns) { e.accepted = false; return }
+                if (tabButtons.count > 0) tabButtons.itemAt(Math.max(0, page.tabs.findIndex(t => t.key === page.tab))).forceActiveFocus()
+                else sortButton.forceActiveFocus()
+            }
 
             delegate: PosterCard {
                 id: tile
@@ -147,14 +185,16 @@ FocusScope {
                 poster: model.poster
                 posterLarge: model.posterLarge ?? ""
                 posterWidth: grid.posterWidth
+                posterRatio: page.posterRatio
+                caption: page.music ? (tile.model.subtitle ?? "") : (tile.model.year > 0 ? String(tile.model.year) : "")
                 progress: model.progress
                 watched: model.watched
                 unwatched: Number(model.unwatched)
                 saved: model.saved === true
                 focus: GridView.isCurrentItem
-                onClicked: { grid.currentIndex = tile.index; Nav.openItem(tile.model.id) }
-                Keys.onReturnPressed: Nav.openItem(tile.model.id)
-                Keys.onEnterPressed: Nav.openItem(tile.model.id)
+                onClicked: { grid.currentIndex = tile.index; page.open(tile.model) }
+                Keys.onReturnPressed: page.open(tile.model)
+                Keys.onEnterPressed: page.open(tile.model)
                 Keys.onPressed: (e) => {
                     if (e.key === Qt.Key_P || e.key === Qt.Key_MediaPlay) { Playback.openItem(tile.model.id); e.accepted = true }
                     else if (e.key === Qt.Key_W) { Core.setWatched(tile.model.id, !tile.model.watched); e.accepted = true }

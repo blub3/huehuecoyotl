@@ -269,3 +269,29 @@ function sameCut(itemMs, file) {
     if (!itemMs || !ms) return true
     return Math.abs(itemMs - ms) / Math.max(itemMs, ms) < 0.02
 }
+
+// ---- music (issue #10) ----------------------------------------------------------------------
+
+// "Album", "EP", "Single", "Compilation".
+function releaseType(type, compilation) {
+    if (compilation) return qsTr("Compilation")
+    switch (type) {
+    case "ep": return qsTr("EP")
+    case "single": return qsTr("Single")
+    case "compilation": return qsTr("Compilation")
+    case "broadcast": return qsTr("Broadcast")
+    case "other": return qsTr("Other release")
+    }
+    return qsTr("Album")
+}
+
+// "FLAC · 96 kHz · 24 bit", "MP3 · 44.1 kHz"; the bit depth only where it means something.
+function audioLine(codec, rate, depth) {
+    const names = { flac: "FLAC", alac: "ALAC", pcm: "PCM", mp3: "MP3", aac: "AAC", vorbis: "Vorbis",
+                    opus: "Opus", wavpack: "WavPack" }
+    const parts = [names[codec] || (codec || "").toUpperCase()]
+    if (rate > 0) parts.push((rate % 1000 === 0 ? rate / 1000 : (rate / 1000).toFixed(1)) + " kHz")
+    const lossless = ["flac", "alac", "pcm", "wavpack"].indexOf(codec) >= 0
+    if (lossless && depth > 0) parts.push(qsTr("%1 bit").arg(depth))
+    return parts.filter(p => p !== "").join(" · ")
+}

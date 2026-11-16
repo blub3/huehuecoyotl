@@ -32,6 +32,8 @@ mod ffi {
         KeyStatus,
         /// Issue #11: online music information on or off (`flag`).
         MusicOnline,
+        /// Issue #10: an album's or artist's page: `path` says which, `message` holds the JSON.
+        MusicDetail,
         Discovered,
         Downloads,
         DownloadProgress,
@@ -116,6 +118,9 @@ mod ffi {
         runtime_min: i32,
         /// Issue #4: a saved copy is on this computer (the cover mark).
         saved: bool,
+        /// Music (2.0): an album's artist, a track's album; "" otherwise. 0: no parent.
+        subtitle: String,
+        parent_id: i64,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -349,7 +354,8 @@ mod ffi {
             limit: u32,
         );
         fn recently_added(self: &Core, request_id: u64, limit: u32);
-        fn search(self: &Core, request_id: u64, text: &str);
+        /// `kind`: movie, show, artist, album or track; "" for all.
+        fn search(self: &Core, request_id: u64, text: &str, kind: &str);
         fn item_detail(self: &Core, request_id: u64, item_id: i64);
         /// Issue #48: one page of a season's episodes with versions and saved-copy state.
         fn season_episodes(self: &Core, request_id: u64, season_id: i64, offset: u32, limit: u32);
@@ -366,6 +372,9 @@ mod ffi {
         /// Issue #11: online music information (MusicBrainz, Cover Art Archive).
         fn music_online(self: &Core, request_id: u64);
         fn set_music_online(self: &Core, request_id: u64, on: bool);
+        /// Issue #10: an album's or an artist's page (answers with MusicDetail).
+        fn album_detail(self: &Core, request_id: u64, album: i64);
+        fn artist_detail(self: &Core, request_id: u64, artist: i64);
 
         // M3: network sources. `spec_json`: {protocol, host, port, share, user, tls, key_file,
         // path, name}; for SFTP with a key file, `password` is the key's passphrase.
@@ -525,6 +534,8 @@ fn summary(s: core::Summary) -> ffi::ItemSummary {
         on_disk: s.on_disk,
         runtime_min: s.runtime_min.unwrap_or(0) as i32,
         saved: s.saved,
+        subtitle: s.subtitle,
+        parent_id: s.parent_id.unwrap_or(0),
     }
 }
 
@@ -771,6 +782,15 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
             queued,
             failed,
             ..event(K::LibraryChanged, 0)
+        },
+        core::Event::MusicDetail {
+            request_id,
+            kind,
+            json,
+        } => ffi::CoreEvent {
+            path: kind,
+            message: json,
+            ..event(K::MusicDetail, request_id)
         },
         core::Event::MusicOnline { request_id, online } => ffi::CoreEvent {
             flag: online,
@@ -1042,8 +1062,8 @@ impl Core {
             self.0.recently_added(request_id, limit)
         })
     }
-    fn search(&self, request_id: u64, text: &str) {
-        guard("search", || self.0.search(request_id, text))
+    fn search(&self, request_id: u64, text: &str, kind: &str) {
+        guard("search", || self.0.search(request_id, text, kind))
     }
     fn probe_now(&self, file_id: i64) {
         guard("probe_now", || self.0.probe_now(file_id))
@@ -1075,6 +1095,12 @@ impl Core {
     }
     fn clear_tmdb_key(&self, request_id: u64) {
         guard("clear_tmdb_key", || self.0.clear_tmdb_key(request_id))
+    }
+    fn album_detail(&self, request_id: u64, album: i64) {
+        guard("album_detail", || self.0.album_detail(request_id, album))
+    }
+    fn artist_detail(&self, request_id: u64, artist: i64) {
+        guard("artist_detail", || self.0.artist_detail(request_id, artist))
     }
     fn music_online(&self, request_id: u64) {
         guard("music_online", || self.0.music_online(request_id))

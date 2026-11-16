@@ -122,6 +122,10 @@ LibraryModel::LibraryModel(QObject *parent) : QAbstractListModel(parent)
         if (id != m_request) return;
         m_request = 0;
         emit loadingChanged();
+        if (m_dirty) {
+            m_dirty = false;
+            refresh();
+        }
     });
     connect(core, &CoreBridge::libraryChanged, this, &LibraryModel::refresh);
     connect(core, &CoreBridge::itemChanged, this, &LibraryModel::refresh);
@@ -146,14 +150,22 @@ QHash<int, QByteArray> LibraryModel::roleNames() const
     return r;
 }
 
+// Requests in flight are never cancelled for a refresh or a page (issue #10): background work
+// refreshes the grids often, and an answer that never arrives would stop the grid from growing.
+// A refresh while busy runs once the answer is in; a page wanted while busy is fetched right
+// after it (the view does not ask twice when it sits at the end).
 bool LibraryModel::canFetchMore(const QModelIndex &parent) const
 {
-    return !parent.isValid() && m_request == 0 && m_rows.size() < m_total;
+    return !parent.isValid() && m_rows.size() < m_total;
 }
 
 void LibraryModel::fetchMore(const QModelIndex &parent)
 {
     if (!canFetchMore(parent)) return;
+    if (m_request) {
+        m_morePending = true;
+        return;
+    }
     m_replace = false;
     m_request = CoreBridge::instance()->browseItems(m_kind, 0, m_sort, m_filter, int(m_rows.size()), kPage);
     emit loadingChanged();
@@ -190,16 +202,24 @@ QVariantMap LibraryModel::get(int row) const
 
 void LibraryModel::reload()
 {
+    // Another query: what is in flight belongs to the old one.
+    if (m_request) CoreBridge::instance()->cancel(m_request);
+    m_request = 0;
+    m_dirty = m_morePending = false;
     beginResetModel();
     m_rows.clear();
     endResetModel();
     refresh();
 }
 
-// Re-query everything loaded so far in one request and replace it.
+// Re-query everything loaded so far in one request and replace it (in place when the shape is
+// the same). While another request is in flight, once it is answered.
 void LibraryModel::refresh()
 {
-    if (m_request) CoreBridge::instance()->cancel(m_request);
+    if (m_request) {
+        m_dirty = true;
+        return;
+    }
     m_replace = true;
     m_request =
         CoreBridge::instance()->browseItems(m_kind, 0, m_sort, m_filter, 0, qMax(kPage, int(m_rows.size())));
@@ -229,6 +249,13 @@ void LibraryModel::onPage(quint64 id, int total, int offset, const QVariantList 
         emit totalChanged();
     }
     emit loadingChanged();
+    if (m_dirty) {
+        m_dirty = false;
+        refresh();
+    } else if (m_morePending) {
+        m_morePending = false;
+        fetchMore({});
+    }
 }
 
 // ---- small models -----------------------------------------------------------------------------
@@ -250,9 +277,17 @@ void SearchModel::setText(const QString &t)
     request();
 }
 
+void SearchModel::setKind(const QString &k)
+{
+    if (k == m_kind) return;
+    m_kind = k;
+    emit kindChanged();
+    if (!m_text.isEmpty()) request();
+}
+
 quint64 SearchModel::send()
 {
-    return CoreBridge::instance()->search(m_text);
+    return CoreBridge::instance()->search(m_text, m_kind);
 }
 
 RecentlyAddedModel::RecentlyAddedModel(QObject *parent) : VariantListModel(parent)
@@ -287,10 +322,10 @@ quint64 LibraryFoldersModel::send()
     return CoreBridge::instance()->libraries();
 }
 
-void LibraryFoldersModel::add(const QString &path)
+void LibraryFoldersModel::add(const QString &path, const QString &content)
 {
     if (m_request) CoreBridge::instance()->cancel(m_request);
-    m_request = CoreBridge::instance()->addLibrary(path, QStringLiteral("video"));
+    m_request = CoreBridge::instance()->addLibrary(path, content);
     emit loadingChanged();
 }
 

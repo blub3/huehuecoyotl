@@ -2,6 +2,81 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="de" sourcelanguage="en">
 <context>
+    <name>AlbumPage</name>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="156"/>
+        <source>Open the artist</source>
+        <translation>Zum Künstler</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/AlbumPage.qml" line="165"/>
+        <source>%n track(s)</source>
+        <translation>
+            <numerusform>%n Titel</numerusform>
+            <numerusform>%n Titel</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/AlbumPage.qml" line="166"/>
+        <source>%n disc(s)</source>
+        <translation>
+            <numerusform>%n CD</numerusform>
+            <numerusform>%n CDs</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="185"/>
+        <location filename="../qml/AlbumPage.qml" line="309"/>
+        <source>Hi-Res</source>
+        <translation>Hi-Res</translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="201"/>
+        <source>Play</source>
+        <translation>Abspielen</translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="212"/>
+        <source>Shuffle</source>
+        <translation>Zufallswiedergabe</translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="242"/>
+        <source>Tracks</source>
+        <translation>Titel</translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="248"/>
+        <source>Disc %1</source>
+        <translation>CD %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="263"/>
+        <source>Track %1, %2</source>
+        <translation>Titel %1, %2</translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="343"/>
+        <source>Stop saving and remove what was copied so far? The files on the server stay.</source>
+        <translation>Speichern abbrechen und das bisher Kopierte entfernen? Die Dateien auf dem Server bleiben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="344"/>
+        <source>Delete the saved copies of this album from this computer? The files on the server stay.</source>
+        <translation>Die gespeicherten Kopien dieses Albums von diesem Computer löschen? Die Dateien auf dem Server bleiben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="348"/>
+        <source>Keep</source>
+        <translation>Behalten</translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="352"/>
+        <source>Delete saved copies</source>
+        <translation>Gespeicherte Kopien löschen</translation>
+    </message>
+</context>
+<context>
     <name>AppLogo</name>
     <message>
         <location filename="../qml/AppLogo.qml" line="19"/>
@@ -25,6 +100,47 @@
         <location filename="../qml/Appearance.qml" line="17"/>
         <source>Large</source>
         <translation>Groß</translation>
+    </message>
+</context>
+<context>
+    <name>ArtistPage</name>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="20"/>
+        <source>Albums</source>
+        <translation>Alben</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="20"/>
+        <source>EPs</source>
+        <translation>EPs</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="20"/>
+        <source>Singles</source>
+        <translation>Singles</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="21"/>
+        <source>Compilations</source>
+        <translation>Kompilationen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="21"/>
+        <source>Other releases</source>
+        <translation>Weitere Veröffentlichungen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="27"/>
+        <source>Appears on</source>
+        <translation>Mitwirkend bei</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ArtistPage.qml" line="112"/>
+        <source>%n album(s)</source>
+        <translation>
+            <numerusform>%n Album</numerusform>
+            <numerusform>%n Alben</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -53,37 +169,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="537"/>
+        <location filename="../src/corebridge.cpp" line="553"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="539"/>
+        <location filename="../src/corebridge.cpp" line="555"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="541"/>
+        <location filename="../src/corebridge.cpp" line="557"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="543"/>
+        <location filename="../src/corebridge.cpp" line="559"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="545"/>
+        <location filename="../src/corebridge.cpp" line="561"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="547"/>
+        <location filename="../src/corebridge.cpp" line="563"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="727"/>
+        <location filename="../src/corebridge.cpp" line="762"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -677,57 +793,62 @@
 <context>
     <name>GridPage</name>
     <message>
-        <location filename="../qml/GridPage.qml" line="17"/>
+        <location filename="../qml/GridPage.qml" line="31"/>
         <source>A–Z</source>
         <translation>A–Z</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="18"/>
+        <location filename="../qml/GridPage.qml" line="32"/>
         <source>Recently added</source>
         <translation>Zuletzt hinzugefügt</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="19"/>
+        <location filename="../qml/GridPage.qml" line="33"/>
         <source>Year</source>
         <translation>Jahr</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="89"/>
+        <location filename="../qml/GridPage.qml" line="122"/>
         <source>Sort</source>
         <translation>Sortieren</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="100"/>
+        <location filename="../qml/GridPage.qml" line="133"/>
         <source>Unwatched</source>
         <translation>Ungesehen</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="101"/>
+        <location filename="../qml/GridPage.qml" line="134"/>
         <source>All</source>
         <translation>Alle</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="101"/>
+        <location filename="../qml/GridPage.qml" line="134"/>
         <source>Saved</source>
         <translation>Gespeichert</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="102"/>
+        <location filename="../qml/GridPage.qml" line="135"/>
         <source>Filter: all, unwatched or saved</source>
         <translation>Filter: alle, ungesehen oder gespeichert</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="172"/>
+        <location filename="../qml/GridPage.qml" line="135"/>
+        <source>Filter: all or saved</source>
+        <translation>Filter: alle oder gespeicherte</translation>
+    </message>
+    <message>
+        <location filename="../qml/GridPage.qml" line="212"/>
         <source>Everything here is watched.</source>
         <translation>Hier ist alles gesehen.</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="173"/>
+        <location filename="../qml/GridPage.qml" line="213"/>
         <source>Nothing here is saved on this computer.</source>
         <translation>Hier ist nichts auf diesem Computer gespeichert.</translation>
     </message>
     <message>
-        <location filename="../qml/GridPage.qml" line="180"/>
+        <location filename="../qml/GridPage.qml" line="220"/>
         <source>Add a folder</source>
         <translation>Ordner hinzufügen</translation>
     </message>
@@ -735,44 +856,50 @@
 <context>
     <name>HomePage</name>
     <message>
-        <location filename="../qml/HomePage.qml" line="66"/>
+        <location filename="../qml/HomePage.qml" line="69"/>
         <source>Welcome to Huehuecoyotl</source>
         <translation>Willkommen bei Huehuecoyotl</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="72"/>
+        <location filename="../qml/HomePage.qml" line="75"/>
         <source>Add the folders with your movies and shows. They are scanned and sorted into Movies and Shows. With a free TMDB key you also get posters, descriptions and episode titles.</source>
         <translation>Füge die Ordner mit deinen Filmen und Serien hinzu. Sie werden durchsucht und unter Filme und Serien einsortiert. Mit einem kostenlosen TMDB-Schlüssel bekommst du außerdem Poster, Beschreibungen und Folgentitel.</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="81"/>
+        <location filename="../qml/HomePage.qml" line="84"/>
         <source>Add a folder</source>
         <translation>Ordner hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="90"/>
+        <location filename="../qml/HomePage.qml" line="93"/>
         <source>Set up TMDB</source>
         <translation>TMDB einrichten</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="101"/>
-        <location filename="../qml/HomePage.qml" line="115"/>
+        <location filename="../qml/HomePage.qml" line="104"/>
+        <location filename="../qml/HomePage.qml" line="118"/>
         <source>Continue watching</source>
         <translation>Weiterschauen</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="126"/>
+        <location filename="../qml/HomePage.qml" line="129"/>
         <source>%1 left</source>
         <translation>noch %1</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="137"/>
-        <location filename="../qml/HomePage.qml" line="154"/>
+        <location filename="../qml/HomePage.qml" line="140"/>
+        <location filename="../qml/HomePage.qml" line="157"/>
         <source>Recently added</source>
         <translation>Zuletzt hinzugefügt</translation>
     </message>
     <message>
-        <location filename="../qml/HomePage.qml" line="179"/>
+        <location filename="../qml/HomePage.qml" line="184"/>
+        <location filename="../qml/HomePage.qml" line="199"/>
+        <source>Recently added albums</source>
+        <translation>Zuletzt hinzugefügte Alben</translation>
+    </message>
+    <message>
+        <location filename="../qml/HomePage.qml" line="223"/>
         <source>Arrow keys to move · Enter to open · Esc to go back · F11 fullscreen</source>
         <translation>Pfeiltasten zum Bewegen · Enter zum Öffnen · Esc für zurück · F11 Vollbild</translation>
     </message>
@@ -1099,6 +1226,42 @@
         <source>offline</source>
         <translation>offline</translation>
     </message>
+    <message>
+        <location filename="../qml/MediaInfo.js" line="277"/>
+        <location filename="../qml/MediaInfo.js" line="281"/>
+        <source>Compilation</source>
+        <translation>Kompilation</translation>
+    </message>
+    <message>
+        <location filename="../qml/MediaInfo.js" line="279"/>
+        <source>EP</source>
+        <translation>EP</translation>
+    </message>
+    <message>
+        <location filename="../qml/MediaInfo.js" line="280"/>
+        <source>Single</source>
+        <translation>Single</translation>
+    </message>
+    <message>
+        <location filename="../qml/MediaInfo.js" line="282"/>
+        <source>Broadcast</source>
+        <translation>Sendung</translation>
+    </message>
+    <message>
+        <location filename="../qml/MediaInfo.js" line="283"/>
+        <source>Other release</source>
+        <translation>Weitere Veröffentlichung</translation>
+    </message>
+    <message>
+        <location filename="../qml/MediaInfo.js" line="285"/>
+        <source>Album</source>
+        <translation>Album</translation>
+    </message>
+    <message>
+        <location filename="../qml/MediaInfo.js" line="295"/>
+        <source>%1 bit</source>
+        <translation>%1 Bit</translation>
+    </message>
 </context>
 <context>
     <name>MoviesPage</name>
@@ -1148,6 +1311,34 @@
     </message>
 </context>
 <context>
+    <name>MusicPage</name>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="7"/>
+        <source>Music</source>
+        <translation>Musik</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="10"/>
+        <source>Albums</source>
+        <translation>Alben</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="11"/>
+        <source>Artists</source>
+        <translation>Künstler</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="12"/>
+        <source>Recently added</source>
+        <translation>Zuletzt hinzugefügt</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="14"/>
+        <source>No music yet. Add a folder under Sources and choose “Music” for it.</source>
+        <translation>Noch keine Musik. Füge unter Quellen einen Ordner hinzu und wähle dafür „Musik“.</translation>
+    </message>
+</context>
+<context>
     <name>NavRail</name>
     <message>
         <location filename="../qml/NavRail.qml" line="21"/>
@@ -1166,36 +1357,41 @@
     </message>
     <message>
         <location filename="../qml/NavRail.qml" line="24"/>
+        <source>Music</source>
+        <translation>Musik</translation>
+    </message>
+    <message>
+        <location filename="../qml/NavRail.qml" line="25"/>
         <source>Search</source>
         <translation>Suchen</translation>
     </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="25"/>
+        <location filename="../qml/NavRail.qml" line="26"/>
         <source>Downloads</source>
         <translation>Downloads</translation>
     </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="26"/>
+        <location filename="../qml/NavRail.qml" line="27"/>
         <source>Sources</source>
         <translation>Quellen</translation>
     </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="27"/>
+        <location filename="../qml/NavRail.qml" line="28"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="59"/>
+        <location filename="../qml/NavRail.qml" line="60"/>
         <source>Navigation</source>
         <translation>Navigation</translation>
     </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="116"/>
+        <location filename="../qml/NavRail.qml" line="117"/>
         <source>Scanning folders…</source>
         <translation>Ordner werden durchsucht …</translation>
     </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="116"/>
+        <location filename="../qml/NavRail.qml" line="117"/>
         <source>Updating library… %1</source>
         <translation>Bibliothek wird aktualisiert … %1</translation>
     </message>
@@ -1218,32 +1414,32 @@
         <translation>Basisordner (optional)</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="60"/>
+        <location filename="../qml/NetworkSharePage.qml" line="64"/>
         <source>Please enter a server name or address.</source>
         <translation>Bitte einen Servernamen oder eine Adresse eingeben.</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="61"/>
+        <location filename="../qml/NetworkSharePage.qml" line="65"/>
         <source>Please enter the name of the share.</source>
         <translation>Bitte den Namen der Freigabe eingeben.</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="62"/>
+        <location filename="../qml/NetworkSharePage.qml" line="66"/>
         <source>Please enter the export path.</source>
         <translation>Bitte den Exportpfad eingeben.</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="70"/>
+        <location filename="../qml/NetworkSharePage.qml" line="74"/>
         <source>Connecting…</source>
         <translation>Verbinde …</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="76"/>
+        <location filename="../qml/NetworkSharePage.qml" line="80"/>
         <source>Adding…</source>
         <translation>Wird hinzugefügt …</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/NetworkSharePage.qml" line="113"/>
+        <location filename="../qml/NetworkSharePage.qml" line="117"/>
         <source>%n video(s) in this folder</source>
         <translation>
             <numerusform>%n Video in diesem Ordner</numerusform>
@@ -1251,173 +1447,188 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="148"/>
+        <location filename="../qml/NetworkSharePage.qml" line="152"/>
         <source>Add network share</source>
         <translation>Netzwerkfreigabe hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="153"/>
+        <location filename="../qml/NetworkSharePage.qml" line="157"/>
         <source>Found on your network</source>
         <translation>In deinem Netzwerk gefunden</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="156"/>
+        <location filename="../qml/NetworkSharePage.qml" line="160"/>
         <source>Searching…</source>
         <translation>Suche läuft …</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="156"/>
+        <location filename="../qml/NetworkSharePage.qml" line="160"/>
         <source>Search again</source>
         <translation>Erneut suchen</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="165"/>
+        <location filename="../qml/NetworkSharePage.qml" line="169"/>
         <source>Looking for file servers…</source>
         <translation>Suche nach Dateiservern …</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="165"/>
+        <location filename="../qml/NetworkSharePage.qml" line="169"/>
         <source>No servers announced themselves. Enter the address below.</source>
         <translation>Kein Server hat sich gemeldet. Gib die Adresse unten ein.</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="194"/>
+        <location filename="../qml/NetworkSharePage.qml" line="198"/>
         <source>Connection</source>
         <translation>Verbindung</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="227"/>
-        <location filename="../qml/NetworkSharePage.qml" line="235"/>
+        <location filename="../qml/NetworkSharePage.qml" line="231"/>
+        <location filename="../qml/NetworkSharePage.qml" line="239"/>
         <source>Server</source>
         <translation>Server</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="234"/>
+        <location filename="../qml/NetworkSharePage.qml" line="238"/>
         <source>Name or address, e.g. nas.local</source>
         <translation>Name oder Adresse, z. B. nas.local</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="246"/>
-        <location filename="../qml/NetworkSharePage.qml" line="247"/>
+        <location filename="../qml/NetworkSharePage.qml" line="250"/>
+        <location filename="../qml/NetworkSharePage.qml" line="251"/>
         <source>Port</source>
         <translation>Port</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="262"/>
+        <location filename="../qml/NetworkSharePage.qml" line="266"/>
         <source>e.g. media</source>
         <translation>z. B. media</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="262"/>
+        <location filename="../qml/NetworkSharePage.qml" line="266"/>
         <source>e.g. /volume1/media</source>
         <translation>z. B. /volume1/media</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="263"/>
+        <location filename="../qml/NetworkSharePage.qml" line="267"/>
         <source>e.g. /dav</source>
         <translation>z. B. /dav</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="263"/>
+        <location filename="../qml/NetworkSharePage.qml" line="267"/>
         <source>e.g. /srv/media</source>
         <translation>z. B. /srv/media</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="272"/>
-        <location filename="../qml/NetworkSharePage.qml" line="278"/>
+        <location filename="../qml/NetworkSharePage.qml" line="276"/>
+        <location filename="../qml/NetworkSharePage.qml" line="282"/>
         <source>User name</source>
         <translation>Benutzername</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="277"/>
+        <location filename="../qml/NetworkSharePage.qml" line="281"/>
         <source>Empty for guest access</source>
         <translation>Leer für Gastzugriff</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="277"/>
+        <location filename="../qml/NetworkSharePage.qml" line="281"/>
         <source>Empty for anonymous</source>
         <translation>Leer für anonym</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="288"/>
-        <location filename="../qml/NetworkSharePage.qml" line="297"/>
+        <location filename="../qml/NetworkSharePage.qml" line="292"/>
+        <location filename="../qml/NetworkSharePage.qml" line="301"/>
         <source>Password</source>
         <translation>Passwort</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="288"/>
-        <location filename="../qml/NetworkSharePage.qml" line="297"/>
+        <location filename="../qml/NetworkSharePage.qml" line="292"/>
+        <location filename="../qml/NetworkSharePage.qml" line="301"/>
         <source>Key passphrase</source>
         <translation>Passphrase des Schlüssels</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="296"/>
+        <location filename="../qml/NetworkSharePage.qml" line="300"/>
         <source>Empty if the key has none</source>
         <translation>Leer, wenn der Schlüssel keine hat</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="305"/>
+        <location filename="../qml/NetworkSharePage.qml" line="309"/>
         <source>Key file (optional)</source>
         <translation>Schlüsseldatei (optional)</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="310"/>
+        <location filename="../qml/NetworkSharePage.qml" line="314"/>
         <source>Log in with a key instead of a password, e.g. ~/.ssh/id_ed25519</source>
         <translation>Mit einem Schlüssel statt Passwort anmelden, z. B. ~/.ssh/id_ed25519</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="311"/>
+        <location filename="../qml/NetworkSharePage.qml" line="315"/>
         <source>Key file</source>
         <translation>Schlüsseldatei</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="323"/>
+        <location filename="../qml/NetworkSharePage.qml" line="327"/>
         <source>Use HTTPS</source>
         <translation>HTTPS verwenden</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="335"/>
+        <location filename="../qml/NetworkSharePage.qml" line="339"/>
         <source>Reconnect</source>
         <translation>Neu verbinden</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="335"/>
+        <location filename="../qml/NetworkSharePage.qml" line="339"/>
         <source>Connect</source>
         <translation>Verbinden</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="350"/>
+        <location filename="../qml/NetworkSharePage.qml" line="354"/>
         <source>Add the whole share</source>
         <translation>Ganze Freigabe hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="350"/>
+        <location filename="../qml/NetworkSharePage.qml" line="354"/>
         <source>Add this folder</source>
         <translation>Diesen Ordner hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="371"/>
+        <location filename="../qml/NetworkSharePage.qml" line="364"/>
+        <source>Contains: music</source>
+        <translation>Enthält: Musik</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="364"/>
+        <source>Contains: video</source>
+        <translation>Enthält: Videos</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="365"/>
+        <source>Video folders become Movies and Shows, music folders Music</source>
+        <translation>Videoordner landen unter Filme und Serien, Musikordner unter Musik</translation>
+    </message>
+    <message>
+        <location filename="../qml/NetworkSharePage.qml" line="386"/>
         <source>Server key fingerprint: %1</source>
         <translation>Fingerabdruck des Server-Schlüssels: %1</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="380"/>
+        <location filename="../qml/NetworkSharePage.qml" line="395"/>
         <source>Compare it with the server&apos;s own fingerprint before adding (on the server: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Adding the library trusts this key; if the server later presents a different key, the connection is refused.</source>
         <translation>Vergleiche ihn vor dem Hinzufügen mit dem Fingerabdruck auf dem Server (dort: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Mit dem Hinzufügen wird diesem Schlüssel vertraut; zeigt der Server später einen anderen, wird die Verbindung abgelehnt.</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="386"/>
+        <location filename="../qml/NetworkSharePage.qml" line="401"/>
         <source>Folder: %1</source>
         <translation>Ordner: %1</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="413"/>
         <location filename="../qml/NetworkSharePage.qml" line="428"/>
+        <location filename="../qml/NetworkSharePage.qml" line="443"/>
         <source>Up one folder</source>
         <translation>Eine Ebene höher</translation>
     </message>
     <message>
-        <location filename="../qml/NetworkSharePage.qml" line="434"/>
+        <location filename="../qml/NetworkSharePage.qml" line="449"/>
         <source>No sub-folders here.</source>
         <translation>Hier gibt es keine Unterordner.</translation>
     </message>
@@ -1663,17 +1874,42 @@
 <context>
     <name>SearchPage</name>
     <message>
-        <location filename="../qml/SearchPage.qml" line="25"/>
-        <source>Search movies and shows</source>
-        <translation>Filme und Serien suchen</translation>
+        <location filename="../qml/SearchPage.qml" line="15"/>
+        <source>Movies</source>
+        <translation>Filme</translation>
     </message>
     <message>
-        <location filename="../qml/SearchPage.qml" line="27"/>
+        <location filename="../qml/SearchPage.qml" line="16"/>
+        <source>Shows</source>
+        <translation>Serien</translation>
+    </message>
+    <message>
+        <location filename="../qml/SearchPage.qml" line="17"/>
+        <source>Artists</source>
+        <translation>Künstler</translation>
+    </message>
+    <message>
+        <location filename="../qml/SearchPage.qml" line="18"/>
+        <source>Albums</source>
+        <translation>Alben</translation>
+    </message>
+    <message>
+        <location filename="../qml/SearchPage.qml" line="19"/>
+        <source>Tracks</source>
+        <translation>Titel</translation>
+    </message>
+    <message>
+        <location filename="../qml/SearchPage.qml" line="60"/>
+        <source>Search movies, shows and music</source>
+        <translation>Filme, Serien und Musik suchen</translation>
+    </message>
+    <message>
+        <location filename="../qml/SearchPage.qml" line="62"/>
         <source>Search</source>
         <translation>Suchen</translation>
     </message>
     <message>
-        <location filename="../qml/SearchPage.qml" line="47"/>
+        <location filename="../qml/SearchPage.qml" line="86"/>
         <source>Nothing found for “%1”.</source>
         <translation>Nichts gefunden für „%1“.</translation>
     </message>
@@ -1928,52 +2164,60 @@
 <context>
     <name>SourcesPage</name>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="41"/>
+        <location filename="../qml/SourcesPage.qml" line="46"/>
         <source>Sources</source>
         <translation>Quellen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="46"/>
+        <location filename="../qml/SourcesPage.qml" line="51"/>
         <source>Library folders</source>
         <translation>Bibliotheksordner</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="50"/>
+        <location filename="../qml/SourcesPage.qml" line="55"/>
         <source>Add folder</source>
         <translation>Ordner hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="60"/>
+        <location filename="../qml/SourcesPage.qml" line="65"/>
         <source>Add network share</source>
         <translation>Netzwerkfreigabe hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="69"/>
+        <location filename="../qml/SourcesPage.qml" line="74"/>
         <source>Scanning…</source>
         <translation>Wird durchsucht …</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="69"/>
+        <location filename="../qml/SourcesPage.qml" line="74"/>
         <source>Rescan all</source>
         <translation>Alle neu durchsuchen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="79"/>
+        <location filename="../qml/SourcesPage.qml" line="84"/>
         <source>Add the folders that hold your movies and shows, on this computer or on a network share (NAS). They are scanned, matched with TMDB and shown under Movies and Shows.</source>
         <translation>Füge die Ordner mit deinen Filmen und Serien hinzu, auf diesem Computer oder auf einer Netzwerkfreigabe (NAS). Sie werden durchsucht, mit TMDB abgeglichen und unter Filme und Serien angezeigt.</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="132"/>
+        <location filename="../qml/SourcesPage.qml" line="137"/>
         <source>scanning…</source>
         <translation>wird durchsucht …</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="133"/>
+        <location filename="../qml/SourcesPage.qml" line="138"/>
         <source>offline</source>
         <translation>offline</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="134"/>
+        <location filename="../qml/SourcesPage.qml" line="139"/>
+        <source>Music · %n file(s)</source>
+        <translation>
+            <numerusform>Musik · %n Datei</numerusform>
+            <numerusform>Musik · %n Dateien</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/SourcesPage.qml" line="140"/>
         <source>%n video(s)</source>
         <translation>
             <numerusform>%n Video</numerusform>
@@ -1981,24 +2225,49 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="141"/>
+        <location filename="../qml/SourcesPage.qml" line="147"/>
         <source>Rescan</source>
         <translation>Neu durchsuchen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="148"/>
+        <location filename="../qml/SourcesPage.qml" line="154"/>
         <source>Really remove?</source>
         <translation>Wirklich entfernen?</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="148"/>
+        <location filename="../qml/SourcesPage.qml" line="154"/>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="157"/>
+        <location filename="../qml/SourcesPage.qml" line="163"/>
         <source>Browse this computer</source>
         <translation>Diesen Computer durchsuchen</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="223"/>
+        <source>What is in “%1”?</source>
+        <translation>Was liegt in „%1“?</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="230"/>
+        <source>Video folders become Movies and Shows, music folders Music. A folder with both is added twice, once per subfolder.</source>
+        <translation>Videoordner landen unter Filme und Serien, Musikordner unter Musik. Einen Ordner mit beidem fügst du zweimal hinzu, je einmal pro Unterordner.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="237"/>
+        <source>Movies and shows</source>
+        <translation>Filme und Serien</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="243"/>
+        <source>Music</source>
+        <translation>Musik</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="250"/>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
     </message>
 </context>
 <context>
@@ -2124,8 +2393,8 @@
     </message>
     <message>
         <location filename="../src/main.cpp" line="74"/>
-        <source>Measure a performance budget and quit: startup, scroll or episodes.</source>
-        <translation>Ein Leistungsbudget messen und beenden: startup, scroll oder episodes.</translation>
+        <source>Measure a performance budget and quit: startup, scroll, episodes or music.</source>
+        <translation>Ein Leistungsbudget messen und beenden: startup, scroll, episodes oder music.</translation>
     </message>
     <message>
         <location filename="../src/main.cpp" line="78"/>

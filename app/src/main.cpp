@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     cli.addOption({"data-dir", QCoreApplication::translate("main", "Use this data folder."), "dir"});
     cli.addOption({"benchmark",
                    QCoreApplication::translate(
-                       "main", "Measure a performance budget and quit: startup, scroll or episodes."),
+                       "main", "Measure a performance budget and quit: startup, scroll, episodes or music."),
                    "name"});
     cli.addOption({"benchmark-out",
                    QCoreApplication::translate("main", "Also write the benchmark result to this file."),

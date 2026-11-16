@@ -32,6 +32,9 @@ qt_add_qml_module(coyotl
     qml/TechDetails.qml
     qml/SaveMenu.qml
     qml/TmdbKeyStatus.qml
+    qml/MusicPage.qml
+    qml/AlbumPage.qml
+    qml/ArtistPage.qml
     qml/MediaInfo.js
     qml/Nav.qml
     qml/NavRail.qml
