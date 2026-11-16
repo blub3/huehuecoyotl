@@ -94,7 +94,7 @@ Apache 2.0 for the project's own code is workable if Qt, libmpv and FFmpeg are u
 
 Distribution packagers may still link a system mpv that is a GPL build. That is allowed, since Apache-2.0 code can be combined into a GPLv3 work, but the resulting package is then GPL as a whole.
 
-Two further points sit outside copyright licensing. "Infuse" is another company's product name and should not appear in the project name or branding. Codec patents (for example HEVC, AC-3, DTS) are separate from software licences; prefer OS and hardware decoders and take advice before distributing through app stores.
+Two further points sit outside copyright licensing. Other companies' product names must not appear in the project name, branding or documentation. Codec patents (for example HEVC, AC-3, DTS) are separate from software licences; prefer OS and hardware decoders and take advice before distributing through app stores.
 
 ## 4. Revised system architecture
 
