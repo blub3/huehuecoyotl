@@ -33,7 +33,8 @@ FocusScope {
         case "running": return qsTr("%1 %").arg(percent(d)) + "  ·  " + MediaInfo.size(d.bytesDone) + " / " + MediaInfo.size(d.size)
         case "paused": return qsTr("Paused at %1 %").arg(percent(d))
         case "failed": return Core.downloadErrorText(d.errorKind, d.error)
-        case "outdated": return qsTr("Outdated: the file on the server changed")
+        case "outdated": return d.fileId > 0 ? qsTr("Outdated: the file on the server changed")
+                                             : qsTr("Outdated: the file is no longer on the server")
         }
         return d.kind === "export" ? qsTr("Exported · %1").arg(MediaInfo.size(d.size)) : qsTr("Saved · %1").arg(MediaInfo.size(d.size))
     }
@@ -185,7 +186,8 @@ FocusScope {
                         text: row.dl.state === "running" || row.dl.state === "queued" ? qsTr("Pause")
                             : row.dl.state === "paused" ? qsTr("Resume")
                             : row.dl.state === "failed" ? qsTr("Try again")
-                            : row.dl.state === "outdated" ? qsTr("Save again")
+                            // Only while the file is still in the library (else it is gone from the server).
+                            : row.dl.state === "outdated" ? (row.dl.fileId > 0 ? qsTr("Save again") : "")
                             : row.dl.kind === "export" ? qsTr("Show in file manager") : ""
                         KeyNavigation.right: second
                         Keys.onLeftPressed: Nav.focusRail()

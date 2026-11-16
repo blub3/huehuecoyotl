@@ -318,12 +318,12 @@
         <translation>Kopie speichern unter</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="902"/>
+        <location filename="../qml/DetailPage.qml" line="903"/>
         <source>Copy every episode into</source>
         <translation>Alle Folgen kopieren nach</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/DetailPage.qml" line="924"/>
+        <location filename="../qml/DetailPage.qml" line="925"/>
         <source>%n file(s) exist already in %1. Replace them?</source>
         <translation>
             <numerusform>%n Datei ist in %1 schon vorhanden. Ersetzen?</numerusform>
@@ -331,14 +331,14 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="937"/>
+        <location filename="../qml/DetailPage.qml" line="938"/>
         <source>Replace</source>
         <translation>Ersetzen</translation>
     </message>
     <message>
         <location filename="../qml/DetailPage.qml" line="469"/>
         <location filename="../qml/DetailPage.qml" line="828"/>
-        <location filename="../qml/DetailPage.qml" line="930"/>
+        <location filename="../qml/DetailPage.qml" line="931"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
@@ -457,104 +457,109 @@
         <translation>Veraltet: Die Datei auf dem Server hat sich geändert</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="38"/>
+        <location filename="../qml/DownloadsPage.qml" line="37"/>
+        <source>Outdated: the file is no longer on the server</source>
+        <translation>Veraltet: Die Datei ist nicht mehr auf dem Server</translation>
+    </message>
+    <message>
+        <location filename="../qml/DownloadsPage.qml" line="39"/>
         <source>Exported · %1</source>
         <translation>Exportiert · %1</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="38"/>
+        <location filename="../qml/DownloadsPage.qml" line="39"/>
         <source>Saved · %1</source>
         <translation>Gespeichert · %1</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="78"/>
-        <location filename="../qml/DownloadsPage.qml" line="102"/>
+        <location filename="../qml/DownloadsPage.qml" line="79"/>
+        <location filename="../qml/DownloadsPage.qml" line="103"/>
         <source>Downloads</source>
         <translation>Downloads</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="86"/>
+        <location filename="../qml/DownloadsPage.qml" line="87"/>
         <source>Saved copies use %1 in %2</source>
         <translation>Gespeicherte Kopien belegen %1 in %2</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="110"/>
+        <location filename="../qml/DownloadsPage.qml" line="111"/>
         <source>In progress</source>
         <translation>Läuft</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="111"/>
+        <location filename="../qml/DownloadsPage.qml" line="112"/>
         <source>Failed</source>
         <translation>Fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="112"/>
+        <location filename="../qml/DownloadsPage.qml" line="113"/>
         <source>Outdated</source>
         <translation>Veraltet</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="112"/>
+        <location filename="../qml/DownloadsPage.qml" line="113"/>
         <source>Done</source>
         <translation>Fertig</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="185"/>
+        <location filename="../qml/DownloadsPage.qml" line="186"/>
         <source>Pause</source>
         <translation>Pausieren</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="186"/>
+        <location filename="../qml/DownloadsPage.qml" line="187"/>
         <source>Resume</source>
         <translation>Fortsetzen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="187"/>
+        <location filename="../qml/DownloadsPage.qml" line="188"/>
         <source>Try again</source>
         <translation>Erneut versuchen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="188"/>
+        <location filename="../qml/DownloadsPage.qml" line="190"/>
         <source>Save again</source>
         <translation>Erneut speichern</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="189"/>
+        <location filename="../qml/DownloadsPage.qml" line="191"/>
         <source>Show in file manager</source>
         <translation>Im Dateimanager zeigen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="204"/>
+        <location filename="../qml/DownloadsPage.qml" line="206"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="205"/>
+        <location filename="../qml/DownloadsPage.qml" line="207"/>
         <source>Dismiss</source>
         <translation>Ausblenden</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="205"/>
+        <location filename="../qml/DownloadsPage.qml" line="207"/>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="206"/>
-        <location filename="../qml/DownloadsPage.qml" line="262"/>
+        <location filename="../qml/DownloadsPage.qml" line="208"/>
+        <location filename="../qml/DownloadsPage.qml" line="264"/>
         <source>Delete saved copy</source>
         <translation>Gespeicherte Kopie löschen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="224"/>
+        <location filename="../qml/DownloadsPage.qml" line="226"/>
         <source>Nothing saved yet. Use “Save” on a movie or episode to keep a copy on this computer.</source>
         <translation>Noch nichts gespeichert. Mit „Speichern“ bei einem Film oder einer Folge legst du eine Kopie auf diesem Computer ab.</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="249"/>
+        <location filename="../qml/DownloadsPage.qml" line="251"/>
         <source>Delete the saved copy of “%1” from this computer? Only the local copy is removed; the file on the server stays.</source>
         <translation>Die gespeicherte Kopie von „%1“ von diesem Computer löschen? Nur die lokale Kopie wird entfernt; die Datei auf dem Server bleibt erhalten.</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="255"/>
+        <location filename="../qml/DownloadsPage.qml" line="257"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>
@@ -1687,7 +1692,7 @@
     </message>
     <message>
         <location filename="../qml/SettingsPage.qml" line="266"/>
-        <location filename="../qml/SettingsPage.qml" line="394"/>
+        <location filename="../qml/SettingsPage.qml" line="395"/>
         <source>Delete all saved copies</source>
         <translation>Alle gespeicherten Kopien löschen</translation>
     </message>
@@ -1747,12 +1752,12 @@
         <translation>Ordner für gespeicherte Kopien</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="381"/>
+        <location filename="../qml/SettingsPage.qml" line="382"/>
         <source>Delete every saved copy from this computer (%1)? The files on your servers stay, and everything can be streamed or saved again.</source>
         <translation>Alle gespeicherten Kopien von diesem Computer löschen (%1)? Die Dateien auf deinen Servern bleiben erhalten, und alles kann weiter gestreamt oder erneut gespeichert werden.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="387"/>
+        <location filename="../qml/SettingsPage.qml" line="388"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>

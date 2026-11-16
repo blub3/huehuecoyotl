@@ -1585,7 +1585,7 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "huehuecoyotl-cli"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "crossbeam-channel",
  "huehuecoyotl-core",
@@ -1595,7 +1595,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-core"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "async-trait",
  "bytes 1.12.1",
@@ -1625,7 +1625,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-core-api"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "cxx",
  "huehuecoyotl-core",
@@ -1635,7 +1635,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-library"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "crossbeam-channel",
  "image",
@@ -1648,7 +1648,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-metadata"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "async-trait",
  "bytes 1.12.1",
@@ -1665,7 +1665,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-probe"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "libloading",
  "serde",
@@ -1676,7 +1676,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-scanner"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "huehuecoyotl-library",
  "huehuecoyotl-vfs",
@@ -1688,7 +1688,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-stream"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "async-trait",
  "bytes 1.12.1",
@@ -1700,7 +1700,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-vfs"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "async-trait",
  "bytes 1.12.1",
@@ -1723,7 +1723,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-vfs-sftp"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "async-trait",
  "bytes 1.12.1",

@@ -4,6 +4,11 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+## 1.5.2 – 2026-11-16 (Linux)
+
+- Fixed: after choosing a file or folder in the "Save as…" or storage-folder dialog, the app no longer reacted to the keyboard or a remote until it was clicked.
+- Downloads: a saved copy whose file was removed from the server says so and no longer offers "Save again".
+
 ## 1.5.1 – 2026-11-16 (Linux)
 
 - Fixed (Flatpak): "Save as…" of a single file tried to write its subtitle files next to it, which the desktop portal does not allow; a hidden temporary file was left in the target folder. Subtitles are now skipped in that case and the app says so; exporting a season into a folder includes them.

@@ -354,6 +354,7 @@ FocusScope {
         title: qsTr("Where saved copies go")
         currentFolder: page.storageDir !== "" ? "file://" + page.storageDir : ""
         onAccepted: {
+            storageButton.forceActiveFocus()
             page.storageMessage = ""
             const url = String(selectedFolder)
             page.storageRequest = Core.setStorageDir(decodeURIComponent(url.replace(/^file:\/\//, "")))

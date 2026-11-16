@@ -894,14 +894,15 @@ FocusScope {
         title: qsTr("Save a copy as")
         fileMode: FileDialog.SaveFile
         currentFolder: Core.exportFolder()
-        onAccepted: page.exportTo(Core.localPath(selectedFile), true)
+        // Focus goes back to the page either way, or keyboard and remote stop working.
+        onAccepted: { exportButton.forceActiveFocus(); page.exportTo(Core.localPath(selectedFile), true) }
         onRejected: exportButton.forceActiveFocus()
     }
     FolderDialog {
         id: exportFolderDialog
         title: qsTr("Copy every episode into")
         currentFolder: Core.exportFolder()
-        onAccepted: page.exportTo(Core.localPath(selectedFolder), false)
+        onAccepted: { exportButton.forceActiveFocus(); page.exportTo(Core.localPath(selectedFolder), false) }
         onRejected: exportButton.forceActiveFocus()
     }
     Popup {

@@ -87,6 +87,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="1.5.2" date="2026-11-16" type="stable">
+      <description>
+        <p>Keyboard and remote keep working after the "Save as…" and storage-folder dialogs.</p>
+      </description>
+    </release>
     <release version="1.5.1" date="2026-11-16" type="stable">
       <description>
         <p>Fixes "Save as…" of a single file in the Flatpak version, which left a hidden temporary file instead of the subtitles.</p>
