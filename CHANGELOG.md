@@ -4,6 +4,14 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
+## 1.5.0 – 2026-11-16 (Linux)
+
+Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled).
+
+- Save (#4): keep an offline copy of a movie, an episode, a season or a whole show from a network source. It plays from the copy, also when the server is off, and keeps resume and watched state. The detail page shows progress with pause, resume and cancel; "Delete saved copy" removes only the local copy. Saved items have a mark on their cover, and Movies and Shows filter All, Unwatched or Saved. A new Downloads screen lists copies in progress, failed, outdated and done, with the space used; Settings → Storage sets the folder and deletes all saved copies.
+- Save as… (#5): copy a movie or episode to a file you choose, or a season or show into a folder, for example on a USB drive. Subtitles go along under the new name. The app keeps no record of exported files.
+- Download engine (#3): copies continue after a dropped connection or a restart, are checked against the library's fingerprint, and never fill the disk (a full disk is its own error and leaves no partial file). Playback reads go before downloads and the media analysis. `coyotl-cli download`, `downloads` and `export` drive it headless.
+
 ## 1.2.0 – 2026-11-15 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled).

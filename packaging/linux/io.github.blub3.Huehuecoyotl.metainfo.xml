@@ -87,6 +87,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="1.5.0" date="2026-11-16" type="stable">
+      <description>
+        <p>Save movies, episodes and whole shows from network shares as offline copies that play without the network, with a Downloads screen and storage settings; and "Save as…" to copy files to a folder or drive of your choice.</p>
+      </description>
+    </release>
     <release version="1.2.0" date="2026-11-15" type="stable">
       <description>
         <p>Technical details for every movie and episode (resolution, HDR, codecs, audio and subtitle tracks, bit rates), analysed in the background, also on network shares; and a choice between several versions of the same movie.</p>

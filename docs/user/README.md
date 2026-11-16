@@ -105,6 +105,7 @@ changed by later scans.
 - **Home** shows *Continue watching* and *Recently added*.
 - **Movies** and **Shows** are poster grids. **Sort** switches between A–Z, recently added
   and year; **All / Unwatched** hides what you have seen.
+  **Saved** shows only what is saved on this computer.
 - **Search** finds films and series by title.
 - An item's page shows its description, files and, for series, seasons and episodes.
   **Resume** continues where you stopped; **Start over** begins again.
@@ -114,6 +115,21 @@ A film counts as watched once you have seen 92 % of it. A resume point is kept a
 
 Subtitles inside the video file are offered automatically, and so are subtitle files next to
 the video with the same name (`Film.mkv` and `Film.en.srt` or `Film.de.forced.srt`).
+
+## Watch without the network: Save and Save as…
+
+- **Save** on a film or episode page (**Save season**, **Save all** on a series) keeps a copy
+  of a file from a network share on this computer. It then plays from the copy, also when the
+  server is off; resume points and watched marks stay the same. While it copies, the button
+  pauses and resumes it, **Cancel** stops it. Copying continues after the network drops or
+  the app restarts. A cover with a ⤓ mark is saved.
+- **Delete saved copy** removes only the copy on this computer; the file on the server stays.
+  When the file on the server changes, the copy is marked outdated and offers **Save again**.
+- **Downloads** in the navigation lists copies in progress, failed and done, and the space
+  they use. **Settings → Storage** chooses the folder for new copies and deletes all of them.
+- **Save as…** copies a film or episode to a file you choose (a season or series into a
+  folder), for example on a USB drive. The app does not keep track of these copies and
+  never deletes them.
 
 ## Keyboard and remote
 
@@ -183,6 +199,7 @@ folders called `Extras` or `Featurettes` are kept out of the library.
 | Library, artwork, log | `~/.var/app/io.github.blub3.Huehuecoyotl/data/coyotl` | `~/.local/share/coyotl` | `%APPDATA%\coyotl` |
 
 Deleting this folder resets the library; your video files are never changed or deleted.
+Saved copies are in its `Saved` folder unless you chose another one under Settings → Storage.
 Passwords and the TMDB key are in the system keyring under the service name `coyotl`.
 
 ## Troubleshooting
