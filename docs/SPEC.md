@@ -1,6 +1,8 @@
-# Huehuecoyotl – Architecture Specification v1.11
+# Huehuecoyotl – Architecture Specification v1.12
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
+
+**Changes in v1.12:** Audiobooks for 2.5 (issue #64): scope, formats and non-goals (section 2), the audiobook data model and migration 10, the scan pipeline, book providers and privacy (7), the content type (6), audiobook playback (5.8), bridge additions (8), the Audiobooks section (9), the bundle (10), the 2.5 plan (11) and the maintainer's decisions: Open Library without a contact address at 1 request per second, books share the music switch for online lookups, a third audio handle for books, no Audible-based provider (12).
 
 **Changes in v1.11:** 2.1 is released for Linux on Nov 16, 2026 (issue #63): album versions and editions, migration 9 and how a version is chosen (section 7, *Album versions and editions*; section 9).
 
@@ -64,6 +66,7 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | Windows (no version yet) | The Windows build; MSIX and winget packages; code signing; Windows media keys (SMTC) |
 | 2.0 (Linux, released) | Music: a music library from tags (FLAC, ALAC, WAV, AIFF, MP3, AAC, Ogg Vorbis, Opus, WavPack), Albums and Artists, a play queue with gapless playback and a mini player, Hi-Res badges, MusicBrainz and the Cover Art Archive, optional TheAudioDB and Fanart.tv, a bit-perfect output mode (see **Music in 2.0** below) |
 | 2.1 (Linux, released) | Music: versions and editions of an album (several formats, sources or a remaster) and of a track, chosen on the album page, with the preferred version and "This is a different album" (issue #63) |
+| 2.5 (Linux, planned) | Audiobooks: books from single files or folders (M4B, M4A, MP3, Ogg Vorbis, Opus, FLAC) with chapters, authors, narrators and series; local metadata (OPF, desc.txt, reader.txt, .nfo, tags, names); Open Library and MusicBrainz; a category with Books, Authors, Series and Narrators; a player with exact resume across files, chapters, speed and a sleep timer (see **Audiobooks in 2.5** below) |
 | Unscheduled | HDR passthrough on Windows through direct mode (needs a Windows PC with an HDR display for tests W1–W8) |
 | After 1.1 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
 | Non-goals | Phones, tablets and TV boxes; DRM streaming services; transcoding or acting as a media server; SMB1; cloud accounts run by the project |
@@ -75,6 +78,14 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 - **Lossless** means FLAC, ALAC, PCM (WAV, AIFF) and WavPack in its lossless mode. **Hi-Res** means lossless with more than 16 bits per sample or a sample rate above 48 kHz; the badge sits on a track when its file is Hi-Res and on an album when all of its tracks are. Lossy files are never Hi-Res, whatever their sample rate.
 - Music shares the library, the network sources, the job queue, the offline copies and the player with video; what differs is the scan pipeline (tags, not file names), the metadata providers and the playback model (a queue that plays while the user browses).
 - Where each issue is specified: the music library from tags (#7) in section 7, *Music library* (data model, scan pipeline); playback, the queue and Now Playing (#8) in 5.7 and 9; bit-perfect output (#9) in 5.7; the Music section (#10) in 9; MusicBrainz and the Cover Art Archive (#11) and TheAudioDB and Fanart.tv (#12) in section 7, *Providers*; content types of library folders in 6; formats in the bundle in 10; the order of work in 11; open decisions in 12.
+
+**Audiobooks in 2.5** (issues #64 to #67)
+
+- **What a book is.** One audiobook, from one place: a single file (an M4B, or any one audio file), a folder of audio files, or a folder with disc subfolders (`CD1`, `Disc 2`). Common layouts are recognised: `Author/Title/`, `Author/Series/01 - Title/`, `Author/Series/Book 2.5 - Title/`, and `Title - Author.m4b` flat in a folder.
+- **Formats.** M4B and M4A (AAC or ALAC, with or without chapters), MP3, Ogg Vorbis, Opus and FLAC; the extensions `.m4b`, `.m4a`, `.mp4` (audio only), `.mp3`, `.ogg`, `.oga`, `.opus`, `.flac`. The bundle decodes all of them already (section 10).
+- **Not in 2.5:** DRM-protected files (Audible AAX and AAXC, which are recognised and listed as not playable, never decrypted), ebooks, podcasts, audio dramas as a category of their own, syncing progress with other services or devices, bookmarks and notes, text-to-speech, splitting a single long file into chapters by silence, and an Audible-based metadata provider (decided in v1.12, section 12).
+- Audiobooks share the library, the network sources, the job queue, the offline copies, the probe and the mini player with video and music. What differs: the scan pipeline (books, not tracks), the metadata providers (Open Library, and MusicBrainz for tagged books), and playback (one continuous timeline per book, exact resume, chapters, speed and a sleep timer, in an audio handle of its own).
+- Where each issue is specified: the scope and decisions (#64) here and in section 12; the audiobook library (#65) in section 7, *Audiobook library*, and section 6 (content type); metadata and covers (#67) in section 7, *Book providers*; the category and the player (#66) in 5.8 and section 9; formats in section 10; the plan in section 11.
 
 **Principles**
 
@@ -220,6 +231,16 @@ Read-ahead is adaptive: after a seek, fetch a small first block and widen the wi
 
 *As built (issue #9).* `MusicPlayer` has `bitPerfect`, `audioDevice` (mpv's `audio-device`, "auto" for the system's), `devices` and `volume`, kept in `ui.ini`; Settings → Audio has "Bit-perfect music" and "Music output" (videos keep the system default). Bit-perfect mode (`setBitPerfect` in `app/src/musicoptions.h`) sets `audio-exclusive=yes`, clears `af`, turns `replaygain` off and the volume to 100 % (the volume buttons on Now Playing and MPRIS volume do nothing then); off restores shared access, the ReplayGain choice and the volume. mpv forces no rate or format in either mode, and `gapless-audio=weak` reopens the device when the format changes between tracks. mpv lists no `alsa/hw:` devices: the hardware itself appears as `alsa/front:`, `alsa/hdmi:` and `alsa/iec958:` ("direct" in the list; `hw:` counts too when named by hand); `plughw:` converts, `dmix:` and `sysdefault:` mix, and the ALSA plug-ins are not offered. The list offers the system default, the sound server's outputs (PipeWire, else PulseAudio), direct ALSA devices (not in the Flatpak, which cannot reach them; section 12) and WASAPI or Core Audio devices. The signal path comes from mpv's `audio-params`, `audio-out-params`, `af` and `current-ao` (`app/src/audiopath.h`): exclusive means bit-perfect mode on a direct ALSA device, WASAPI or Core Audio; "Bit-perfect" needs exclusive, no filter, and the same rate, sample format (planar or not) and channel count in and out. Now Playing shows the source format, "Output: rate · bit depth · output" (and "exclusive"), the badge, and a note: shared output ("the system mixer may resample"), filters, or the rate or format the device took instead. When the chosen device cannot be opened (mpv: "Could not open/initialize audio device"), the player switches to the default device in shared mode, plays the track again from where it was, and says so in red. Tests (`tests/tst_musicplayback.cpp`): a 24-bit, 96 kHz FLAC (tone and noise) played in bit-perfect mode into `ao=pcm` is byte for byte FFmpeg's reference decode, and at 50 % volume it is not; the rules for exclusive, bit-perfect and the offered devices. The manual checklist for a USB DAC is `docs/testing/hires-audio.md`. While building this, a second `MusicPlayer` turned up: QML built its own for the default-constructible singleton instead of calling `create()`, so two audio handles reacted to every ticket; the constructor now needs a parent.
 
+**5.8 Audiobook playback (2.5, issue #66)**
+
+- **An audio handle of its own.** Books play in a third mpv handle, audio-only like the music handle (`vid=no`, `vo=null`), owned by a C++ `BookPlayer` (decided in v1.12, section 12). The music queue and its handle are not touched by a book. Starting a book pauses music and keeps its queue and position; starting music pauses the book and saves its position. Video pauses both. The mini player, MPRIS and the media keys show what played last: for a book its title, the current chapter and the author, with its cover. The screensaver is not inhibited for books, as for music.
+- **One timeline per book.** A book's files, in their order, form one timeline (`book_file.start_ms`); a position is a point on it. The core turns a timeline position into (file, offset) and back (unit-tested without Qt); `BookPlayer` loads the book's files as one mpv playlist with `gapless-audio=yes` and `prefetch-playlist=yes`, so a multi-file book plays without gaps between files, and starts at the file and offset of the saved position. Network files stream through `coyotl://` with the music handle's smaller cache.
+- **Resume.** The position on the timeline is saved every 5 s while playing, on pause, on seek, on chapter change, on exit and when the sleep timer stops playback (`playstate.position_ms`, with `last_played_at`); a book resumes within one second of where it stopped, also inside a later file. A book counts as finished at its last 30 s or by "Mark as finished" (`playstate.watched`); finishing does not reset the position until the book is played again.
+- **Chapters.** Previous and next chapter (previous within 3 s of a chapter's start goes to the one before, later to the chapter's start), a chapter list, and the current chapter's title and the time left in it. Chapter lookup is a binary search over the book's chapters (core, unit-tested).
+- **Skip.** Back 15 s and forward 30 s by default; both configurable (5 to 120 s).
+- **Speed.** 0.5× to 3.0× in steps of 0.1, pitch kept by mpv's `scaletempo2` audio filter (`af=scaletempo2`, the default for speed changes; set explicitly). Remembered per book (`book.speed`); new books use the default from Settings. Bit-perfect mode (5.7) does not apply to books.
+- **Sleep timer.** 5 to 120 minutes, or "end of chapter". The core computes when to stop (unit-tested); `BookPlayer` fades the volume out over the last 5 s, pauses, restores the volume and saves the position.
+
 **5.6 Direct mode on Wayland**
 
 There is no clean way today to show mpv's HDR output inside a Qt window on Wayland. Version 1.0 uses embedded mode there, and three routes exist for later.
@@ -268,6 +289,8 @@ If a pure-Rust client proves unreliable, the C libraries libsmb2 and libnfs can 
 **Credentials.** Secrets go into the OS keystore through the `keyring` crate (its platform stores, never the in-memory mock store; a test checks this in debug and release builds): Windows Credential Manager, the Secret Service on Linux, Keychain on macOS. Under Flatpak the app talks to the Secret Service (`org.freedesktop.secrets`) directly over D-Bus; the manifest allows exactly that name. The database stores only a reference. A secret that cannot be stored (no keystore installed, a locked one) is never written anywhere else: it works until the app closes, and the UI says so. `tools/test-keystore.sh` checks that secrets survive a restart against a throwaway Secret Service (its own D-Bus session and gnome-keyring-daemon).
 
 **Content type (2.0).** Every library folder, local or on a network source, has a content type: `video` or `music` (`source.content`, migration 8; existing folders become `video`). The scanner runs the video or the music pipeline by it. Adding a folder asks for the type; a folder holds one type, and a share with both is added twice, once per folder.
+
+**Content type: audiobooks (2.5).** `source.content` gains `audiobooks` (migration 10 rebuilds `source` for the new CHECK; existing folders keep their type). The scanner runs the audiobook pipeline (section 7) for those folders only; adding a folder asks for Movies and shows, Music or Audiobooks.
 
 **Connection handling**
 
@@ -425,6 +448,65 @@ ALTER TABLE playstate ADD COLUMN last_played_at INTEGER;
 
 *Privacy.* Online lookups send artist and album names (and ids) to third parties. Settings → Metadata has "Music information: from file tags only, or also from MusicBrainz and the Cover Art Archive". With tags only, no request leaves the machine for music; a test asserts that. The default is online (decided in v1.9, section 12): lookups start with the first music folder, and the user guide and the setting say what is sent. The setting is the `setting` key `music_online` ("0" turns it off); turning it on queues the albums never looked up. The attribution sits under Settings → About and in `NOTICE`.
 
+**Audiobook library (2.5)**
+
+*Data model (migration 10).* SQLite cannot change a CHECK constraint, so migration 10 rebuilds `item` (the kinds `audiobook`, `person` and `book_series` join) and `source` (content `audiobooks`) with the twelve-step procedure of migration 8, foreign keys off and `PRAGMA foreign_key_check` before the commit; the database is copied to `library.db.before-10` first. Ids are kept, so video and music items, watch state, play counts, files, artwork, offline copies and the queue stay as they are; a test migrates a 2.1 library with video, music, play counts and a queue and compares them.
+
+```sql
+-- migration 10, after the rebuilds of item (kinds + 'audiobook','person','book_series') and source (content + 'audiobooks')
+CREATE TABLE book       (item_id INTEGER PRIMARY KEY REFERENCES item(id) ON DELETE CASCADE,
+                         key TEXT NOT NULL,              -- the place: b:<source>:<folder or file>
+                         series_position REAL,           -- 2.5 for "Book 2.5"
+                         publisher TEXT, published TEXT,  -- as given: 1997 or 1997-06-26
+                         language TEXT,                  -- ISO 639-1
+                         isbn TEXT, asin TEXT,
+                         duration_ms INTEGER NOT NULL DEFAULT 0,
+                         cover_ratio REAL,               -- height / width of the cover (1.0 square, 1.5 portrait)
+                         speed REAL,                     -- remembered playback speed; NULL: the default
+                         locked TEXT NOT NULL DEFAULT '[]',  -- fields the user corrected (JSON list)
+                         drm INTEGER NOT NULL DEFAULT 0);
+CREATE UNIQUE INDEX book_key ON book(key);
+CREATE TABLE book_credit(book_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         person_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         role TEXT NOT NULL CHECK (role IN ('author','narrator')),
+                         position INTEGER NOT NULL,
+                         PRIMARY KEY (book_id, role, position));
+CREATE INDEX book_credit_person ON book_credit(person_id, role);
+CREATE TABLE book_file  (file_id INTEGER PRIMARY KEY REFERENCES file(id) ON DELETE CASCADE,
+                         book_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         idx INTEGER NOT NULL,            -- order on the timeline
+                         start_ms INTEGER NOT NULL, duration_ms INTEGER NOT NULL);
+CREATE INDEX book_file_book ON book_file(book_id, idx);
+CREATE TABLE chapter    (book_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                         idx INTEGER NOT NULL,
+                         title TEXT NOT NULL,
+                         start_ms INTEGER NOT NULL, end_ms INTEGER NOT NULL,  -- on the book's timeline
+                         file_id INTEGER REFERENCES file(id) ON DELETE SET NULL,
+                         PRIMARY KEY (book_id, idx));
+```
+
+- Items: a book is `audiobook` (title, sort title, year, overview = description, `parent_id` = its series or NULL); authors and narrators are `person` items (one per normalised name, `group_key = person:<name>`), linked through `book_credit` in order; a series is `book_series` (`group_key = series:<author>|<name>`), its books ordered by `series_position`. Progress is the book's `playstate` (position on the timeline, duration, finished as `watched`, `last_played_at`), so "Continue listening" and the unread, in progress and finished filters read one table. Covers use the poster tiers (`poster`, `poster_grid`, `poster_grid_l`); `cover_ratio` lets one grid show square and portrait covers.
+- A book is keyed by its place (`book.key`): `b:<source>:<folder>` for a folder (its disc subfolders included) or `b:<source>:<file>` for a single file. Grouping by author and normalised title happens above that: two places with the same author and title are two copies of one book; 2.5 keeps the first one found as the book and lists the others as "also in" (playing a copy is a later change, as albums got versions in 2.1). This keeps rescans incremental and never merges two different books silently.
+
+*Scan pipeline for audiobook folders (issue #65).*
+
+1. Enumerate and diff by path, size and modification time, as for music; unchanged files are not read again. Group the files into books by the layouts of section 2: a folder with audio files is a book, its `CD1`/`Disc 2` subfolders included; a folder whose audio files are each a complete book (single M4B files, or files named `Title - Author`) holds one book per file (one file per book when every file has chapters or the files' titles differ and none has a track number).
+2. Local metadata, highest first: a Calibre `metadata.opf` (`quick-xml`; title, creators by role `aut`/`nrt`, series and `calibre:series_index`, publisher, date, language, ISBN and ASIN identifiers, description), `desc.txt` (description) and `reader.txt` (narrators), a `.nfo` file (Kodi-style XML: title, author, narrator, series, year, plot), the tags of the first audio file (`lofty`, read as for music: album = title, album artist or artist = author, composer = narrator, `MVNM`/`SERIES` and `MVIN`/`SERIES-PART` for series and position, `©pub`, year, description or comment), then the folder and file names (`Author/Series/Book 2.5 - Title`, `Title - Author`). A field filled by a higher source is never replaced by a lower one. Broken or unreadable tags never stop the scan: the book appears under the name its folder or file gives.
+3. Durations come from the tag reader's stream properties (headers, never a full read; the tests count the bytes read over SMB as for music: a 40-file book costs about two block reads per file). The files' order (disc, track number, natural sort of the names) gives the timeline.
+4. Chapters: embedded chapters come from the probe (section 7, scan step 6; 2.5 extends `ProbeInfo` with the chapter list: start, end and title per chapter) and replace the file chapters when the probe has run; until then, and for files without chapters, each file is one chapter named from its title tag or file name. A `probe` job is queued at high priority for new books with a single file or M4B files.
+5. Covers: embedded art or `cover.jpg`/`folder.jpg`/`cover.png` into the poster tiers, with `cover_ratio`.
+6. Series: books with the same series name and author form one `book_series` item, ordered by position.
+7. Match online (*Book providers*), unless online information is off.
+
+`coyotl-cli library add PATH --audiobooks`, `books`, `authors`, `series`, `book ID` (with chapters and files) drive it headless. Tests use generated fixtures (tones or silence with tags, an M4B with chapters made by FFmpeg, an OPF): one M4B with chapters, a 12-file MP3 book, a two-disc book, a series of three books with an OPF, and an untagged book in `Author/Title`; each gives exactly one book with the right author, narrator, series position and chapters.
+
+*Book providers (issue #67).* A `BookProvider` trait next to `MusicProvider`: search by title and author (ISBN first when the local metadata has one), a work's details (description, subjects, first publication year), and a cover by cover id or Open Library id. Implementations:
+
+- **Open Library** (no key). Checked on Nov 16, 2026: 1 request per second without a contact in the User-Agent, 3 with an email or phone number; no bulk use (dumps exist for that); covers by cover id or OLID are not rate-limited, by ISBN at most 100 per 5 minutes per IP; covers must not be crawled. Open Library asserts no new rights over its data and asks contributors for CC0; covers carry no stated licence and are fetched for display only. The client sends `Huehuecoyotl/<version> ( https://github.com/blub3/huehuecoyotl )` on every request, has one limiter for the app at 1 request per second (decided in v1.12: no contact email), backs off on 403 and 429, looks books up one at a time as jobs on demand (never in bulk), caches what it gets in the library, and fetches covers by cover id (`https://covers.openlibrary.org/b/id/<id>-L.jpg?default=false`), never by ISBN. Search: `search.json?title=…&author=…&fields=key,title,author_name,first_publish_year,cover_i,isbn,language` (or `q=isbn:…`); a match needs the title and an author to agree, else the book goes to "Review matches" with the candidates.
+- **MusicBrainz** for books tagged with MusicBrainz ids (Picard): the release is looked up exactly with the existing client and limiter, its cover from the Cover Art Archive; release groups of the secondary type "Audiobook" count as books.
+
+Online data fills only what the local metadata left empty and never overwrites a local field or one the user corrected (`book.locked`). "Search again" on a book shows the candidates to choose from. The About screen credits Open Library with a link. *Privacy:* lookups send titles, authors and ISBNs. The existing setting covers books too and is renamed "Music and book information online" (`setting.music_online`, on by default; decided in v1.12); off, no request leaves the machine for books (a test asserts it).
+
 **TMDB**
 
 - [Terms](https://developer.themoviedb.org/docs/faq): free for non-commercial use with attribution. The About screen must carry an approved TMDB logo, less prominent than the app's own, and the notice that the product uses the TMDB API but is not endorsed or certified by TMDB.
@@ -481,6 +563,8 @@ On the C++ side, `LibraryModel` and `EpisodeModel` (`QAbstractListModel`s) fetch
 
 **Music additions (2.0).** The same rules apply: paged queries and change events with ids. New calls: `browse_music` (albums or artists, sorted and filtered, paged), `album_detail` and `artist_detail` (the track list grouped by disc, the artist's albums grouped by release type), music results in `search` grouped by kind, and the queue: `queue_play` (items, start index, shuffle), `queue_insert` (play next or add to the end), `queue_move`, `queue_remove`, `queue_step` (next or previous), `queue_set_mode` (shuffle, repeat) and `queue_state`. The core answers with `QueueChanged` (the entries around the current one, the position, the modes) and hands the shell the current and the following entry as playback tickets, as for video. As built (#8): `queue_play` takes the items (tracks, albums or artists) and the item to start from; `queue_step` is next or previous with the playback position; there are also `queue_jump`, `queue_advanced` (mpv went on by itself), `queue_resume` (load where it was left, or go on after the end), `queue_clear`, and `music_progress`, which records play counts for tracks (not `report_progress`); the tickets come as `MusicTickets` events, both events carrying JSON.
 
+**Audiobook additions (2.5).** Paged browsing of books, persons (authors, narrators) and series through `browse_items` with the new kinds and the filters `unread`, `in_progress` and `finished`; `book_detail` (the book with its credits, series, chapters, files, progress and speed), `series_detail` and `person_detail` as JSON events like `MusicDetail`; `book_play` (book, optional position) answering with a `BookTicket` (the files with their offsets, the start file and offset, the speed, the chapters); `book_progress` (book, timeline position, playing or paused, speed) to save; `book_mark_finished`, `book_set_speed`, `continue_series`, and `book_search_again` with `book_choose_match`. Timeline arithmetic, chapter lookup, the sleep timer's stop time and "continue series" live in the core.
+
 [CXX-Qt](https://github.com/KDAB/cxx-qt) from KDAB would allow the models themselves to be written in Rust. It is still below 1.0, so the spec uses plain `cxx` now and leaves that as a later option.
 
 ## 9. Qt Quick UI layer
@@ -510,6 +594,14 @@ The UI is QML on top of a few C++ models and controllers: it holds no business l
 *As built (issue #10).* The Music page (`MusicPage.qml`) is a `GridPage` with tabs (Albums, Artists, Recently added) over the same paged `LibraryModel`; grids take a cover ratio (`posterRatio`, 1 for music), and the filter offers All and Saved (no watched state for music; none for artists). Album and artist pages (`AlbumPage.qml`, `ArtistPage.qml`) load one JSON document each from `album_detail` and `artist_detail` (event `MusicDetail`): the album's tracks by disc with their format, the album's format line and the Hi-Res badge (lossless and above 44.1 kHz or 16 bit), and the artist's albums by release type plus "Appears on" (albums by others with a track that credits the artist). A track opened from search opens its album with the track focused. Since #8 Play and Shuffle start the album in the play queue, Play next and Add to queue put it after the current track or at the end, Enter on a track plays the album from it, and Menu on a track offers Play next and Add to queue. The album's Save menu offers Save and Delete saved copies; Save as… for a whole album is not offered yet. Search runs one query per kind (`search(text, kind)`) and shows a row for each kind with results; item summaries carry a `subtitle` (an album's artist, a track's album) and the `parent_id` (a track's album). Home shows "Recently added albums" when there is music, and since #8 "Recently played" (albums by their tracks' last play; `browse` sort `played`). Adding a folder in Sources, and a network share's settings, ask whether it holds video or music. Since #63 the album page has a version button under the format line (the shared `VersionPicker`, with music labels) and "This is a different album" when there are several versions, notes when the selected version or every version is offline (Play is then off), and a "Version: …" entry per file in the menu of a track with two files.
 
 Under heavy background work (tens of thousands of queued jobs) the grids kept growing slowly: every finished job refreshed them, a refresh cancelled the page in flight, and page answers waited for the "on screen first" write (`bump_items`) behind the busy writer. Since #10 `LibraryModel` never cancels a request for a refresh or a page: a refresh asked for while one is in flight runs once its answer is in, and a page wanted meanwhile is fetched right after. `bump_items` is sent without waiting for it. Music files are never probed (their format comes from the tags), so a music folder queues no `probe` jobs. `coyotl --benchmark music` scrolls the Albums grid: with 2,500 albums (50,000 tracks) it dropped no frame at 60 Hz and loaded 1,080 albums in 20 s.
+
+**Audiobooks section (2.5, issue #66)**
+
+- The navigation rail gains **Audiobooks** with the tabs Books, Authors, Series and Narrators. Home gains "Continue listening" (books in progress, most recent first), shown only when there are books.
+- The book grid shows square and portrait covers in one grid: every tile has the same height, a cover keeps its own aspect inside it (`cover_ratio`), and titles align. Filters: all, unread, in progress, finished. It stays within the scroll budget for 2,000 books (measured with `--benchmark books`).
+- Book page: cover, title, authors, narrators, the series with position (opens the series page), duration and time left, description, the chapter list with the current chapter marked, Play or Resume, Mark as finished (or unfinished), Save and Save as… (1.5, all of the book's files). Series page: the books in order with their progress, and "Continue series" (the first unfinished book after the last one listened to).
+- Player: a book's Now Playing page with cover, title, author, the chapter title and the time left in the chapter and in the book, a seek bar over the whole book with chapter marks, previous and next chapter, skip back and forward, speed, sleep timer, and the chapter list. Space plays or pauses; Left and Right skip; Page Up and Page Down change chapter. The mini player shows book and chapter while a book plays.
+- Settings: default speed, skip back and forward, under Playback. All of it works from the local database.
 
 **Performance budgets**
 
@@ -561,6 +653,8 @@ Cargo.toml           Rust workspace
 
 **Formats in the bundle (2.0).** The FFmpeg recipe already builds every decoder and demuxer: it disables only encoders, muxers and devices. The bundle therefore already decodes FLAC, ALAC, PCM (WAV, AIFF), MP3, AAC, Vorbis, Opus and WavPack (checked on the 1.6 bundle); nothing has to be added for 2.0. mpv is built with PulseAudio, PipeWire and ALSA outputs and its file output (`ao=pcm`) for the tests. Issue #8 added the test that plays one generated fixture per format through the bundled libmpv (`tests/tst_musicplayback.cpp`); the recipe needed no change. Fixtures are generated in the test setup (tones or silence with tags); no copyrighted music is committed.
 
+**Audiobooks in the bundle (2.5).** M4B is MP4 with chapters, which FFmpeg demuxes already; mpv's `scaletempo2` filter is part of mpv. `tests/tst_musicplayback.cpp` gains an M4B fixture with chapters and a two-file book played back to back without a gap. Nothing is added to the recipe.
+
 **CI pipeline (GitHub Actions, Windows and Linux runners)**
 
 1. Rust: format, clippy, unit tests, `cargo-deny` for licences and advisories.
@@ -590,6 +684,8 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 - **M5 Windows release** (was "Release 1.1" until v1.4). The Windows parts of the M0 to M4 gates (first run on Windows, Windows servers, Intel and AMD graphics); MSIX and winget packages; code signing; SMTC media keys; SFTP in the app. Direct mode with HDR passthrough was part of M5 until v1.3 and is now unscheduled.
 
 **M5 status (Nov 12, 2026).** Paused: GitHub Actions has no minutes left, and the Windows build needs it (or a Windows build machine). The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). The Windows release workflow is ready in PR #31 but untested. Open: that PR, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
+
+**2.5 (planned): audiobooks.** The specification (#64) first, then in this order: the audiobook library (#65), Open Library and MusicBrainz for books (#67), and the Audiobooks category and player (#66). 2.5 is released when all four are done. The Flatpak needs no new permission.
 
 **2.1 (Nov 16, 2026): released for Linux.** Versions and editions of albums and tracks (#63), with migration 9. Built and checked locally, with GitHub Actions disabled; the migration was checked on a copy of the maintainer's library.
 
@@ -644,6 +740,13 @@ The two video paths are the risk that could still change the architecture, so bo
 - [x] **Music, keys for TheAudioDB and Fanart.tv** (issue #12, v1.9): option A, each user's own keys in the OS keystore, both providers off until entered. Project keys (option B) were not chosen.
 - [x] **Music, direct ALSA access in the Flatpak** (issue #9, v1.9): no manifest change; under Flatpak bit-perfect mode uses PipeWire with configured rates. Revisit if users ask for it.
 - [x] **Music, scope of 2.0** (v1.9): 2.0 is released when all seven music issues are done, bit-perfect mode (#9) and the optional providers (#12) included.
+
+- [x] **Audiobooks, Open Library contact** (#67, v1.12): the User-Agent names the app, its version and the project URL, no email or phone; the limiter keeps to the 1 request per second Open Library allows without a contact. Not chosen: a contact email for 3 requests per second.
+- [x] **Audiobooks, online lookups** (#67, v1.12): books share the music switch ("Music and book information online"), on by default as for music. Not chosen: a separate switch, off by default.
+- [x] **Audiobooks, playback** (#66, v1.12): a third audio-only mpv handle for books; the music queue is never touched by a book. Not chosen: sharing the music handle.
+- [x] **Audiobooks, Audible data** (#67, v1.12): no Audible-based provider (such as Audnexus); it can be reconsidered after a terms review. 2.5 uses local metadata, Open Library and MusicBrainz.
+- [ ] **Audiobooks, Open Library's terms**: the developer pages allow on-demand lookups by open-source apps with caching; the Internet Archive's terms of service (archive.org/about/terms.php) could not be read automatically on Nov 16, 2026. Recommendation: the maintainer reads them before 2.5 is released.
+- [ ] **Audiobooks, release**: recommendation: 2.5 is released when #64 to #67 are done, as 2.0 was.
 - [x] **Music, two mpv handles** (5.7, v1.9): an audio-only handle for music next to the video one.
 - [ ] Windows video path: direct mode for all playback (SDR and HDR) so Qt Quick stays on Direct3D 11, or embedded mode for SDR with Qt forced to OpenGL. Decided by tests W3 and W3b of the [direct mode design](spike/direct-mode-design.md).
 
