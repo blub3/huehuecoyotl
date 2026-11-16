@@ -19,6 +19,8 @@ use crate::{Event, Inner};
 
 pub const SCAN_KINDS: &[&str] = &["scan", "tiers", "regroup"];
 pub const META_KINDS: &[&str] = &["match", "details", "artwork"];
+/// Issue #11: music lookups have their own worker; MusicBrainz's pace never holds up TMDB.
+pub const MUSIC_KINDS: &[&str] = &["music_match"];
 
 enum Outcome {
     Done,
@@ -33,6 +35,7 @@ pub fn spawn_workers(inner: &Arc<Inner>) {
         (SCAN_KINDS, false),
         (META_KINDS, true),
         (crate::probe::PROBE_KINDS, false),
+        (MUSIC_KINDS, false),
     ] {
         let inner = inner.clone();
         tokio::spawn(async move {
@@ -92,6 +95,13 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
         "tiers" => large_tiers(inner).await,
         "regroup" => regroup(inner).await,
         "probe" => crate::probe::run(inner, v["file_id"].as_i64().unwrap_or(0)).await,
+        "music_match" => match crate::music::match_album(inner, item_of(payload)).await {
+            Ok(()) | Err(MetaError::NotFound) => Ok(()),
+            Err(MetaError::RateLimited(s)) => {
+                return Outcome::Retry("MusicBrainz is busy".into(), Some(s as i64));
+            }
+            Err(e) => Err(e.to_string()),
+        },
         "match" | "details" | "artwork" => {
             let Some(p) = inner.provider() else {
                 return Outcome::Defer(300);
@@ -238,6 +248,7 @@ async fn scan_music(
             for (album, cover) in r.covers {
                 write_cover(inner, src, album, cover).await;
             }
+            crate::music::enqueue_lookups(inner, &r.new_albums).await;
             inner.mark_changed();
             (
                 format!(
@@ -262,7 +273,7 @@ async fn scan_music(
 
 /// An album's cover from its tags or a sidecar image, in the tiers posters have: the full image
 /// (`poster`, at most 1000 px) and the two grid tiers. Failures are logged and skipped.
-async fn write_cover(
+pub(crate) async fn write_cover(
     inner: &Arc<Inner>,
     src: &dyn huehuecoyotl_vfs::Source,
     album: i64,

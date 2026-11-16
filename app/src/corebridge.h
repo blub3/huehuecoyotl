@@ -29,6 +29,8 @@ class CoreBridge : public QObject {
     // and when TMDB last accepted the key (invalid: never).
     Q_PROPERTY(QString tmdbKeyState READ tmdbKeyState NOTIFY keyStatusChanged)
     Q_PROPERTY(QDateTime tmdbKeyValidatedAt READ tmdbKeyValidatedAt NOTIFY keyStatusChanged)
+    // Issue #11: music information from MusicBrainz and the Cover Art Archive, or file tags only.
+    Q_PROPERTY(bool musicOnline READ musicOnline WRITE setMusicOnline NOTIFY musicOnlineChanged)
     Q_PROPERTY(bool scanning READ scanning NOTIFY activityChanged)
     Q_PROPERTY(int pendingJobs READ pendingJobs NOTIFY activityChanged)
     Q_PROPERTY(int failedJobs READ failedJobs NOTIFY activityChanged)
@@ -85,6 +87,8 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 clearTmdbKey();
     // Issue #52: ask TMDB whether the key in use is accepted (answers with keyStatusChanged).
     Q_INVOKABLE quint64 testTmdbKey();
+    bool musicOnline() const { return m_musicOnline; }
+    void setMusicOnline(bool on);
 
     // M3: network sources. `spec`: protocol, host, port, share, user, tls, path, name.
     // browseNetwork answers with folderListed (or requestFailed: wrong password, unreachable).
@@ -169,6 +173,7 @@ class CoreBridge : public QObject {
     void downloadProgress(const QVariantMap &entry);
     void saveStateReady(quint64 requestId, qint64 itemId, const QVariantMap &info);
     void exportConflict(quint64 requestId, const QStringList &paths);
+    void musicOnlineChanged();
 
   private:
     void dispatch(const coyotl::core::CoreEvent &e);
@@ -181,6 +186,7 @@ class CoreBridge : public QObject {
     bool m_hasKey = false, m_keyFromEnv = false;
     QString m_keyState;
     QDateTime m_keyValidatedAt;
+    bool m_musicOnline = true;
     QSet<qint64> m_scanning;
     int m_pending = 0, m_failed = 0;
     std::function<QString()> m_appInfo;

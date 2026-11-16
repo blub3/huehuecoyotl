@@ -203,6 +203,10 @@ folders called `Extras` or `Featurettes` are kept out of the library.
 - No account, no server of ours, no telemetry, no automatic updates of its own.
 - The app talks to TMDB only when you have entered a key, and only to look up titles and
   download artwork.
+- For music folders (from 2.0), album and artist names are sent to MusicBrainz to find
+  release types, dates and ids, and album covers come from the Cover Art Archive. Turn this
+  off under **Settings → Metadata → Music information online**; music information then comes
+  from your files' tags only and nothing is sent.
 - Network share passwords and your TMDB key stay in your system's keyring.
 - Discovery listens for servers that announce themselves on your local network (mDNS); it
   does not scan the network.

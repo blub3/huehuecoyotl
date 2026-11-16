@@ -6,6 +6,7 @@ pub mod copies;
 pub mod jobs;
 pub mod merge;
 mod migrations;
+pub mod music;
 pub mod queries;
 
 use std::path::Path;

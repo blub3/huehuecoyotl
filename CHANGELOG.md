@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 ## Unreleased
 
 - Music library (#7, part of 2.0): library folders have a content type, video or music. Music folders are scanned from their tags (FLAC, ALAC, WAV, AIFF, MP3, AAC, Ogg Vorbis, Opus, WavPack) into artists, albums and tracks, reading only the tag blocks of each file, with multi-disc albums, compilations, several artists per track, names from folders and file names for untagged files, and covers from the tags or a `cover.jpg`. So far through `coyotl-cli library add PATH --music` and `coyotl-cli music`; the Music section follows.
+- Music information online (#11, part of 2.0): albums are looked up at MusicBrainz, one request for albums tagged with their MusicBrainz id, a search otherwise; an album is matched only when the results clearly agree with it, else it goes to "Review matches". Albums without a cover get one from the Cover Art Archive. Settings → Metadata → "Music information online" turns this off (file tags only, nothing sent). Attribution under Settings → About.
 - The database moves to schema 8 on first start (the music tables). A copy of the previous database is kept as `library.db.before-8`.
 
 ## 1.6.1 – 2026-11-16 (Linux)

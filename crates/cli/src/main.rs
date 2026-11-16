@@ -45,6 +45,7 @@ fn usage() -> ExitCode {
         "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent\n\
          \x20      | library add PATH [--music] | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
          \x20      | music artists | music albums | music tracks ALBUM (a music folder's artists, albums, tracks)\n\
+         \x20      | music online [on|off] (look music up at MusicBrainz and the Cover Art Archive)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
          \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
          \x20      | probe FILE (technical details as JSON; FFmpeg from COYOTL_FFMPEG_DIR or the system)\n\
@@ -327,6 +328,16 @@ fn main() -> ExitCode {
             core.browse_items(1, &what[..what.len() - 1], 0, "title", "", 0, 500);
             wait()
         }
+        // Issue #11: online music information (MusicBrainz, Cover Art Archive) on or off.
+        ("music", [what, rest @ ..]) if what == "online" && rest.len() <= 1 => {
+            match rest.first().map(String::as_str) {
+                Some("on") => core.set_music_online(1, true),
+                Some("off") => core.set_music_online(1, false),
+                None => core.music_online(1),
+                Some(_) => return usage(),
+            }
+            wait()
+        }
         ("music", [what, album]) if what == "tracks" => {
             let Ok(album) = album.parse() else {
                 return usage();
@@ -525,6 +536,14 @@ fn main() -> ExitCode {
             }
             page(&d.children);
         }
+        Event::MusicOnline { online, .. } => println!(
+            "music information: {}",
+            if online {
+                "from file tags, MusicBrainz and the Cover Art Archive"
+            } else {
+                "from file tags only"
+            }
+        ),
         Event::Episodes { total, items, .. } => {
             println!("{total} episodes");
             for e in items {

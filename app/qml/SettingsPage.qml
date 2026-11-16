@@ -72,7 +72,7 @@ FocusScope {
     function focusFirst() {
         if (!page.activeFocus) return
         if (keyStatus.activeFocus) return
-        for (const c of [keyField, saveKey, cancelReplace, reviewButton, exportButton, noticesButton]) if (c.activeFocus) return
+        for (const c of [keyField, saveKey, cancelReplace, reviewButton, musicOnline, exportButton, noticesButton]) if (c.activeFocus) return
         (keyStatus.firstButton || (page.showKeyField ? keyField : reviewButton)).forceActiveFocus()
     }
     onActiveFocusChanged: if (activeFocus) Qt.callLater(focusFirst)
@@ -206,7 +206,7 @@ FocusScope {
                     id: reviewButton
                     text: qsTr("Review matches")
                     KeyNavigation.up: page.showKeyField ? keyField : keyStatus.firstButton
-                    Keys.onDownPressed: windowSizes.focusSelected()
+                    KeyNavigation.down: musicOnline
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: Nav.open(Qt.resolvedUrl("ReviewPage.qml"))
                 }
@@ -221,6 +221,34 @@ FocusScope {
                 }
             }
 
+            // Issue #11: music information online, or from file tags only.
+            RowLayout {
+                spacing: 12
+                Layout.topMargin: 6
+                Layout.fillWidth: true
+                FocusButton {
+                    id: musicOnline
+                    objectName: "musicOnline"
+                    glyph: Core.musicOnline ? "✓" : ""
+                    text: Core.musicOnline ? qsTr("Music information online: on") : qsTr("Music information online: off")
+                    Accessible.description: musicNote.text
+                    KeyNavigation.up: reviewButton
+                    Keys.onDownPressed: windowSizes.focusSelected()
+                    Keys.onLeftPressed: Nav.focusRail()
+                    onClicked: Core.musicOnline = !Core.musicOnline
+                }
+                Label {
+                    id: musicNote
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    color: Theme.textDim
+                    font.pixelSize: Theme.fontSmall
+                    text: Core.musicOnline
+                          ? qsTr("Album and artist names from your music are sent to MusicBrainz to find release types, dates and ids, and covers come from the Cover Art Archive. No account or key is needed.")
+                          : qsTr("Music information comes from your files' tags only; nothing is sent.")
+                }
+            }
+
             // ---- Appearance ----------------------------------------------------------------
             Label { text: qsTr("Appearance"); color: Theme.textDim; font.pixelSize: Theme.fontLarge; Layout.topMargin: 24 }
             SizeChoice {
@@ -228,7 +256,7 @@ FocusScope {
                 label: qsTr("Cover size in window")
                 value: Appearance.coverWindow
                 onPicked: (key) => Appearance.coverWindow = key
-                onUpRequested: reviewButton.forceActiveFocus()
+                onUpRequested: musicOnline.forceActiveFocus()
                 onDownRequested: fullscreenSizes.focusSelected()
             }
             SizeChoice {
@@ -379,6 +407,13 @@ FocusScope {
                     color: Theme.textDim
                     text: qsTr("This product uses the TMDB API but is not endorsed or certified by TMDB.")
                 }
+            }
+            // Issue #11: music information and covers (MusicBrainz core data is CC0).
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.textDim
+                text: qsTr("Music information from MusicBrainz (musicbrainz.org, data under CC0). Album covers from the Cover Art Archive (coverartarchive.org), a joint project of the Internet Archive and MusicBrainz.")
             }
         }
     }

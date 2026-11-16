@@ -163,6 +163,7 @@ CoreBridge::CoreBridge(const QString &dataDir, const QString &language, QObject 
     try {
         m_core.emplace(coyotl::core::core_open(rs(dir), rs(lang), std::move(sink)));
         refreshKeyStatus();
+        (*m_core)->music_online(nextId());
         qCInfo(lcCore) << "core" << version() << "opened in" << dataDir;
         EpisodeModel::setBackend(
             {[this](qint64 season, int offset, int limit) { return seasonEpisodes(season, offset, limit); },
@@ -464,6 +465,11 @@ quint64 CoreBridge::clearTmdbKey()
     return id;
 }
 
+void CoreBridge::setMusicOnline(bool on)
+{
+    if (m_core) (*m_core)->set_music_online(nextId(), on);
+}
+
 quint64 CoreBridge::testTmdbKey()
 {
     const quint64 id = nextId();
@@ -656,6 +662,11 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
         m_failed = int(e.failed);
         emit activityChanged();
         emit libraryChanged();
+    } else if (e.kind == K::MusicOnline) {
+        if (m_musicOnline != e.flag) {
+            m_musicOnline = e.flag;
+            emit musicOnlineChanged();
+        }
     } else if (e.kind == K::KeyStatus) {
         m_hasKey = e.flag;
         m_keyFromEnv = e.flag2;
