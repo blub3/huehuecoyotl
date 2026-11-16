@@ -58,11 +58,31 @@ FocusScope {
     // Returning from the player: give focus back to the page.
     StackView.onActivated: focusContent()
 
+    // Issue #8: Now Playing opens above the current section's pages.
+    function openNowPlaying() {
+        if (content.currentItem && content.currentItem.objectName === "nowPlaying") focusContent()
+        else openPage(Qt.resolvedUrl("NowPlayingPage.qml"), {})
+    }
+    // Media keys and Space-free shortcuts for music while the shell is in front (the player
+    // page handles them itself while a video plays).
+    Keys.onPressed: (e) => {
+        switch (e.key) {
+        case Qt.Key_MediaPlay: Music.play(); break
+        case Qt.Key_MediaPause: Music.pause(); break
+        case Qt.Key_MediaTogglePlayPause: Music.togglePause(); break
+        case Qt.Key_MediaNext: Music.next(); break
+        case Qt.Key_MediaPrevious: Music.previous(); break
+        default: return
+        }
+        e.accepted = true
+    }
+
     NavRail {
         id: rail
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
         current: shell.section
         onChosen: (s) => { if (s === shell.section) { shell.content_toFirst() } else shell.go(s) }
+        onDownFromLast: if (mini.visible) mini.forceActiveFocus()
         KeyNavigation.right: content
     }
 
@@ -71,9 +91,19 @@ FocusScope {
         focusContent()
     }
 
+    MiniPlayer {
+        id: mini
+        anchors { left: rail.right; right: parent.right; bottom: parent.bottom }
+        visible: Music.active && !(content.currentItem && content.currentItem.objectName === "nowPlaying")
+        height: visible ? implicitHeight : 0
+        onOpenRequested: shell.openNowPlaying()
+        onUpRequested: shell.focusContent()
+        onLeftRequested: shell.focusRail()
+    }
+
     StackView {
         id: content
-        anchors { left: rail.right; right: parent.right; top: parent.top; bottom: parent.bottom }
+        anchors { left: rail.right; right: parent.right; top: parent.top; bottom: mini.top }
         focus: true
         initialItem: homePage
         pushEnter: null; pushExit: null; popEnter: null; popExit: null; replaceEnter: null; replaceExit: null

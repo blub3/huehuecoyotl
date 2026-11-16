@@ -25,6 +25,7 @@
 #include "mpris.h"
 #endif
 #include "mpvplayer.h"
+#include "musicplayer.h"
 #include "playbackcontroller.h"
 
 namespace {
@@ -111,9 +112,13 @@ int main(int argc, char *argv[])
         return info.join('\n');
     });
     auto *playback = new PlaybackController(player, &app);
+    // Issue #8: music plays in its own audio-only handle; a video pauses it and keeps the queue.
+    auto *music = new MusicPlayer(&app);
+    QObject::connect(playback, &PlaybackController::started, music, &MusicPlayer::pause);
+    // Only video keeps the screensaver away.
     new DesktopIntegration(player, &app);
 #if defined(Q_OS_LINUX)
-    registerMpris(&app, player, playback);
+    registerMpris(&app, player, playback, music);
 #endif
 
     int rc = 0;
@@ -134,9 +139,11 @@ int main(int argc, char *argv[])
         }
         rc = app.exec();
         playback->stop(); // save progress
+        music->report();
         // engine (and the video item's render context) goes out of scope before the player
     }
     delete playback;
+    delete music;
     delete player;
     qInstallMessageHandler(g_previousHandler);
     delete core; // joins core threads

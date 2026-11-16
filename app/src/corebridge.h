@@ -146,6 +146,20 @@ class CoreBridge : public QObject {
     int failedJobs() const { return m_failed; }
 
     void reportProgress(quint64 ticket, qint64 positionMs, qint64 durationMs, int state);
+
+    // Issue #8: the music play queue (answers with queueChanged and musicTickets).
+    quint64 queuePlay(const QList<qint64> &items, qint64 startItem, bool shuffle);
+    quint64 queueInsert(const QList<qint64> &items, bool next);
+    quint64 queueStep(int delta, qint64 positionMs);
+    quint64 queueJump(int position);
+    quint64 queueRemove(int position);
+    quint64 queueMove(int from, int to);
+    quint64 queueSetMode(bool shuffle, const QString &repeat);
+    void queueAdvanced(quint64 ticket);
+    quint64 queueResume(bool afterEnd);
+    quint64 queueState();
+    quint64 queueClear();
+    void musicProgress(quint64 ticket, qint64 positionMs, qint64 durationMs);
     void reportMediaInfo(quint64 ticket, const QString &mpvJson);
     void setTrackPref(quint64 ticket, const QString &audioLang, const QString &subLang, bool subOff);
 
@@ -180,6 +194,10 @@ class CoreBridge : public QObject {
     void musicOnlineChanged();
     // kind: "album" or "artist"; the map as in the core's AlbumDetail / ArtistDetail (camelCase).
     void musicDetailReady(quint64 requestId, const QString &kind, const QVariantMap &detail);
+    // Issue #8: the play queue (count, position, shuffle, repeat, offset, entries) and what the
+    // music player loads ({action, startMs, current, next}); cover paths are file URLs.
+    void queueChanged(quint64 requestId, const QVariantMap &state);
+    void musicTickets(const QVariantMap &tickets);
 
   private:
     void dispatch(const coyotl::core::CoreEvent &e);

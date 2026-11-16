@@ -8,6 +8,7 @@ pub mod merge;
 mod migrations;
 pub mod music;
 pub mod queries;
+pub mod queue;
 
 use std::path::Path;
 use std::thread;

@@ -534,6 +534,98 @@ void CoreBridge::reportMediaInfo(quint64 ticket, const QString &mpvJson)
     if (m_core) (*m_core)->report_media_info(ticket, rs(j));
 }
 
+namespace {
+std::vector<int64_t> ids(const QList<qint64> &items)
+{
+    return std::vector<int64_t>(items.begin(), items.end());
+}
+} // namespace
+
+quint64 CoreBridge::queuePlay(const QList<qint64> &items, qint64 startItem, bool shuffle)
+{
+    const quint64 id = nextId();
+    const auto v = ids(items);
+    if (m_core) (*m_core)->queue_play(id, rust::Slice<const int64_t>(v.data(), v.size()), startItem, shuffle);
+    return id;
+}
+
+quint64 CoreBridge::queueInsert(const QList<qint64> &items, bool next)
+{
+    const quint64 id = nextId();
+    const auto v = ids(items);
+    if (m_core) (*m_core)->queue_insert(id, rust::Slice<const int64_t>(v.data(), v.size()), next);
+    return id;
+}
+
+quint64 CoreBridge::queueStep(int delta, qint64 positionMs)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->queue_step(id, delta, uint64_t(qMax<qint64>(0, positionMs)));
+    return id;
+}
+
+quint64 CoreBridge::queueJump(int position)
+{
+    const quint64 id = nextId();
+    if (m_core && position >= 0) (*m_core)->queue_jump(id, uint32_t(position));
+    return id;
+}
+
+quint64 CoreBridge::queueRemove(int position)
+{
+    const quint64 id = nextId();
+    if (m_core && position >= 0) (*m_core)->queue_remove(id, uint32_t(position));
+    return id;
+}
+
+quint64 CoreBridge::queueMove(int from, int to)
+{
+    const quint64 id = nextId();
+    if (m_core && from >= 0 && to >= 0) (*m_core)->queue_move(id, uint32_t(from), uint32_t(to));
+    return id;
+}
+
+quint64 CoreBridge::queueSetMode(bool shuffle, const QString &repeat)
+{
+    const quint64 id = nextId();
+    const QByteArray r = repeat.toUtf8();
+    if (m_core) (*m_core)->queue_set_mode(id, shuffle, rs(r));
+    return id;
+}
+
+void CoreBridge::queueAdvanced(quint64 ticket)
+{
+    if (m_core) (*m_core)->queue_advanced(ticket);
+}
+
+quint64 CoreBridge::queueResume(bool afterEnd)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->queue_resume(id, afterEnd);
+    return id;
+}
+
+quint64 CoreBridge::queueState()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->queue_state(id);
+    return id;
+}
+
+quint64 CoreBridge::queueClear()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->queue_clear(id);
+    return id;
+}
+
+void CoreBridge::musicProgress(quint64 ticket, qint64 positionMs, qint64 durationMs)
+{
+    if (m_core)
+        (*m_core)->music_progress(ticket, uint64_t(qMax<qint64>(0, positionMs)),
+                                  uint64_t(qMax<qint64>(0, durationMs)));
+}
+
 void CoreBridge::reportProgress(quint64 ticket, qint64 positionMs, qint64 durationMs, int state)
 {
     if (m_core)
@@ -699,6 +791,32 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
             if (m.contains(list)) m[list] = l;
         }
         emit musicDetailReady(e.request_id, qs(e.path), m);
+    } else if (e.kind == K::QueueChanged || e.kind == K::MusicTickets) {
+        QVariantMap m = QJsonDocument::fromJson(QByteArray::fromStdString(std::string(e.message)))
+                            .object()
+                            .toVariantMap();
+        const auto entryUrls = [](QVariant v) {
+            QVariantMap x = v.toMap();
+            for (const char *k : {"poster", "posterFull"})
+                if (!x.value(k).toString().isEmpty())
+                    x[k] = QUrl::fromLocalFile(x.value(k).toString()).toString();
+            return QVariant(x);
+        };
+        if (e.kind == K::QueueChanged) {
+            QVariantList l = m.value("entries").toList();
+            for (auto &v : l)
+                v = entryUrls(v);
+            m["entries"] = l;
+            emit queueChanged(e.request_id, m);
+        } else {
+            for (const char *k : {"current", "next"}) {
+                QVariantMap t = m.value(k).toMap();
+                if (t.isEmpty()) continue;
+                t["entry"] = entryUrls(t.value("entry"));
+                m[k] = t;
+            }
+            emit musicTickets(m);
+        }
     } else if (e.kind == K::MusicOnline) {
         if (m_musicOnline != e.flag) {
             m_musicOnline = e.flag;

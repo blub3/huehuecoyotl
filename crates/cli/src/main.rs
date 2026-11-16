@@ -46,6 +46,7 @@ fn usage() -> ExitCode {
          \x20      | library add PATH [--music] | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
          \x20      | music artists | music albums | music tracks ALBUM | music album ID | music artist ID (a music folder's artists, albums, tracks)\n\
          \x20      | music online [on|off] (look music up at MusicBrainz and the Cover Art Archive)\n\
+         \x20      | queue | queue play|shuffle|next|add ID... | queue clear (the music play queue; tracks, albums or artists)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
          \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
          \x20      | probe FILE (technical details as JSON; FFmpeg from COYOTL_FFMPEG_DIR or the system)\n\
@@ -328,6 +329,32 @@ fn main() -> ExitCode {
             core.browse_items(1, &what[..what.len() - 1], 0, "title", "", 0, 500);
             wait()
         }
+        // Issue #8: the play queue (the CLI shows it; it does not play).
+        ("queue", []) => {
+            core.queue_state(1);
+            wait()
+        }
+        ("queue", [what, ids @ ..]) if !ids.is_empty() => {
+            let Ok(ids) = ids
+                .iter()
+                .map(|i| i.parse())
+                .collect::<Result<Vec<i64>, _>>()
+            else {
+                return usage();
+            };
+            match what.as_str() {
+                "play" => core.queue_play(1, ids, 0, false),
+                "shuffle" => core.queue_play(1, ids, 0, true),
+                "next" => core.queue_insert(1, ids, true),
+                "add" => core.queue_insert(1, ids, false),
+                _ => return usage(),
+            }
+            wait()
+        }
+        ("queue", [what]) if what == "clear" => {
+            core.queue_clear(1);
+            wait()
+        }
         // Issue #11: online music information (MusicBrainz, Cover Art Archive) on or off.
         ("music", [what, rest @ ..]) if what == "online" && rest.len() <= 1 => {
             match rest.first().map(String::as_str) {
@@ -544,6 +571,10 @@ fn main() -> ExitCode {
                 println!("  next   {} (id {})", n.title, n.id);
             }
             page(&d.children);
+        }
+        Event::QueueChanged { json, .. } | Event::MusicTickets { json } => {
+            let v: serde_json::Value = serde_json::from_str(&json).unwrap_or_default();
+            println!("{}", serde_json::to_string_pretty(&v).unwrap_or(json));
         }
         Event::MusicDetail { json, .. } => {
             let v: serde_json::Value = serde_json::from_str(&json).unwrap_or_default();

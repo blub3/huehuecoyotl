@@ -11,6 +11,7 @@ pub mod lang;
 mod library;
 mod music;
 mod network;
+mod playqueue;
 mod probe;
 pub mod secrets;
 mod worker;
@@ -259,6 +260,16 @@ pub enum Event {
         json: String,
     },
     /// Issue #11: whether music information is looked up online (MusicBrainz, Cover Art Archive).
+    /// Issue #8: the play queue changed (JSON: count, position, shuffle, repeat, offset,
+    /// entries).
+    QueueChanged {
+        request_id: u64,
+        json: String,
+    },
+    /// Issue #8: what the music player loads (see `playqueue`).
+    MusicTickets {
+        json: String,
+    },
     MusicOnline {
         request_id: u64,
         online: bool,
@@ -357,6 +368,11 @@ struct Inner {
     gates: Mutex<HashMap<i64, Arc<download::Gate>>>,
     /// Pause and cancel of the copies that are running, by `local_copy` id.
     downloads: Mutex<HashMap<i64, Arc<download::Ctl>>>,
+    /// Issue #8: the play queue's task, its ticket numbers, and the tickets whose track was
+    /// counted as played.
+    queue_tx: Mutex<Option<tokio::sync::mpsc::UnboundedSender<(u64, playqueue::Op)>>>,
+    music_ticket: AtomicU64,
+    counted: Mutex<HashSet<u64>>,
 }
 
 impl Inner {
@@ -563,6 +579,9 @@ impl Core {
             probe: Mutex::default(),
             gates: Mutex::default(),
             downloads: Mutex::default(),
+            queue_tx: Mutex::default(),
+            music_ticket: AtomicU64::new(playqueue::FIRST_MUSIC_TICKET),
+            counted: Mutex::default(),
         });
         // mpv's demuxer threads open coyotl:// URLs through this (SPEC 5.3).
         let weak = Arc::downgrade(&inner);
@@ -756,61 +775,7 @@ impl Core {
     fn open_files(&self, request_id: u64, item_id: i64, only: Option<i64>) {
         let ticket_id = self.next_ticket.fetch_add(1, Ordering::Relaxed);
         self.spawn(request_id, move |inner| async move {
-            let files = inner
-                .lib
-                .read(move |c| {
-                    let mut id = item_id;
-                    if let Some(d) = huehuecoyotl_library::catalog::detail(c, item_id)?
-                        && let Some(n) = d.next_up
-                    {
-                        id = n.id;
-                    }
-                    let mut files = huehuecoyotl_library::catalog::playable_files(c, id)?;
-                    if let Some(f) = only {
-                        files.retain(|p| p.file_id == f);
-                    }
-                    // Issue #4: a complete, current saved copy plays instead of the network file.
-                    let mut out = Vec::new();
-                    for f in files {
-                        let saved = if f.kind == "local" {
-                            None
-                        } else {
-                            huehuecoyotl_library::copies::usable_path(c, f.file_id)?
-                        };
-                        out.push((f, saved, id));
-                    }
-                    // Files on this computer first, then saved copies, then network files.
-                    out.sort_by_key(|(f, saved, _)| (f.kind != "local", saved.is_none()));
-                    Ok(out)
-                })
-                .await?;
-            let mut last =
-                CoreError::new(ErrorKind::NotFound, format!("item {item_id} has no file"));
-            let mut ticket = None;
-            for (f, saved, played) in files {
-                // A source marked offline is tried anyway: the user asked, and it may be back.
-                let r = if let Some(path) = saved {
-                    match prepare_copy(&inner, &path, played, f.file_id, ticket_id).await {
-                        Ok(t) => Ok(t),
-                        // The copy went missing: fall back to the network file.
-                        Err(_) => {
-                            network::prepare_remote(&inner, f.source_id, &f.path, ticket_id).await
-                        }
-                    }
-                } else if f.kind == "local" {
-                    prepare_local(&inner, &f.path, ticket_id).await
-                } else {
-                    network::prepare_remote(&inner, f.source_id, &f.path, ticket_id).await
-                };
-                match r {
-                    Ok(t) => {
-                        ticket = Some(t);
-                        break;
-                    }
-                    Err(e) => last = e,
-                }
-            }
-            let ticket = ticket.ok_or(last)?;
+            let ticket = prepare_item(&inner, item_id, only, ticket_id).await?;
             Ok(Event::Playback { request_id, ticket })
         });
     }
@@ -1043,6 +1008,69 @@ async fn prepare_local(inner: &Arc<Inner>, path: &str, ticket_id: u64) -> CResul
         sub_langs: lang::variants(&prefs.sub_lang),
         prefs,
     })
+}
+
+/// Prepare an item for playback: shows and seasons play their next-up episode; files on this
+/// computer first, then saved copies, then network files (issue #4, #34: `only` one version).
+/// Issue #8: the play queue prepares its tracks the same way.
+pub(crate) async fn prepare_item(
+    inner: &Arc<Inner>,
+    item_id: i64,
+    only: Option<i64>,
+    ticket_id: u64,
+) -> CResult<Ticket> {
+    let files = inner
+        .lib
+        .read(move |c| {
+            let mut id = item_id;
+            if let Some(d) = huehuecoyotl_library::catalog::detail(c, item_id)?
+                && let Some(n) = d.next_up
+            {
+                id = n.id;
+            }
+            let mut files = huehuecoyotl_library::catalog::playable_files(c, id)?;
+            if let Some(f) = only {
+                files.retain(|p| p.file_id == f);
+            }
+            // Issue #4: a complete, current saved copy plays instead of the network file.
+            let mut out = Vec::new();
+            for f in files {
+                let saved = if f.kind == "local" {
+                    None
+                } else {
+                    huehuecoyotl_library::copies::usable_path(c, f.file_id)?
+                };
+                out.push((f, saved, id));
+            }
+            // Files on this computer first, then saved copies, then network files.
+            out.sort_by_key(|(f, saved, _)| (f.kind != "local", saved.is_none()));
+            Ok(out)
+        })
+        .await?;
+    let mut last = CoreError::new(ErrorKind::NotFound, format!("item {item_id} has no file"));
+    let mut ticket = None;
+    for (f, saved, played) in files {
+        // A source marked offline is tried anyway: the user asked, and it may be back.
+        let r = if let Some(path) = saved {
+            match prepare_copy(inner, &path, played, f.file_id, ticket_id).await {
+                Ok(t) => Ok(t),
+                // The copy went missing: fall back to the network file.
+                Err(_) => network::prepare_remote(inner, f.source_id, &f.path, ticket_id).await,
+            }
+        } else if f.kind == "local" {
+            prepare_local(inner, &f.path, ticket_id).await
+        } else {
+            network::prepare_remote(inner, f.source_id, &f.path, ticket_id).await
+        };
+        match r {
+            Ok(t) => {
+                ticket = Some(t);
+                break;
+            }
+            Err(e) => last = e,
+        }
+    }
+    ticket.ok_or(last)
 }
 
 /// Prepare a saved copy (issue #4) of a library file: a local file, but the item, its watch

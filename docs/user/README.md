@@ -143,7 +143,24 @@ are named after their folders and file names.
   **Appears on** the albums of others they play on.
 - **Search** finds artists, albums and tracks too, in rows of their own. A track opens its
   album with the track selected.
-- **Home** shows *Recently added albums* once you have music.
+- **Home** shows *Recently added albums* and *Recently played* once you have music.
+
+**Playing music.** **Play** or **Shuffle** on an album starts it; Enter on a track plays the
+album from that track. **Play next** (⤵) and **Add to queue** (+) put an album after the
+current track or at the end; on a track, press Menu for the same. Music keeps playing while you
+browse. The mini player at the bottom of the screen has previous, play or pause, next and
+**Now Playing**; with the keyboard or a remote, press Down from the last entry of the menu on
+the left to reach it.
+
+**Now Playing** shows the cover, the format, a seek bar (Left and Right jump 10 seconds),
+shuffle, repeat (all, or the current track) and the queue: Enter plays an entry, Menu or Delete
+offers to remove it, Ctrl+Up and Ctrl+Down move it. Space plays or pauses. Tracks of the same
+format play without a gap between them. The queue and where you were come back after a
+restart; press Play to go on. Starting a film or an episode pauses the music. The media keys
+and your desktop's media controls work too.
+
+**ReplayGain** (Settings → Playback) evens out loudness from the tags in your files: per track,
+or per album so an album keeps its own dynamics.
 
 Without a music folder the Music page explains how to add one.
 

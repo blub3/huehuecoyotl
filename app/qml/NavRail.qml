@@ -9,6 +9,8 @@ FocusScope {
     id: rail
     property string current: "home"
     signal chosen(string section)
+    // Down from the last entry (issue #8: to the mini player).
+    signal downFromLast()
 
     // Move keyboard focus to the rail, starting on the current section.
     function focusCurrent() {
@@ -55,6 +57,7 @@ FocusScope {
             spacing: 4
             focus: true
             keyNavigationEnabled: true
+            Keys.onDownPressed: (e) => { if (currentIndex === count - 1) rail.downFromLast(); else e.accepted = false }
             model: rail.sections
             Accessible.role: Accessible.List
             Accessible.name: qsTr("Navigation")

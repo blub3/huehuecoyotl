@@ -6,7 +6,9 @@ import Coyotl
 import "MediaInfo.js" as MediaInfo
 
 // An album (issue #10): cover, artist, year, length, the format line and the Hi-Res badge,
-// Play, Shuffle and Save (offline copies of all its tracks), and the tracks grouped by disc.
+// Play, Shuffle, Play next, Add to queue (issue #8) and Save (offline copies of all its
+// tracks), and the tracks grouped by disc. Enter on a track plays the album from it; Menu on a
+// track offers Play next and Add to queue.
 // Everything comes from the local database (SPEC 2, principle 5).
 FocusScope {
     id: page
@@ -28,12 +30,10 @@ FocusScope {
         request = Core.albumDetail(itemId)
         saveRequest = Core.saveState(itemId)
     }
-    // Until the play queue (issue #8), Play starts the first track and Shuffle a random one.
     function play(shuffle) {
-        if (tracks.length === 0) return
-        const t = shuffle ? tracks[Math.floor(Math.random() * tracks.length)] : tracks[0]
-        Playback.openItem(t.id)
+        if (tracks.length > 0) Music.playItems([itemId], 0, shuffle)
     }
+    function playFrom(trackId) { Music.playItems([itemId], trackId, false) }
     function saveAction(action) {
         if (action === "save" || action === "saveAgain") saveRequest = Core.saveItem(itemId, 0)
         else if (action === "pause") Core.pauseSavedItem(itemId)
@@ -213,16 +213,38 @@ FocusScope {
                                 enabled: page.tracks.length > 1
                                 KeyNavigation.up: artistButton.visible ? artistButton : null
                                 KeyNavigation.left: playButton
-                                KeyNavigation.right: saveMenu.visible ? saveMenu : null
+                                KeyNavigation.right: playNextButton
                                 KeyNavigation.down: trackList
                                 onClicked: page.play(true)
+                            }
+                            FocusButton {
+                                id: playNextButton
+                                glyph: "⤵"
+                                tip: qsTr("Play next")
+                                enabled: page.tracks.length > 0
+                                KeyNavigation.up: artistButton.visible ? artistButton : null
+                                KeyNavigation.left: shuffleButton
+                                KeyNavigation.right: queueButton
+                                KeyNavigation.down: trackList
+                                onClicked: Music.playNext([page.itemId])
+                            }
+                            FocusButton {
+                                id: queueButton
+                                glyph: "+"
+                                tip: qsTr("Add to queue")
+                                enabled: page.tracks.length > 0
+                                KeyNavigation.up: artistButton.visible ? artistButton : null
+                                KeyNavigation.left: playNextButton
+                                KeyNavigation.right: saveMenu.visible ? saveMenu : null
+                                KeyNavigation.down: trackList
+                                onClicked: Music.addToQueue([page.itemId])
                             }
                             SaveMenu {
                                 id: saveMenu
                                 sv: page.sv
                                 canExport: false
                                 KeyNavigation.up: artistButton.visible ? artistButton : null
-                                KeyNavigation.left: shuffleButton
+                                KeyNavigation.left: queueButton
                                 KeyNavigation.down: trackList
                                 onTriggered: (action) => page.saveAction(action)
                             }
@@ -262,9 +284,13 @@ FocusScope {
                         focus: ListView.isCurrentItem
                         Accessible.name: qsTr("Track %1, %2").arg(modelData.number).arg(modelData.title)
                             + (modelData.artists !== page.d.artist && modelData.artists !== "" ? ", " + modelData.artists : "")
-                        onClicked: Playback.openItem(modelData.id)
-                        Keys.onReturnPressed: Playback.openItem(modelData.id)
-                        Keys.onEnterPressed: Playback.openItem(modelData.id)
+                        readonly property bool nowPlaying: Music.current.id === modelData.id
+                        onClicked: page.playFrom(modelData.id)
+                        Keys.onReturnPressed: page.playFrom(modelData.id)
+                        Keys.onEnterPressed: page.playFrom(modelData.id)
+                        Keys.onPressed: (e) => {
+                            if (e.key === Qt.Key_Menu) { trackMenu.showFor(row, row.modelData.id); e.accepted = true }
+                        }
                         background: Rectangle {
                             radius: 8
                             color: row.activeFocus ? Theme.surfaceHi : row.hovered ? Theme.surface : "transparent"
@@ -275,8 +301,8 @@ FocusScope {
                             spacing: 16
                             Label {
                                 Layout.preferredWidth: 36
-                                text: row.modelData.number > 0 ? row.modelData.number : ""
-                                color: Theme.textDim
+                                text: row.nowPlaying ? "♪" : row.modelData.number > 0 ? row.modelData.number : ""
+                                color: row.nowPlaying ? Theme.accent : Theme.textDim
                                 horizontalAlignment: Text.AlignRight
                             }
                             ColumnLayout {
@@ -320,6 +346,17 @@ FocusScope {
                 }
             }
         }
+    }
+
+    // Menu on a track (issue #8).
+    ActionMenu {
+        id: trackMenu
+        property var trackId: 0
+        function showFor(item, id) {
+            trackId = id
+            show(item, [{ value: "next", label: qsTr("Play next") }, { value: "queue", label: qsTr("Add to queue") }])
+        }
+        onChosen: (v) => { if (v === "next") Music.playNext([trackId]); else Music.addToQueue([trackId]) }
     }
 
     Popup {

@@ -159,6 +159,7 @@ impl Core {
             sort: match sort {
                 "added" => Sort::Added,
                 "year" => Sort::Year,
+                "played" => Sort::Played,
                 _ => Sort::Title,
             },
             // "" (everything), "unwatched", or "saved" (issue #4).

@@ -297,7 +297,7 @@ pub struct AlbumDetail {
     pub tracks: Vec<TrackRow>,
 }
 
-fn art(c: &Connection, item: i64, role: &str) -> Result<String> {
+pub(crate) fn art(c: &Connection, item: i64, role: &str) -> Result<String> {
     Ok(c.query_row(
         "SELECT local_path FROM artwork WHERE item_id = ?1 AND role = ?2 AND local_path IS NOT NULL",
         params![item, role],
@@ -307,7 +307,7 @@ fn art(c: &Connection, item: i64, role: &str) -> Result<String> {
     .unwrap_or_default())
 }
 
-fn credit_line(c: &Connection, item: i64, role: &str) -> Result<String> {
+pub(crate) fn credit_line(c: &Connection, item: i64, role: &str) -> Result<String> {
     let mut st = c.prepare_cached(
         "SELECT a.title, cr.join_phrase FROM credit cr JOIN item a ON a.id = cr.artist_id
          WHERE cr.item_id = ?1 AND cr.role = ?2 ORDER BY cr.position",

@@ -13,6 +13,8 @@ FocusScope {
     ContinueWatchingModel { id: recent }
     RecentlyAddedModel { id: added }
     LibraryModel { id: albums; kind: "album"; sort: "added" }
+    // Issue #8: albums whose tracks were played, most recent first.
+    LibraryModel { id: played; kind: "album"; sort: "played" }
     LibraryFoldersModel { id: folders }
 
     readonly property bool firstRun: !folders.loading && folders.count === 0
@@ -198,6 +200,7 @@ FocusScope {
                 Accessible.role: Accessible.List
                 Accessible.name: qsTr("Recently added albums")
                 KeyNavigation.up: added.count > 0 ? addedList : recent.count > 0 ? recentList : null
+                KeyNavigation.down: played.total > 0 ? playedList : null
                 Keys.onLeftPressed: (e) => { if (currentIndex === 0) Nav.focusRail(); else e.accepted = false }
                 onActiveFocusChanged: if (activeFocus) flick.contentY = Math.max(0, y - 60)
                 delegate: PosterCard {
@@ -215,6 +218,46 @@ FocusScope {
                     onClicked: Nav.openItem(albumTile.model.id, "album")
                     Keys.onReturnPressed: Nav.openItem(albumTile.model.id, "album")
                     Keys.onEnterPressed: Nav.openItem(albumTile.model.id, "album")
+                }
+            }
+
+            // ---- recently played music (issue #8) --------------------------------------------
+            Label {
+                visible: played.total > 0
+                text: qsTr("Recently played")
+                color: Theme.textDim
+                font.pixelSize: Theme.fontLarge
+                Layout.topMargin: 8
+            }
+            ListView {
+                id: playedList
+                visible: played.total > 0
+                Layout.fillWidth: true
+                Layout.preferredHeight: Appearance.cardHeight(Appearance.coverWidth, 1) + 16
+                orientation: ListView.Horizontal
+                spacing: Math.round(22 * Appearance.textScale(Appearance.coverWidth))
+                model: played
+                keyNavigationEnabled: true
+                Accessible.role: Accessible.List
+                Accessible.name: qsTr("Recently played")
+                KeyNavigation.up: albums.total > 0 ? albumList : null
+                Keys.onLeftPressed: (e) => { if (currentIndex === 0) Nav.focusRail(); else e.accepted = false }
+                onActiveFocusChanged: if (activeFocus) flick.contentY = Math.max(0, y - 60)
+                delegate: PosterCard {
+                    id: playedTile
+                    required property var model
+                    y: 8
+                    focus: ListView.isCurrentItem
+                    title: model.title
+                    caption: model.subtitle ?? ""
+                    poster: model.poster
+                    posterLarge: model.posterLarge ?? ""
+                    posterWidth: Appearance.coverWidth
+                    posterRatio: 1
+                    saved: model.saved === true
+                    onClicked: Nav.openItem(playedTile.model.id, "album")
+                    Keys.onReturnPressed: Nav.openItem(playedTile.model.id, "album")
+                    Keys.onEnterPressed: Nav.openItem(playedTile.model.id, "album")
                 }
             }
 
