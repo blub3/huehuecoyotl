@@ -255,6 +255,8 @@ pub struct Summary {
     pub parent_id: Option<i64>,
     /// Issue #63: how many versions an album has (0 for everything else).
     pub versions: i64,
+    /// Issue #66: a book cover's height / width (0 when unknown or not a book).
+    pub ratio: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -276,6 +278,9 @@ pub struct Query {
     pub unwatched_only: bool,
     /// Issue #4: only items with a saved copy.
     pub saved_only: bool,
+    /// Issue #66: books "unread", "in_progress" or "finished"; persons "author" or "narrator";
+    /// "" for all.
+    pub book_filter: &'static str,
     pub offset: u32,
     pub limit: u32,
 }
@@ -308,9 +313,13 @@ const SUMMARY_COLS: &str = concat!("i.id, i.kind, i.title, i.year, i.season_no, 
       WHEN 'season' THEN EXISTS (SELECT 1 FROM item e JOIN file f ON f.item_id = e.id WHERE e.parent_id = i.id)
       ELSE EXISTS (SELECT 1 FROM file f WHERE f.item_id = i.id) END,
     i.runtime_min, ", saved_sql!(), ",
-    CASE WHEN i.kind IN ('album','track') THEN (SELECT p2.title FROM item p2 WHERE p2.id = i.parent_id) ELSE '' END,
+    CASE WHEN i.kind IN ('album','track') THEN (SELECT p2.title FROM item p2 WHERE p2.id = i.parent_id)
+         WHEN i.kind = 'audiobook' THEN coalesce((SELECT p2.title FROM book_credit bc JOIN item p2 ON p2.id = bc.person_id
+           WHERE bc.book_id = i.id AND bc.role = 'author' ORDER BY bc.position LIMIT 1), '')
+         ELSE '' END,
     i.parent_id,
-    CASE WHEN i.kind = 'album' THEN (SELECT count(*) FROM album_version v WHERE v.album_id = i.id) ELSE 0 END");
+    CASE WHEN i.kind = 'album' THEN (SELECT count(*) FROM album_version v WHERE v.album_id = i.id) ELSE 0 END,
+    CASE WHEN i.kind = 'audiobook' THEN (SELECT b.cover_ratio FROM book b WHERE b.item_id = i.id) END");
 
 fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
     let st = PlayState {
@@ -333,6 +342,7 @@ fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
         subtitle: r.get::<_, Option<String>>(16)?.unwrap_or_default(),
         parent_id: r.get(17)?,
         versions: r.get(18)?,
+        ratio: r.get::<_, Option<f64>>(19)?.unwrap_or(0.0),
         progress: st.progress(),
         watched: st.watched,
         unwatched: r.get(10)?,
@@ -375,6 +385,18 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
     } else {
         ""
     };
+    let book = match q.book_filter {
+        "unread" => " AND coalesce(p.position_ms, 0) = 0 AND coalesce(p.watched, 0) = 0",
+        "in_progress" => " AND coalesce(p.position_ms, 0) > 0 AND coalesce(p.watched, 0) = 0",
+        "finished" => " AND coalesce(p.watched, 0) = 1",
+        "author" => {
+            " AND EXISTS (SELECT 1 FROM book_credit bc WHERE bc.person_id = i.id AND bc.role = 'author')"
+        }
+        "narrator" => {
+            " AND EXISTS (SELECT 1 FROM book_credit bc WHERE bc.person_id = i.id AND bc.role = 'narrator')"
+        }
+        _ => "",
+    };
     const PLAYED: &str =
         "(CASE WHEN i.kind = 'album' THEN (SELECT max(pt.last_played_at) FROM item t
         JOIN playstate pt ON pt.item_id = t.id AND pt.profile_id = 1 WHERE t.parent_id = i.id)
@@ -395,7 +417,7 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
     };
     let from = format!(
         "FROM item i LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = {DEFAULT_PROFILE}
-         WHERE {filter} AND {VISIBLE}{unwatched}{saved}{played}"
+         WHERE {filter} AND {VISIBLE}{unwatched}{saved}{book}{played}"
     );
     let key: rusqlite::types::Value = match q.parent {
         Some(p) => p.into(),
@@ -1298,6 +1320,7 @@ mod tests {
             sort,
             unwatched_only: false,
             saved_only: false,
+            book_filter: "",
             offset: 0,
             limit: 50,
         };
@@ -1379,6 +1402,7 @@ mod tests {
                 sort: Sort::Title,
                 unwatched_only: false,
                 saved_only: false,
+                book_filter: "",
                 offset: 0,
                 limit: 10,
             };

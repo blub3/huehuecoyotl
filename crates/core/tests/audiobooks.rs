@@ -167,3 +167,151 @@ fn a_book_with_chapters() {
     assert_eq!(kind, "person");
     assert!(person.to_string().contains("Chaptered"), "{person}");
 }
+
+/// Wait until the book's saved position is `at` (saves are written in the background).
+fn saved(db: &Path, book: i64, at: i64) {
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while Connection::open(db)
+        .and_then(|c| {
+            c.query_row(
+                "SELECT position_ms FROM playstate WHERE item_id = ?1",
+                [book],
+                |r| r.get::<_, i64>(0),
+            )
+        })
+        .ok()
+        != Some(at)
+    {
+        assert!(Instant::now() < deadline, "position {at} not saved");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// The titles of the next `browse_items` page.
+fn page_titles(rx: &Receiver<Event>) -> Vec<String> {
+    let deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        match rx
+            .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+            .expect("no event")
+        {
+            Event::Page { items, .. } => return items.into_iter().map(|s| s.title).collect(),
+            Event::Error { message, .. } => panic!("error: {message}"),
+            _ => {}
+        }
+    }
+}
+
+/// Issue #66: a two-file book plays from a ticket that puts both files on one timeline; a
+/// position inside the second file is where it starts again after a restart, exactly; the
+/// last 30 s finish it; the filters and "continue series" follow.
+#[test]
+fn a_book_resumes_exactly_after_a_restart() {
+    if !ffmpeg() {
+        eprintln!("skipped: ffmpeg is not installed");
+        return;
+    }
+    let d = tempfile::tempdir().unwrap();
+    let books = d.path().join("books");
+    for (dir, n) in [
+        ("Writer/Saga/Book 1 - Two Files", 2),
+        ("Writer/Saga/Book 2 - Next", 1),
+    ] {
+        for i in 1..=n {
+            let out = books.join(format!("{dir}/0{i}.mp3"));
+            std::fs::create_dir_all(out.parent().unwrap()).unwrap();
+            assert!(
+                Command::new("ffmpeg")
+                    .args([
+                        "-loglevel",
+                        "error",
+                        "-y",
+                        "-f",
+                        "lavfi",
+                        "-i",
+                        "sine=duration=100"
+                    ])
+                    .args(["-c:a", "libmp3lame", "-b:a", "32k"])
+                    .arg(&out)
+                    .status()
+                    .unwrap()
+                    .success()
+            );
+        }
+    }
+    let data = d.path().join("data");
+    let db = data.join("library.db");
+    let open = || {
+        let (tx, rx) = unbounded();
+        let core = Core::open(&data, "en-US", move |e| {
+            let _ = tx.send(e);
+        })
+        .unwrap();
+        (core, rx)
+    };
+    let (core, rx) = open();
+    core.set_music_online(1, false);
+    core.add_library(2, &books.to_string_lossy(), "audiobooks");
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let (book, series): (i64, i64) = loop {
+        if let Ok(c) = Connection::open(&db)
+            && let Ok(r) = c.query_row(
+                "SELECT i.id, i.parent_id FROM item i WHERE i.title = 'Two Files'
+                   AND (SELECT count(*) FROM book_file f WHERE f.book_id = i.id) = 2
+                   AND (SELECT count(*) FROM item n WHERE n.title = 'Next') = 1",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+        {
+            break r;
+        }
+        assert!(Instant::now() < deadline, "not scanned");
+        std::thread::sleep(Duration::from_millis(100));
+    };
+
+    core.book_play(3, book, -1);
+    let (kind, t) = detail(&rx);
+    assert_eq!(kind, "bookTicket");
+    assert_eq!(t["positionMs"], 0);
+    let files = t["files"].as_array().unwrap();
+    assert_eq!(files.len(), 2);
+    assert!(files[0]["url"].as_str().unwrap().ends_with("01.mp3"));
+    let second = files[1]["startMs"].as_i64().unwrap();
+    assert!((99_000..=101_000).contains(&second), "{second}");
+    assert_eq!(t["chapters"].as_array().unwrap().len(), 2);
+    // 12.345 s into the second file.
+    let at = second + 12_345;
+    core.book_progress(book, at);
+    core.book_set_speed(book, 1.5);
+    saved(&db, book, at);
+    core.browse_items(4, "audiobook", 0, "played", "in_progress", 0, 50);
+    assert_eq!(page_titles(&rx), ["Two Files"]);
+    core.browse_items(5, "audiobook", 0, "title", "unread", 0, 50);
+    assert_eq!(page_titles(&rx), ["Next"]);
+    core.browse_items(6, "person", 0, "title", "narrator", 0, 50);
+    assert!(page_titles(&rx).is_empty());
+    drop(core);
+
+    let (core, rx) = open();
+    core.book_play(7, book, -1);
+    let (_, t) = detail(&rx);
+    assert_eq!(t["positionMs"].as_i64().unwrap(), at);
+    assert_eq!(t["speed"], 1.5);
+    core.continue_series(8, series);
+    let (kind, c) = detail(&rx);
+    assert_eq!(
+        (kind.as_str(), c["bookId"].as_i64().unwrap()),
+        ("continueSeries", book)
+    );
+    // Its last 30 s: finished; the series continues with the next book; it starts over.
+    let end = t["durationMs"].as_i64().unwrap() - 10_000;
+    core.book_progress(book, end);
+    saved(&db, book, end);
+    core.browse_items(9, "audiobook", 0, "title", "finished", 0, 50);
+    assert_eq!(page_titles(&rx), ["Two Files"]);
+    core.continue_series(10, series);
+    let (_, c) = detail(&rx);
+    assert_ne!(c["bookId"].as_i64().unwrap(), book);
+    core.book_play(11, book, -1);
+    assert_eq!(detail(&rx).1["positionMs"], 0);
+}

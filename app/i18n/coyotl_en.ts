@@ -40,6 +40,55 @@
     </message>
 </context>
 <context>
+    <name>BookListPage</name>
+    <message numerus="yes">
+        <location filename="../qml/BookListPage.qml" line="68"/>
+        <source>%n book(s)</source>
+        <translation>
+            <numerusform>%n book</numerusform>
+            <numerusform>%n books</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>BookPage</name>
+    <message numerus="yes">
+        <location filename="../qml/BookPage.qml" line="90"/>
+        <source>%n file(s) of this book are in that folder already. Choose another folder.</source>
+        <translation>
+            <numerusform>%n file of this book is in that folder already. Choose another folder.</numerusform>
+            <numerusform>%n files of this book are in that folder already. Choose another folder.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/BookPage.qml" line="238"/>
+        <source>%n chapter(s)</source>
+        <translation>
+            <numerusform>%n chapter</numerusform>
+            <numerusform>%n chapters</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>BookPlayerPage</name>
+    <message numerus="yes">
+        <location filename="../qml/BookPlayerPage.qml" line="175"/>
+        <source>Back %n second(s)</source>
+        <translation>
+            <numerusform>Back %n second</numerusform>
+            <numerusform>Back %n seconds</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/BookPlayerPage.qml" line="196"/>
+        <source>Forward %n second(s)</source>
+        <translation>
+            <numerusform>Forward %n second</numerusform>
+            <numerusform>Forward %n seconds</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>DetailPage</name>
     <message numerus="yes">
         <location filename="../qml/DetailPage.qml" line="992"/>
@@ -86,7 +135,7 @@
 <context>
     <name>PosterCard</name>
     <message numerus="yes">
-        <location filename="../qml/PosterCard.qml" line="30"/>
+        <location filename="../qml/PosterCard.qml" line="36"/>
         <source>%n version(s)</source>
         <translation>
             <numerusform>%n version</numerusform>

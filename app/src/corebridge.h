@@ -102,6 +102,23 @@ class CoreBridge : public QObject {
     // Issue #63: play this file of a track from now on.
     Q_INVOKABLE void setTrackFile(qint64 track, qint64 file);
     Q_INVOKABLE quint64 artistDetail(qint64 artistId);
+    // Issues #65 to #67: a book's, series' or person's page (musicDetailReady of kind "book",
+    // "series" or "person"); "Search again" (kind "bookCandidates") and the choice (kind
+    // "book"); playing (kind "bookTicket"; positionMs < 0 resumes), progress, finished, speed
+    // (<= 0: the default) and "Continue series" (kind "continueSeries").
+    Q_INVOKABLE quint64 bookDetail(qint64 id);
+    Q_INVOKABLE quint64 searchBook(qint64 id, const QString &title = QString(),
+                                   const QString &author = QString());
+    Q_INVOKABLE quint64 chooseBookMatch(qint64 id, const QString &work);
+    Q_INVOKABLE quint64 bookPlay(qint64 book, qint64 positionMs = -1);
+    void bookProgress(qint64 book, qint64 positionMs);
+    Q_INVOKABLE quint64 bookMarkFinished(qint64 book, bool finished);
+    void bookSetSpeed(qint64 book, double speed);
+    Q_INVOKABLE quint64 continueSeries(qint64 series);
+    // Chapter navigation on a book's timeline (the core's, synchronous).
+    static qint64 previousChapter(const QList<qint64> &starts, qint64 position);
+    static qint64 nextChapter(const QList<qint64> &starts, qint64 position);
+    static qint64 endOfChapter(const QList<qint64> &starts, qint64 duration, qint64 position);
     bool musicOnline() const { return m_musicOnline; }
     void setMusicOnline(bool on);
 

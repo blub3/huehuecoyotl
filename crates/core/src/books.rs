@@ -334,3 +334,187 @@ impl Core {
         });
     }
 }
+
+// ---- playing (issue #66) ----------------------------------------------------------------------
+
+/// One file of a book ticket, in timeline order.
+struct PlayFile {
+    file_id: i64,
+    source_id: i64,
+    kind: String,
+    path: String,
+    saved: Option<String>,
+    start_ms: i64,
+    duration_ms: i64,
+}
+
+impl Core {
+    /// Play a book: a ticket with every file (a local path, a saved copy, or a `coyotl://` URL),
+    /// its place on the timeline, the start position (`position_ms` < 0: where it stopped), the
+    /// speed (null: the default) and the chapters, as a `MusicDetail` of kind "bookTicket".
+    pub fn book_play(&self, request_id: u64, book: i64, position_ms: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let (detail, files, start) = inner
+                .lib
+                .read(move |c| {
+                    let d = books::detail(c, book)?;
+                    let paths: std::collections::HashMap<
+                        i64,
+                        huehuecoyotl_library::catalog::PlayableFile,
+                    > = huehuecoyotl_library::catalog::playable_files(c, book)?
+                        .into_iter()
+                        .map(|p| (p.file_id, p))
+                        .collect();
+                    let mut files = Vec::new();
+                    for f in books::files(c, book)? {
+                        let Some(p) = paths.get(&f.file_id) else {
+                            continue;
+                        };
+                        let saved = if p.kind == "local" {
+                            None
+                        } else {
+                            huehuecoyotl_library::copies::usable_path(c, f.file_id)?
+                        };
+                        files.push(PlayFile {
+                            file_id: f.file_id,
+                            source_id: p.source_id,
+                            kind: p.kind.clone(),
+                            path: p.path.clone(),
+                            saved,
+                            start_ms: f.start_ms,
+                            duration_ms: f.duration_ms,
+                        });
+                    }
+                    Ok((d, files, books::start_position(c, book)?))
+                })
+                .await?;
+            let d = detail
+                .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("book {book}")))?;
+            if d.drm {
+                return Err(CoreError::new(
+                    ErrorKind::Unsupported,
+                    format!("“{}” is copy-protected and cannot be played.", d.title),
+                ));
+            }
+            if files.is_empty() {
+                return Err(CoreError::new(
+                    ErrorKind::NotFound,
+                    format!("book {book} has no file"),
+                ));
+            }
+            // A network source is reached once before mpv opens its files.
+            let mut checked = std::collections::HashSet::new();
+            let mut out = Vec::new();
+            for f in files {
+                let (url, network) = if let Some(s) = f.saved {
+                    (s, false)
+                } else if f.kind == "local" {
+                    (f.path.clone(), false)
+                } else {
+                    if checked.insert(f.source_id) {
+                        inner.remote_source(f.source_id).await?;
+                    }
+                    (
+                        huehuecoyotl_stream::url(
+                            f.source_id,
+                            &huehuecoyotl_vfs::VPath::new(&f.path),
+                        ),
+                        true,
+                    )
+                };
+                out.push(json!({
+                    "fileId": f.file_id,
+                    "url": url,
+                    "isNetwork": network,
+                    "startMs": f.start_ms,
+                    "durationMs": f.duration_ms,
+                }));
+            }
+            let position = if position_ms >= 0 { position_ms } else { start };
+            let ticket = json!({
+                "bookId": book,
+                "title": d.title,
+                "authors": d.authors.iter().map(|p| p.name.as_str()).collect::<Vec<_>>().join(", "),
+                "poster": d.poster,
+                "posterFull": d.poster_full,
+                "durationMs": d.duration_ms,
+                "positionMs": position.clamp(0, d.duration_ms.max(0)),
+                "speed": d.speed,
+                "chapters": d.chapters,
+                "files": out,
+            });
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "bookTicket".into(),
+                json: ticket.to_string(),
+            })
+        });
+    }
+
+    /// Save where a book is (every few seconds while playing, on pause, seek, chapter change,
+    /// exit and when the sleep timer stops it).
+    pub fn book_progress(&self, book: i64, position_ms: i64) {
+        let inner = self.inner.clone();
+        let fut = self
+            .inner
+            .lib
+            .submit(move |c| books::save_progress(c, book, position_ms, now_ms()));
+        self.rt.spawn(async move {
+            match fut.await {
+                Ok(true) => inner.sink.post(Event::ItemChanged { item_id: book }),
+                Ok(false) => {}
+                Err(e) => tracing::error!(book, "saving book progress failed: {e}"),
+            }
+        });
+    }
+
+    /// "Mark as finished" or unfinished; answers with the book page.
+    pub fn book_mark_finished(&self, request_id: u64, book: i64, finished: bool) {
+        self.spawn(request_id, move |inner| async move {
+            inner
+                .lib
+                .write(move |c| books::mark_finished(c, book, finished, now_ms()))
+                .await?;
+            inner.sink.post(Event::ItemChanged { item_id: book });
+            let d = inner
+                .lib
+                .read(move |c| books::detail(c, book))
+                .await?
+                .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("book {book}")))?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "book".into(),
+                json: serde_json::to_string(&d).unwrap_or_default(),
+            })
+        });
+    }
+
+    /// Remember a book's speed (`speed` <= 0: use the default again).
+    pub fn book_set_speed(&self, book: i64, speed: f64) {
+        let fut = self
+            .inner
+            .lib
+            .submit(move |c| books::set_speed(c, book, (speed > 0.0).then_some(speed)));
+        self.rt.spawn(async move {
+            if let Err(e) = fut.await {
+                tracing::error!(book, "saving the speed failed: {e}");
+            }
+        });
+    }
+
+    /// "Continue series": the book to play next in a series, as a `MusicDetail` of kind
+    /// "continueSeries" (`bookId` 0 when every book is finished).
+    pub fn continue_series(&self, request_id: u64, series: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let id = inner
+                .lib
+                .read(move |c| books::continue_in_series(c, series))
+                .await?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "continueSeries".into(),
+                json: json!({ "seriesId": series, "bookId": id.unwrap_or(0) }).to_string(),
+            })
+        });
+    }
+}

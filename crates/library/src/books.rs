@@ -89,6 +89,104 @@ pub fn chapter_at(chapters: &[Chapter], position: i64) -> Option<usize> {
     Some(i.saturating_sub(1))
 }
 
+/// Issue #66: where "previous chapter" goes: the start of the current chapter, or the one
+/// before when within 3 s of the current one's start. `starts` are the chapters' start times.
+pub fn previous_chapter(starts: &[i64], position: i64) -> i64 {
+    let i = starts.partition_point(|s| *s <= position).saturating_sub(1);
+    match starts.get(i) {
+        Some(s) if position - s < 3_000 && i > 0 => starts[i - 1],
+        Some(s) => *s,
+        None => 0,
+    }
+}
+
+/// Where "next chapter" goes; `None` in the last chapter.
+pub fn next_chapter(starts: &[i64], position: i64) -> Option<i64> {
+    let i = starts.partition_point(|s| *s <= position);
+    starts.get(i).copied()
+}
+
+/// Issue #66: the sleep timer's stop point for "end of chapter": the end of the chapter that
+/// holds `position`, or the end of the book.
+pub fn end_of_chapter(starts: &[i64], duration: i64, position: i64) -> i64 {
+    next_chapter(starts, position).unwrap_or(duration)
+}
+
+/// The last 30 s of a book count as finished (SPEC 5.8).
+pub const FINISHED_WITHIN_MS: i64 = 30_000;
+
+/// Save where a book is: its position on the timeline; finished in its last 30 s. A later
+/// position in an unfinished book never comes from an earlier save (saves arrive in order).
+pub fn save_progress(c: &Connection, book: i64, position: i64, now: i64) -> Result<bool> {
+    let duration: i64 = c
+        .query_row(
+            "SELECT duration_ms FROM book WHERE item_id = ?1",
+            [book],
+            |r| r.get(0),
+        )
+        .optional()?
+        .unwrap_or(0);
+    let finished = duration > 0 && position + FINISHED_WITHIN_MS >= duration;
+    c.execute(
+        "INSERT INTO playstate(item_id, profile_id, position_ms, duration_ms, watched, updated_at, last_played_at)
+         VALUES (?1, 1, ?2, ?3, ?4, ?5, ?5)
+         ON CONFLICT(item_id, profile_id) DO UPDATE SET position_ms = ?2, duration_ms = ?3,
+           watched = CASE WHEN ?4 THEN 1 ELSE 0 END, updated_at = ?5, last_played_at = ?5",
+        params![book, position.clamp(0, duration.max(position)), duration, finished, now],
+    )?;
+    Ok(finished)
+}
+
+/// "Mark as finished" (or unfinished); the position stays until the book is played again.
+pub fn mark_finished(c: &Connection, book: i64, finished: bool, now: i64) -> Result<()> {
+    c.execute(
+        "INSERT INTO playstate(item_id, profile_id, position_ms, duration_ms, watched, updated_at)
+         VALUES (?1, 1, 0, (SELECT duration_ms FROM book WHERE item_id = ?1), ?2, ?3)
+         ON CONFLICT(item_id, profile_id) DO UPDATE SET watched = ?2, updated_at = ?3",
+        params![book, finished, now],
+    )?;
+    Ok(())
+}
+
+/// The speed chosen for a book (0.5 to 3.0); `None` uses the default from Settings.
+pub fn set_speed(c: &Connection, book: i64, speed: Option<f64>) -> Result<()> {
+    let speed = speed.map(|s| (s.clamp(0.5, 3.0) * 10.0).round() / 10.0);
+    c.execute(
+        "UPDATE book SET speed = ?2 WHERE item_id = ?1",
+        params![book, speed],
+    )?;
+    Ok(())
+}
+
+/// Where a book starts: its saved position, or the beginning when it was finished.
+pub fn start_position(c: &Connection, book: i64) -> Result<i64> {
+    Ok(c
+        .query_row(
+            "SELECT CASE WHEN watched THEN 0 ELSE position_ms END FROM playstate WHERE item_id = ?1 AND profile_id = 1",
+            [book],
+            |r| r.get(0),
+        )
+        .optional()?
+        .unwrap_or(0))
+}
+
+/// "Continue series": the series' books in order with (finished, last played), then the pick.
+pub fn continue_in_series(c: &Connection, series: i64) -> Result<Option<i64>> {
+    let mut st = c.prepare(
+        "SELECT i.id, coalesce(p.watched, 0), p.last_played_at FROM item i JOIN book b ON b.item_id = i.id
+         LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = 1
+         WHERE i.parent_id = ?1 AND i.kind = 'audiobook'
+           AND EXISTS (SELECT 1 FROM book_file bf WHERE bf.book_id = i.id)
+         ORDER BY coalesce(b.series_position, 1e9), i.year, i.sort_title",
+    )?;
+    let rows: Vec<(i64, bool, Option<i64>)> = st
+        .query_map([series], |r| {
+            Ok((r.get(0)?, r.get::<_, i64>(1)? != 0, r.get(2)?))
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+    Ok(continue_series(&rows))
+}
+
 /// Every file as a chapter (books without embedded chapters).
 pub fn file_chapters(files: &[FileInput]) -> Vec<Chapter> {
     let mut start = 0;
@@ -342,11 +440,19 @@ pub fn apply_probe_chapters(
         .into_iter()
         .filter(|ch| ch.start_ms < start || ch.start_ms >= end)
         .collect();
-    all.extend(embedded.iter().map(|ch| Chapter {
-        title: ch.title.clone(),
-        start_ms: start + ch.start_ms,
-        end_ms: (start + ch.end_ms).min(if duration > 0 { end } else { i64::MAX }),
-    }));
+    // Chapters that start past the file's end (a broken or cut file) are left out; a chapter
+    // never ends before it starts.
+    let limit = if duration > 0 { end } else { i64::MAX };
+    all.extend(
+        embedded
+            .iter()
+            .filter(|ch| start + ch.start_ms < limit)
+            .map(|ch| Chapter {
+                title: ch.title.clone(),
+                start_ms: start + ch.start_ms,
+                end_ms: (start + ch.end_ms).min(limit).max(start + ch.start_ms),
+            }),
+    );
     all.sort_by_key(|ch| ch.start_ms);
     set_chapters(c, book, &all)?;
     Ok(Some(book))
@@ -833,6 +939,49 @@ pub fn continue_series(books: &[(i64, bool, Option<i64>)]) -> Option<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn chapter_navigation_and_sleep() {
+        let starts = [0, 60_000, 120_000];
+        // Previous: the chapter's start, or the one before within 3 s of it.
+        assert_eq!(previous_chapter(&starts, 90_000), 60_000);
+        assert_eq!(previous_chapter(&starts, 61_000), 0);
+        assert_eq!(previous_chapter(&starts, 1_000), 0);
+        assert_eq!(next_chapter(&starts, 61_000), Some(120_000));
+        assert_eq!(next_chapter(&starts, 130_000), None);
+        assert_eq!(end_of_chapter(&starts, 150_000, 61_000), 120_000);
+        assert_eq!(end_of_chapter(&starts, 150_000, 130_000), 150_000);
+        assert_eq!(previous_chapter(&[], 5_000), 0);
+    }
+
+    #[test]
+    fn progress_and_finishing() {
+        let mut c = Connection::open_in_memory().unwrap();
+        crate::migrate(&mut c).unwrap();
+        c.execute_batch(
+            "INSERT INTO item(id, kind, title) VALUES (5, 'audiobook', 'B');
+             INSERT INTO book(item_id, key, duration_ms) VALUES (5, 'b:1:B', 100000);",
+        )
+        .unwrap();
+        assert_eq!(start_position(&c, 5).unwrap(), 0);
+        assert!(!save_progress(&c, 5, 42_000, 1).unwrap());
+        assert_eq!(start_position(&c, 5).unwrap(), 42_000);
+        // The last 30 s: finished, and the next start is from the beginning.
+        assert!(save_progress(&c, 5, 71_000, 2).unwrap());
+        assert_eq!(start_position(&c, 5).unwrap(), 0);
+        mark_finished(&c, 5, false, 3).unwrap();
+        assert_eq!(start_position(&c, 5).unwrap(), 71_000);
+        set_speed(&c, 5, Some(1.27)).unwrap();
+        let speed: f64 = c
+            .query_row("SELECT speed FROM book WHERE item_id = 5", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(speed, 1.3);
+        set_speed(&c, 5, Some(9.0)).unwrap();
+        let speed: f64 = c
+            .query_row("SELECT speed FROM book WHERE item_id = 5", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(speed, 3.0);
+    }
 
     #[test]
     fn timeline() {

@@ -231,6 +231,24 @@ series and number), and last the folder and file names. Chapters come from the f
 with chapters); a book of many files gets one chapter per file. Covers come from the tags or a
 `cover.jpg` or `folder.jpg` next to the files.
 
+**Listening.** **Audiobooks** in the navigation rail has Books, Authors, Series and Narrators;
+on Books, the filter button shows all, unread, in progress or finished books. A book's page has
+**Play** (or **Resume**), **Mark as finished**, **Save** and the chapters; Enter on a chapter
+plays from there. A series page has **Continue series**, which plays the next book you have not
+finished. Home shows **Continue listening**: Enter resumes a book, I opens its page.
+
+The player (**Now Playing** in the mini player) shows the chapter and the time left in it and in
+the book. The seek bar covers the whole book, with a mark for each chapter. Left and Right on the
+seek bar skip back 15 and forward 30 seconds, Page Up and Page Down change the chapter, Space
+plays or pauses. **−** and **+** change the speed from 0.5× to 3.0× without changing the pitch;
+each book keeps its own speed. **Sleep timer** steps through 5 to 120 minutes and "end of
+chapter"; when it runs out, the sound fades and the book pauses where it stopped. A book
+remembers its place every few seconds and when you pause or quit, also inside a book of many
+files; its last 30 seconds count as finished. Starting a book pauses the music and starting music
+pauses the book; the mini player and your keyboard's media keys follow whichever you started
+last. **Settings → Playback** sets the speed for books without one of their own and how far the
+skip buttons jump.
+
 Online, Open Library fills in what your files leave out: a description, the year and a cover
 (a book tagged by MusicBrainz Picard is looked up at MusicBrainz). What your files say is never
 replaced. When Open Library has several books that could be yours, the book waits for you:

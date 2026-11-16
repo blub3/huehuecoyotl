@@ -374,7 +374,7 @@ FocusScope {
                 value: Music.replayGain
                 onPicked: (key) => Music.replayGain = key
                 onUpRequested: versionChoice.focusSelected()
-                onDownRequested: bitPerfectButton.forceActiveFocus()
+                onDownRequested: bookSpeedChoice.focusSelected()
             }
             Label {
                 Layout.fillWidth: true
@@ -382,6 +382,41 @@ FocusScope {
                 color: Theme.textDim
                 font.pixelSize: Theme.fontSmall
                 text: qsTr("Evens out the loudness of music from the ReplayGain tags in the files: per track, or per album so an album keeps its own dynamics.")
+            }
+            // Issue #66: audiobooks: the speed of books without one of their own, and skipping.
+            SizeChoice {
+                id: bookSpeedChoice
+                label: qsTr("Audiobook speed")
+                options: [0.8, 1.0, 1.2, 1.5, 1.8, 2.0].map(v => ({ key: String(v), label: Number(v).toLocaleString(Qt.locale(), "f", 1) + "×" }))
+                value: String(Math.round(Book.defaultSpeed * 10) / 10)
+                onPicked: (key) => { Book.defaultSpeed = Number(key) }
+                onUpRequested: replayGainChoice.focusSelected()
+                onDownRequested: skipBackChoice.focusSelected()
+            }
+            SizeChoice {
+                id: skipBackChoice
+                label: qsTr("Skip back")
+                options: [5, 10, 15, 30, 60].map(v => ({ key: String(v), label: qsTr("%1 s").arg(v) }))
+                value: String(Book.skipBack)
+                onPicked: (key) => { Book.skipBack = Number(key) }
+                onUpRequested: bookSpeedChoice.focusSelected()
+                onDownRequested: skipForwardChoice.focusSelected()
+            }
+            SizeChoice {
+                id: skipForwardChoice
+                label: qsTr("Skip forward")
+                options: [10, 15, 30, 60, 120].map(v => ({ key: String(v), label: qsTr("%1 s").arg(v) }))
+                value: String(Book.skipForward)
+                onPicked: (key) => { Book.skipForward = Number(key) }
+                onUpRequested: skipBackChoice.focusSelected()
+                onDownRequested: bitPerfectButton.forceActiveFocus()
+            }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.textDim
+                font.pixelSize: Theme.fontSmall
+                text: qsTr("Books you set a speed for keep their own. The pitch stays the same at every speed.")
             }
 
             // ---- Audio (issue #9) --------------------------------------------------------------
@@ -394,7 +429,7 @@ FocusScope {
                     glyph: Music.bitPerfect ? "✓" : ""
                     text: Music.bitPerfect ? qsTr("Bit-perfect music: on") : qsTr("Bit-perfect music: off")
                     Accessible.description: bitPerfectNote.text
-                    Keys.onUpPressed: replayGainChoice.focusSelected()
+                    Keys.onUpPressed: skipForwardChoice.focusSelected()
                     KeyNavigation.down: deviceButton
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: Music.bitPerfect = !Music.bitPerfect

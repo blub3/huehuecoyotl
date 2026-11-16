@@ -15,7 +15,9 @@ FocusScope {
     // Music (2.0): square covers, tabs instead of one kind, no "unwatched" filter.
     property real posterRatio: 1.5
     readonly property bool music: kind === "album" || kind === "artist"
-    // [{ key, label, kind, sort }]: tabs above the grid (the Music page).
+    // Issue #66: audiobooks, their authors, narrators and series.
+    readonly property bool books: kind === "audiobook" || kind === "person" || kind === "book_series"
+    // [{ key, label, kind, sort, filter }]: tabs above the grid (the Music and Audiobooks pages).
     property var tabs: []
     property string tab: tabs.length > 0 ? tabs[0].key : ""
     function chooseTab(key) {
@@ -24,8 +26,16 @@ FocusScope {
         tab = key
         kind = t.kind
         lib.sort = t.sort
+        lib.filter = t.filter ?? ""
     }
     function open(m) { Nav.openItem(m.id, m.kind, m.parentId) }
+    // Books: All → Unread → In progress → Finished → All.
+    readonly property var bookFilters: [
+        { key: "", label: qsTr("All") },
+        { key: "unread", label: qsTr("Unread") },
+        { key: "in_progress", label: qsTr("In progress") },
+        { key: "finished", label: qsTr("Finished") }
+    ]
 
     readonly property var sorts: [
         { key: "title", label: qsTr("A–Z") },
@@ -40,7 +50,7 @@ FocusScope {
         // The first page arrives after the grid took focus: select the first card then.
         onTotalChanged: {
             if (grid.currentIndex < 0 && grid.count > 0) grid.currentIndex = 0
-            if ((Bench.mode === "scroll" || (Bench.mode === "music" && page.music)) && total > 0 && !benchScroll.running) benchStart.start()
+            if ((Bench.mode === "scroll" || (Bench.mode === "music" && page.music) || (Bench.mode === "books" && page.kind === "audiobook")) && total > 0 && !benchScroll.running) benchStart.start()
             // --benchmark episodes: open the first show.
             if (Bench.mode === "episodes" && total > 0 && page.kind === "show" && grid.count > 0 && !page.benchOpened) {
                 page.benchOpened = true
@@ -129,14 +139,24 @@ FocusScope {
                 }
                 FocusButton {
                     id: unwatchedButton
-                    // All → Unwatched → Saved (issue #4) → All; music: All → Saved → All.
-                    text: lib.filter === "unwatched" ? qsTr("Unwatched")
+                    // All → Unwatched → Saved (issue #4) → All; music: All → Saved → All; books:
+                    // All → Unread → In progress → Finished.
+                    text: page.kind === "audiobook" ? (page.bookFilters.find(f => f.key === lib.filter) ?? page.bookFilters[0]).label
+                        : lib.filter === "unwatched" ? qsTr("Unwatched")
                         : lib.filter === "saved" ? qsTr("Saved") : qsTr("All")
-                    tip: page.music ? qsTr("Filter: all or saved") : qsTr("Filter: all, unwatched or saved")
-                    visible: page.kind !== "artist"
+                    tip: page.kind === "audiobook" ? qsTr("Filter: all, unread, in progress or finished")
+                        : page.music ? qsTr("Filter: all or saved") : qsTr("Filter: all, unwatched or saved")
+                    visible: page.kind !== "artist" && page.kind !== "person" && page.kind !== "book_series"
                     KeyNavigation.left: sortButton.visible ? sortButton : (tabButtons.count > 0 ? tabButtons.itemAt(tabButtons.count - 1) : null)
                     KeyNavigation.down: grid
-                    onClicked: lib.filter = lib.filter === "" ? (page.music ? "saved" : "unwatched") : lib.filter === "unwatched" ? "saved" : ""
+                    onClicked: {
+                        if (page.kind === "audiobook") {
+                            const i = page.bookFilters.findIndex(f => f.key === lib.filter)
+                            lib.filter = page.bookFilters[(i + 1) % page.bookFilters.length].key
+                        } else {
+                            lib.filter = lib.filter === "" ? (page.music ? "saved" : "unwatched") : lib.filter === "unwatched" ? "saved" : ""
+                        }
+                    }
                 }
             }
         }
@@ -186,7 +206,8 @@ FocusScope {
                 posterLarge: model.posterLarge ?? ""
                 posterWidth: grid.posterWidth
                 posterRatio: page.posterRatio
-                caption: page.music ? (tile.model.subtitle ?? "") : (tile.model.year > 0 ? String(tile.model.year) : "")
+                caption: page.music || page.books ? (tile.model.subtitle ?? "") : (tile.model.year > 0 ? String(tile.model.year) : "")
+                coverRatio: page.kind === "audiobook" ? Number(tile.model.ratio ?? 0) : 0
                 progress: model.progress
                 watched: model.watched
                 unwatched: Number(model.unwatched)
@@ -197,6 +218,11 @@ FocusScope {
                 Keys.onReturnPressed: page.open(tile.model)
                 Keys.onEnterPressed: page.open(tile.model)
                 Keys.onPressed: (e) => {
+                    if (page.books) {
+                        // P plays a book; persons and series open.
+                        if ((e.key === Qt.Key_P || e.key === Qt.Key_MediaPlay) && tile.model.kind === "audiobook") { Book.playBook(tile.model.id); e.accepted = true }
+                        return
+                    }
                     if (e.key === Qt.Key_P || e.key === Qt.Key_MediaPlay) { Playback.openItem(tile.model.id); e.accepted = true }
                     else if (e.key === Qt.Key_W) { Core.setWatched(tile.model.id, !tile.model.watched); e.accepted = true }
                 }
@@ -211,13 +237,15 @@ FocusScope {
         Label {
             Layout.alignment: Qt.AlignHCenter
             text: lib.filter === "unwatched" ? qsTr("Everything here is watched.")
-                : lib.filter === "saved" ? qsTr("Nothing here is saved on this computer.") : page.emptyText
+                : lib.filter === "saved" ? qsTr("Nothing here is saved on this computer.")
+                : page.kind === "audiobook" && lib.filter !== "" ? qsTr("No books here.")
+                : page.emptyText
             color: Theme.textDim
             font.pixelSize: Theme.fontLarge
         }
         FocusButton {
             Layout.alignment: Qt.AlignHCenter
-            visible: lib.filter === ""
+            visible: lib.filter === "" || (page.books && page.kind !== "audiobook")
             text: qsTr("Add a folder")
             onClicked: Nav.go("sources")
         }

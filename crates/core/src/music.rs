@@ -289,14 +289,23 @@ impl Core {
                             "book",
                             serde_json::to_string(&books::detail(c, id)?).unwrap_or_default(),
                         ),
-                        Some("book_series") => (
-                            "series",
-                            serde_json::to_string(&books::series_books(c, id)?).unwrap_or_default(),
-                        ),
-                        Some("person") => (
-                            "person",
-                            serde_json::to_string(&books::person_books(c, id)?).unwrap_or_default(),
-                        ),
+                        Some(k @ ("book_series" | "person")) => {
+                            let title: String = c.query_row(
+                                "SELECT coalesce(title, '') FROM item WHERE id = ?1",
+                                [id],
+                                |r| r.get(0),
+                            )?;
+                            let list = if k == "person" {
+                                books::person_books(c, id)?
+                            } else {
+                                books::series_books(c, id)?
+                            };
+                            (
+                                if k == "person" { "person" } else { "series" },
+                                serde_json::json!({ "id": id, "title": title, "books": list })
+                                    .to_string(),
+                            )
+                        }
                         _ => ("none", "null".to_string()),
                     })
                 })

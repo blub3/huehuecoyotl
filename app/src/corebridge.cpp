@@ -63,7 +63,8 @@ QVariantMap summaryMap(const coyotl::core::ItemSummary &s)
             {"saved", s.saved},
             {"subtitle", qs(s.subtitle)},
             {"parentId", qlonglong(s.parent_id)},
-            {"versions", qlonglong(s.versions)}};
+            {"versions", qlonglong(s.versions)},
+            {"ratio", s.ratio}};
 }
 
 // Issue #4: the state of an item's saved copies.
@@ -498,6 +499,81 @@ quint64 CoreBridge::splitAlbumVersion(qint64 version)
     return id;
 }
 
+// ---- audiobooks (issues #65 to #67) ---------------------------------------------------------------
+
+quint64 CoreBridge::bookDetail(qint64 id)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->book_detail(rid, id);
+    return rid;
+}
+
+quint64 CoreBridge::searchBook(qint64 id, const QString &title, const QString &author)
+{
+    const quint64 rid = nextId();
+    const QByteArray t = title.toUtf8(), a = author.toUtf8();
+    if (m_core) (*m_core)->search_book(rid, id, rs(t), rs(a));
+    return rid;
+}
+
+quint64 CoreBridge::chooseBookMatch(qint64 id, const QString &work)
+{
+    const quint64 rid = nextId();
+    const QByteArray w = work.toUtf8();
+    if (m_core) (*m_core)->choose_book_match(rid, id, rs(w));
+    return rid;
+}
+
+quint64 CoreBridge::bookPlay(qint64 book, qint64 positionMs)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->book_play(rid, book, positionMs);
+    return rid;
+}
+
+void CoreBridge::bookProgress(qint64 book, qint64 positionMs)
+{
+    if (m_core) (*m_core)->book_progress(book, positionMs);
+}
+
+quint64 CoreBridge::bookMarkFinished(qint64 book, bool finished)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->book_mark_finished(rid, book, finished);
+    return rid;
+}
+
+void CoreBridge::bookSetSpeed(qint64 book, double speed)
+{
+    if (m_core) (*m_core)->book_set_speed(book, speed);
+}
+
+quint64 CoreBridge::continueSeries(qint64 series)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->continue_series(rid, series);
+    return rid;
+}
+
+qint64 CoreBridge::previousChapter(const QList<qint64> &starts, qint64 position)
+{
+    std::vector<int64_t> v(starts.begin(), starts.end());
+    return coyotl::core::book_previous_chapter(rust::Slice<const int64_t>(v.data(), v.size()), position);
+}
+
+qint64 CoreBridge::nextChapter(const QList<qint64> &starts, qint64 position)
+{
+    std::vector<int64_t> v(starts.begin(), starts.end());
+    return coyotl::core::book_next_chapter(rust::Slice<const int64_t>(v.data(), v.size()), position);
+}
+
+qint64 CoreBridge::endOfChapter(const QList<qint64> &starts, qint64 duration, qint64 position)
+{
+    std::vector<int64_t> v(starts.begin(), starts.end());
+    return coyotl::core::book_end_of_chapter(rust::Slice<const int64_t>(v.data(), v.size()), duration,
+                                             position);
+}
+
 void CoreBridge::setTrackFile(qint64 track, qint64 file)
 {
     if (m_core) (*m_core)->set_track_file(track, file);
@@ -818,7 +894,7 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                     x[k] = QUrl::fromLocalFile(x.value(k).toString()).toString();
         };
         urls(m);
-        for (const char *list : {"albums", "appearsOn"}) {
+        for (const char *list : {"albums", "appearsOn", "books"}) {
             QVariantList l = m.value(list).toList();
             for (auto &v : l) {
                 QVariantMap x = v.toMap();

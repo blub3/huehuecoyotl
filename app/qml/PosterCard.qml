@@ -20,6 +20,12 @@ ItemDelegate {
     property string caption: year > 0 ? String(year) : ""
     property real posterWidth: 180
     property real posterRatio: 1.5
+    // Issue #66: the cover's own height / width (books): it keeps its aspect inside the cell,
+    // standing on the cell's bottom, so the titles of square and portrait covers align. 0: fill.
+    property real coverRatio: 0
+    readonly property real cellHeight: posterWidth * posterRatio
+    readonly property real frameWidth: coverRatio > 0 ? Math.min(posterWidth, cellHeight / coverRatio) : posterWidth
+    readonly property real frameHeight: coverRatio > 0 ? Math.min(cellHeight, posterWidth * coverRatio) : cellHeight
 
     readonly property real textScale: Appearance.textScale(posterWidth)
 
@@ -32,10 +38,15 @@ ItemDelegate {
     background: Item {}
     contentItem: Column {
         spacing: Math.round(8 * card.textScale)
-        Rectangle {
+        Item {
+          width: card.posterWidth
+          height: card.cellHeight
+          Rectangle {
             id: frame
-            width: card.posterWidth
-            height: card.posterWidth * card.posterRatio
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: card.frameWidth
+            height: card.frameHeight
             radius: Theme.radius
             clip: true
             color: Qt.hsla((card.title.length * 37 % 360) / 360, 0.30, 0.24, 1)
@@ -120,6 +131,7 @@ ItemDelegate {
                 border.width: card.activeFocus ? Theme.focusWidth + 1 : 0
                 border.color: Theme.focus
             }
+          }
         }
         Label {
             width: card.posterWidth
