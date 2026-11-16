@@ -147,7 +147,7 @@ impl Core {
         kind: &str,
         parent: i64,
         sort: &str,
-        unwatched_only: bool,
+        filter: &str,
         offset: u32,
         limit: u32,
     ) {
@@ -159,7 +159,9 @@ impl Core {
                 "year" => Sort::Year,
                 _ => Sort::Title,
             },
-            unwatched_only,
+            // "" (everything), "unwatched", or "saved" (issue #4).
+            unwatched_only: filter == "unwatched",
+            saved_only: filter == "saved",
             offset,
             limit: limit.clamp(1, 500),
         };

@@ -319,7 +319,7 @@ fn main() -> ExitCode {
                 if cmd == "movies" { "movie" } else { "show" },
                 0,
                 "title",
-                false,
+                "",
                 0,
                 500,
             );
@@ -548,7 +548,8 @@ fn main() -> ExitCode {
         Event::Candidates { .. }
         | Event::LibraryChanged { .. }
         | Event::ScanState { .. }
-        | Event::DownloadProgress { .. } => {}
+        | Event::DownloadProgress { .. }
+        | Event::SaveState { .. } => {}
         Event::Error { kind, message, .. } => {
             eprintln!("error ({kind:?}): {message}");
             return ExitCode::FAILURE;

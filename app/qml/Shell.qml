@@ -14,6 +14,7 @@ FocusScope {
         movies: moviesPage,
         shows: showsPage,
         search: searchPage,
+        downloads: downloadsPage,
         sources: sourcesPage,
         settings: settingsPage
     })
@@ -21,6 +22,7 @@ FocusScope {
     Component { id: moviesPage; MoviesPage {} }
     Component { id: showsPage; ShowsPage {} }
     Component { id: searchPage; SearchPage {} }
+    Component { id: downloadsPage; DownloadsPage {} }
     Component { id: sourcesPage; SourcesPage {} }
     Component { id: settingsPage; SettingsPage {} }
 

@@ -155,8 +155,7 @@ void LibraryModel::fetchMore(const QModelIndex &parent)
 {
     if (!canFetchMore(parent)) return;
     m_replace = false;
-    m_request =
-        CoreBridge::instance()->browseItems(m_kind, 0, m_sort, m_unwatched, int(m_rows.size()), kPage);
+    m_request = CoreBridge::instance()->browseItems(m_kind, 0, m_sort, m_filter, int(m_rows.size()), kPage);
     emit loadingChanged();
 }
 
@@ -176,10 +175,10 @@ void LibraryModel::setSort(const QString &s)
     reload();
 }
 
-void LibraryModel::setUnwatchedOnly(bool u)
+void LibraryModel::setFilter(const QString &f)
 {
-    if (u == m_unwatched) return;
-    m_unwatched = u;
+    if (f == m_filter) return;
+    m_filter = f;
     emit queryChanged();
     reload();
 }
@@ -202,8 +201,8 @@ void LibraryModel::refresh()
 {
     if (m_request) CoreBridge::instance()->cancel(m_request);
     m_replace = true;
-    m_request = CoreBridge::instance()->browseItems(m_kind, 0, m_sort, m_unwatched, 0,
-                                                    qMax(kPage, int(m_rows.size())));
+    m_request =
+        CoreBridge::instance()->browseItems(m_kind, 0, m_sort, m_filter, 0, qMax(kPage, int(m_rows.size())));
     emit loadingChanged();
 }
 

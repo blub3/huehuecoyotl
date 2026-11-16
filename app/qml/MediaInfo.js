@@ -50,6 +50,7 @@ function mainAudio(info) {
 }
 
 function size(bytes) {
+    if (bytes === 0) return "0 MB"
     if (!bytes) return ""
     const gb = bytes / 1073741824
     if (gb >= 10) return Math.round(gb) + " GB"

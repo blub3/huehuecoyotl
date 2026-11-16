@@ -13,6 +13,8 @@ ItemDelegate {
     property real progress: 0
     property bool watched: false
     property int unwatched: 0
+    // Issue #4: a saved copy is on this computer.
+    property bool saved: false
     property string caption: year > 0 ? String(year) : ""
     property real posterWidth: 180
     property real posterRatio: 1.5
@@ -23,7 +25,7 @@ ItemDelegate {
     height: posterWidth * posterRatio + 54 * textScale
     padding: 0
     focusPolicy: Qt.StrongFocus
-    Accessible.name: title + (caption !== "" ? ", " + caption : "") + (watched ? ", " + qsTr("watched") : "")
+    Accessible.name: title + (caption !== "" ? ", " + caption : "") + (watched ? ", " + qsTr("watched") : "") + (saved ? ", " + qsTr("saved on this computer") : "")
 
     background: Item {}
     contentItem: Column {
@@ -79,6 +81,19 @@ ItemDelegate {
                     text: card.watched ? "✓" : String(card.unwatched)
                     color: card.watched ? Theme.accent : Theme.bg
                     font.pixelSize: 13
+                    font.bold: true
+                }
+            }
+            Rectangle {   // saved copy
+                visible: card.saved
+                anchors { left: parent.left; top: parent.top; margins: 8 }
+                width: 26; height: 26; radius: 13
+                color: "#c0101418"
+                Label {
+                    anchors.centerIn: parent
+                    text: "⤓"
+                    color: Theme.accent
+                    font.pixelSize: 14
                     font.bold: true
                 }
             }

@@ -18,6 +18,7 @@ ItemDelegate {
     Accessible.name: qsTr("Episode %1, %2").arg(ep.episodeNo).arg(ep.title)
         + (onDisk ? "" : ", " + qsTr("not in your library"))
         + (ep.watched ? ", " + qsTr("watched") : "")
+        + (ep.saved ? ", " + qsTr("saved on this computer") : "")
     onClicked: onDisk ? row.play() : row.info()
     Keys.onReturnPressed: onDisk ? row.play() : row.info()
     Keys.onEnterPressed: onDisk ? row.play() : row.info()
@@ -74,6 +75,12 @@ ItemDelegate {
                     font.pixelSize: Theme.fontBody
                     font.bold: true
                     elide: Text.ElideRight
+                }
+                Label {
+                    visible: row.ep.saved === true
+                    text: "⤓ " + qsTr("Saved")
+                    color: Theme.accent
+                    font.pixelSize: Theme.fontSmall
                 }
                 Label {
                     visible: row.ep.runtimeMin > 0

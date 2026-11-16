@@ -90,11 +90,13 @@ FocusScope {
                 }
                 FocusButton {
                     id: unwatchedButton
-                    text: lib.unwatchedOnly ? qsTr("Unwatched") : qsTr("All")
-                    tip: qsTr("Show only unwatched")
+                    // All → Unwatched → Saved (issue #4) → All
+                    text: lib.filter === "unwatched" ? qsTr("Unwatched")
+                        : lib.filter === "saved" ? qsTr("Saved") : qsTr("All")
+                    tip: qsTr("Filter: all, unwatched or saved")
                     KeyNavigation.left: sortButton
                     KeyNavigation.down: grid
-                    onClicked: lib.unwatchedOnly = !lib.unwatchedOnly
+                    onClicked: lib.filter = lib.filter === "" ? "unwatched" : lib.filter === "unwatched" ? "saved" : ""
                 }
             }
         }
@@ -142,6 +144,7 @@ FocusScope {
                 progress: model.progress
                 watched: model.watched
                 unwatched: Number(model.unwatched)
+                saved: model.saved === true
                 focus: GridView.isCurrentItem
                 onClicked: { grid.currentIndex = tile.index; Nav.openItem(tile.model.id) }
                 Keys.onReturnPressed: Nav.openItem(tile.model.id)
@@ -160,13 +163,14 @@ FocusScope {
         spacing: 16
         Label {
             Layout.alignment: Qt.AlignHCenter
-            text: lib.unwatchedOnly ? qsTr("Everything here is watched.") : page.emptyText
+            text: lib.filter === "unwatched" ? qsTr("Everything here is watched.")
+                : lib.filter === "saved" ? qsTr("Nothing here is saved on this computer.") : page.emptyText
             color: Theme.textDim
             font.pixelSize: Theme.fontLarge
         }
         FocusButton {
             Layout.alignment: Qt.AlignHCenter
-            visible: !lib.unwatchedOnly
+            visible: lib.filter === ""
             text: qsTr("Add a folder")
             onClicked: Nav.go("sources")
         }

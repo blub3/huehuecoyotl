@@ -2,7 +2,9 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import Coyotl
+import "MediaInfo.js" as MediaInfo
 
 FocusScope {
     id: page
@@ -12,6 +14,12 @@ FocusScope {
     property bool keyBusy: false
     property string exportMessage: ""
     property bool exportFailed: false
+    // Issue #4: Storage.
+    property string storageDir: ""
+    property real storageUsed: 0
+    property var storageRequest: 0
+    property string storageMessage: ""
+    Component.onCompleted: storageRequest = Core.downloads()
 
     // One cover-size setting: a label and Small / Medium / Large, moved through with the arrows.
     component SizeChoice: RowLayout {
@@ -64,6 +72,14 @@ FocusScope {
 
     Connections {
         target: Core
+        function onDownloadsListed(requestId, items, used, dir) {
+            page.storageDir = dir
+            page.storageUsed = used
+            if (requestId === page.storageRequest) page.storageRequest = 0
+        }
+        function onRequestFailed(requestId, kind, message) {
+            if (requestId === page.storageRequest) page.storageMessage = message
+        }
         function onKeyStatusChanged(requestId, message) {
             if (requestId !== 0 && requestId !== page.keyRequest) return
             page.keyBusy = false
@@ -199,7 +215,7 @@ FocusScope {
                 value: Appearance.preferredVersion
                 onPicked: (key) => Appearance.preferredVersion = key
                 onUpRequested: fullscreenSizes.focusSelected()
-                onDownRequested: exportButton.forceActiveFocus()
+                onDownRequested: storageButton.forceActiveFocus()
             }
             Label {
                 Layout.fillWidth: true
@@ -207,6 +223,59 @@ FocusScope {
                 color: Theme.textDim
                 font.pixelSize: Theme.fontSmall
                 text: qsTr("When a movie exists in several versions and none was played yet. “Smallest file” helps on slow networks.")
+            }
+
+            // ---- Storage (issue #4) -----------------------------------------------------------
+            Label { text: qsTr("Storage"); color: Theme.textDim; font.pixelSize: Theme.fontLarge; Layout.topMargin: 24 }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WrapAnywhere
+                color: Theme.text
+                text: qsTr("Saved copies go to %1").arg(page.storageDir)
+            }
+            Label {
+                Layout.fillWidth: true
+                color: Theme.textDim
+                font.pixelSize: Theme.fontSmall
+                text: qsTr("Space used by saved copies: %1").arg(MediaInfo.size(page.storageUsed))
+            }
+            RowLayout {
+                spacing: 12
+                FocusButton {
+                    id: storageButton
+                    text: qsTr("Change location…")
+                    Accessible.description: qsTr("New saved copies go to the chosen folder; existing ones stay where they are.")
+                    Keys.onUpPressed: versionChoice.focusSelected()
+                    KeyNavigation.right: storageDefault
+                    KeyNavigation.down: deleteAllButton
+                    Keys.onLeftPressed: Nav.focusRail()
+                    onClicked: storageDialog.open()
+                }
+                FocusButton {
+                    id: storageDefault
+                    text: qsTr("Use default")
+                    KeyNavigation.left: storageButton
+                    KeyNavigation.right: deleteAllButton
+                    KeyNavigation.down: deleteAllButton
+                    Keys.onUpPressed: versionChoice.focusSelected()
+                    onClicked: { page.storageMessage = ""; page.storageRequest = Core.setStorageDir("") }
+                }
+                FocusButton {
+                    id: deleteAllButton
+                    enabled: page.storageUsed > 0
+                    text: qsTr("Delete all saved copies")
+                    KeyNavigation.left: storageDefault
+                    Keys.onUpPressed: storageButton.forceActiveFocus()
+                    KeyNavigation.down: exportButton
+                    onClicked: deleteAllConfirm.open()
+                }
+            }
+            Label {
+                Layout.fillWidth: true
+                visible: page.storageMessage !== ""
+                text: page.storageMessage
+                color: Theme.danger
+                wrapMode: Text.Wrap
             }
 
             // ---- Troubleshooting -----------------------------------------------------------
@@ -222,7 +291,7 @@ FocusScope {
                 FocusButton {
                     id: exportButton
                     text: qsTr("Export diagnostics")
-                    Keys.onUpPressed: versionChoice.focusSelected()
+                    Keys.onUpPressed: storageButton.forceActiveFocus()
                     KeyNavigation.down: noticesButton
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: {
@@ -275,6 +344,56 @@ FocusScope {
                     wrapMode: Text.Wrap
                     color: Theme.textDim
                     text: qsTr("This product uses the TMDB API but is not endorsed or certified by TMDB.")
+                }
+            }
+        }
+    }
+
+    FolderDialog {
+        id: storageDialog
+        title: qsTr("Where saved copies go")
+        currentFolder: page.storageDir !== "" ? "file://" + page.storageDir : ""
+        onAccepted: {
+            page.storageMessage = ""
+            const url = String(selectedFolder)
+            page.storageRequest = Core.setStorageDir(decodeURIComponent(url.replace(/^file:\/\//, "")))
+        }
+        onRejected: storageButton.forceActiveFocus()
+    }
+
+    Popup {
+        id: deleteAllConfirm
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(560, parent.width - 80)
+        modal: true
+        padding: 24
+        background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
+        onOpened: deleteAllKeep.forceActiveFocus()
+        onClosed: storageButton.forceActiveFocus()
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 16
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.text
+                text: qsTr("Delete every saved copy from this computer (%1)? The files on your servers stay, and everything can be streamed or saved again.").arg(MediaInfo.size(page.storageUsed))
+            }
+            RowLayout {
+                spacing: 12
+                FocusButton {
+                    id: deleteAllKeep
+                    text: qsTr("Keep")
+                    KeyNavigation.right: deleteAllOk
+                    onClicked: deleteAllConfirm.close()
+                }
+                FocusButton {
+                    id: deleteAllOk
+                    primary: true
+                    text: qsTr("Delete all saved copies")
+                    KeyNavigation.left: deleteAllKeep
+                    onClicked: { page.storageRequest = Core.deleteAllSaved(); deleteAllConfirm.close() }
                 }
             }
         }

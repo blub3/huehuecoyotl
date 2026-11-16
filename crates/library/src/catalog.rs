@@ -236,6 +236,8 @@ pub struct Summary {
     /// seasons only TMDB knows are shown dimmed and cannot be played.
     pub on_disk: bool,
     pub runtime_min: Option<u32>,
+    /// Issue #4: a complete saved copy of it (or of one of its episodes) is on this computer.
+    pub saved: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -252,11 +254,22 @@ pub struct Query {
     pub parent: Option<i64>,
     pub sort: Sort,
     pub unwatched_only: bool,
+    /// Issue #4: only items with a saved copy.
+    pub saved_only: bool,
     pub offset: u32,
     pub limit: u32,
 }
 
-const SUMMARY_COLS: &str = "i.id, i.kind, i.title, i.year, i.season_no, i.episode_no,
+/// Issue #4: a complete saved copy of the item, one of its episodes or one of its seasons'.
+macro_rules! saved_sql {
+    () => {
+        "EXISTS (SELECT 1 FROM local_copy lc JOIN item x ON x.id = lc.item_id LEFT JOIN item y ON y.id = x.parent_id
+           WHERE lc.kind = 'saved' AND lc.main_id IS NULL AND lc.state = 'done'
+             AND (x.id = i.id OR x.parent_id = i.id OR y.parent_id = i.id))"
+    };
+}
+
+const SUMMARY_COLS: &str = concat!("i.id, i.kind, i.title, i.year, i.season_no, i.episode_no,
     (SELECT local_path FROM artwork a WHERE a.item_id = i.id AND a.role IN ('poster_grid','still') AND local_path IS NOT NULL ORDER BY a.role LIMIT 1),
     p.position_ms, p.duration_ms, p.watched,
     CASE WHEN i.kind = 'show' THEN (SELECT count(*) FROM item s JOIN item e ON e.parent_id = s.id
@@ -274,7 +287,7 @@ const SUMMARY_COLS: &str = "i.id, i.kind, i.title, i.year, i.season_no, i.episod
       WHEN 'show' THEN 1
       WHEN 'season' THEN EXISTS (SELECT 1 FROM item e JOIN file f ON f.item_id = e.id WHERE e.parent_id = i.id)
       ELSE EXISTS (SELECT 1 FROM file f WHERE f.item_id = i.id) END,
-    i.runtime_min";
+    i.runtime_min, ", saved_sql!());
 
 fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
     let st = PlayState {
@@ -293,6 +306,7 @@ fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
         poster_large: r.get::<_, Option<String>>(12)?.unwrap_or_default(),
         on_disk: r.get(13)?,
         runtime_min: r.get(14)?,
+        saved: r.get(15)?,
         progress: st.progress(),
         watched: st.watched,
         unwatched: r.get(10)?,
@@ -318,6 +332,11 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
     } else {
         ""
     };
+    let saved = if q.saved_only {
+        concat!(" AND ", saved_sql!())
+    } else {
+        ""
+    };
     let order = match (q.parent.is_some(), q.sort) {
         (true, _) => "coalesce(i.season_no, 0) = 0, i.season_no, i.episode_no, i.sort_title",
         (false, Sort::Title) => "i.sort_title, i.year",
@@ -326,7 +345,7 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
     };
     let from = format!(
         "FROM item i LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = {DEFAULT_PROFILE}
-         WHERE {filter} AND {VISIBLE}{unwatched}"
+         WHERE {filter} AND {VISIBLE}{unwatched}{saved}"
     );
     let key: rusqlite::types::Value = match q.parent {
         Some(p) => p.into(),
@@ -409,6 +428,8 @@ pub struct Detail {
     pub children: Vec<Summary>,
     /// For shows and seasons: the episode "Play" should start.
     pub next_up: Option<Summary>,
+    /// Issue #4: the state of its saved copy (copies, for seasons and shows).
+    pub save: crate::copies::SaveInfo,
 }
 
 fn art(c: &Connection, item: i64, role: &str) -> Result<String> {
@@ -536,6 +557,7 @@ pub fn detail(c: &Connection, id: i64) -> Result<Option<Detail>> {
         last_file_id,
         children,
         next_up,
+        save: crate::copies::save_info(c, id)?,
     }))
 }
 
@@ -1142,6 +1164,7 @@ mod tests {
             parent: None,
             sort,
             unwatched_only: false,
+            saved_only: false,
             offset: 0,
             limit: 50,
         };
@@ -1219,6 +1242,7 @@ mod tests {
                 parent: None,
                 sort: Sort::Title,
                 unwatched_only: false,
+                saved_only: false,
                 offset: 0,
                 limit: 10,
             };

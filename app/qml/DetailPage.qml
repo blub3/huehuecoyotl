@@ -73,6 +73,55 @@ FocusScope {
     readonly property var file: hasFiles ? files[Math.min(fileIndex, files.length - 1)] : null
     readonly property var info: file && file.probe ? file.probe : null
     property bool detailsOpen: false
+
+    // Issue #4: offline copies. The detail carries the state; while copies run, it is polled.
+    property var liveSave: null
+    property var saveRequest: 0
+    readonly property var sv: liveSave || d.save || ({ state: "none", saved: 0, saveable: 0 })
+    readonly property bool saveBusy: sv.state === "queued" || sv.state === "running"
+    readonly property bool canSave: loaded && kind !== "video" && (sv.saveable > 0 || sv.state !== "none")
+    readonly property int savePercent: sv.size > 0 ? Math.floor(100 * sv.bytesDone / sv.size) : 0
+    function saveLabel() {
+        if (sv.state === "failed") return qsTr("Try again")
+        if (sv.state === "outdated") return qsTr("Save again")
+        if (sv.state === "paused") return qsTr("Resume")
+        if (saveBusy) return qsTr("Pause")
+        if (sv.state === "done") return deleteLabel()
+        if (kind === "season") return qsTr("Save season")
+        if (kind === "show") return qsTr("Save all")
+        return qsTr("Save")
+    }
+    function deleteLabel() {
+        return kind === "season" || kind === "show" ? qsTr("Delete saved copies") : qsTr("Delete saved copy")
+    }
+    function saveAction() {
+        if (sv.state === "done") { deleteSavedConfirm.open(); return }
+        if (sv.state === "paused" || sv.state === "failed") Core.resumeSavedItem(itemId)
+        else if (saveBusy) Core.pauseSavedItem(itemId)
+        else saveRequest = Core.saveItem(itemId, hasFiles && file ? file.id : 0)
+        saveTimer.restart()
+    }
+    function saveStatus() {
+        const many = kind === "season" || kind === "show"
+        switch (sv.state) {
+        case "queued": return qsTr("Waiting to save…")
+        case "running": return qsTr("Saving… %1 %").arg(savePercent) + "  ·  " + MediaInfo.size(sv.bytesDone) + " / " + MediaInfo.size(sv.size)
+        case "paused": return qsTr("Paused at %1 %").arg(savePercent)
+        case "done": return many ? qsTr("All episodes are saved on this computer") : qsTr("Saved on this computer")
+        case "outdated": return qsTr("The saved copy is outdated: the file on the server changed.")
+        case "failed": return qsTr("Saving failed: %1").arg(Core.downloadErrorText(sv.errorKind, sv.error))
+        }
+        return many && sv.saved > 0 ? qsTr("%1 of %2 episodes saved").arg(sv.saved).arg(sv.saveable) : ""
+    }
+    readonly property bool hasCopy: sv.state !== "none" || sv.saved > 0
+    function belowActions() { return canSave ? saveButton : childView() }
+    Timer {
+        id: saveTimer
+        interval: 1000
+        repeat: true
+        running: page.saveBusy && page.visible
+        onTriggered: page.saveRequest = Core.saveState(page.itemId)
+    }
     // Keep the focused episode row inside the visible part of the page.
     function reveal(item) {
         const p = item.mapToItem(flick.contentItem, 0, 0)
@@ -127,12 +176,25 @@ FocusScope {
             }
             if (requestId !== page.request) return
             const first = !page.loaded
+            page.liveSave = null
             page.d = detail
             if (page.hasFiles) page.pickVersion()
             if (page.kind === "season" && !first) episodeList.currentIndex = Math.min(keep, episodeList.count - 1)
             if (page.kind === "show")
                 page.selectSeason(first || page.seasonIndex < 0 ? page.initialSeason() : page.seasonIndex)
             if (first) playButton.forceActiveFocus()
+        }
+        function onSaveStateReady(requestId, id, info) {
+            if (id !== page.itemId) return
+            const was = page.sv.state
+            page.liveSave = info
+            if (was !== info.state && info.state === "done") page.load()
+        }
+        function onDownloadsListed(requestId, items, used, dir) {
+            if (requestId === page.saveRequest) page.saveRequest = Core.saveState(page.itemId)
+        }
+        function onRequestFailed(requestId, kind, message) {
+            if (requestId === page.saveRequest) (page.Window.window as Main).showError(message)
         }
         function onItemChanged(id) { if (id === page.itemId || page.kind === "show" || page.kind === "season") page.load() }
         function onLibraryChanged() { page.load() }
@@ -340,7 +402,7 @@ FocusScope {
                                 enabled: !(page.hasFiles && page.file !== null && !page.file.online)
                                 KeyNavigation.up: page.manyVersions ? versionButton : null
                                 KeyNavigation.right: watchedButton
-                                KeyNavigation.down: page.childView()
+                                KeyNavigation.down: page.belowActions()
                                 Keys.onLeftPressed: Nav.focusRail()
                                 onClicked: page.play()
                             }
@@ -349,7 +411,7 @@ FocusScope {
                                 text: page.d.watched || (page.kind !== "movie" && page.kind !== "episode" && page.d.unwatched === 0) ? qsTr("Mark unwatched") : qsTr("Mark watched")
                                 KeyNavigation.left: playButton
                                 KeyNavigation.right: fixButton.visible ? fixButton : null
-                                KeyNavigation.down: page.childView()
+                                KeyNavigation.down: page.belowActions()
                                 onClicked: Core.setWatched(page.itemId, !(page.d.watched || (page.kind !== "movie" && page.kind !== "episode" && page.d.unwatched === 0)))
                             }
                             FocusButton {
@@ -357,8 +419,57 @@ FocusScope {
                                 visible: Core.hasTmdbKey && (page.kind === "movie" || page.kind === "show")
                                 text: qsTr("Fix match")
                                 KeyNavigation.left: watchedButton
-                                KeyNavigation.down: page.childView()
+                                KeyNavigation.down: page.belowActions()
                                 onClicked: fixDialog.openFor(page.itemId, page.d.title, page.d.year)
+                            }
+                        }
+
+                        // Issue #4: Save (an offline copy), its progress, and deleting it.
+                        RowLayout {
+                            visible: page.canSave
+                            spacing: 12
+                            FocusButton {
+                                id: saveButton
+                                // One button that changes its role, so focus never falls off the row.
+                                glyph: page.saveBusy ? "❚❚" : page.sv.state === "done" ? "" : "⤓"
+                                text: page.saveLabel()
+                                Accessible.description: page.saveStatus()
+                                KeyNavigation.up: playButton
+                                KeyNavigation.right: deleteSavedButton.visible ? deleteSavedButton : null
+                                KeyNavigation.down: page.childView()
+                                Keys.onLeftPressed: Nav.focusRail()
+                                onActiveFocusChanged: if (activeFocus) page.reveal(this)
+                                onClicked: page.saveAction()
+                            }
+                            FocusButton {
+                                id: deleteSavedButton
+                                visible: page.hasCopy && page.sv.state !== "done"
+                                text: page.saveBusy || page.sv.state === "paused" ? qsTr("Cancel") : page.deleteLabel()
+                                KeyNavigation.up: playButton
+                                KeyNavigation.left: saveButton
+                                KeyNavigation.down: page.childView()
+                                onActiveFocusChanged: if (activeFocus) page.reveal(this)
+                                onClicked: deleteSavedConfirm.open()
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                text: page.saveStatus()
+                                color: page.sv.state === "failed" || page.sv.state === "outdated" ? Theme.danger : Theme.textDim
+                                font.pixelSize: Theme.fontSmall
+                                wrapMode: Text.Wrap
+                            }
+                        }
+                        Rectangle {
+                            visible: page.canSave && (page.saveBusy || page.sv.state === "paused")
+                            Layout.preferredWidth: 360
+                            Layout.preferredHeight: 4
+                            radius: 2
+                            color: Theme.surfaceHi
+                            Rectangle {
+                                width: parent.width * page.savePercent / 100
+                                height: parent.height
+                                radius: 2
+                                color: Theme.accent
                             }
                         }
                     }
@@ -373,7 +484,7 @@ FocusScope {
                         id: detailsToggle
                         glyph: page.detailsOpen ? "▾" : "▸"
                         text: qsTr("Technical details")
-                        Keys.onUpPressed: playButton.forceActiveFocus()
+                        Keys.onUpPressed: (page.canSave ? saveButton : playButton).forceActiveFocus()
                         Keys.onLeftPressed: Nav.focusRail()
                         KeyNavigation.right: analyseButton.visible ? analyseButton : null
                         onActiveFocusChanged: if (activeFocus) page.reveal(this)
@@ -678,6 +789,50 @@ FocusScope {
                     onClicked: {
                         page.splitRequest = Core.splitFile(page.file.id)
                         splitConfirm.close()
+                    }
+                }
+            }
+        }
+    }
+
+    // Issue #4: deleting a saved copy (or cancelling one) only removes the local files.
+    Popup {
+        id: deleteSavedConfirm
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(560, parent.width - 80)
+        modal: true
+        padding: 24
+        background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
+        onOpened: deleteKeep.forceActiveFocus()
+        onClosed: saveButton.forceActiveFocus()
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 16
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.text
+                text: page.saveBusy || page.sv.state === "paused"
+                      ? qsTr("Stop saving and remove what was copied so far? The file on the server stays.")
+                      : qsTr("Delete the saved copy from this computer? Only the local copy is removed; the file on the server stays and can be streamed or saved again.")
+            }
+            RowLayout {
+                spacing: 12
+                FocusButton {
+                    id: deleteKeep
+                    text: qsTr("Keep")
+                    KeyNavigation.right: deleteOk
+                    onClicked: deleteSavedConfirm.close()
+                }
+                FocusButton {
+                    id: deleteOk
+                    primary: true
+                    text: page.saveBusy || page.sv.state === "paused" ? qsTr("Stop and remove") : qsTr("Delete saved copy")
+                    KeyNavigation.left: deleteKeep
+                    onClicked: {
+                        page.saveRequest = Core.deleteSavedItem(page.itemId)
+                        deleteSavedConfirm.close()
                     }
                 }
             }
