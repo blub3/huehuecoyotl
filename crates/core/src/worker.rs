@@ -98,6 +98,7 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
         "tiers" => large_tiers(inner).await,
         "regroup" => regroup(inner).await,
         "probe" => crate::probe::run(inner, v["file_id"].as_i64().unwrap_or(0)).await,
+        "waveform" => crate::probe::waveform(inner, v["file_id"].as_i64().unwrap_or(0)).await,
         "music_match" => match crate::music::match_album(inner, item_of(payload)).await {
             Ok(()) | Err(MetaError::NotFound) => Ok(()),
             Err(MetaError::RateLimited(s)) => {

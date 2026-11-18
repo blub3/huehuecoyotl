@@ -185,7 +185,15 @@
 <context>
     <name>NowPlayingPage</name>
     <message numerus="yes">
-        <location filename="../qml/NowPlayingPage.qml" line="316"/>
+        <location filename="../qml/NowPlayingPage.qml" line="254"/>
+        <source>%n channel(s)</source>
+        <translation>
+            <numerusform>%n channel</numerusform>
+            <numerusform>%n channels</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/NowPlayingPage.qml" line="522"/>
         <source>%n track(s)</source>
         <translation>
             <numerusform>%n track</numerusform>

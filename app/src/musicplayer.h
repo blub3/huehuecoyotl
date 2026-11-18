@@ -136,6 +136,7 @@ class MusicPlayer : public QObject {
     void setState(int s);
     void updateState();
     void setCurrent(const QVariantMap &entry);
+    static QVariantMap withFile(const QVariantMap &ticket);
     quint64 ticket() const;
     void track(quint64 requestId) { m_requests.append(requestId); }
     void applyOutput();

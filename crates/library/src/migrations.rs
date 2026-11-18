@@ -200,6 +200,14 @@ CREATE TABLE playlist_entry(playlist_id INTEGER NOT NULL REFERENCES playlist(id)
 CREATE INDEX playlist_entry_item ON playlist_entry(item_id);
 "#,
     ),
+    // 12 (2.6, issue #82): Now Playing's background colour per cover, and each file's waveform
+    // (peaks, 0 to 255), both computed once and kept.
+    Migration::Sql(
+        r#"
+ALTER TABLE artwork ADD COLUMN color TEXT;
+ALTER TABLE file_audio ADD COLUMN waveform BLOB;
+"#,
+    ),
 ];
 
 /// The old and new kind constraint of `item`.

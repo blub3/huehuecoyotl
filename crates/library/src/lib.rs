@@ -330,6 +330,13 @@ mod tests {
                     .map(|r| r.rsplitn(3, '|').nth(2).unwrap().to_string())
                     .collect();
                 assert_eq!(trimmed, before.0[i], "{t}");
+            } else if *t == "artwork" {
+                // Migration 12 adds the Now Playing colour (none yet) at the end.
+                let trimmed: Vec<String> = now
+                    .iter()
+                    .map(|r| r.rsplit_once('|').unwrap().0.to_string())
+                    .collect();
+                assert_eq!(trimmed, before.0[i], "{t}");
             } else if *t == "file" {
                 // Migration 9 adds the version (none for video files) at the end.
                 let trimmed: Vec<String> = now

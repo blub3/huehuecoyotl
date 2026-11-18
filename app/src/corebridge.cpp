@@ -519,6 +519,13 @@ std::vector<int64_t> variantIds(const QVariantList &items)
 }
 } // namespace
 
+quint64 CoreBridge::trackVisuals(qint64 track, qint64 file)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->track_visuals(rid, track, file);
+    return rid;
+}
+
 quint64 CoreBridge::playlists()
 {
     const quint64 rid = nextId();

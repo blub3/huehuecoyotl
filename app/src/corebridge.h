@@ -114,6 +114,9 @@ class CoreBridge : public QObject {
     // Issue #81: playlists (musicDetailReady of kind "playlists", "playlist" or
     // "playlistSaved"). `key` is "smart:<rule>" or an own playlist's id; items are albums,
     // artists or songs; `to` < 0 removes the song at `index`.
+    // Issue #82: Now Playing's tint ("#rrggbb" or "") and waveform (peaks 0 to 255, or none
+    // yet) for a song (musicDetailReady of kind "visuals"); file 0: the song's best file.
+    Q_INVOKABLE quint64 trackVisuals(qint64 track, qint64 file = 0);
     Q_INVOKABLE quint64 playlists();
     Q_INVOKABLE quint64 playlistDetail(const QString &key, int limit = 5000);
     Q_INVOKABLE quint64 playlistCreate(const QString &name, const QVariantList &items = {},

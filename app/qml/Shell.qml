@@ -82,9 +82,13 @@ FocusScope {
         e.accepted = true
     }
 
+    // Issue #82: Now Playing uses the whole window; the rail steps aside.
+    readonly property bool immersive: content.currentItem ? content.currentItem.objectName === "nowPlaying" : false
     NavRail {
         id: rail
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+        visible: !shell.immersive
+        width: visible ? implicitWidth : 0
         current: shell.section
         onChosen: (s) => { if (s === shell.section) { shell.content_toFirst() } else shell.go(s) }
         onDownFromLast: if (mini.visible) mini.forceActiveFocus()

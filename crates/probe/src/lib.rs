@@ -8,6 +8,7 @@
 mod ffi;
 #[rustfmt::skip]
 mod ffi_types;
+mod waveform;
 
 use core::ffi::{CStr, c_char, c_int, c_void};
 use std::io;
@@ -15,6 +16,7 @@ use std::io;
 use serde::{Deserialize, Serialize};
 
 pub use ffi::ffmpeg;
+pub use waveform::{fold, waveform};
 
 /// Bump when fields are added or their meaning changes; files with an older version are probed
 /// again in the background.

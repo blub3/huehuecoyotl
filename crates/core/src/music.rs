@@ -187,6 +187,68 @@ pub(crate) async fn match_album(inner: &Arc<Inner>, mut album: i64) -> Result<()
 }
 
 impl Core {
+    /// Issue #82: what Now Playing shows for a song besides its tags (MusicDetail "visuals":
+    /// trackId, fileId, color: the album cover's background tint or "", peaks: the waveform or
+    /// [] until it is computed; then the job posts ItemChanged for the track). `file` 0: the
+    /// song's best file.
+    pub fn track_visuals(&self, request_id: u64, track: i64, file: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let v = inner
+                .lib
+                .read(move |c| music::visuals(c, track, file))
+                .await?;
+            let mut color = v.color.clone().unwrap_or_default();
+            if color.is_empty()
+                && let Some(path) = v.cover_path.clone()
+            {
+                let tinted = tokio::task::spawn_blocking(move || {
+                    std::fs::read(&path)
+                        .map_err(|e| e.to_string())
+                        .and_then(|b| huehuecoyotl_metadata::artwork::tint(&b))
+                })
+                .await
+                .map_err(|e| crate::CoreError::new(crate::ErrorKind::Internal, e.to_string()))?;
+                if let Ok(t) = tinted {
+                    let (album, t2) = (v.album, t.clone());
+                    inner
+                        .lib
+                        .write(move |c| music::set_cover_color(c, album, &t2))
+                        .await?;
+                    color = t;
+                }
+            }
+            if v.waveform.is_none() && v.file > 0 {
+                let file = v.file;
+                let queued = inner
+                    .lib
+                    .write(move |c| {
+                        jobs::enqueue(
+                            c,
+                            "waveform",
+                            &json!({ "file_id": file }).to_string(),
+                            jobs::priority::NORMAL,
+                            Some(&format!("waveform:{file}")),
+                        )
+                    })
+                    .await;
+                if queued.is_ok() {
+                    inner.wake.notify_waiters();
+                }
+            }
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "visuals".into(),
+                json: json!({
+                    "trackId": track,
+                    "fileId": v.file,
+                    "color": color,
+                    "peaks": v.waveform.unwrap_or_default(),
+                })
+                .to_string(),
+            })
+        });
+    }
+
     /// Use this music provider instead of MusicBrainz (tests).
     pub fn set_music_provider(&self, p: Arc<dyn MusicProvider>) {
         *self.inner.music.write().unwrap() = p;
