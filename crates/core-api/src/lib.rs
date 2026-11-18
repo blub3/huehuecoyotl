@@ -413,6 +413,8 @@ mod ffi {
         fn book_detail(self: &Core, request_id: u64, id: i64);
         /// Issue #81: playlists (MusicDetail "playlists", "playlist", "playlistSaved"). `key` is
         /// "smart:<rule>" or an own playlist's id; `to` < 0 removes the song at `index`.
+        /// Issue #82: Now Playing's tint and waveform for a song (MusicDetail "visuals").
+        fn track_visuals(self: &Core, request_id: u64, track: i64, file: i64);
         fn playlists(self: &Core, request_id: u64);
         fn playlist_detail(self: &Core, request_id: u64, key: &str, limit: u32);
         fn playlist_create(self: &Core, request_id: u64, name: &str, items: &[i64], version: i64);
@@ -1258,6 +1260,11 @@ impl Core {
     }
     fn artist_detail(&self, request_id: u64, artist: i64) {
         guard("artist_detail", || self.0.artist_detail(request_id, artist))
+    }
+    fn track_visuals(&self, request_id: u64, track: i64, file: i64) {
+        guard("track_visuals", || {
+            self.0.track_visuals(request_id, track, file)
+        })
     }
     fn playlists(&self, request_id: u64) {
         guard("playlists", || self.0.playlists(request_id))

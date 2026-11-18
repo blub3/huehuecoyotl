@@ -790,3 +790,99 @@ mod tests {
         assert!(!hires(false, Some(24), Some(96_000)));
     }
 }
+
+// ---- Now Playing (issue #82) ---------------------------------------------------------------
+
+/// What Now Playing shows for a song besides its tags: the album cover's stored background
+/// colour (or, when there is none yet, the cover file to compute it from) and the stored
+/// waveform of the file that plays.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Visuals {
+    pub album: i64,
+    pub file: i64,
+    pub color: Option<String>,
+    pub cover_path: Option<String>,
+    pub waveform: Option<Vec<u8>>,
+}
+
+/// `file` 0: the song's best file.
+pub fn visuals(c: &Connection, track: i64, file: i64) -> Result<Visuals> {
+    let album: i64 = c
+        .query_row(
+            "SELECT coalesce(parent_id, 0) FROM item WHERE id = ?1",
+            [track],
+            |r| r.get(0),
+        )
+        .optional()?
+        .unwrap_or(0);
+    let file = if file > 0 {
+        file
+    } else {
+        c.query_row(
+            "SELECT f.id FROM file f LEFT JOIN file_audio fa ON fa.file_id = f.id WHERE f.item_id = ?1
+             ORDER BY coalesce(fa.lossless, 0) DESC, coalesce(fa.bit_depth, 0) DESC, coalesce(fa.sample_rate, 0) DESC LIMIT 1",
+            [track],
+            |r| r.get(0),
+        )
+        .optional()?
+        .unwrap_or(0)
+    };
+    let (color, cover_path): (Option<String>, Option<String>) = c
+        .query_row(
+            "SELECT color, local_path FROM artwork WHERE item_id = ?1 AND role = 'poster_grid' AND local_path IS NOT NULL",
+            [album],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .optional()?
+        .unwrap_or((None, None));
+    let waveform: Option<Vec<u8>> = c
+        .query_row(
+            "SELECT waveform FROM file_audio WHERE file_id = ?1",
+            [file],
+            |r| r.get(0),
+        )
+        .optional()?
+        .flatten();
+    Ok(Visuals {
+        album,
+        file,
+        color,
+        cover_path,
+        waveform,
+    })
+}
+
+pub fn set_cover_color(c: &Connection, album: i64, color: &str) -> Result<()> {
+    c.execute(
+        "UPDATE artwork SET color = ?2 WHERE item_id = ?1 AND role = 'poster_grid'",
+        params![album, color],
+    )?;
+    Ok(())
+}
+
+/// A file's waveform; files without audio details get a row for it.
+pub fn set_waveform(c: &Connection, file: i64, peaks: &[u8]) -> Result<()> {
+    c.execute(
+        "INSERT INTO file_audio(file_id, waveform) VALUES (?1, ?2)
+         ON CONFLICT(file_id) DO UPDATE SET waveform = excluded.waveform",
+        params![file, peaks],
+    )?;
+    Ok(())
+}
+
+/// Where a music file is, for the waveform job: (source, source kind, path, size, track).
+pub type FileTarget = (i64, String, String, u64, i64);
+
+pub fn file_target(c: &Connection, file: i64) -> Result<Option<FileTarget>> {
+    Ok(c
+        .query_row(
+            &format!(
+                "SELECT f.source_id, s.kind, {}, coalesce(f.size, 0), f.item_id
+                 FROM file f JOIN source s ON s.id = f.source_id WHERE f.id = ?1 AND f.item_id IS NOT NULL",
+                crate::catalog::ABS_PATH_SQL
+            ),
+            [file],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get::<_, i64>(3)?.max(0) as u64, r.get(4)?)),
+        )
+        .optional()?)
+}

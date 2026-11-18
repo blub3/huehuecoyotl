@@ -63,6 +63,22 @@ pub struct Ffmpeg {
     pub avcodec_profile_name: unsafe extern "C" fn(c_int, c_int) -> *const c_char,
     pub av_packet_side_data_get:
         unsafe extern "C" fn(*const AVPacketSideData, c_int, c_int) -> *const AVPacketSideData,
+    // Issue #82: decoding audio for the waveform.
+    pub av_read_frame: unsafe extern "C" fn(*mut AVFormatContext, *mut AVPacket) -> c_int,
+    pub avcodec_find_decoder: unsafe extern "C" fn(AVCodecID) -> *const AVCodec,
+    pub avcodec_alloc_context3: unsafe extern "C" fn(*const AVCodec) -> *mut AVCodecContext,
+    pub avcodec_parameters_to_context:
+        unsafe extern "C" fn(*mut AVCodecContext, *const AVCodecParameters) -> c_int,
+    pub avcodec_open2:
+        unsafe extern "C" fn(*mut AVCodecContext, *const AVCodec, *mut *mut c_void) -> c_int,
+    pub avcodec_send_packet: unsafe extern "C" fn(*mut AVCodecContext, *const AVPacket) -> c_int,
+    pub avcodec_receive_frame: unsafe extern "C" fn(*mut AVCodecContext, *mut AVFrame) -> c_int,
+    pub avcodec_free_context: unsafe extern "C" fn(*mut *mut AVCodecContext),
+    pub av_frame_alloc: unsafe extern "C" fn() -> *mut AVFrame,
+    pub av_frame_free: unsafe extern "C" fn(*mut *mut AVFrame),
+    pub av_packet_alloc: unsafe extern "C" fn() -> *mut AVPacket,
+    pub av_packet_free: unsafe extern "C" fn(*mut *mut AVPacket),
+    pub av_packet_unref: unsafe extern "C" fn(*mut AVPacket),
 }
 
 /// File names of the three libraries for this platform, with the major versions the bindings
@@ -183,6 +199,19 @@ fn load() -> Result<Ffmpeg, String> {
         avcodec_get_name: sym!(avcodec, avcodec_get_name),
         avcodec_profile_name: sym!(avcodec, avcodec_profile_name),
         av_packet_side_data_get: sym!(avcodec, av_packet_side_data_get),
+        av_read_frame: sym!(avformat, av_read_frame),
+        avcodec_find_decoder: sym!(avcodec, avcodec_find_decoder),
+        avcodec_alloc_context3: sym!(avcodec, avcodec_alloc_context3),
+        avcodec_parameters_to_context: sym!(avcodec, avcodec_parameters_to_context),
+        avcodec_open2: sym!(avcodec, avcodec_open2),
+        avcodec_send_packet: sym!(avcodec, avcodec_send_packet),
+        avcodec_receive_frame: sym!(avcodec, avcodec_receive_frame),
+        avcodec_free_context: sym!(avcodec, avcodec_free_context),
+        av_frame_alloc: sym!(avutil, av_frame_alloc),
+        av_frame_free: sym!(avutil, av_frame_free),
+        av_packet_alloc: sym!(avcodec, av_packet_alloc),
+        av_packet_free: sym!(avcodec, av_packet_free),
+        av_packet_unref: sym!(avcodec, av_packet_unref),
         _libs: [avformat, avcodec, avutil].into_iter().chain(swr).collect(),
     };
     Ok(ff)

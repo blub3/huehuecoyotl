@@ -26,7 +26,7 @@ H
   bindgen "$tmp/wrapper.h" \
     --no-doc-comments --use-core --default-enum-style consts \
     --opaque-type AVIOContext --allowlist-type 'AVFormatContext|AVInputFormat|AVStream|AVCodecParameters|AVIOContext|AVDictionaryEntry|AVChapter|AVRational|AVPacketSideData|AVDOVIDecoderConfigurationRecord|AVChannelLayout|AVPixFmtDescriptor|AVComponentDescriptor' \
-    --allowlist-type 'AVMediaType|AVCodecID|AVColorTransferCharacteristic|AVColorPrimaries|AVFieldOrder|AVPacketSideDataType' \
+    --allowlist-type 'AVMediaType|AVCodecID|AVColorTransferCharacteristic|AVColorPrimaries|AVFieldOrder|AVPacketSideDataType|AVFrame|AVCodecContext|AVSampleFormat' \
     --allowlist-var 'AV_DISPOSITION_.*|AVSEEK_SIZE|AVFMT_FLAG_CUSTOM_IO|AV_PROFILE_.*|AV_DICT_.*|AV_PIX_FMT_FLAG_.*|LIBAVFORMAT_VERSION_MAJOR|LIBAVCODEC_VERSION_MAJOR|LIBAVUTIL_VERSION_MAJOR' \
     -- -I"$inc" ${builtin:+-I"$builtin"}
 } > "$out"

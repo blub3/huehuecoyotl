@@ -150,6 +150,14 @@ void MusicPlayer::updateState()
     setState(m_buffering ? Buffering : m_pause ? Paused : Playing);
 }
 
+// Issue #82: the entry of a ticket, with the file that plays (Now Playing's waveform).
+QVariantMap MusicPlayer::withFile(const QVariantMap &ticket)
+{
+    QVariantMap e = ticket.value("entry").toMap();
+    if (ticket.value("fileId").toLongLong() > 0) e["fileId"] = ticket.value("fileId");
+    return e;
+}
+
 void MusicPlayer::setCurrent(const QVariantMap &entry)
 {
     if (entry == m_current) return;
@@ -443,7 +451,7 @@ void MusicPlayer::onTickets(const QVariantMap &t)
         m_loaded = true;
         m_position = 0;
         emit positionChanged();
-        setCurrent(current.value("entry").toMap());
+        setCurrent(withFile(current));
         setState(Opening);
         return;
     }
@@ -457,7 +465,7 @@ void MusicPlayer::onTickets(const QVariantMap &t)
         }
         append(n, true, 0);
         m_loaded = true;
-        setCurrent(n.value("entry").toMap());
+        setCurrent(withFile(n));
         setState(Opening);
         CoreBridge::instance()->queueAdvanced(n.value("ticket").toULongLong());
         return;
@@ -526,7 +534,7 @@ void MusicPlayer::drainEvents()
             if (m_entries.size() > 1 && m_entries.at(1).value("mpvId").toLongLong() == id) {
                 m_entries.removeFirst();
                 command({"playlist-remove", "0"});
-                setCurrent(m_entries.first().value("entry").toMap());
+                setCurrent(withFile(m_entries.first()));
                 CoreBridge::instance()->queueAdvanced(ticket());
             }
             break;

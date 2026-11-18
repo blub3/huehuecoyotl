@@ -12,7 +12,57 @@ use serde_json::json;
 
 use crate::{Event, Inner};
 
-pub const PROBE_KINDS: &[&str] = &["probe"];
+pub const PROBE_KINDS: &[&str] = &["probe", "waveform"];
+
+/// Issue #82: how many bars a waveform has.
+pub const WAVEFORM_BARS: usize = 160;
+
+/// The `waveform` job: decode a music file once and keep its peaks. A source that cannot be
+/// reached is tried again later; a file that cannot be decoded gets an empty waveform (a plain
+/// bar), so it is not tried again.
+pub(crate) async fn waveform(inner: &Arc<Inner>, file_id: i64) -> Result<(), String> {
+    let target = inner
+        .lib
+        .read(move |c| huehuecoyotl_library::music::file_target(c, file_id))
+        .await
+        .map_err(|e| e.to_string())?;
+    let Some((source_id, kind, path, size, track)) = target else {
+        return Ok(());
+    };
+    if inner.offline.lock().unwrap().contains(&source_id) {
+        return Err("the source is offline".into());
+    }
+    let src = inner
+        .background_source(source_id, &kind)
+        .await
+        .map_err(|e| e.to_string())?;
+    let mut reader = SourceReader {
+        src,
+        path: VPath::new(&path),
+        rt: tokio::runtime::Handle::current(),
+    };
+    let result = tokio::task::spawn_blocking(move || {
+        huehuecoyotl_probe::waveform(&mut reader, size, WAVEFORM_BARS)
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    let peaks = match result {
+        Ok(p) => p,
+        Err(ProbeError::Io(e)) => return Err(e),
+        Err(ProbeError::Unavailable(e)) => return Err(e.to_string()),
+        Err(e) => {
+            tracing::info!(file_id, "no waveform: {e}");
+            Vec::new()
+        }
+    };
+    inner
+        .lib
+        .write(move |c| huehuecoyotl_library::music::set_waveform(c, file_id, &peaks))
+        .await
+        .map_err(|e| e.to_string())?;
+    inner.sink.post(Event::ItemChanged { item_id: track });
+    Ok(())
+}
 
 /// Queue every file that has no probe data yet (low priority; already queued files are skipped).
 pub(crate) async fn enqueue_unprobed(inner: &Arc<Inner>) {

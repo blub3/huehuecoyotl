@@ -197,6 +197,14 @@ browse. The mini player at the bottom of the screen has previous, play or pause,
 **Now Playing**; with the keyboard or a remote, press Down from the last entry of the menu on
 the left to reach it.
 
+**Now Playing** (from 2.6) fills the window in the colour of the album cover. Under the song,
+the signal path shows how the music travels from the file through Huehuecoyotl to your speakers,
+and says whether it arrives bit-perfect and, if not, why. The seek bar shows the song's waveform
+(it appears a moment after a song first plays; until then a plain bar); click it or use Left and
+Right to move. The volume slider is fixed at 100 % in bit-perfect mode. **Up next** on the right
+reorders by dragging or with Ctrl+↑/↓; Menu offers Play now, Remove and Add to playlist. Back or
+"‹ Music" returns to where you were.
+
 **Now Playing** shows the cover, the format, a seek bar (Left and Right jump 10 seconds),
 shuffle, repeat (all, or the current track) and the queue: Enter plays an entry, Menu or Delete
 offers to remove it, Ctrl+Up and Ctrl+Down move it. Space plays or pauses. Tracks of the same

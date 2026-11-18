@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use huehuecoyotl_probe::{FileReader, ProbeInfo, ReadAt, probe, probe_with_budget};
+use huehuecoyotl_probe::{FileReader, ProbeInfo, ReadAt, probe, probe_with_budget, waveform};
 
 fn setup() -> Option<tempfile::TempDir> {
     // SAFETY: set before the probe loads FFmpeg; tests in this file all set the same value.
@@ -336,4 +336,31 @@ fn playback_fallback_from_mpv() {
         .map(|s| (s.format.as_str(), s.forced, s.external))
         .collect();
     assert_eq!(subs, [("PGS", true, false), ("SRT", false, true)]);
+}
+
+/// Issue #82: the waveform of one second of tone followed by one second of silence, as FLAC
+/// and as MP3: the first half of the bars is loud, the second half silent.
+#[test]
+fn waveform_follows_the_audio() {
+    let Some(d) = setup() else { return };
+    for (ext, codec) in [("flac", "flac"), ("mp3", "libmp3lame")] {
+        let p = d.path().join(format!("half.{ext}"));
+        let o = p.to_string_lossy().to_string();
+        ffmpeg(&[
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:sample_rate=44100:duration=1,apad=pad_dur=1",
+            "-c:a",
+            codec,
+            &o,
+        ]);
+        let size = std::fs::metadata(&p).unwrap().len();
+        let mut r = FileReader(std::fs::File::open(&p).unwrap());
+        let w = waveform(&mut r, size, 20).unwrap();
+        assert_eq!(w.len(), 20, "{ext}");
+        // FFmpeg's test tone peaks at 1/8 of full scale (32 of 255).
+        assert!(w[1..9].iter().all(|v| *v > 20), "{ext}: {w:?}");
+        assert!(w[12..].iter().all(|v| *v < 10), "{ext}: {w:?}");
+    }
 }
