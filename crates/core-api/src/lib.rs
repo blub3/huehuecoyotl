@@ -134,6 +134,9 @@ mod ffi {
         /// Issue #78: albums and tracks: the best version's format ("FLAC 24/96").
         format: String,
         hires: bool,
+        /// Issue #79: artists: their albums and how many are Hi-Res.
+        albums: i64,
+        hires_albums: i64,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -628,6 +631,8 @@ fn summary(s: core::Summary) -> ffi::ItemSummary {
         ratio: s.ratio,
         format: s.format,
         hires: s.hires,
+        albums: s.albums,
+        hires_albums: s.hires_albums,
     }
 }
 

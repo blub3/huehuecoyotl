@@ -555,6 +555,7 @@ pub(crate) fn parse_filter(filter: &str) -> (Vec<&'static str>, catalog::MusicFi
     m.lossless = flags.contains(&"lossless");
     m.multi = flags.contains(&"multi");
     m.unplayed = flags.contains(&"unplayed");
+    m.credited = flags.contains(&"credited");
     (flags, m)
 }
 

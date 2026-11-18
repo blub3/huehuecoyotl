@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import QtQuick.Effects
 import Coyotl
 
 // Music (issue #78): a top menu (Albums, Artists, Genres) over one paged grid, "Search music",
@@ -37,9 +38,15 @@ FocusScope {
     property int decade: 0
     property string albumSort: "added"
     readonly property bool albums: view === "albums"
-    readonly property bool anyFilter: lenses.some(l => lens[l.key]) || genre !== "" || decade > 0
+    readonly property bool anyFilter: view === "artists" ? artistHires : (lenses.some(l => lens[l.key]) || genre !== "" || decade > 0)
     // The core's filter: one token per line (crates/core/src/library.rs, parse_filter).
+    // Issue #79: artists: album artists (default) or everyone credited, optionally only those with
+    // Hi-Res albums.
+    property bool credited: false
+    property bool artistHires: false
+    readonly property bool artistsView: view === "artists"
     readonly property string filter: {
+        if (artistsView) return [credited ? "credited" : "", artistHires ? "hires" : ""].filter(t => t).join("\n")
         if (!albums) return ""
         const t = lenses.filter(l => lens[l.key]).map(l => l.key)
         if (genre !== "") t.push("genre=" + genre)
@@ -48,9 +55,9 @@ FocusScope {
     }
     property var facets: ({})
     property var facetsRequest: 0
-    function refreshFacets() { facetsRequest = Core.musicFacets(albums || view === "genres" ? "album" : "artist", filter) }
+    function refreshFacets() { facetsRequest = Core.musicFacets(artistsView ? "artist" : "album", filter) }
     onFilterChanged: Qt.callLater(refreshFacets)
-    onViewChanged: Qt.callLater(refreshFacets)
+    onViewChanged: { Qt.callLater(refreshFacets); artist = ({}); if (artistsView) artistTimer.restart() }
 
     function toggleLens(key) {
         const l = Object.assign({}, lens)
@@ -63,6 +70,18 @@ FocusScope {
         Qt.callLater(() => (v === "genres" ? genreGrid : grid).forceActiveFocus())
     }
     function lensCount(key) { return page.facets[key] ?? "" }
+
+    // Issue #79: the artist preview panel follows the focused artist.
+    property var artist: ({})
+    property var artistRequest: 0
+    Timer {
+        id: artistTimer
+        interval: 180
+        onTriggered: {
+            const m = lib.get(grid.currentIndex)
+            if (page.artistsView && m.id !== undefined && m.id !== page.artist.id) page.artistRequest = Core.artistDetail(m.id)
+        }
+    }
 
     function open(m) { Nav.openItem(m.id, m.kind, m.parentId) }
     function play(m, shuffle) { Music.playItems([m.id], 0, shuffle) }
@@ -99,6 +118,7 @@ FocusScope {
         filter: page.filter
         onTotalChanged: {
             if (grid.currentIndex < 0 && grid.count > 0) grid.currentIndex = 0
+            if (page.artistsView) artistTimer.restart()
             if (Bench.mode === "music" && page.albums && total > 0 && !benchScroll.running) benchStart.start()
         }
         // The letter rail asked for a row further down.
@@ -112,6 +132,7 @@ FocusScope {
     Connections {
         target: Core
         function onMusicDetailReady(requestId, kind, detail) {
+            if (requestId === page.artistRequest) page.artist = detail
             if (requestId !== page.facetsRequest) return
             page.facets = detail
         }
@@ -135,7 +156,7 @@ FocusScope {
     }
 
     Component.onCompleted: { refreshFacets(); grid.forceActiveFocus() }
-    onActiveFocusChanged: if (activeFocus && !header.activeFocus && !lensRow.activeFocus && !letterRail.activeFocus)
+    onActiveFocusChanged: if (activeFocus && !header.activeFocus && !lensRow.activeFocus && !artistRow.activeFocus && !letterRail.activeFocus && !panel.activeFocus)
                               (view === "genres" ? genreGrid : grid).forceActiveFocus()
 
     ColumnLayout {
@@ -182,7 +203,7 @@ FocusScope {
                                 Accessible.selected: page.view === modelData.key
                                 Keys.onLeftPressed: index === 0 ? Nav.focusRail() : menu.itemAt(index - 1).forceActiveFocus()
                                 Keys.onRightPressed: index === page.views.length - 1 ? search.forceActiveFocus() : menu.itemAt(index + 1).forceActiveFocus()
-                                Keys.onDownPressed: page.albums ? lensRow.focusFirst() : (page.view === "genres" ? genreGrid : grid).forceActiveFocus()
+                                Keys.onDownPressed: page.albums ? lensRow.focusFirst() : page.artistsView ? artistRow.focusFirst() : genreGrid.forceActiveFocus()
                                 onClicked: page.choose(modelData.key)
                             }
                         }
@@ -286,6 +307,60 @@ FocusScope {
                 }
             }
         }
+        // Issue #79: which artists.
+        FocusScope {
+            id: artistRow
+            visible: page.artistsView
+            Layout.fillWidth: true
+            Layout.preferredHeight: visible ? 40 : 0
+            function focusFirst() { albumArtists.forceActiveFocus() }
+            RowLayout {
+                anchors.fill: parent
+                spacing: 8
+                FocusButton {
+                    id: albumArtists
+                    text: qsTr("Album artists")
+                    primary: !page.credited
+                    font.pixelSize: Theme.fontSmall
+                    Accessible.checked: primary
+                    Keys.onLeftPressed: Nav.focusRail()
+                    Keys.onRightPressed: everyone.forceActiveFocus()
+                    Keys.onUpPressed: menu.itemAt(1).forceActiveFocus()
+                    Keys.onDownPressed: grid.forceActiveFocus()
+                    onClicked: page.credited = false
+                }
+                FocusButton {
+                    id: everyone
+                    text: qsTr("Everyone credited")
+                    primary: page.credited
+                    font.pixelSize: Theme.fontSmall
+                    Accessible.checked: primary
+                    Keys.onLeftPressed: albumArtists.forceActiveFocus()
+                    Keys.onRightPressed: hiresArtists.forceActiveFocus()
+                    Keys.onUpPressed: menu.itemAt(1).forceActiveFocus()
+                    Keys.onDownPressed: grid.forceActiveFocus()
+                    onClicked: page.credited = true
+                }
+                FocusButton {
+                    id: hiresArtists
+                    text: qsTr("With Hi-Res albums") + (page.facets.hires !== undefined && page.artistsView ? "  " + page.facets.hires : "")
+                    primary: page.artistHires
+                    font.pixelSize: Theme.fontSmall
+                    Accessible.role: Accessible.CheckBox
+                    Accessible.checked: primary
+                    Keys.onLeftPressed: everyone.forceActiveFocus()
+                    Keys.onUpPressed: menu.itemAt(1).forceActiveFocus()
+                    Keys.onDownPressed: grid.forceActiveFocus()
+                    onClicked: page.artistHires = !page.artistHires
+                }
+                Item { Layout.fillWidth: true }
+                Label {
+                    text: qsTr("Enter opens · P plays all · Shift+P shuffles")
+                    color: Theme.textDim
+                    font.pixelSize: Theme.fontSmall
+                }
+            }
+        }
         Label {
             visible: page.albums && page.anyFilter && lib.total > 0
             text: qsTr("%1 of %2 albums").arg(lib.total).arg(page.facets.all ?? "…")
@@ -309,11 +384,14 @@ FocusScope {
                 focus: true
                 model: lib
                 readonly property real gap: Math.round(26 * Appearance.textScale(Appearance.coverWidth))
-                readonly property int columns: Math.max(1, Math.floor((width - leftMargin) / (Appearance.coverWidth + gap)))
+                // Artists share the width with their preview panel: smaller tiles.
+                readonly property real target: page.artistsView ? Math.round(Appearance.coverWidth * 0.75) : Appearance.coverWidth
+                readonly property int columns: Math.max(1, Math.floor((width - leftMargin) / (target + gap)))
                 readonly property real posterWidth: Math.floor((width - leftMargin) / columns) - gap
                 cellWidth: posterWidth + gap
                 cellHeight: Appearance.cardHeight(posterWidth, 1) + gap
                 onCellWidthChanged: Qt.callLater(() => { if (currentIndex >= 0) positionViewAtIndex(currentIndex, GridView.Contain) })
+                onCurrentIndexChanged: if (page.artistsView) artistTimer.restart()
                 topMargin: 14
                 leftMargin: 10
                 cacheBuffer: 1200
@@ -327,13 +405,15 @@ FocusScope {
 
                 Keys.onLeftPressed: (e) => { if (currentIndex % columns === 0) Nav.focusRail(); else e.accepted = false }
                 Keys.onRightPressed: (e) => {
-                    if ((currentIndex % columns === columns - 1 || currentIndex === count - 1) && letterRail.visible) letterRail.focusNear()
+                    const last = currentIndex % columns === columns - 1 || currentIndex === count - 1
+                    if (last && panel.visible) playAll.forceActiveFocus()
+                    else if (last && letterRail.visible) letterRail.focusNear()
                     else e.accepted = false
                 }
                 Keys.onUpPressed: (e) => {
                     if (currentIndex >= columns) { e.accepted = false; return }
                     if (page.albums) lensRow.focusFirst()
-                    else menu.itemAt(1).forceActiveFocus()
+                    else artistRow.focusFirst()
                 }
 
                 delegate: PosterCard {
@@ -346,7 +426,10 @@ FocusScope {
                     posterLarge: model.posterLarge ?? ""
                     posterWidth: grid.posterWidth
                     posterRatio: 1
-                    caption: (tile.model.subtitle ?? "") + (page.albums && tile.model.year > 0 ? "  ·  " + tile.model.year : "")
+                    caption: page.artistsView
+                             ? qsTr("%n album(s)", "", Number(tile.model.albums ?? 0)) + (Number(tile.model.hiresAlbums ?? 0) > 0 ? "  ·  " + qsTr("%n Hi-Res", "", Number(tile.model.hiresAlbums)) : "")
+                             : (tile.model.subtitle ?? "") + (page.albums && tile.model.year > 0 ? "  ·  " + tile.model.year : "")
+                    round: page.artistsView
                     progress: 0
                     saved: model.saved === true
                     versions: Number(model.versions ?? 0)
@@ -367,6 +450,151 @@ FocusScope {
                             e.accepted = true
                         }
                     }
+                }
+            }
+
+            // Issue #79: the focused artist at a glance.
+            Rectangle {
+                id: panel
+                visible: page.artistsView && lib.total > 0
+                Layout.preferredWidth: visible ? 360 : 0
+                Layout.fillHeight: true
+                Layout.bottomMargin: 8
+                radius: 14
+                color: Theme.surface
+                clip: true
+                Accessible.role: Accessible.Pane
+                Accessible.name: qsTr("Artist preview")
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 12
+                    Rectangle {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: 150
+                        Layout.preferredHeight: 150
+                        radius: 75
+                        color: Qt.hsla(((page.artist.title || "").length * 37 % 360) / 360, 0.30, 0.30, 1)
+                        Label {
+                            anchors.centerIn: parent
+                            visible: artistImage.status !== Image.Ready
+                            text: (page.artist.title || "").split(" ").filter(w => w).slice(0, 2).map(w => w.charAt(0)).join("").toUpperCase()
+                            color: Theme.text
+                            font.pixelSize: 44
+                            font.bold: true
+                        }
+                        Image {
+                            id: artistImage
+                            anchors.fill: parent
+                            source: page.artist.image || ""
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            sourceSize.width: 300
+                            layer.enabled: true
+                            layer.effect: MultiEffect { maskEnabled: true; maskSource: panelMask }
+                        }
+                        Rectangle { id: panelMask; anchors.fill: parent; radius: width / 2; visible: false; layer.enabled: true }
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        text: page.artist.title || ""
+                        color: Theme.text
+                        font.pixelSize: Theme.fontLarge + 4
+                        font.bold: true
+                        elide: Text.ElideRight
+                        Accessible.role: Accessible.Heading
+                    }
+                    RowLayout {
+                        Layout.alignment: Qt.AlignHCenter
+                        spacing: 8
+                        FocusButton {
+                            id: playAll
+                            primary: true
+                            glyph: "▶"
+                            text: qsTr("Play all")
+                            font.pixelSize: Theme.fontSmall
+                            Keys.onLeftPressed: grid.forceActiveFocus()
+                            Keys.onRightPressed: shuffleAll.forceActiveFocus()
+                            Keys.onUpPressed: artistRow.focusFirst()
+                            onClicked: if (page.artist.id) Music.playItems([page.artist.id], 0, false)
+                        }
+                        FocusButton {
+                            id: shuffleAll
+                            text: qsTr("Shuffle")
+                            font.pixelSize: Theme.fontSmall
+                            Keys.onLeftPressed: playAll.forceActiveFocus()
+                            Keys.onRightPressed: openArtist.forceActiveFocus()
+                            Keys.onUpPressed: artistRow.focusFirst()
+                            onClicked: if (page.artist.id) Music.playItems([page.artist.id], 0, true)
+                        }
+                        FocusButton {
+                            id: openArtist
+                            text: qsTr("Open page")
+                            font.pixelSize: Theme.fontSmall
+                            Keys.onLeftPressed: shuffleAll.forceActiveFocus()
+                            Keys.onRightPressed: if (letterRail.visible) letterRail.focusNear()
+                            Keys.onUpPressed: artistRow.focusFirst()
+                            onClicked: if (page.artist.id) Nav.openItem(page.artist.id, "artist")
+                        }
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        visible: (page.artist.biography || "") !== ""
+                        text: page.artist.biography || ""
+                        color: Theme.textDim
+                        font.pixelSize: Theme.fontSmall
+                        wrapMode: Text.Wrap
+                        maximumLineCount: 6
+                        elide: Text.ElideRight
+                        lineHeight: 1.15
+                    }
+                    Label {
+                        text: qsTr("Albums")
+                        visible: (page.artist.albums || []).length > 0
+                        color: Theme.textDim
+                        font.pixelSize: Theme.fontSmall
+                        font.capitalization: Font.AllUppercase
+                        font.letterSpacing: 1
+                    }
+                    Repeater {
+                        model: (page.artist.albums || []).slice(0, 6)
+                        RowLayout {
+                            id: rel
+                            required property var modelData
+                            Layout.fillWidth: true
+                            spacing: 10
+                            Rectangle {
+                                Layout.preferredWidth: 40
+                                Layout.preferredHeight: 40
+                                radius: 5
+                                clip: true
+                                color: Theme.surfaceHi
+                                Image { anchors.fill: parent; source: rel.modelData.poster || ""; fillMode: Image.PreserveAspectCrop; asynchronous: true; sourceSize.width: 80 }
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 0
+                                Label { Layout.fillWidth: true; text: rel.modelData.title; color: Theme.text; font.pixelSize: Theme.fontSmall; elide: Text.ElideRight }
+                                Label { text: rel.modelData.year > 0 ? String(rel.modelData.year) : ""; color: Theme.textDim; font.pixelSize: 12 }
+                            }
+                            Rectangle {
+                                visible: rel.modelData.hires === true
+                                implicitWidth: hiresLabel.implicitWidth + 10
+                                implicitHeight: 20
+                                radius: 5
+                                color: Theme.accent
+                                Label { id: hiresLabel; anchors.centerIn: parent; text: "Hi-Res"; color: Theme.bg; font.pixelSize: 11; font.bold: true }
+                            }
+                        }
+                    }
+                    Label {
+                        visible: (page.artist.appearsOn || []).length > 0
+                        text: qsTr("Appears on %n album(s)", "", (page.artist.appearsOn || []).length)
+                        color: Theme.textDim
+                        font.pixelSize: Theme.fontSmall
+                    }
+                    Item { Layout.fillHeight: true }
                 }
             }
 
@@ -423,7 +651,7 @@ FocusScope {
                             Keys.onEnterPressed: letterRail.jump(modelData)
                             Keys.onUpPressed: { for (let i = index - 1; i >= 0; --i) if (letterRail.has(i)) { letters.itemAt(i).forceActiveFocus(); return } }
                             Keys.onDownPressed: { for (let i = index + 1; i < letters.count; ++i) if (letterRail.has(i)) { letters.itemAt(i).forceActiveFocus(); return } }
-                            Keys.onLeftPressed: grid.forceActiveFocus()
+                            Keys.onLeftPressed: panel.visible ? openArtist.forceActiveFocus() : grid.forceActiveFocus()
                         }
                     }
                 }
@@ -478,7 +706,7 @@ FocusScope {
         spacing: 16
         Label {
             Layout.alignment: Qt.AlignHCenter
-            text: page.anyFilter ? qsTr("No albums match these filters.")
+            text: page.anyFilter ? (page.artistsView ? qsTr("No artists match these filters.") : qsTr("No albums match these filters."))
                                  : qsTr("No music yet. Add a folder under Sources and choose “Music” for it.")
             color: Theme.textDim
             font.pixelSize: Theme.fontLarge
@@ -486,7 +714,7 @@ FocusScope {
         FocusButton {
             Layout.alignment: Qt.AlignHCenter
             text: page.anyFilter ? qsTr("Clear filters") : qsTr("Add a folder")
-            onClicked: page.anyFilter ? page.clearFilters() : Nav.go("sources")
+            onClicked: page.anyFilter ? (page.artistsView ? page.artistHires = false : page.clearFilters()) : Nav.go("sources")
         }
     }
 
