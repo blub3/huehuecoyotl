@@ -93,6 +93,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="2.6.0" date="2026-11-18" type="stable">
+      <description>
+        <p>Music, redesigned: Albums, Artists, Songs, Genres and Playlists in a top menu, and a Quality lens that finds your Hi-Res and lossless albums. Smart playlists fill themselves and your own playlists keep the exact files you chose. Now Playing takes the whole window in the colours of the cover, with the song's waveform and the signal path from file to speakers, and a full-screen view for the living room.</p>
+      </description>
+    </release>
     <release version="2.5.0" date="2026-11-18" type="stable">
       <description>
         <p>Audiobooks: add folders as audiobooks and browse books, authors, series and narrators. Each book resumes exactly where you stopped, with chapters, a speed from 0.5× to 3.0× without a change of pitch, and a sleep timer. Descriptions and covers your files lack come from Open Library, if you allow it.</p>

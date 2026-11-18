@@ -2,6 +2,8 @@
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
 
+**Changes in v1.13:** 2.6 is released for Linux on Nov 18, 2026: the music redesign (issues #78 to #83), with migrations 11 (playlists) and 12 (cover colours and waveforms), as built in sections 9 and 10.
+
 **Changes in v1.12:** 2.5 is released for Linux on Nov 18, 2026. Audiobooks for 2.5 (issues #64 to #67): scope, formats and non-goals (section 2), the audiobook data model and migration 10, the scan pipeline, book providers and privacy (7), the content type (6), audiobook playback (5.8), bridge additions (8), the Audiobooks section (9), the bundle (10), the 2.5 plan (11) and the maintainer's decisions: Open Library without a contact address at 1 request per second, books share the music switch for online lookups, a third audio handle for books, no Audible-based provider (12).
 
 **Changes in v1.11:** 2.1 is released for Linux on Nov 16, 2026 (issue #63): album versions and editions, migration 9 and how a version is chosen (section 7, *Album versions and editions*; section 9).
@@ -67,7 +69,7 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | 2.0 (Linux, released) | Music: a music library from tags (FLAC, ALAC, WAV, AIFF, MP3, AAC, Ogg Vorbis, Opus, WavPack), Albums and Artists, a play queue with gapless playback and a mini player, Hi-Res badges, MusicBrainz and the Cover Art Archive, optional TheAudioDB and Fanart.tv, a bit-perfect output mode (see **Music in 2.0** below) |
 | 2.1 (Linux, released) | Music: versions and editions of an album (several formats, sources or a remaster) and of a track, chosen on the album page, with the preferred version and "This is a different album" (issue #63) |
 | 2.5 (Linux, released) | Audiobooks: books from single files or folders (M4B, M4A, MP3, Ogg Vorbis, Opus, FLAC) with chapters, authors, narrators and series; local metadata (OPF, desc.txt, reader.txt, .nfo, tags, names); Open Library and MusicBrainz; a category with Books, Authors, Series and Narrators; a player with exact resume across files, chapters, speed and a sleep timer (see **Audiobooks in 2.5** below) |
-| 2.6 (Linux, planned) | Music redesign: a top menu (Albums, Artists, Songs, Genres, Playlists), the Quality lens (Hi-Res, Lossless, Several versions, Saved), format ribbons, a letter rail, an Artists preview panel, a Songs list with a quality column, smart and own playlists, a new Now Playing with a waveform and the signal path as a chain, and a full-screen Now Playing (issues #78 to #83) |
+| 2.6 (Linux, released) | Music redesign: a top menu (Albums, Artists, Songs, Genres, Playlists), the Quality lens (Hi-Res, Lossless, Several versions, Saved), format ribbons, a letter rail, an Artists preview panel, a Songs list with a quality column, smart and own playlists, a new Now Playing with a waveform and the signal path as a chain, and a full-screen Now Playing (issues #78 to #83) |
 | Unscheduled | HDR passthrough on Windows through direct mode (needs a Windows PC with an HDR display for tests W1–W8) |
 | After 1.1 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
 | Non-goals | Phones, tablets and TV boxes; DRM streaming services; transcoding or acting as a media server; SMB1; cloud accounts run by the project |
@@ -702,6 +704,8 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 **M5 status (Nov 12, 2026).** Paused: GitHub Actions has no minutes left, and the Windows build needs it (or a Windows build machine). The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). The Windows release workflow is ready in PR #31 but untested. Open: that PR, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
 
 **2.5 (planned): audiobooks.** The specification (#64) first, then in this order: the audiobook library (#65), Open Library and MusicBrainz for books (#67), and the Audiobooks category and player (#66). 2.5 is released when all four are done. The Flatpak needs no new permission.
+
+**2.6 (Nov 18, 2026): released for Linux.** The music redesign: the top menu and the Quality lens (#78), Artists (#79), Songs (#80), playlists with migration 11 (#81), the new Now Playing with migration 12 (#82) and the full-screen Now Playing (#83). Migrations 11 and 12 only add tables and columns, so no copy of the database is kept; 2.5 refuses to open a schema-12 database. The maintainer ran the manual checklist on the test Flatpak; built and checked locally, with GitHub Actions disabled.
 
 **2.5 (Nov 18, 2026): released for Linux.** Audiobooks: the specification (#64), the library with migration 10 (#65), Open Library and MusicBrainz for books (#67), and the Audiobooks section and player (#66). Built and checked locally, with GitHub Actions disabled; released at the maintainer's request.
 
