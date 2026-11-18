@@ -13,7 +13,9 @@ use serde_json::Value;
 use tokio::sync::Mutex;
 use tokio::time::Instant;
 
-use crate::music::{ArtistCredit, Medium, MusicProvider, Release, ReleaseHit, Track};
+use crate::music::{
+    Artist, ArtistCredit, Medium, MusicProvider, Recording, Release, ReleaseHit, Track,
+};
 use crate::{MetaError, Result};
 
 pub const API_BASE: &str = "https://musicbrainz.org/ws/2";
@@ -247,14 +249,101 @@ pub fn parse_hits(v: &Value) -> Vec<ReleaseHit> {
                         .and_then(Value::as_u64)
                         .map(|n| n as u32),
                     group_id: r.get("release-group").and_then(|g| opt_text(g, "id")),
-                    score: r
-                        .get("score")
-                        .and_then(|s| s.as_u64().or_else(|| s.as_str()?.parse().ok()))
-                        .unwrap_or(0) as u32,
+                    score: score_or(r, 0),
+                    country: opt_text(r, "country"),
+                    label: r.get("label-info").and_then(Value::as_array).and_then(|l| {
+                        l.iter()
+                            .find_map(|i| i.get("label").and_then(|l| opt_text(l, "name")))
+                    }),
+                    formats: formats(r),
+                    release_type: r
+                        .get("release-group")
+                        .and_then(|g| opt_text(g, "primary-type"))
+                        .map(|t| t.to_lowercase()),
                 })
                 .collect()
         })
         .unwrap_or_default()
+}
+
+/// A search result's score; a lookup has none and counts as `default`.
+fn score_or(v: &Value, default: u64) -> u32 {
+    v.get("score")
+        .and_then(|s| s.as_u64().or_else(|| s.as_str()?.parse().ok()))
+        .unwrap_or(default) as u32
+}
+
+fn score(v: &Value) -> u32 {
+    score_or(v, 100)
+}
+
+/// "2×CD", "Digital Media": each medium's format, counted.
+fn formats(r: &Value) -> Vec<String> {
+    let mut out: Vec<(String, u32)> = Vec::new();
+    for m in r
+        .get("media")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        let f = opt_text(m, "format").unwrap_or_else(|| "Other".into());
+        match out.iter_mut().find(|(k, _)| *k == f) {
+            Some((_, n)) => *n += 1,
+            None => out.push((f, 1)),
+        }
+    }
+    out.into_iter()
+        .map(|(f, n)| if n > 1 { format!("{n}×{f}") } else { f })
+        .collect()
+}
+
+/// A recording from a search or a lookup (`inc=artist-credits+isrcs+releases`).
+pub fn parse_recording(r: &Value) -> Recording {
+    Recording {
+        id: text(r, "id"),
+        title: text(r, "title"),
+        artists: credits(r),
+        length_ms: r.get("length").and_then(Value::as_u64),
+        isrcs: r
+            .get("isrcs")
+            .and_then(Value::as_array)
+            .map(|a| {
+                a.iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_string)
+                    .collect()
+            })
+            .unwrap_or_default(),
+        releases: r
+            .get("releases")
+            .and_then(Value::as_array)
+            .map(|a| {
+                a.iter()
+                    .map(|x| (text(x, "id"), text(x, "title"), opt_text(x, "date")))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        score: score(r),
+    }
+}
+
+/// An artist from a search or a lookup.
+pub fn parse_artist(a: &Value) -> Artist {
+    let life = a.get("life-span");
+    Artist {
+        id: text(a, "id"),
+        name: text(a, "name"),
+        disambiguation: text(a, "disambiguation"),
+        kind: text(a, "type"),
+        country: opt_text(a, "country"),
+        begin: life
+            .and_then(|l| opt_text(l, "begin"))
+            .map(|d| d.chars().take(4).collect()),
+        end: life
+            .and_then(|l| opt_text(l, "end"))
+            .map(|d| d.chars().take(4).collect()),
+        score: score(a),
+    }
 }
 
 #[async_trait]
@@ -283,6 +372,64 @@ impl MusicProvider for MusicBrainz {
             .get("/release/", &[("query", q.as_str()), ("limit", "10")])
             .await?;
         Ok(parse_hits(&v))
+    }
+
+    async fn group_releases(&self, group: &str) -> Result<Vec<ReleaseHit>> {
+        let q = format!("rgid:{group}");
+        let v = self
+            .get("/release/", &[("query", q.as_str()), ("limit", "25")])
+            .await?;
+        Ok(parse_hits(&v))
+    }
+
+    async fn search_recordings(&self, title: &str, artist: &str) -> Result<Vec<Recording>> {
+        let mut q = format!("recording:{}", phrase(title));
+        if !artist.trim().is_empty() {
+            q.push_str(&format!(" AND artist:{}", phrase(artist)));
+        }
+        let v = self
+            .get("/recording/", &[("query", q.as_str()), ("limit", "10")])
+            .await?;
+        Ok(v.get("recordings")
+            .and_then(Value::as_array)
+            .map(|a| a.iter().map(parse_recording).collect())
+            .unwrap_or_default())
+    }
+
+    async fn recording(&self, id: &str) -> Result<Recording> {
+        let v = self
+            .get(
+                &format!("/recording/{id}"),
+                &[("inc", "artist-credits isrcs releases")],
+            )
+            .await?;
+        Ok(parse_recording(&v))
+    }
+
+    async fn search_artists(&self, name: &str) -> Result<Vec<Artist>> {
+        let q = format!("artist:{}", phrase(name));
+        let v = self
+            .get("/artist/", &[("query", q.as_str()), ("limit", "8")])
+            .await?;
+        Ok(v.get("artists")
+            .and_then(Value::as_array)
+            .map(|a| a.iter().map(parse_artist).collect())
+            .unwrap_or_default())
+    }
+
+    async fn artist(&self, id: &str) -> Result<Artist> {
+        let v = self.get(&format!("/artist/{id}"), &[]).await?;
+        Ok(parse_artist(&v))
+    }
+
+    async fn artist_groups(&self, id: &str) -> Result<Vec<String>> {
+        let v = self
+            .get("/release-group", &[("artist", id), ("limit", "100")])
+            .await?;
+        Ok(v.get("release-groups")
+            .and_then(Value::as_array)
+            .map(|a| a.iter().map(|g| text(g, "title")).collect())
+            .unwrap_or_default())
     }
 
     async fn front_cover(&self, release: &str, group: Option<&str>) -> Result<Option<Bytes>> {
@@ -314,5 +461,58 @@ impl MusicProvider for MusicBrainz {
             }
         }
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // Shaped like MusicBrainz's JSON web service answers (https://musicbrainz.org/doc/MusicBrainz_API).
+
+    #[test]
+    fn release_hits_tell_editions_apart() {
+        let v = json!({"releases": [{
+            "id": "r1", "score": 100, "title": "Winter Rooms", "date": "2019-02-01",
+            "country": "DE", "track-count": 9,
+            "artist-credit": [{"name": "Halden Quartet", "artist": {"id": "a1"}}],
+            "release-group": {"id": "g1", "primary-type": "Album"},
+            "label-info": [{"label": {"name": "Nordlicht"}}],
+            "media": [{"format": "CD"}, {"format": "CD"}, {"format": "Digital Media"}]
+        }]});
+        let h = &parse_hits(&v)[0];
+        assert_eq!(h.country.as_deref(), Some("DE"));
+        assert_eq!(h.label.as_deref(), Some("Nordlicht"));
+        assert_eq!(h.formats, ["2×CD", "Digital Media"]);
+        assert_eq!(h.release_type.as_deref(), Some("album"));
+        // A hit without a score is not a sure one.
+        assert_eq!(parse_hits(&json!({"releases": [{"id": "x"}]}))[0].score, 0);
+    }
+
+    #[test]
+    fn recordings_and_artists() {
+        let r = parse_recording(&json!({
+            "id": "rec1", "score": 97, "title": "Long Night", "length": 401000,
+            "isrcs": ["NOX001900003"],
+            "artist-credit": [{"name": "Halden Quartet", "joinphrase": " feat. ", "artist": {"id": "a1"}},
+                              {"name": "Mara Ocampo", "artist": {"id": "a2"}}],
+            "releases": [{"id": "r1", "title": "Winter Rooms", "date": "2019"}]
+        }));
+        assert_eq!((r.score, r.length_ms), (97, Some(401_000)));
+        assert_eq!(r.artists.len(), 2);
+        assert_eq!(r.artists[0].join, " feat. ");
+        assert_eq!(r.releases[0].1, "Winter Rooms");
+        assert_eq!(r.isrcs, ["NOX001900003"]);
+        // A lookup has no score: it counts as sure.
+        assert_eq!(parse_recording(&json!({"id": "rec1"})).score, 100);
+        let a = parse_artist(&json!({
+            "id": "a1", "score": 100, "name": "Halden Quartet", "type": "Group",
+            "disambiguation": "Norwegian string quartet", "country": "NO",
+            "life-span": {"begin": "2009-03", "ended": null}
+        }));
+        assert_eq!(a.disambiguation, "Norwegian string quartet");
+        assert_eq!((a.begin.as_deref(), a.end), (Some("2009"), None));
+        assert_eq!(a.kind, "Group");
     }
 }

@@ -57,6 +57,42 @@ pub struct ReleaseHit {
     pub group_id: Option<String>,
     /// 0 to 100.
     pub score: u32,
+    /// Issue #102: what tells editions apart: country ("DE", "XW"), the first label, the media
+    /// formats ("CD", "Digital Media") and the primary type ("album").
+    pub country: Option<String>,
+    pub label: Option<String>,
+    pub formats: Vec<String>,
+    pub release_type: Option<String>,
+}
+
+/// Issue #103: a recording (a song at MusicBrainz), with the releases it appears on.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Recording {
+    pub id: String,
+    pub title: String,
+    pub artists: Vec<ArtistCredit>,
+    pub length_ms: Option<u64>,
+    pub isrcs: Vec<String>,
+    /// (release id, title, date) of the releases it is on.
+    pub releases: Vec<(String, String, Option<String>)>,
+    /// 0 to 100 in a search; 100 for a lookup.
+    pub score: u32,
+}
+
+/// Issue #105: an artist as a search or lookup returns it.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Artist {
+    pub id: String,
+    pub name: String,
+    /// "Norwegian string quartet": what tells artists of one name apart.
+    pub disambiguation: String,
+    /// "Group", "Person", ...
+    pub kind: String,
+    pub country: Option<String>,
+    /// Years active or lived: "2009", "1961".
+    pub begin: Option<String>,
+    pub end: Option<String>,
+    pub score: u32,
 }
 
 /// Issue #12: an album's images from an optional provider (URLs).
@@ -156,6 +192,31 @@ pub trait MusicProvider: Send + Sync {
     /// Issue #12: check the key with a cheap request (`Auth` when it is rejected).
     async fn validate(&self) -> Result<()> {
         Ok(())
+    }
+    /// Issue #102: releases of a release group, as search hits.
+    async fn group_releases(&self, _group: &str) -> Result<Vec<ReleaseHit>> {
+        Ok(vec![])
+    }
+    /// Issue #103: recordings by title and artist, best first.
+    async fn search_recordings(&self, _title: &str, _artist: &str) -> Result<Vec<Recording>> {
+        Ok(vec![])
+    }
+    /// Issue #103: a recording by id, with its artists, ISRCs and releases.
+    async fn recording(&self, _id: &str) -> Result<Recording> {
+        Err(crate::MetaError::NotFound)
+    }
+    /// Issue #105: artists by name, best first.
+    async fn search_artists(&self, _name: &str) -> Result<Vec<Artist>> {
+        Ok(vec![])
+    }
+    /// Issue #105: an artist by id.
+    async fn artist(&self, _id: &str) -> Result<Artist> {
+        Err(crate::MetaError::NotFound)
+    }
+    /// Issue #105: the titles of an artist's release groups (albums, EPs, singles), to see
+    /// which of the user's albums are theirs.
+    async fn artist_groups(&self, _id: &str) -> Result<Vec<String>> {
+        Ok(vec![])
     }
 }
 

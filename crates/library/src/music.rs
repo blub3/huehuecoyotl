@@ -130,6 +130,18 @@ fn set_external(c: &Connection, item: i64, kind: &str, value: &str) -> Result<()
     Ok(())
 }
 
+/// Issue #102: another release replaces the album's match: its old release, release group and
+/// recording ids go first, then the new release applies as usual.
+pub fn replace_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result<()> {
+    c.execute(
+        "DELETE FROM external_id WHERE provider = 'musicbrainz' AND (
+           (item_id = ?1 AND kind IN ('release', 'release_group'))
+           OR (kind = 'recording' AND item_id IN (SELECT id FROM item WHERE parent_id = ?1 AND kind = 'track')))",
+        [album],
+    )?;
+    apply_release(c, album, r)
+}
+
 /// A matched release: ids, release type and date where the tags had none; the album artists'
 /// and the tracks' ids (tracks by disc and position, or by title when the counts differ).
 pub fn apply_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result<()> {

@@ -52,7 +52,7 @@ pub(crate) async fn enqueue_lookups(inner: &Arc<Inner>, albums: &[i64]) {
     }
 }
 
-fn facts(r: &Release) -> music::ReleaseFacts {
+pub(crate) fn facts(r: &Release) -> music::ReleaseFacts {
     music::ReleaseFacts {
         id: r.id.clone(),
         group_id: r.group_id.clone(),

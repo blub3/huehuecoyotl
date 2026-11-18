@@ -628,6 +628,52 @@ quint64 CoreBridge::chooseBookMatch(qint64 id, const QString &work)
     return rid;
 }
 
+quint64 CoreBridge::matchAgain(qint64 itemId, bool unlock)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->match_again(rid, itemId, unlock);
+    return rid;
+}
+
+quint64 CoreBridge::matchSearch(qint64 itemId, const QVariantMap &query)
+{
+    const quint64 rid = nextId();
+    const QByteArray q = QJsonDocument(QJsonObject::fromVariantMap(query)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->match_search(rid, itemId, rs(q));
+    return rid;
+}
+
+quint64 CoreBridge::matchChoose(qint64 itemId, const QVariantMap &choice)
+{
+    const quint64 rid = nextId();
+    const QByteArray c = QJsonDocument(QJsonObject::fromVariantMap(choice)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->match_choose(rid, itemId, rs(c));
+    return rid;
+}
+
+quint64 CoreBridge::rematchLibrary(const QString &library, bool all, bool includeLocked)
+{
+    const quint64 rid = nextId();
+    const QByteArray l = library.toUtf8();
+    if (m_core) (*m_core)->rematch_library(rid, rs(l), all, includeLocked);
+    return rid;
+}
+
+quint64 CoreBridge::rematchStop(const QString &library)
+{
+    const quint64 rid = nextId();
+    const QByteArray l = library.toUtf8();
+    if (m_core) (*m_core)->rematch_stop(rid, rs(l));
+    return rid;
+}
+
+quint64 CoreBridge::matchingStatus()
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->matching_status(rid);
+    return rid;
+}
+
 quint64 CoreBridge::bookPlay(qint64 book, qint64 positionMs)
 {
     const quint64 rid = nextId();

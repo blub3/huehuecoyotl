@@ -26,10 +26,27 @@ pub struct BookHit {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Work {
     pub id: String,
+    pub title: String,
     pub description: Option<String>,
     pub subjects: Vec<String>,
     pub year: Option<u16>,
     pub cover_ids: Vec<i64>,
+    /// Issue #109: the work's authors at the provider ("OL23919A").
+    pub author_ids: Vec<String>,
+}
+
+/// Issue #110: an author as a search or a lookup returns it.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Author {
+    pub id: String,
+    pub name: String,
+    /// "1974", "c. 1902": as the provider writes it.
+    pub birth: Option<String>,
+    pub death: Option<String>,
+    pub work_count: Option<u32>,
+    pub top_work: Option<String>,
+    pub bio: Option<String>,
+    pub photo_ids: Vec<i64>,
 }
 
 /// How a book was searched for.
@@ -49,6 +66,34 @@ pub trait BookProvider: Send + Sync {
     async fn work(&self, id: &str) -> Result<Work>;
     /// A cover by cover id, the large size; `None` when there is none.
     async fn cover(&self, cover_id: i64) -> Result<Option<Bytes>>;
+    /// Issue #110: authors by name, best first.
+    async fn search_authors(&self, _name: &str) -> Result<Vec<Author>> {
+        Ok(vec![])
+    }
+    /// Issue #110: an author's details: biography, photos, dates.
+    async fn author(&self, _id: &str) -> Result<Author> {
+        Err(crate::MetaError::NotFound)
+    }
+    /// Issue #110: the titles of an author's works, to see which of the user's books are theirs.
+    async fn author_works(&self, _id: &str) -> Result<Vec<String>> {
+        Ok(vec![])
+    }
+    /// Issue #110: an author photo by photo id, the large size.
+    async fn author_photo(&self, _photo_id: i64) -> Result<Option<Bytes>> {
+        Ok(None)
+    }
+}
+
+/// Issue #110: do these two names name one person? ("Tolkien, J. R. R." and "J.R.R. Tolkien".)
+pub fn same_author(a: &str, b: &str) -> bool {
+    same_person(a, b)
+}
+
+/// Issue #110: does a work title name one of these titles? Leading articles, subtitles and
+/// punctuation do not count.
+pub fn same_title(a: &str, b: &str) -> bool {
+    let (x, y) = (title_key(a), title_key(b));
+    !x.is_empty() && x == y
 }
 
 /// What a search means for a book.

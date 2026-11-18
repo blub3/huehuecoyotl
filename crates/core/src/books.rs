@@ -84,7 +84,7 @@ pub(crate) async fn keep_ratio(inner: &Arc<Inner>, book: i64) {
 }
 
 /// A work's details become the book's (filling gaps only), and its cover when it has none.
-async fn apply_work(
+pub(crate) async fn apply_work(
     inner: &Arc<Inner>,
     p: &dyn BookProvider,
     t: &books::BookTarget,
@@ -233,7 +233,7 @@ pub(crate) async fn match_book(inner: &Arc<Inner>, id: i64) -> Result<(), MetaEr
     Ok(())
 }
 
-fn meta_err(e: MetaError) -> CoreError {
+pub(crate) fn meta_err(e: MetaError) -> CoreError {
     CoreError::new(
         match e {
             MetaError::NotFound => ErrorKind::NotFound,

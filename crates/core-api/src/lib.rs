@@ -431,6 +431,21 @@ mod ffi {
         /// (MusicDetail "book").
         fn search_book(self: &Core, request_id: u64, id: i64, title: &str, author: &str);
         fn choose_book_match(self: &Core, request_id: u64, id: i64, work: &str);
+        /// Issue #92: match again (MusicDetail "matchAgain"), search by hand ("matchCandidates";
+        /// `query_json`: text, year, kind, artist, author, isbn), choose ("matchChosen";
+        /// `choice_json`: one candidate), library rematches and their status ("matching").
+        fn match_again(self: &Core, request_id: u64, item: i64, unlock: bool);
+        fn match_search(self: &Core, request_id: u64, item: i64, query_json: &str);
+        fn match_choose(self: &Core, request_id: u64, item: i64, choice_json: &str);
+        fn rematch_library(
+            self: &Core,
+            request_id: u64,
+            library: &str,
+            all: bool,
+            include_locked: bool,
+        );
+        fn rematch_stop(self: &Core, request_id: u64, library: &str);
+        fn matching_status(self: &Core, request_id: u64);
         /// Issue #66: a book's ticket (MusicDetail "bookTicket"); `position_ms` < 0 resumes.
         fn book_play(self: &Core, request_id: u64, book: i64, position_ms: i64);
         fn book_progress(self: &Core, book: i64, position_ms: i64);
@@ -1323,6 +1338,33 @@ impl Core {
         guard("choose_book_match", || {
             self.0.choose_book_match(request_id, id, work)
         })
+    }
+    fn match_again(&self, request_id: u64, item: i64, unlock: bool) {
+        guard("match_again", || {
+            self.0.match_again(request_id, item, unlock)
+        })
+    }
+    fn match_search(&self, request_id: u64, item: i64, query_json: &str) {
+        guard("match_search", || {
+            self.0.match_search(request_id, item, query_json)
+        })
+    }
+    fn match_choose(&self, request_id: u64, item: i64, choice_json: &str) {
+        guard("match_choose", || {
+            self.0.match_choose(request_id, item, choice_json)
+        })
+    }
+    fn rematch_library(&self, request_id: u64, library: &str, all: bool, include_locked: bool) {
+        guard("rematch_library", || {
+            self.0
+                .rematch_library(request_id, library, all, include_locked)
+        })
+    }
+    fn rematch_stop(&self, request_id: u64, library: &str) {
+        guard("rematch_stop", || self.0.rematch_stop(request_id, library))
+    }
+    fn matching_status(&self, request_id: u64) {
+        guard("matching_status", || self.0.matching_status(request_id))
     }
     fn book_play(&self, request_id: u64, book: i64, position_ms: i64) {
         guard("book_play", || {

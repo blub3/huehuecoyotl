@@ -2,6 +2,10 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased (2.7)
+
+- Matching again: one core for every kind (#92, part of 2.7). Any movie, show, album or audiobook can be matched again as if it were new; a search by hand accepts a title or a pasted id or link (TMDB, IMDb, MusicBrainz, Open Library, ISBN); a whole library can be matched again in the background, one library at a time, also after a restart. A match you chose stays unless you include it, and a match is never dropped for an unsure one. `coyotl-cli match …` and `library rematch …`.
+
 ## 2.6.0 – 2026-11-18 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). The Music section is redesigned, with playlists and a new Now Playing.
