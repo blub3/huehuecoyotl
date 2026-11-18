@@ -2,7 +2,9 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
-## Unreleased (2.7.1)
+## 2.7.1 – 2026-11-18 (Linux)
+
+Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). Settings with tabs, and matching the music library again matches artists too.
 
 - Fixed: matching the Music library again from Settings now matches artists too (#124, part of 2.7.1). Before, an artist got a match only from its own **Match again**, or when one of its albums changed its match. The run takes the albums first, then the artists without a match; the dialog counts them in.
 

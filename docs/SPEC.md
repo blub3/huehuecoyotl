@@ -2,7 +2,7 @@
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
 
-**Changes in v1.15:** 2.7.1: Settings has a tab bar, one tab per section (issue #117, section 9); the music library run matches artists too (issue #124, section 7).
+**Changes in v1.15:** 2.7.1 is released for Linux on Nov 18, 2026: Settings has a tab bar, one tab per section (issue #117, section 9); the music library run matches artists too (issue #124, section 7).
 
 **Changes in v1.14:** 2.7 is released for Linux on Nov 18, 2026: matching again (issues #92 to #110), without a migration: the shared core for matching items again, searching and choosing by hand and library rematches (section 7, *Matching again*; bridge additions in 8); Settings → Matching (#93 to #96) and Fix match for movies, shows and episodes with Movie ↔ TV show (#97 to #100), matching music again with artists following their albums and songs (#101 to #107), matching audiobooks and authors again with author photos and biographies (#108 to #110, decided in section 12), sections 7 and 9.
 
@@ -75,6 +75,7 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | 2.5 (Linux, released) | Audiobooks: books from single files or folders (M4B, M4A, MP3, Ogg Vorbis, Opus, FLAC) with chapters, authors, narrators and series; local metadata (OPF, desc.txt, reader.txt, .nfo, tags, names); Open Library and MusicBrainz; a category with Books, Authors, Series and Narrators; a player with exact resume across files, chapters, speed and a sleep timer (see **Audiobooks in 2.5** below) |
 | 2.6 (Linux, released) | Music redesign: a top menu (Albums, Artists, Songs, Genres, Playlists), the Quality lens (Hi-Res, Lossless, Several versions, Saved), format ribbons, a letter rail, an Artists preview panel, a Songs list with a quality column, smart and own playlists, a new Now Playing with a waveform and the signal path as a chain, and a full-screen Now Playing (issues #78 to #83) |
 | 2.7 (Linux, released) | Matching again: Settings → Matching for every library, Fix match with the current match, links and a Movie ↔ TV show switch, match again and search for albums, songs, artists, books and authors, and artists and authors that follow their albums, songs and books (issues #92 to #110) |
+| 2.7.1 (Linux, released) | Settings with a tab bar (issue #117); the music library run matches artists too (issue #124) |
 | Unscheduled | HDR passthrough on Windows through direct mode (needs a Windows PC with an HDR display for tests W1–W8) |
 | After 1.1 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
 | Non-goals | Phones, tablets and TV boxes; DRM streaming services; transcoding or acting as a media server; SMB1; cloud accounts run by the project |
@@ -728,6 +729,8 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 **M5 status (Nov 12, 2026).** Paused: GitHub Actions has no minutes left, and the Windows build needs it (or a Windows build machine). The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). The Windows release workflow is ready in PR #31 but untested. Open: that PR, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
 
 **2.5 (planned): audiobooks.** The specification (#64) first, then in this order: the audiobook library (#65), Open Library and MusicBrainz for books (#67), and the Audiobooks category and player (#66). 2.5 is released when all four are done. The Flatpak needs no new permission.
+
+**2.7.1 (Nov 18, 2026): released for Linux.** Settings with a tab bar (#117), and the music library run matches artists too (#124, reported by the maintainer). No migration. Built and checked locally (GitHub Actions disabled); the test Flatpak with the tabs was installed for the maintainer before the release.
 
 **2.7 (Nov 18, 2026): released for Linux.** Matching again: the shared core (#92), Settings → Matching (#93 to #96), Fix match with Movie ↔ TV show (#97 to #100), music (#101 to #107) and audiobooks with author photos and biographies (#108 to #110, decided by the maintainer). No migration: the library stays at schema 12, and 2.6 opens it. Built and checked locally (GitHub Actions disabled); the test Flatpak was installed for the maintainer before the release.
 

@@ -93,6 +93,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="2.7.1" date="2026-11-18" type="stable">
+      <description>
+        <p>Settings with tabs: Metadata, Matching, Appearance, Playback, Audio, Storage, Troubleshooting and About each have a tab, easy to reach with a remote, and Settings opens on the tab you used last. Matching the music library again now matches artists too.</p>
+      </description>
+    </release>
     <release version="2.7.0" date="2026-11-18" type="stable">
       <description>
         <p>Matching, again: match a whole library of movies, shows, music or audiobooks again from Settings, or a single movie, show, album, song, artist, book or author. Search by hand by title or a pasted link, and see what a match changes before you choose it. A film taken for a series, or the reverse, can be corrected with its watched state. Artists and authors without a match take the one their album, song or book names, with photos and biographies. Your own metadata and your choices are kept.</p>
