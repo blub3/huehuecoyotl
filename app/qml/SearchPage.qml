@@ -46,7 +46,12 @@ FocusScope {
         }
     }
 
-    Component.onCompleted: field.forceActiveFocus()
+    // Issue #78: opened from "Search music" with its text.
+    property string initialText: ""
+    Component.onCompleted: {
+        if (initialText !== "") { field.text = initialText; page.query = initialText }
+        field.forceActiveFocus()
+    }
 
     ColumnLayout {
         anchors.fill: parent

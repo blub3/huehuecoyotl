@@ -107,6 +107,10 @@ class CoreBridge : public QObject {
     // "book"); playing (kind "bookTicket"; positionMs < 0 resumes), progress, finished, speed
     // (<= 0: the default) and "Continue series" (kind "continueSeries").
     Q_INVOKABLE quint64 bookDetail(qint64 id);
+    // Issue #78: counts and choices of the music filters for "album" or "track"
+    // (musicDetailReady of kind "facets": all, total, hires, lossless, multi, saved, unplayed,
+    // genres [[name, n]], decades [[year, n]], letters [[initial, offset]]).
+    Q_INVOKABLE quint64 musicFacets(const QString &kind, const QString &filter);
     Q_INVOKABLE quint64 searchBook(qint64 id, const QString &title = QString(),
                                    const QString &author = QString());
     Q_INVOKABLE quint64 chooseBookMatch(qint64 id, const QString &work);

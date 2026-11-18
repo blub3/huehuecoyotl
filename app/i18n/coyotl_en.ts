@@ -111,6 +111,18 @@
     </message>
 </context>
 <context>
+    <name>MusicPage</name>
+    <message numerus="yes">
+        <location filename="../qml/MusicPage.qml" line="455"/>
+        <location filename="../qml/MusicPage.qml" line="465"/>
+        <source>%n album(s)</source>
+        <translation>
+            <numerusform>%n album</numerusform>
+            <numerusform>%n albums</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>NetworkSharePage</name>
     <message numerus="yes">
         <location filename="../qml/NetworkSharePage.qml" line="117"/>
@@ -135,7 +147,7 @@
 <context>
     <name>PosterCard</name>
     <message numerus="yes">
-        <location filename="../qml/PosterCard.qml" line="36"/>
+        <location filename="../qml/PosterCard.qml" line="45"/>
         <source>%n version(s)</source>
         <translation>
             <numerusform>%n version</numerusform>

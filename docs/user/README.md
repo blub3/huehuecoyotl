@@ -131,8 +131,9 @@ the video with the same name (`Film.mkv` and `Film.en.srt` or `Film.de.forced.sr
 
 ## Music
 
-From 2.0, folders you added as **Music** appear under **Music** in the navigation rail, with
-the tabs **Albums**, **Artists** and **Recently added**. Albums and artists come from the tags
+From 2.0, folders you added as **Music** appear under **Music** in the navigation rail. From
+2.6 a menu at the top switches between **Albums**, **Artists** and **Genres**, and **Search
+music** finds albums, artists and tracks. Albums and artists come from the tags
 in your files (title, artist, album, album artist, track and disc numbers); untagged files
 are named after their folders and file names.
 
@@ -144,6 +145,15 @@ are named after their folders and file names.
 - **Search** finds artists, albums and tracks too, in rows of their own. A track opens its
   album with the track selected.
 - **Home** shows *Recently added albums* and *Recently played* once you have music.
+
+**Finding albums** (from 2.6). Under Albums, the **Quality lens** shows only albums in
+**Hi-Res**, **Lossless**, in **Several versions** or **Saved** on this computer; the lenses
+combine, each shows how many albums it finds, and **All** clears them. **Genre** and **Decade**
+narrow further, and the sort button orders by recently added, A–Z, year or most played. Every
+cover shows the format that would play ("FLAC 24/96"), gold for Hi-Res. On the focused cover,
+Play, Shuffle and More (Play next, Add to queue, Save) appear; P plays, Shift+P shuffles, Menu
+opens More. Sorted A–Z, a letter rail on the right jumps to an initial: Right from the last
+column reaches it. **Genres** shows your genres; choosing one shows its albums.
 
 **Versions of an album** (from 2.1). When the same album is in your library more than once — as
 FLAC and as MP3, on two shares, or as a remaster next to the original — it appears once, with a

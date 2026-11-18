@@ -2,6 +2,10 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased
+
+- Music: a new layout (#78, part of 2.6). A top menu with **Albums**, **Artists** and **Genres**, and **Search music** next to it. The **Quality lens** filters albums by **Hi-Res**, **Lossless**, **Several versions** and **Saved** (they combine, and each shows how many albums it finds), together with a genre and a decade; sort by recently added, A–Z, year or most played. Every cover shows the format of the version that plays, gold for Hi-Res. Play, Shuffle and More appear on the focused cover. Sorted A–Z, a letter rail jumps to an initial. **Genres** lists the genres of your music.
+
 ## 2.5.0 – 2026-11-18 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). Audiobooks: library folders can now hold audiobooks.

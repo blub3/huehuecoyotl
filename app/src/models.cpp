@@ -200,8 +200,20 @@ QVariantMap LibraryModel::get(int row) const
     return row >= 0 && row < m_rows.size() ? m_rows.at(row).toMap() : QVariantMap();
 }
 
+void LibraryModel::loadTo(int row)
+{
+    if (row < 0) return;
+    if (row < m_rows.size()) {
+        QMetaObject::invokeMethod(this, [this, row] { emit rowLoaded(row); }, Qt::QueuedConnection);
+        return;
+    }
+    m_target = qMin(row, qMax(0, m_total - 1));
+    fetchMore({});
+}
+
 void LibraryModel::reload()
 {
+    m_target = -1;
     // Another query: what is in flight belongs to the old one.
     if (m_request) CoreBridge::instance()->cancel(m_request);
     m_request = 0;
@@ -249,6 +261,17 @@ void LibraryModel::onPage(quint64 id, int total, int offset, const QVariantList 
         emit totalChanged();
     }
     emit loadingChanged();
+    if (m_target >= 0) {
+        if (m_target < m_rows.size()) {
+            const int row = m_target;
+            m_target = -1;
+            emit rowLoaded(row);
+        } else if (canFetchMore({})) {
+            m_morePending = true;
+        } else {
+            m_target = -1;
+        }
+    }
     if (m_dirty) {
         m_dirty = false;
         refresh();

@@ -64,7 +64,9 @@ QVariantMap summaryMap(const coyotl::core::ItemSummary &s)
             {"subtitle", qs(s.subtitle)},
             {"parentId", qlonglong(s.parent_id)},
             {"versions", qlonglong(s.versions)},
-            {"ratio", s.ratio}};
+            {"ratio", s.ratio},
+            {"format", qs(s.format)},
+            {"hires", s.hires}};
 }
 
 // Issue #4: the state of an item's saved copies.
@@ -500,6 +502,14 @@ quint64 CoreBridge::splitAlbumVersion(qint64 version)
 }
 
 // ---- audiobooks (issues #65 to #67) ---------------------------------------------------------------
+
+quint64 CoreBridge::musicFacets(const QString &kind, const QString &filter)
+{
+    const quint64 rid = nextId();
+    const QByteArray k = kind.toUtf8(), f = filter.toUtf8();
+    if (m_core) (*m_core)->music_facets(rid, rs(k), rs(f));
+    return rid;
+}
 
 quint64 CoreBridge::bookDetail(qint64 id)
 {

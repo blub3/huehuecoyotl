@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 
@@ -20,6 +21,14 @@ ItemDelegate {
     property string caption: year > 0 ? String(year) : ""
     property real posterWidth: 180
     property real posterRatio: 1.5
+    // Issue #78: a format ribbon along the cover's bottom edge ("FLAC 24/96"), gold for Hi-Res;
+    // and Play, Shuffle and More on the cover while it has focus or the mouse.
+    property string ribbon: ""
+    property bool ribbonGold: false
+    property bool quickActions: false
+    signal playRequested()
+    signal shuffleRequested()
+    signal moreRequested()
     // Issue #66: the cover's own height / width (books): it keeps its aspect inside the cell,
     // standing on the cell's bottom, so the titles of square and portrait covers align. 0: fill.
     property real coverRatio: 0
@@ -33,7 +42,7 @@ ItemDelegate {
     height: posterWidth * posterRatio + 54 * textScale
     padding: 0
     focusPolicy: Qt.StrongFocus
-    Accessible.name: title + (caption !== "" ? ", " + caption : "") + (watched ? ", " + qsTr("watched") : "") + (saved ? ", " + qsTr("saved on this computer") : "") + (versions > 1 ? ", " + qsTr("%n version(s)", "", versions) : "")
+    Accessible.name: title + (caption !== "" ? ", " + caption : "") + (watched ? ", " + qsTr("watched") : "") + (saved ? ", " + qsTr("saved on this computer") : "") + (versions > 1 ? ", " + qsTr("%n version(s)", "", versions) : "") + (ribbon !== "" ? ", " + ribbon : "")
 
     background: Item {}
     contentItem: Column {
@@ -76,6 +85,45 @@ ItemDelegate {
                 fillMode: Image.PreserveAspectCrop
                 sourceSize.width: Math.ceil(card.posterWidth * Screen.devicePixelRatio)
             }
+            Rectangle {   // format ribbon (issue #78)
+                visible: card.ribbon !== ""
+                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                height: Math.round(24 * card.textScale)
+                color: card.ribbonGold ? Theme.accent : "#c80d1015"
+                Label {
+                    anchors.fill: parent
+                    anchors.leftMargin: 8
+                    anchors.rightMargin: 8
+                    verticalAlignment: Text.AlignVCenter
+                    text: card.ribbon
+                    color: card.ribbonGold ? Theme.bg : Theme.text
+                    font.pixelSize: Math.max(10, Math.round(11 * card.textScale))
+                    font.bold: true
+                    elide: Text.ElideRight
+                }
+            }
+            Row {         // quick actions (issue #78)
+                visible: card.quickActions && (card.activeFocus || card.hovered)
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Math.round(34 * card.textScale)
+                spacing: 8
+                Repeater {
+                    model: [{ glyph: "▶", tip: qsTr("Play"), act: 0 }, { glyph: "⤮", tip: qsTr("Shuffle"), act: 1 }, { glyph: "⋯", tip: qsTr("More"), act: 2 }]
+                    RoundButton {
+                        required property var modelData
+                        width: 40; height: 40
+                        focusPolicy: Qt.NoFocus
+                        text: modelData.glyph
+                        Accessible.name: modelData.tip
+                        ToolTip.visible: hovered
+                        ToolTip.text: modelData.tip
+                        palette.button: modelData.act === 0 ? Theme.accent : "#d90d1015"
+                        palette.buttonText: modelData.act === 0 ? Theme.bg : Theme.text
+                        onClicked: modelData.act === 0 ? card.playRequested() : modelData.act === 1 ? card.shuffleRequested() : card.moreRequested()
+                    }
+                }
+            }
             Rectangle {   // progress
                 visible: card.progress > 0 && !card.watched
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
@@ -112,7 +160,7 @@ ItemDelegate {
             }
             Rectangle {   // several versions (issue #63)
                 visible: card.versions > 1
-                anchors { right: parent.right; bottom: parent.bottom; margins: 8 }
+                anchors { right: parent.right; bottom: parent.bottom; margins: 8; bottomMargin: card.ribbon !== "" ? Math.round(24 * card.textScale) + 6 : 8 }
                 width: Math.max(26, versionsText.implicitWidth + 12); height: 22; radius: 11
                 color: "#c0101418"
                 Label {
