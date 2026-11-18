@@ -8,6 +8,7 @@ pub mod jobs;
 pub mod merge;
 mod migrations;
 pub mod music;
+pub mod playlists;
 pub mod queries;
 pub mod queue;
 pub mod text;

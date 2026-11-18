@@ -411,6 +411,17 @@ mod ffi {
         /// Issue #65/#66: a book's, a series' or a person's page (MusicDetail of kind "book",
         /// "series" or "person").
         fn book_detail(self: &Core, request_id: u64, id: i64);
+        /// Issue #81: playlists (MusicDetail "playlists", "playlist", "playlistSaved"). `key` is
+        /// "smart:<rule>" or an own playlist's id; `to` < 0 removes the song at `index`.
+        fn playlists(self: &Core, request_id: u64);
+        fn playlist_detail(self: &Core, request_id: u64, key: &str, limit: u32);
+        fn playlist_create(self: &Core, request_id: u64, name: &str, items: &[i64], version: i64);
+        fn playlist_add(self: &Core, request_id: u64, id: i64, items: &[i64], version: i64);
+        fn playlist_rename(self: &Core, request_id: u64, id: i64, name: &str);
+        fn playlist_delete(self: &Core, request_id: u64, id: i64);
+        fn playlist_move(self: &Core, request_id: u64, id: i64, index: u32, to: i32);
+        fn queue_play_playlist(self: &Core, request_id: u64, key: &str, start: u32, shuffle: bool);
+        fn playlist_save(self: &Core, request_id: u64, key: &str);
         /// Issue #78: counts and choices of the music filters (MusicDetail "facets"); `filter`
         /// as for browse_items.
         fn music_facets(self: &Core, request_id: u64, kind: &str, filter: &str);
@@ -1247,6 +1258,46 @@ impl Core {
     }
     fn artist_detail(&self, request_id: u64, artist: i64) {
         guard("artist_detail", || self.0.artist_detail(request_id, artist))
+    }
+    fn playlists(&self, request_id: u64) {
+        guard("playlists", || self.0.playlists(request_id))
+    }
+    fn playlist_detail(&self, request_id: u64, key: &str, limit: u32) {
+        guard("playlist_detail", || {
+            self.0.playlist_detail(request_id, key, limit)
+        })
+    }
+    fn playlist_create(&self, request_id: u64, name: &str, items: &[i64], version: i64) {
+        guard("playlist_create", || {
+            self.0
+                .playlist_create(request_id, name, items.to_vec(), version)
+        })
+    }
+    fn playlist_add(&self, request_id: u64, id: i64, items: &[i64], version: i64) {
+        guard("playlist_add", || {
+            self.0.playlist_add(request_id, id, items.to_vec(), version)
+        })
+    }
+    fn playlist_rename(&self, request_id: u64, id: i64, name: &str) {
+        guard("playlist_rename", || {
+            self.0.playlist_rename(request_id, id, name)
+        })
+    }
+    fn playlist_delete(&self, request_id: u64, id: i64) {
+        guard("playlist_delete", || self.0.playlist_delete(request_id, id))
+    }
+    fn playlist_move(&self, request_id: u64, id: i64, index: u32, to: i32) {
+        guard("playlist_move", || {
+            self.0.playlist_move(request_id, id, index, to)
+        })
+    }
+    fn queue_play_playlist(&self, request_id: u64, key: &str, start: u32, shuffle: bool) {
+        guard("queue_play_playlist", || {
+            self.0.queue_play_playlist(request_id, key, start, shuffle)
+        })
+    }
+    fn playlist_save(&self, request_id: u64, key: &str) {
+        guard("playlist_save", || self.0.playlist_save(request_id, key))
     }
     fn music_facets(&self, request_id: u64, kind: &str, filter: &str) {
         guard("music_facets", || {

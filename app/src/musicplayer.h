@@ -93,6 +93,8 @@ class MusicPlayer : public QObject {
     // Issue #80: play what a browse query lists (the Songs list), from `startItem`.
     Q_INVOKABLE void playQuery(const QString &kind, const QString &sort, const QString &filter,
                                qint64 startItem = 0, bool shuffle = false);
+    // Issue #81: play a playlist ("smart:<rule>" or an id) from the song at `start`.
+    Q_INVOKABLE void playPlaylist(const QString &key, int start = 0, bool shuffle = false);
     Q_INVOKABLE void playNext(const QVariantList &items, qint64 version = 0);
     Q_INVOKABLE void addToQueue(const QVariantList &items, qint64 version = 0);
     Q_INVOKABLE void togglePause();

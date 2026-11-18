@@ -508,6 +508,88 @@ quint64 CoreBridge::splitAlbumVersion(qint64 version)
 
 // ---- audiobooks (issues #65 to #67) ---------------------------------------------------------------
 
+namespace {
+std::vector<int64_t> variantIds(const QVariantList &items)
+{
+    std::vector<int64_t> v;
+    v.reserve(items.size());
+    for (const QVariant &x : items)
+        v.push_back(x.toLongLong());
+    return v;
+}
+} // namespace
+
+quint64 CoreBridge::playlists()
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->playlists(rid);
+    return rid;
+}
+
+quint64 CoreBridge::playlistDetail(const QString &key, int limit)
+{
+    const quint64 rid = nextId();
+    const QByteArray k = key.toUtf8();
+    if (m_core) (*m_core)->playlist_detail(rid, rs(k), uint32_t(qMax(1, limit)));
+    return rid;
+}
+
+quint64 CoreBridge::playlistCreate(const QString &name, const QVariantList &items, qint64 version)
+{
+    const quint64 rid = nextId();
+    const QByteArray n = name.toUtf8();
+    const auto v = variantIds(items);
+    if (m_core)
+        (*m_core)->playlist_create(rid, rs(n), rust::Slice<const int64_t>(v.data(), v.size()), version);
+    return rid;
+}
+
+quint64 CoreBridge::playlistAdd(qint64 id, const QVariantList &items, qint64 version)
+{
+    const quint64 rid = nextId();
+    const auto v = variantIds(items);
+    if (m_core) (*m_core)->playlist_add(rid, id, rust::Slice<const int64_t>(v.data(), v.size()), version);
+    return rid;
+}
+
+quint64 CoreBridge::playlistRename(qint64 id, const QString &name)
+{
+    const quint64 rid = nextId();
+    const QByteArray n = name.toUtf8();
+    if (m_core) (*m_core)->playlist_rename(rid, id, rs(n));
+    return rid;
+}
+
+quint64 CoreBridge::playlistDelete(qint64 id)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->playlist_delete(rid, id);
+    return rid;
+}
+
+quint64 CoreBridge::playlistMove(qint64 id, int index, int to)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->playlist_move(rid, id, uint32_t(qMax(0, index)), to);
+    return rid;
+}
+
+quint64 CoreBridge::playPlaylist(const QString &key, int start, bool shuffle)
+{
+    const quint64 rid = nextId();
+    const QByteArray k = key.toUtf8();
+    if (m_core) (*m_core)->queue_play_playlist(rid, rs(k), uint32_t(qMax(0, start)), shuffle);
+    return rid;
+}
+
+quint64 CoreBridge::playlistSave(const QString &key)
+{
+    const quint64 rid = nextId();
+    const QByteArray k = key.toUtf8();
+    if (m_core) (*m_core)->playlist_save(rid, rs(k));
+    return rid;
+}
+
 quint64 CoreBridge::musicFacets(const QString &kind, const QString &filter)
 {
     const quint64 rid = nextId();
@@ -918,6 +1000,27 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                     x[k] = QUrl::fromLocalFile(x.value(k).toString()).toString();
         };
         urls(m);
+        // Issue #81: playlist cards carry a list of cover paths.
+        const auto coverUrls = [](QVariantMap &x) {
+            QVariantList c = x.value("covers").toList();
+            for (auto &p : c)
+                p = QUrl::fromLocalFile(p.toString()).toString();
+            if (x.contains("covers")) x["covers"] = c;
+        };
+        for (const char *list : {"smart", "mine"}) {
+            QVariantList l = m.value(list).toList();
+            for (auto &v : l) {
+                QVariantMap x = v.toMap();
+                coverUrls(x);
+                v = x;
+            }
+            if (m.contains(list)) m[list] = l;
+        }
+        if (m.contains("card")) {
+            QVariantMap card = m.value("card").toMap();
+            coverUrls(card);
+            m["card"] = card;
+        }
         for (const char *list : {"albums", "appearsOn", "books"}) {
             QVariantList l = m.value(list).toList();
             for (auto &v : l) {
