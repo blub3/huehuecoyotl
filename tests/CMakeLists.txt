@@ -1,5 +1,5 @@
-# Qt Quick Test: focus and key navigation of the player controls (driven with a stub player) and
-# of the show page's episode tiles (with stub episodes)
+# Qt Quick Test: focus and key navigation of the player controls (driven with a stub player),
+# of the show page's episode tiles (with stub episodes) and of the full-screen Now Playing view
 # (SPEC 10, CI step 4). The QML under test is copied into a small module `CoyotlUi` so the
 # tests do not need the app's C++ types.
 set(_ui_dir "${CMAKE_CURRENT_BINARY_DIR}/imports/CoyotlUi")
@@ -7,7 +7,9 @@ set(_ui_files Theme.qml FocusButton.qml TrackMenu.qml PlayerControls.qml
   # Issue #48: the episode tile and the components it shares with the detail page.
   MediaInfo.js EpisodeTile.qml VersionPicker.qml TechSummary.qml TechDetails.qml SaveMenu.qml
   # Issue #52: the TMDB key status in Settings.
-  TmdbKeyStatus.qml)
+  TmdbKeyStatus.qml
+  # Issue #83: the full-screen Now Playing view.
+  MusicFullScreen.qml)
 file(MAKE_DIRECTORY "${_ui_dir}")
 set(_qmldir "module CoyotlUi\nsingleton Theme 1.0 Theme.qml\n")
 foreach(f IN LISTS _ui_files)

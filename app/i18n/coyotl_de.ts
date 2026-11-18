@@ -1879,6 +1879,98 @@
     </message>
 </context>
 <context>
+    <name>MusicFullScreen</name>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="148"/>
+        <source>Hi-Res</source>
+        <translation>Hi-Res</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="194"/>
+        <source>Position</source>
+        <translation>Position</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="239"/>
+        <source>Shuffle: on</source>
+        <translation>Zufallswiedergabe: an</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="239"/>
+        <source>Shuffle: off</source>
+        <translation>Zufallswiedergabe: aus</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="248"/>
+        <source>Previous</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="260"/>
+        <source>Pause</source>
+        <translation>Pause</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="260"/>
+        <source>Play</source>
+        <translation>Abspielen</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="284"/>
+        <source>Next</source>
+        <translation>Weiter</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="293"/>
+        <source>Repeat: this track</source>
+        <translation>Wiederholen: dieser Titel</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="294"/>
+        <source>Repeat: all</source>
+        <translation>Wiederholen: alle</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="294"/>
+        <source>Repeat: off</source>
+        <translation>Wiederholen: aus</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="329"/>
+        <source>Up next</source>
+        <translation>Als Nächstes</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MusicFullScreen.qml" line="345"/>
+        <source>and %n more</source>
+        <translation>
+            <numerusform>und %n weiterer</numerusform>
+            <numerusform>und %n weitere</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="362"/>
+        <source>Enter play / pause  ·  ← → −10 / +10 s  ·  ↑ more controls  ·  ↓ queue  ·  Back leave</source>
+        <translation>Enter Wiedergabe / Pause  ·  ← → −10 / +10 s  ·  ↑ weitere Tasten  ·  ↓ Warteschlange  ·  Zurück verlässt</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="363"/>
+        <source>← → choose  ·  Enter select  ·  ↓ play / pause  ·  Back leave</source>
+        <translation>← → auswählen  ·  Enter bestätigt  ·  ↓ Wiedergabe / Pause  ·  Zurück verlässt</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="383"/>
+        <location filename="../qml/MusicFullScreen.qml" line="398"/>
+        <source>Queue</source>
+        <translation>Warteschlange</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicFullScreen.qml" line="440"/>
+        <source>Enter plays  ·  Back or ← closes</source>
+        <translation>Enter spielt ab  ·  Zurück oder ← schließt</translation>
+    </message>
+</context>
+<context>
     <name>MusicKeyRow</name>
     <message>
         <location filename="../qml/MusicKeyRow.qml" line="36"/>
@@ -2681,103 +2773,113 @@
 <context>
     <name>NowPlayingPage</name>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="259"/>
+        <location filename="../qml/NowPlayingPage.qml" line="302"/>
         <source>exclusive</source>
         <translation>exklusiv</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="23"/>
+        <location filename="../qml/NowPlayingPage.qml" line="25"/>
         <source>The chosen audio device could not be opened; playing on the system&apos;s default device.</source>
         <translation>Das gewählte Audiogerät ließ sich nicht öffnen; die Wiedergabe läuft über das Standardgerät des Systems.</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="27"/>
+        <location filename="../qml/NowPlayingPage.qml" line="29"/>
         <source>Shared output through %1 at %2. The system mixer may resample.</source>
         <translation>Gemeinsame Ausgabe über %1 mit %2. Der Mixer des Systems kann die Abtastrate ändern.</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="28"/>
+        <location filename="../qml/NowPlayingPage.qml" line="30"/>
         <source>Audio filters are active.</source>
         <translation>Audiofilter sind aktiv.</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="30"/>
+        <location filename="../qml/NowPlayingPage.qml" line="32"/>
         <source>The device does not take %1; converted to %2.</source>
         <translation>Das Gerät nimmt %1 nicht an; umgewandelt in %2.</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="31"/>
+        <location filename="../qml/NowPlayingPage.qml" line="33"/>
         <source>The device does not take this format; converted to %1.</source>
         <translation>Das Gerät nimmt dieses Format nicht an; umgewandelt in %1.</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="67"/>
+        <location filename="../qml/NowPlayingPage.qml" line="97"/>
         <source>Nothing is playing. Choose Play on an album.</source>
         <translation>Es läuft nichts. Wähle bei einem Album „Abspielen“.</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="194"/>
+        <location filename="../qml/NowPlayingPage.qml" line="237"/>
         <source>Open the artist</source>
         <translation>Zum Künstler</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="206"/>
+        <location filename="../qml/NowPlayingPage.qml" line="249"/>
         <source>Open the album</source>
         <translation>Zum Album</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="165"/>
+        <location filename="../qml/NowPlayingPage.qml" line="208"/>
         <source>Hi-Res</source>
         <translation>Hi-Res</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="25"/>
+        <location filename="../qml/NowPlayingPage.qml" line="27"/>
         <source>Every sample reaches the device as it is in the file.</source>
         <translation>Jedes Sample erreicht das Gerät so, wie es in der Datei steht.</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="92"/>
+        <location filename="../qml/NowPlayingPage.qml" line="122"/>
         <source>Music</source>
         <translation>Musik</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="99"/>
+        <location filename="../qml/NowPlayingPage.qml" line="129"/>
         <source>Playing from</source>
         <translation>Wiedergabe aus</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="114"/>
+        <location filename="../qml/NowPlayingPage.qml" line="145"/>
         <source>%1 of %2 in the queue</source>
         <translation>%1 von %2 in der Warteschlange</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="224"/>
-        <location filename="../qml/NowPlayingPage.qml" line="232"/>
+        <location filename="../qml/NowPlayingPage.qml" line="154"/>
+        <source>Full screen</source>
+        <translation>Vollbild</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="155"/>
+        <source>Full screen (F11)</source>
+        <translation>Vollbild (F11)</translation>
+    </message>
+    <message>
+        <location filename="../qml/NowPlayingPage.qml" line="267"/>
+        <location filename="../qml/NowPlayingPage.qml" line="275"/>
         <source>Signal path</source>
         <translation>Signalweg</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="241"/>
+        <location filename="../qml/NowPlayingPage.qml" line="284"/>
         <source>Bit-perfect</source>
         <translation>Bit-perfekt</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="241"/>
+        <location filename="../qml/NowPlayingPage.qml" line="284"/>
         <source>Converted</source>
         <translation>Umgewandelt</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="241"/>
+        <location filename="../qml/NowPlayingPage.qml" line="284"/>
         <source>Shared output</source>
         <translation>Geteilte Ausgabe</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="253"/>
+        <location filename="../qml/NowPlayingPage.qml" line="296"/>
         <source>File</source>
         <translation>Datei</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/NowPlayingPage.qml" line="254"/>
+        <location filename="../qml/NowPlayingPage.qml" line="297"/>
         <source>%n channel(s)</source>
         <translation>
             <numerusform>%n Kanal</numerusform>
@@ -2785,132 +2887,132 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="255"/>
+        <location filename="../qml/NowPlayingPage.qml" line="298"/>
         <source>Unchanged</source>
         <translation>Unverändert</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="256"/>
+        <location filename="../qml/NowPlayingPage.qml" line="299"/>
         <source>no resampling, no gain</source>
         <translation>kein Resampling, keine Verstärkung</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="256"/>
+        <location filename="../qml/NowPlayingPage.qml" line="299"/>
         <source>ReplayGain: %1</source>
         <translation>ReplayGain: %1</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="256"/>
+        <location filename="../qml/NowPlayingPage.qml" line="299"/>
         <source>no ReplayGain</source>
         <translation>kein ReplayGain</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="258"/>
+        <location filename="../qml/NowPlayingPage.qml" line="301"/>
         <source>Output</source>
         <translation>Ausgabe</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="259"/>
+        <location filename="../qml/NowPlayingPage.qml" line="302"/>
         <source>shared</source>
         <translation>geteilt</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="314"/>
+        <location filename="../qml/NowPlayingPage.qml" line="357"/>
         <source>Position</source>
         <translation>Position</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="376"/>
+        <location filename="../qml/NowPlayingPage.qml" line="419"/>
         <source>Shuffle: on</source>
         <translation>Zufallswiedergabe: an</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="376"/>
+        <location filename="../qml/NowPlayingPage.qml" line="419"/>
         <source>Shuffle: off</source>
         <translation>Zufallswiedergabe: aus</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="386"/>
+        <location filename="../qml/NowPlayingPage.qml" line="429"/>
         <source>Previous</source>
         <translation>Zurück</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="398"/>
+        <location filename="../qml/NowPlayingPage.qml" line="441"/>
         <source>Pause</source>
         <translation>Pause</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="398"/>
+        <location filename="../qml/NowPlayingPage.qml" line="441"/>
         <source>Play</source>
         <translation>Abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="420"/>
+        <location filename="../qml/NowPlayingPage.qml" line="463"/>
         <source>Next</source>
         <translation>Weiter</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="429"/>
+        <location filename="../qml/NowPlayingPage.qml" line="472"/>
         <source>Repeat: this track</source>
         <translation>Wiederholen: dieser Titel</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="430"/>
+        <location filename="../qml/NowPlayingPage.qml" line="473"/>
         <source>Repeat: all</source>
         <translation>Wiederholen: alle</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="430"/>
+        <location filename="../qml/NowPlayingPage.qml" line="473"/>
         <source>Repeat: off</source>
         <translation>Wiederholen: aus</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="442"/>
+        <location filename="../qml/NowPlayingPage.qml" line="485"/>
         <source>Quieter</source>
         <translation>Leiser</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="633"/>
+        <location filename="../qml/NowPlayingPage.qml" line="676"/>
         <source>other version</source>
         <translation>andere Version</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="635"/>
+        <location filename="../qml/NowPlayingPage.qml" line="678"/>
         <source>The queued file cannot be reached; another version plays.</source>
         <translation>Die eingereihte Datei ist nicht erreichbar; eine andere Version wird gespielt.</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="255"/>
+        <location filename="../qml/NowPlayingPage.qml" line="298"/>
         <source>Volume %1 %</source>
         <translation>Lautstärke %1 %</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="457"/>
+        <location filename="../qml/NowPlayingPage.qml" line="500"/>
         <source>Volume</source>
         <translation>Lautstärke</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="486"/>
+        <location filename="../qml/NowPlayingPage.qml" line="529"/>
         <source>Louder</source>
         <translation>Lauter</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="494"/>
+        <location filename="../qml/NowPlayingPage.qml" line="537"/>
         <source>100 % (fixed)</source>
         <translation>100 % (fest)</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="514"/>
+        <location filename="../qml/NowPlayingPage.qml" line="557"/>
         <source>Up next</source>
         <translation>Als Nächstes</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="537"/>
+        <location filename="../qml/NowPlayingPage.qml" line="580"/>
         <source>Queue</source>
         <translation>Warteschlange</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/NowPlayingPage.qml" line="522"/>
+        <location filename="../qml/NowPlayingPage.qml" line="565"/>
         <source>%n track(s)</source>
         <translation>
             <numerusform>%n Titel</numerusform>
@@ -2918,32 +3020,32 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="651"/>
+        <location filename="../qml/NowPlayingPage.qml" line="694"/>
         <source>Really clear the queue?</source>
         <translation>Warteschlange wirklich leeren?</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="651"/>
+        <location filename="../qml/NowPlayingPage.qml" line="694"/>
         <source>Clear queue</source>
         <translation>Warteschlange leeren</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="664"/>
+        <location filename="../qml/NowPlayingPage.qml" line="707"/>
         <source>Enter plays · Ctrl+↑/↓ moves · Delete removes · drag to reorder</source>
         <translation>Enter spielt · Strg+↑/↓ verschiebt · Entf entfernt · Ziehen ordnet um</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="682"/>
+        <location filename="../qml/NowPlayingPage.qml" line="738"/>
         <source>Play now</source>
         <translation>Jetzt abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="682"/>
+        <location filename="../qml/NowPlayingPage.qml" line="738"/>
         <source>Remove from queue</source>
         <translation>Aus der Warteschlange entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/NowPlayingPage.qml" line="683"/>
+        <location filename="../qml/NowPlayingPage.qml" line="739"/>
         <source>Add to playlist…</source>
         <translation>Zur Playlist hinzufügen …</translation>
     </message>

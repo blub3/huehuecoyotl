@@ -42,6 +42,7 @@ qt_add_qml_module(coyotl
     qml/AlbumPage.qml
     qml/ArtistPage.qml
     qml/NowPlayingPage.qml
+    qml/MusicFullScreen.qml
     qml/MiniPlayer.qml
     qml/ActionMenu.qml
     qml/MusicKeyRow.qml

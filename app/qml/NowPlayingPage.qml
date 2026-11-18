@@ -11,6 +11,8 @@ import "MediaInfo.js" as MediaInfo
 // the transport; a volume slider (fixed at 100 % in bit-perfect mode); and Up next on the right.
 // Space plays or pauses anywhere on the page. In Up next, Enter plays an entry, Menu or Delete
 // offers its actions, Ctrl+Up and Ctrl+Down move it.
+// Full screen (issue #83): "Full screen" or F11 shows MusicFullScreen over the page and puts
+// the window in full screen; Back or F11 leaves both.
 FocusScope {
     id: page
     objectName: "nowPlaying"
@@ -41,7 +43,35 @@ FocusScope {
     }
     onEChanged: loadVisuals()
     Component.onCompleted: { loadVisuals(); Qt.callLater(() => playButton.forceActiveFocus()) }
-    onActiveFocusChanged: if (activeFocus && !content.activeFocus) playButton.forceActiveFocus()
+    onActiveFocusChanged: {
+        if (!activeFocus) return
+        if (full) { const v = fullView.item as MusicFullScreen; if (v && !v.activeFocus) v.focusPlay() }
+        else if (!content.activeFocus) playButton.forceActiveFocus()
+    }
+
+    // Issue #83: the full-screen view. The window goes full screen with it unless it already was.
+    property bool full: false
+    property bool madeFullscreen: false
+    function toggleFull() {
+        const w = page.Window.window
+        if (!full) {
+            if (!Music.active) return
+            madeFullscreen = w && w.visibility !== Window.FullScreen
+            if (madeFullscreen) w.visibility = Window.FullScreen
+            full = true
+        } else {
+            full = false
+            if (madeFullscreen && w) w.visibility = Window.Windowed
+            madeFullscreen = false
+            Qt.callLater(() => fullButton.forceActiveFocus())
+        }
+    }
+    // Leaving the page (Back to Music) leaves the full-screen window too.
+    Component.onDestruction: if (madeFullscreen && page.Window.window) page.Window.window.visibility = Window.Windowed
+    Connections {
+        target: Music
+        function onQueueChanged() { if (!Music.active && page.full) page.toggleFull() }
+    }
     Keys.onSpacePressed: Music.togglePause()
 
     Connections {
@@ -71,7 +101,7 @@ FocusScope {
 
     RowLayout {
         id: content
-        visible: Music.active
+        visible: Music.active && !page.full
         anchors.fill: parent
         spacing: 0
 
@@ -91,7 +121,7 @@ FocusScope {
                     id: backButton
                     text: "‹  " + qsTr("Music")
                     font.pixelSize: Theme.fontSmall
-                    KeyNavigation.right: fromButton
+                    KeyNavigation.right: fromButton.visible ? fromButton : fullButton
                     KeyNavigation.down: artistButton.visible ? artistButton : seek
                     onClicked: Nav.back()
                 }
@@ -106,6 +136,7 @@ FocusScope {
                     text: page.e.album || ""
                     font.pixelSize: Theme.fontSmall
                     KeyNavigation.left: backButton
+                    KeyNavigation.right: fullButton
                     KeyNavigation.down: artistButton.visible ? artistButton : seek
                     onClicked: Nav.openItem(page.e.albumId, "album")
                 }
@@ -115,6 +146,17 @@ FocusScope {
                     color: "#c9d2dd"
                     font.pixelSize: Theme.fontSmall
                     elide: Text.ElideRight
+                }
+                FocusButton {
+                    id: fullButton
+                    objectName: "fullScreenButton"
+                    glyph: "⛶"
+                    text: qsTr("Full screen")
+                    tip: qsTr("Full screen (F11)")
+                    font.pixelSize: Theme.fontSmall
+                    KeyNavigation.left: fromButton.visible ? fromButton : backButton
+                    KeyNavigation.down: queueList
+                    onClicked: page.toggleFull()
                 }
             }
 
@@ -126,7 +168,8 @@ FocusScope {
                 // The cover: as large as the height allows next to the details.
                 Rectangle {
                     id: coverBox
-                    readonly property real side: Math.max(160, Math.min(main.height - 300, main.width * 0.45))
+                    // From the page, not the layout it sits in, so it does not feed back into the layout.
+                    readonly property real side: Math.max(160, Math.min(page.height - 330, (page.width - Math.min(380, page.width * 0.3)) * 0.36))
                     Layout.preferredWidth: side
                     Layout.preferredHeight: side
                     Layout.alignment: Qt.AlignTop
@@ -668,6 +711,19 @@ FocusScope {
                 }
             }
         }
+    }
+
+    Loader {
+        id: fullView
+        anchors.fill: parent
+        active: page.full
+        focus: page.full
+        sourceComponent: MusicFullScreen {
+            player: Music
+            tint: page.tint
+            onLeaveRequested: page.toggleFull()
+        }
+        onLoaded: Qt.callLater(() => { const v = item as MusicFullScreen; if (v) v.focusPlay() })
     }
 
     ActionMenu {
