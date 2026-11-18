@@ -257,6 +257,9 @@ pub struct Summary {
     pub versions: i64,
     /// Issue #66: a book cover's height / width (0 when unknown or not a book).
     pub ratio: f64,
+    /// Issue #78: albums and tracks: the best version's format ("FLAC 24/96"), "" otherwise.
+    pub format: String,
+    pub hires: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -267,6 +270,111 @@ pub enum Sort {
     /// Issue #8: music played most recently first; only what was played (albums by their
     /// tracks' plays).
     Played,
+    /// Issue #78: music by play count, most played first (albums by their tracks' plays).
+    Plays,
+}
+
+/// Issue #78: the Quality lens and the music filters. Lenses combine (all must hold); an
+/// album matches a lens when one of its versions does.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicFilter {
+    pub hires: bool,
+    pub lossless: bool,
+    /// Albums with more than one version (#63).
+    pub multi: bool,
+    /// Songs never played (#80).
+    pub unplayed: bool,
+    pub genre: Option<String>,
+    /// The first year of a decade (1990 for the nineties).
+    pub decade: Option<i64>,
+}
+
+impl MusicFilter {
+    pub fn is_empty(&self) -> bool {
+        *self == MusicFilter::default()
+    }
+}
+
+/// A string as an SQL literal.
+fn quoted(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "''"))
+}
+
+/// The files that belong to `i`: a track's own, an album's tracks'.
+const ITEM_FILES: &str = "(SELECT f.id FROM file f JOIN item t ON t.id = f.item_id
+    WHERE (i.kind = 'album' AND t.parent_id = i.id) OR (i.kind = 'track' AND t.id = i.id))";
+
+/// The SQL conditions (each starting with " AND ") for a music filter on items `i`.
+pub fn music_where(m: &MusicFilter) -> String {
+    let mut out = String::new();
+    if m.hires {
+        out.push_str(&format!(
+            " AND EXISTS (SELECT 1 FROM file_audio fa WHERE fa.file_id IN {ITEM_FILES}
+                AND fa.lossless = 1 AND (coalesce(fa.bit_depth, 0) > 16 OR coalesce(fa.sample_rate, 0) > 48000))"
+        ));
+    }
+    if m.lossless {
+        out.push_str(&format!(
+            " AND EXISTS (SELECT 1 FROM file_audio fa WHERE fa.file_id IN {ITEM_FILES} AND fa.lossless = 1)"
+        ));
+    }
+    if m.multi {
+        out.push_str(" AND (SELECT count(*) FROM album_version v WHERE v.album_id = i.id) > 1");
+    }
+    if m.unplayed {
+        out.push_str(" AND coalesce(p.play_count, 0) = 0");
+    }
+    if let Some(g) = &m.genre {
+        out.push_str(&format!(
+            " AND EXISTS (SELECT 1 FROM music mg WHERE mg.item_id = (CASE WHEN i.kind = 'track' THEN i.parent_id ELSE i.id END) AND mg.genre = {})",
+            quoted(g)
+        ));
+    }
+    if let Some(d) = m.decade {
+        out.push_str(&format!(" AND i.year BETWEEN {d} AND {}", d + 9));
+    }
+    out
+}
+
+/// Issue #78: "FLAC 24/96", "MP3 320k": a file's format for the cover ribbon and the Songs
+/// list, from `codec|depth|rate|kbps|lossless` as SUMMARY_COLS selects it.
+pub fn format_label(raw: &str) -> (String, bool) {
+    let p: Vec<&str> = raw.split('|').collect();
+    if p.len() < 5 || p[0].is_empty() {
+        return (String::new(), false);
+    }
+    let codec = match p[0].to_ascii_lowercase().as_str() {
+        "flac" => "FLAC".to_string(),
+        "alac" => "ALAC".to_string(),
+        "mp3" | "mp3float" => "MP3".to_string(),
+        "aac" => "AAC".to_string(),
+        "vorbis" => "Ogg".to_string(),
+        "opus" => "Opus".to_string(),
+        "wavpack" => "WavPack".to_string(),
+        c if c.starts_with("pcm") => "PCM".to_string(),
+        c if c.starts_with("dsd") => "DSD".to_string(),
+        c => c.to_uppercase(),
+    };
+    let depth: i64 = p[1].parse().unwrap_or(0);
+    let rate: i64 = p[2].parse().unwrap_or(0);
+    let kbps: i64 = p[3].parse().unwrap_or(0);
+    let lossless = p[4] == "1";
+    let hires = crate::music::hires(lossless, Some(depth), Some(rate));
+    let label = if codec == "DSD" {
+        "DSD".to_string()
+    } else if lossless && rate > 0 {
+        let k = rate / 1000;
+        if depth > 0 {
+            format!("{codec} {depth}/{k}")
+        } else {
+            format!("{codec} {k} kHz")
+        }
+    } else if kbps > 0 {
+        format!("{codec} {kbps}k")
+    } else {
+        codec
+    };
+    (label, hires)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -281,6 +389,8 @@ pub struct Query {
     /// Issue #66: books "unread", "in_progress" or "finished"; persons "author" or "narrator";
     /// "" for all.
     pub book_filter: &'static str,
+    /// Issue #78: the music filters.
+    pub music: MusicFilter,
     pub offset: u32,
     pub limit: u32,
 }
@@ -319,9 +429,22 @@ const SUMMARY_COLS: &str = concat!("i.id, i.kind, i.title, i.year, i.season_no, 
          ELSE '' END,
     i.parent_id,
     CASE WHEN i.kind = 'album' THEN (SELECT count(*) FROM album_version v WHERE v.album_id = i.id) ELSE 0 END,
-    CASE WHEN i.kind = 'audiobook' THEN (SELECT b.cover_ratio FROM book b WHERE b.item_id = i.id) END");
+    CASE WHEN i.kind = 'audiobook' THEN (SELECT b.cover_ratio FROM book b WHERE b.item_id = i.id) END,
+    CASE WHEN i.kind IN ('album','track') THEN (SELECT coalesce(fa.codec, '') || '|' || coalesce(fa.bit_depth, 0) || '|' || coalesce(fa.sample_rate, 0)
+           || '|' || coalesce(fa.bitrate, 0) || '|' || coalesce(fa.lossless, 0)
+         FROM file_audio fa WHERE fa.file_id IN (SELECT f.id FROM file f JOIN item t ON t.id = f.item_id
+           WHERE (i.kind = 'album' AND t.parent_id = i.id) OR (i.kind = 'track' AND t.id = i.id))
+         ORDER BY fa.lossless DESC, coalesce(fa.bit_depth, 0) DESC, coalesce(fa.sample_rate, 0) DESC, coalesce(fa.bitrate, 0) DESC LIMIT 1) END");
 
 fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
+    let mut s = summary_base(r)?;
+    if let Some(raw) = r.get::<_, Option<String>>(20)? {
+        (s.format, s.hires) = format_label(&raw);
+    }
+    Ok(s)
+}
+
+fn summary_base(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
     let st = PlayState {
         position_ms: r.get::<_, Option<i64>>(7)?.unwrap_or(0) as u64,
         duration_ms: r.get::<_, Option<i64>>(8)?.unwrap_or(0) as u64,
@@ -343,6 +466,8 @@ fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
         parent_id: r.get(17)?,
         versions: r.get(18)?,
         ratio: r.get::<_, Option<f64>>(19)?.unwrap_or(0.0),
+        format: String::new(),
+        hires: false,
         progress: st.progress(),
         watched: st.watched,
         unwatched: r.get(10)?,
@@ -363,6 +488,12 @@ const VISIBLE: &str = "(
  OR (i.kind = 'book_series' AND EXISTS (SELECT 1 FROM item b WHERE b.parent_id = i.id AND b.kind = 'audiobook'))
  OR (i.kind = 'season' AND EXISTS (SELECT 1 FROM item e JOIN file f ON f.item_id = e.id WHERE e.parent_id = i.id))
  OR (i.kind = 'show' AND EXISTS (SELECT 1 FROM item s JOIN item e ON e.parent_id = s.id JOIN file f ON f.item_id = e.id WHERE s.parent_id = i.id)))";
+
+/// Issue #78: how often an item was played (an album: its tracks' plays).
+const PLAYS: &str =
+    "(CASE WHEN i.kind = 'album' THEN (SELECT coalesce(sum(pt.play_count), 0) FROM item t
+    JOIN playstate pt ON pt.item_id = t.id AND pt.profile_id = 1 WHERE t.parent_id = i.id)
+    ELSE coalesce(p.play_count, 0) END)";
 
 /// One page of items plus the total count.
 pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
@@ -397,6 +528,7 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
         }
         _ => "",
     };
+    let music = music_where(&q.music);
     const PLAYED: &str =
         "(CASE WHEN i.kind = 'album' THEN (SELECT max(pt.last_played_at) FROM item t
         JOIN playstate pt ON pt.item_id = t.id AND pt.profile_id = 1 WHERE t.parent_id = i.id)
@@ -414,10 +546,11 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
         (false, Sort::Added) => "i.added_at DESC, i.sort_title".to_string(),
         (false, Sort::Year) => "i.year DESC, i.sort_title".to_string(),
         (false, Sort::Played) => format!("{PLAYED} DESC, i.sort_title"),
+        (false, Sort::Plays) => format!("{PLAYS} DESC, i.sort_title"),
     };
     let from = format!(
         "FROM item i LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = {DEFAULT_PROFILE}
-         WHERE {filter} AND {VISIBLE}{unwatched}{saved}{book}{played}"
+         WHERE {filter} AND {VISIBLE}{unwatched}{saved}{book}{music}{played}"
     );
     let key: rusqlite::types::Value = match q.parent {
         Some(p) => p.into(),
@@ -429,6 +562,142 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
     ))?;
     let rows = st.query_map(params![key, q.limit, q.offset], summary)?;
     Ok((total, rows.collect::<rusqlite::Result<_>>()?))
+}
+
+/// Issue #78: what the Quality lens and the music filters offer for a kind ("album" or
+/// "track"): how many items each lens would show (within the chosen genre and decade), the
+/// genres and decades (within the other filters), and where each initial starts in the A–Z
+/// order of the current filter (for the letter rail).
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Facets {
+    /// Everything within the chosen genre and decade, no lens.
+    pub all: u32,
+    /// With every filter.
+    pub total: u32,
+    pub hires: u32,
+    pub lossless: u32,
+    pub multi: u32,
+    pub saved: u32,
+    pub unplayed: u32,
+    pub genres: Vec<(String, u32)>,
+    pub decades: Vec<(i64, u32)>,
+    /// (initial, offset of its first item in the A–Z order); "#" for digits and signs.
+    pub letters: Vec<(String, u32)>,
+}
+
+pub fn facets(c: &Connection, kind: &str, music: &MusicFilter, saved_only: bool) -> Result<Facets> {
+    let k = quoted(kind);
+    let from = format!(
+        "FROM item i LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = {DEFAULT_PROFILE}
+         WHERE i.kind = {k} AND {VISIBLE}"
+    );
+    let saved = |on: bool| {
+        if on {
+            concat!(" AND ", saved_sql!())
+        } else {
+            ""
+        }
+    };
+    let count = |extra: &str| -> Result<u32> {
+        Ok(c.query_row(&format!("SELECT count(*) {from}{extra}"), [], |r| r.get(0))?)
+    };
+    let ctx = MusicFilter {
+        genre: music.genre.clone(),
+        decade: music.decade,
+        ..Default::default()
+    };
+    let base = music_where(&ctx);
+    let lens = |f: MusicFilter| {
+        music_where(&MusicFilter {
+            genre: ctx.genre.clone(),
+            decade: ctx.decade,
+            ..f
+        })
+    };
+    let full = format!("{}{}", music_where(music), saved(saved_only));
+    let mut out = Facets {
+        all: count(&base)?,
+        total: count(&full)?,
+        hires: count(&lens(MusicFilter {
+            hires: true,
+            ..Default::default()
+        }))?,
+        lossless: count(&lens(MusicFilter {
+            lossless: true,
+            ..Default::default()
+        }))?,
+        multi: if kind == "album" {
+            count(&lens(MusicFilter {
+                multi: true,
+                ..Default::default()
+            }))?
+        } else {
+            0
+        },
+        saved: count(&format!("{base}{}", saved(true)))?,
+        unplayed: count(&lens(MusicFilter {
+            unplayed: true,
+            ..Default::default()
+        }))?,
+        ..Default::default()
+    };
+    // Genres within the other filters.
+    let no_genre = format!(
+        "{}{}",
+        music_where(&MusicFilter {
+            genre: None,
+            ..music.clone()
+        }),
+        saved(saved_only)
+    );
+    let mut st = c.prepare(&format!(
+        "SELECT mg.genre, count(*) {from}{no_genre}
+         AND mg.genre IS NOT NULL AND mg.genre <> ''
+         GROUP BY mg.genre ORDER BY lower(mg.genre)"
+    ).replacen(
+        "FROM item i LEFT JOIN playstate p",
+        "FROM item i JOIN music mg ON mg.item_id = (CASE WHEN i.kind = 'track' THEN i.parent_id ELSE i.id END) LEFT JOIN playstate p",
+        1,
+    ))?;
+    out.genres = st
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<rusqlite::Result<_>>()?;
+    let no_decade = format!(
+        "{}{}",
+        music_where(&MusicFilter {
+            decade: None,
+            ..music.clone()
+        }),
+        saved(saved_only)
+    );
+    let mut st = c.prepare(&format!(
+        "SELECT (i.year / 10) * 10 AS d, count(*) {from}{no_decade} AND coalesce(i.year, 0) > 0
+         GROUP BY d ORDER BY d DESC"
+    ))?;
+    out.decades = st
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<rusqlite::Result<_>>()?;
+    // Initials in the A–Z order (`i.sort_title`), as browse sorts by title.
+    let mut st = c.prepare(&format!(
+        "SELECT substr(coalesce(i.sort_title, ''), 1, 1) AS l, count(*) {from}{full}
+         GROUP BY l ORDER BY l"
+    ))?;
+    let groups: Vec<(String, u32)> = st
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<rusqlite::Result<_>>()?;
+    let mut offset = 0;
+    for (l, n) in groups {
+        let label = match l.chars().next() {
+            Some(ch) if ch.is_alphabetic() => ch.to_uppercase().collect::<String>(),
+            _ => "#".to_string(),
+        };
+        if !out.letters.iter().any(|(x, _)| *x == label) {
+            out.letters.push((label, offset));
+        }
+        offset += n;
+    }
+    Ok(out)
 }
 
 /// Full-text search over movies, shows and music (artists, albums, tracks); every word is a
@@ -1292,6 +1561,166 @@ pub fn show_structure(c: &Connection, show: i64, on_disk_only: bool) -> Result<S
 mod tests {
     use super::*;
 
+    /// Issue #78: lenses, genre and decade filters, the "most played" sort, format labels and
+    /// facets on a small music library.
+    fn music_fixture() -> Connection {
+        let mut c = Connection::open_in_memory().unwrap();
+        crate::migrate(&mut c).unwrap();
+        c.execute_batch(
+            "INSERT INTO source(id, kind, name, root, content) VALUES (2, 'local', 'Music', '/m', 'music');
+             INSERT INTO item(id, kind, title, sort_title, year) VALUES
+               (10, 'album', 'Kind of Blue', 'kind of blue', 1959),
+               (20, 'album', 'The Wall', 'wall', 1979),
+               (30, 'album', 'Abbey Road', 'abbey road', 1969),
+               (40, 'album', '1999', '1999', 1982);
+             INSERT INTO item(id, kind, title, sort_title, parent_id) VALUES
+               (11, 'track', 'So What', 'so what', 10), (21, 'track', 'In the Flesh', 'in the flesh', 20),
+               (31, 'track', 'Come Together', 'come together', 30), (41, 'track', '1999', '1999', 40);
+             INSERT INTO album_version(id, album_id, key, source_id) VALUES (1, 20, 'v1', 2), (2, 20, 'v2', 2), (3, 10, 'v3', 2);
+             INSERT INTO file(id, source_id, path, size, item_id) VALUES
+               (100, 2, 'a.flac', 1, 11), (200, 2, 'b.mp3', 1, 21), (201, 2, 'b.flac', 1, 21), (300, 2, 'c.flac', 1, 31), (400, 2, 'd.mp3', 1, 41);
+             INSERT INTO file_audio(file_id, codec, sample_rate, bit_depth, lossless, bitrate) VALUES
+               (100, 'flac', 96000, 24, 1, 2500), (200, 'mp3', 44100, 0, 0, 320), (201, 'flac', 44100, 16, 1, 900),
+               (300, 'flac', 44100, 16, 1, 900), (400, 'mp3', 44100, 0, 0, 256);
+             INSERT INTO music(item_id, genre) VALUES (10, 'Jazz'), (20, 'Rock'), (30, 'Rock');
+             INSERT INTO playstate(item_id, profile_id, position_ms, duration_ms, watched, updated_at, play_count)
+               VALUES (31, 1, 0, 0, 0, 1, 9), (11, 1, 0, 0, 0, 1, 2);",
+        )
+        .unwrap();
+        c
+    }
+
+    fn titles(c: &Connection, music: MusicFilter, sort: Sort) -> Vec<String> {
+        let q = Query {
+            kind: "album".into(),
+            parent: None,
+            sort,
+            unwatched_only: false,
+            saved_only: false,
+            book_filter: "",
+            music,
+            offset: 0,
+            limit: 50,
+        };
+        browse(c, &q)
+            .unwrap()
+            .1
+            .into_iter()
+            .map(|s| s.title)
+            .collect()
+    }
+
+    #[test]
+    fn music_lenses_and_facets() {
+        let c = music_fixture();
+        let all = titles(&c, MusicFilter::default(), Sort::Title);
+        assert_eq!(all, ["1999", "Abbey Road", "Kind of Blue", "The Wall"]);
+        let f = |m| titles(&c, m, Sort::Title);
+        assert_eq!(
+            f(MusicFilter {
+                hires: true,
+                ..Default::default()
+            }),
+            ["Kind of Blue"]
+        );
+        assert_eq!(
+            f(MusicFilter {
+                lossless: true,
+                ..Default::default()
+            }),
+            ["Abbey Road", "Kind of Blue", "The Wall"]
+        );
+        assert_eq!(
+            f(MusicFilter {
+                multi: true,
+                ..Default::default()
+            }),
+            ["The Wall"]
+        );
+        assert_eq!(
+            f(MusicFilter {
+                genre: Some("Rock".into()),
+                lossless: true,
+                ..Default::default()
+            }),
+            ["Abbey Road", "The Wall"]
+        );
+        assert_eq!(
+            f(MusicFilter {
+                decade: Some(1970),
+                ..Default::default()
+            }),
+            ["The Wall"]
+        );
+        assert_eq!(
+            titles(&c, MusicFilter::default(), Sort::Plays)[..2],
+            ["Abbey Road", "Kind of Blue"]
+        );
+
+        // The best version's format: The Wall has an MP3 and a FLAC copy.
+        let q = Query {
+            kind: "album".into(),
+            parent: None,
+            sort: Sort::Title,
+            unwatched_only: false,
+            saved_only: false,
+            book_filter: "",
+            music: MusicFilter::default(),
+            offset: 0,
+            limit: 50,
+        };
+        let rows = browse(&c, &q).unwrap().1;
+        let fmt: Vec<(String, bool)> = rows.iter().map(|s| (s.format.clone(), s.hires)).collect();
+        assert_eq!(
+            fmt,
+            [
+                ("MP3 256k".to_string(), false),
+                ("FLAC 16/44".to_string(), false),
+                ("FLAC 24/96".to_string(), true),
+                ("FLAC 16/44".to_string(), false)
+            ]
+        );
+
+        let fc = facets(
+            &c,
+            "album",
+            &MusicFilter {
+                genre: Some("Rock".into()),
+                ..Default::default()
+            },
+            false,
+        )
+        .unwrap();
+        assert_eq!(
+            (fc.all, fc.total, fc.hires, fc.lossless, fc.multi),
+            (2, 2, 0, 2, 1)
+        );
+        assert_eq!(
+            fc.genres,
+            [("Jazz".to_string(), 1), ("Rock".to_string(), 2)]
+        );
+        assert_eq!(fc.decades, [(1970, 1), (1960, 1)]);
+        assert_eq!(fc.letters, [("A".to_string(), 0), ("W".to_string(), 1)]);
+        let fc = facets(&c, "album", &MusicFilter::default(), false).unwrap();
+        assert_eq!(
+            fc.letters,
+            [
+                ("#".to_string(), 0),
+                ("A".to_string(), 1),
+                ("K".to_string(), 2),
+                ("W".to_string(), 3)
+            ]
+        );
+        assert_eq!(
+            format_label("dsd_lsbf|1|2822400|0|1"),
+            ("DSD".to_string(), true)
+        );
+        assert_eq!(
+            format_label("opus|0|48000|160|0"),
+            ("Opus 160k".to_string(), false)
+        );
+    }
+
     fn db() -> Connection {
         let mut c = Connection::open_in_memory().unwrap();
         crate::migrate(&mut c).unwrap();
@@ -1321,6 +1750,7 @@ mod tests {
             unwatched_only: false,
             saved_only: false,
             book_filter: "",
+            music: Default::default(),
             offset: 0,
             limit: 50,
         };
@@ -1403,6 +1833,7 @@ mod tests {
                 unwatched_only: false,
                 saved_only: false,
                 book_filter: "",
+                music: Default::default(),
                 offset: 0,
                 limit: 10,
             };

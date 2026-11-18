@@ -131,6 +131,9 @@ mod ffi {
         versions: i64,
         /// Issue #66: a book cover's height / width (0 when unknown or not a book).
         ratio: f64,
+        /// Issue #78: albums and tracks: the best version's format ("FLAC 24/96").
+        format: String,
+        hires: bool,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -401,6 +404,9 @@ mod ffi {
         /// Issue #65/#66: a book's, a series' or a person's page (MusicDetail of kind "book",
         /// "series" or "person").
         fn book_detail(self: &Core, request_id: u64, id: i64);
+        /// Issue #78: counts and choices of the music filters (MusicDetail "facets"); `filter`
+        /// as for browse_items.
+        fn music_facets(self: &Core, request_id: u64, kind: &str, filter: &str);
         /// Issue #67: "Search again" (MusicDetail "bookCandidates") and the user's choice
         /// (MusicDetail "book").
         fn search_book(self: &Core, request_id: u64, id: i64, title: &str, author: &str);
@@ -620,6 +626,8 @@ fn summary(s: core::Summary) -> ffi::ItemSummary {
         parent_id: s.parent_id.unwrap_or(0),
         versions: s.versions,
         ratio: s.ratio,
+        format: s.format,
+        hires: s.hires,
     }
 }
 
@@ -1217,6 +1225,11 @@ impl Core {
     }
     fn artist_detail(&self, request_id: u64, artist: i64) {
         guard("artist_detail", || self.0.artist_detail(request_id, artist))
+    }
+    fn music_facets(&self, request_id: u64, kind: &str, filter: &str) {
+        guard("music_facets", || {
+            self.0.music_facets(request_id, kind, filter)
+        })
     }
     fn book_detail(&self, request_id: u64, id: i64) {
         guard("book_detail", || self.0.book_detail(request_id, id))

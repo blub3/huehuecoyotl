@@ -644,6 +644,7 @@ mod tests {
             unwatched_only: false,
             saved_only: true,
             book_filter: "",
+            music: Default::default(),
             offset: 0,
             limit: 10,
         };

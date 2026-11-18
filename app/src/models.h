@@ -88,7 +88,7 @@ inline QList<QByteArray> summaryKeys()
 {
     return {"id",          "kind",     "title",    "year",      "seasonNo", "episodeNo", "poster",
             "posterLarge", "progress", "watched",  "unwatched", "overview", "onDisk",    "runtimeMin",
-            "saved",       "subtitle", "parentId", "versions",  "ratio"};
+            "saved",       "subtitle", "parentId", "versions",  "ratio",    "format",    "hires"};
 }
 
 // Movies or shows, or the children of an item, fetched page by page as the view scrolls
@@ -123,11 +123,15 @@ class LibraryModel : public QAbstractListModel {
     bool loading() const { return m_request != 0; }
     Q_INVOKABLE QVariantMap get(int row) const;
     Q_INVOKABLE void refresh();
+    // Issue #78: load pages until `row` exists, then emit rowLoaded (the letter rail jumps
+    // there).
+    Q_INVOKABLE void loadTo(int row);
 
   signals:
     void queryChanged();
     void totalChanged();
     void loadingChanged();
+    void rowLoaded(int row);
 
   private:
     void reload();
@@ -141,6 +145,7 @@ class LibraryModel : public QAbstractListModel {
     bool m_replace = false;
     // A refresh or a page was asked for while a request was in flight.
     bool m_dirty = false, m_morePending = false;
+    int m_target = -1;
 };
 
 class SearchModel : public VariantListModel {

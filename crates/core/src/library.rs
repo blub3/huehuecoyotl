@@ -153,6 +153,7 @@ impl Core {
         offset: u32,
         limit: u32,
     ) {
+        let (flags, music) = parse_filter(filter);
         let q = Query {
             kind: kind.to_string(),
             parent: (parent > 0).then_some(parent),
@@ -160,20 +161,18 @@ impl Core {
                 "added" => Sort::Added,
                 "year" => Sort::Year,
                 "played" => Sort::Played,
+                "plays" => Sort::Plays,
                 _ => Sort::Title,
             },
             // "" (everything), "unwatched", or "saved" (issue #4).
-            unwatched_only: filter == "unwatched",
-            saved_only: filter == "saved",
+            unwatched_only: flags.contains(&"unwatched"),
+            saved_only: flags.contains(&"saved"),
             // Issue #66: books by progress, persons by role.
-            book_filter: match filter {
-                "unread" => "unread",
-                "in_progress" => "in_progress",
-                "finished" => "finished",
-                "author" => "author",
-                "narrator" => "narrator",
-                _ => "",
-            },
+            book_filter: ["unread", "in_progress", "finished", "author", "narrator"]
+                .into_iter()
+                .find(|f| flags.contains(f))
+                .unwrap_or(""),
+            music,
             offset,
             limit: limit.clamp(1, 500),
         };
@@ -320,6 +319,25 @@ impl Core {
                 total,
                 offset,
                 items,
+            })
+        });
+    }
+
+    /// Issue #78: the counts and choices of the music filters for a kind ("album", "track"),
+    /// as a `MusicDetail` of kind "facets".
+    pub fn music_facets(&self, request_id: u64, kind: &str, filter: &str) {
+        let kind = kind.to_string();
+        let (flags, music) = parse_filter(filter);
+        let saved = flags.contains(&"saved");
+        self.spawn(request_id, move |inner| async move {
+            let f = inner
+                .lib
+                .read(move |c| catalog::facets(c, &kind, &music, saved))
+                .await?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "facets".into(),
+                json: serde_json::to_string(&f).unwrap_or_default(),
             })
         });
     }
@@ -504,6 +522,42 @@ impl Core {
     }
 }
 
+/// Issue #78: a browse filter is a list of tokens, one per line: flags ("saved", "unwatched",
+/// "hires", "lossless", "multi", "unplayed", the book filters) and values ("genre=Jazz",
+/// "decade=1990"). One token alone is the filter of earlier versions.
+pub(crate) fn parse_filter(filter: &str) -> (Vec<&'static str>, catalog::MusicFilter) {
+    const FLAGS: [&str; 12] = [
+        "saved",
+        "unwatched",
+        "hires",
+        "lossless",
+        "multi",
+        "unplayed",
+        "unread",
+        "in_progress",
+        "finished",
+        "author",
+        "narrator",
+        "",
+    ];
+    let mut flags = Vec::new();
+    let mut m = catalog::MusicFilter::default();
+    for t in filter.split('\n').map(str::trim).filter(|t| !t.is_empty()) {
+        if let Some(g) = t.strip_prefix("genre=") {
+            m.genre = Some(g.to_string());
+        } else if let Some(d) = t.strip_prefix("decade=") {
+            m.decade = d.parse().ok();
+        } else if let Some(f) = FLAGS.iter().find(|f| **f == t) {
+            flags.push(*f);
+        }
+    }
+    m.hires = flags.contains(&"hires");
+    m.lossless = flags.contains(&"lossless");
+    m.multi = flags.contains(&"multi");
+    m.unplayed = flags.contains(&"unplayed");
+    (flags, m)
+}
+
 /// A library folder's content type: `music`, `audiobooks`, anything else is `video`.
 pub(crate) fn content_type(s: &str) -> &'static str {
     if s.eq_ignore_ascii_case("music") {
@@ -649,5 +703,26 @@ mod tests {
         decorate(&mut files, &[3].into_iter().collect());
         assert!(!files[0].online && files[1].online);
         assert_eq!(files[0].edition, "Director's Cut");
+    }
+}
+
+#[cfg(test)]
+mod filter_tests {
+    use super::*;
+
+    #[test]
+    fn filters_are_lists_of_tokens() {
+        let (flags, m) = parse_filter("hires\nsaved\ngenre=Rock; Pop\ndecade=1990\nbogus");
+        assert_eq!(flags, ["hires", "saved"]);
+        assert!(m.hires && !m.lossless);
+        assert_eq!(
+            (m.genre.as_deref(), m.decade),
+            (Some("Rock; Pop"), Some(1990))
+        );
+        // One token alone, as before 2.6.
+        let (flags, m) = parse_filter("unwatched");
+        assert_eq!(flags, ["unwatched"]);
+        assert!(m.is_empty());
+        assert!(parse_filter("").0.is_empty());
     }
 }
