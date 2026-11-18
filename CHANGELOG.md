@@ -4,6 +4,8 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased (2.7.1)
 
+- Fixed: matching the Music library again from Settings now matches artists too (#124, part of 2.7.1). Before, an artist got a match only from its own **Match again**, or when one of its albums changed its match. The run takes the albums first, then the artists without a match; the dialog counts them in.
+
 - Settings with tabs (#117, part of 2.7.1). Settings shows one part at a time, chosen in a tab bar at the top: Metadata, Matching, Appearance, Playback, Audio, Storage, Troubleshooting and About. Left and Right switch tabs, Down enters the one shown; Settings opens on the tab you used last, and "Set up TMDB" and the match dialogs' "Open Settings" open the right one.
 
 ## 2.7.0 – 2026-11-18 (Linux)

@@ -30,8 +30,11 @@ Popup {
         }
         return ""
     }
-    readonly property int openItems: (info.review || 0) + (info.none || 0)
+    // Issue #124: a music run takes the artists along (those without a match, or all).
+    readonly property bool music: info.library === "music"
+    readonly property int openItems: (info.review || 0) + (info.none || 0) + (music ? (info.artistsOpen || 0) : 0)
     readonly property int count: all ? (info.total || 0) - (keepLocked ? (info.locked || 0) : 0)
+                                       + (music ? (info.artists || 0) - (keepLocked ? (info.artistsLocked || 0) : 0) : 0)
                                      : openItems
     // As MatchingLibraryRow estimates it.
     readonly property real secondsPerItem: info.library === "music" ? 2 : info.library === "books" ? 1.5 : 0.25
@@ -82,6 +85,15 @@ Popup {
             color: Theme.textDim
             font.pixelSize: Theme.fontSmall
             text: qsTr("The %n item(s) without a sure match. Matched items stay as they are.", "", dialog.openItems)
+        }
+        Label {
+            objectName: "musicNote"
+            visible: dialog.music
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            color: Theme.textDim
+            font.pixelSize: Theme.fontSmall
+            text: qsTr("Albums first, then artists: an artist that gets its match from an album is not looked up again.")
         }
         RadioButton {
             id: everything

@@ -116,6 +116,19 @@ Item {
             compare(root.calls, [["movies", true, true]])
         }
 
+        function test_musicCountsArtists() {
+            const m = { library: "music", total: 10, matched: 8, review: 1, none: 1, locked: 2, artists: 6, artistsOpen: 3, artistsLocked: 1 }
+            row.info = m
+            verify(part(row, "countsLine").text.indexOf("3 artist") >= 0)
+            dialog.show(m, null)
+            tryVerify(() => dialog.opened)
+            verify(part(dialog.contentItem, "musicNote").visible)
+            compare(dialog.count, 5, "2 albums and 3 artists without a match")
+            dialog.all = true
+            compare(dialog.count, 8 + 5, "all but the chosen: 8 albums and 5 artists")
+            dialog.close()
+        }
+
         function test_nothingToDo() {
             dialog.show({ library: "books", total: 5, review: 0, none: 0, locked: 0 }, null)
             tryVerify(() => dialog.opened)

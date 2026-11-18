@@ -213,7 +213,15 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MatchingLibraryRow.qml" line="126"/>
+        <location filename="../qml/MatchingLibraryRow.qml" line="104"/>
+        <source>%n artist(s) without a match</source>
+        <translation>
+            <numerusform>%n artist without a match</numerusform>
+            <numerusform>%n artists without a match</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="128"/>
         <source>Matching… %1 of %2 · about %n min left</source>
         <translation>
             <numerusform>Matching… %1 of %2 · about %n min left</numerusform>
@@ -375,7 +383,7 @@
 <context>
     <name>RematchDialog</name>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="84"/>
+        <location filename="../qml/RematchDialog.qml" line="87"/>
         <source>The %n item(s) without a sure match. Matched items stay as they are.</source>
         <translation>
             <numerusform>The %n item without a sure match. Matched items stay as they are.</numerusform>
@@ -383,7 +391,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="108"/>
+        <location filename="../qml/RematchDialog.qml" line="120"/>
         <source>All %n item(s), as if they were new. A match is only replaced by a sure one.</source>
         <translation>
             <numerusform>The %n item, as if it were new. A match is only replaced by a sure one.</numerusform>
@@ -391,7 +399,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="141"/>
+        <location filename="../qml/RematchDialog.qml" line="153"/>
         <source>%n item(s). One request a second is allowed: about %1 min.</source>
         <translation>
             <numerusform>%n item. One request a second is allowed: about %1 min.</numerusform>
@@ -399,7 +407,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="142"/>
+        <location filename="../qml/RematchDialog.qml" line="154"/>
         <source>%n item(s): about %1 min.</source>
         <translation>
             <numerusform>%n item: about %1 min.</numerusform>

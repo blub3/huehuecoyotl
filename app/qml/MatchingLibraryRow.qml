@@ -100,7 +100,9 @@ Rectangle {
                 text: [row.totalLine(), qsTr("%1 matched").arg(row.info.matched || 0),
                        qsTr("%n need(s) a choice", "", row.info.review || 0),
                        qsTr("%1 not found").arg(row.info.none || 0),
-                       qsTr("%1 chosen by you").arg(row.info.locked || 0)].join("  ·  ")
+                       qsTr("%1 chosen by you").arg(row.info.locked || 0)]
+                      .concat(row.library === "music" ? [qsTr("%n artist(s) without a match", "", row.info.artistsOpen || 0)] : [])
+                      .join("  ·  ")
             }
             ProgressBar {
                 id: bar
