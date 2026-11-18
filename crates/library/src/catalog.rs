@@ -263,6 +263,10 @@ pub struct Summary {
     /// Issue #79: artists: their albums, and how many of them are Hi-Res.
     pub albums: i64,
     pub hires_albums: i64,
+    /// Issue #80: tracks: the artists' names, the length of the best file, the play count.
+    pub artist: String,
+    pub duration_ms: i64,
+    pub plays: i64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -275,6 +279,11 @@ pub enum Sort {
     Played,
     /// Issue #78: music by play count, most played first (albums by their tracks' plays).
     Plays,
+    /// Issue #80: songs by artist, by album, by length, by quality (best first).
+    Artist,
+    Album,
+    Duration,
+    Quality,
 }
 
 /// Issue #78: the Quality lens and the music filters. Lenses combine (all must hold); an
@@ -471,7 +480,11 @@ const SUMMARY_COLS: &str = concat!("i.id, i.kind, i.title, i.year, i.season_no, 
     CASE WHEN i.kind = 'artist' THEN (SELECT count(*) FROM item a WHERE a.parent_id = i.id AND a.kind = 'album') ELSE 0 END,
     CASE WHEN i.kind = 'artist' THEN (SELECT count(*) FROM item a WHERE a.parent_id = i.id AND a.kind = 'album'
       AND EXISTS (SELECT 1 FROM item t JOIN file f ON f.item_id = t.id JOIN file_audio fa ON fa.file_id = f.id
-        WHERE t.parent_id = a.id AND fa.lossless = 1 AND (coalesce(fa.bit_depth, 0) > 16 OR coalesce(fa.sample_rate, 0) > 48000))) ELSE 0 END");
+        WHERE t.parent_id = a.id AND fa.lossless = 1 AND (coalesce(fa.bit_depth, 0) > 16 OR coalesce(fa.sample_rate, 0) > 48000))) ELSE 0 END,
+    CASE WHEN i.kind = 'track' THEN (SELECT group_concat(ta, ', ') FROM (SELECT a.title AS ta FROM credit c JOIN item a ON a.id = c.artist_id
+      WHERE c.item_id = i.id AND c.role = 'artist' ORDER BY c.position)) ELSE '' END,
+    CASE WHEN i.kind = 'track' THEN (SELECT max(coalesce(fa.duration_ms, 0)) FROM file f JOIN file_audio fa ON fa.file_id = f.id WHERE f.item_id = i.id) ELSE 0 END,
+    coalesce(p.play_count, 0)");
 
 fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
     let mut s = summary_base(r)?;
@@ -507,6 +520,9 @@ fn summary_base(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
         hires: false,
         albums: r.get(21)?,
         hires_albums: r.get(22)?,
+        artist: r.get::<_, Option<String>>(23)?.unwrap_or_default(),
+        duration_ms: r.get::<_, Option<i64>>(24)?.unwrap_or(0),
+        plays: r.get::<_, Option<i64>>(25)?.unwrap_or(0),
         progress: st.progress(),
         watched: st.watched,
         unwatched: r.get(10)?,
@@ -534,12 +550,25 @@ const PLAYS: &str =
     JOIN playstate pt ON pt.item_id = t.id AND pt.profile_id = 1 WHERE t.parent_id = i.id)
     ELSE coalesce(p.play_count, 0) END)";
 
-/// One page of items plus the total count.
-pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
+/// Issue #8: when an item was played last (an album: its tracks' last play).
+const PLAYED: &str = "(CASE WHEN i.kind = 'album' THEN (SELECT max(pt.last_played_at) FROM item t
+    JOIN playstate pt ON pt.item_id = t.id AND pt.profile_id = 1 WHERE t.parent_id = i.id)
+    ELSE p.last_played_at END)";
+
+/// Issue #80: a song's quality for sorting, best first: DSD, then lossless by sample rate and
+/// bit depth, then lossy by bit rate (the best of its files).
+const QUALITY: &str = "(SELECT max(CASE WHEN fa.codec LIKE 'dsd%' THEN 3000000000 + coalesce(fa.sample_rate, 0)
+    WHEN fa.lossless = 1 THEN 2000000000 + coalesce(fa.sample_rate, 0) * 100 + coalesce(fa.bit_depth, 0)
+    ELSE coalesce(fa.bitrate, 0) END) FROM file f JOIN file_audio fa ON fa.file_id = f.id WHERE f.item_id = i.id)";
+const ARTIST_NAME: &str = "(SELECT a.sort_title FROM credit c JOIN item a ON a.id = c.artist_id
+    WHERE c.item_id = i.id AND c.role = 'artist' ORDER BY c.position LIMIT 1)";
+const ALBUM_NAME: &str = "(SELECT al.sort_title FROM item al WHERE al.id = i.parent_id)";
+const DURATION: &str = "(SELECT max(coalesce(fa.duration_ms, 0)) FROM file f JOIN file_audio fa ON fa.file_id = f.id WHERE f.item_id = i.id)";
+
+/// The FROM and WHERE of a browse query, and its ORDER BY.
+fn browse_sql(q: &Query) -> (String, String) {
     let filter = match q.parent {
         Some(_) => "i.parent_id = ?1".to_string(),
-        // Albums and tracks hang below artists and albums, but are listed on their own too.
-        // Audiobooks hang below their series, but are listed on their own too.
         None if q.kind == "album" || q.kind == "track" || q.kind == "audiobook" => {
             "i.kind = ?1".to_string()
         }
@@ -568,10 +597,6 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
         _ => "",
     };
     let music = filter_where(&q.kind, &q.music);
-    const PLAYED: &str =
-        "(CASE WHEN i.kind = 'album' THEN (SELECT max(pt.last_played_at) FROM item t
-        JOIN playstate pt ON pt.item_id = t.id AND pt.profile_id = 1 WHERE t.parent_id = i.id)
-        ELSE p.last_played_at END)";
     let played = if q.sort == Sort::Played && q.parent.is_none() {
         format!(" AND {PLAYED} IS NOT NULL")
     } else {
@@ -586,11 +611,33 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
         (false, Sort::Year) => "i.year DESC, i.sort_title".to_string(),
         (false, Sort::Played) => format!("{PLAYED} DESC, i.sort_title"),
         (false, Sort::Plays) => format!("{PLAYS} DESC, i.sort_title"),
+        (false, Sort::Artist) => format!("{ARTIST_NAME}, {ALBUM_NAME}, i.sort_title"),
+        (false, Sort::Album) => format!("{ALBUM_NAME}, i.id"),
+        (false, Sort::Duration) => format!("{DURATION} DESC, i.sort_title"),
+        (false, Sort::Quality) => format!("{QUALITY} DESC, i.sort_title"),
     };
     let from = format!(
         "FROM item i LEFT JOIN playstate p ON p.item_id = i.id AND p.profile_id = {DEFAULT_PROFILE}
          WHERE {filter} AND {VISIBLE}{unwatched}{saved}{book}{music}{played}"
     );
+    (from, order)
+}
+
+/// Issue #80: the ids a browse query lists, in its order (at most `cap`), for playing them.
+pub fn browse_ids(c: &Connection, q: &Query, cap: u32) -> Result<Vec<i64>> {
+    let (from, order) = browse_sql(q);
+    let key: rusqlite::types::Value = match q.parent {
+        Some(p) => p.into(),
+        None => q.kind.clone().into(),
+    };
+    let mut st = c.prepare(&format!("SELECT i.id {from} ORDER BY {order} LIMIT ?2"))?;
+    let rows = st.query_map(params![key, cap], |r| r.get(0))?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+/// One page of items plus the total count.
+pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
+    let (from, order) = browse_sql(q);
     let key: rusqlite::types::Value = match q.parent {
         Some(p) => p.into(),
         None => q.kind.clone().into(),
@@ -1732,6 +1779,68 @@ mod tests {
         let fc = facets(&c, "artist", &MusicFilter::default(), false).unwrap();
         assert_eq!((fc.all, fc.hires), (2, 1));
         assert_eq!(fc.letters, [("B".to_string(), 0), ("M".to_string(), 1)]);
+    }
+
+    /// Issue #80: songs by quality (best file first), never played, Hi-Res, and their ids in
+    /// order for the queue.
+    #[test]
+    fn songs_sorts_and_filters() {
+        let c = music_fixture();
+        let q = |sort, m| Query {
+            kind: "track".into(),
+            parent: None,
+            sort,
+            unwatched_only: false,
+            saved_only: false,
+            book_filter: "",
+            music: m,
+            offset: 0,
+            limit: 50,
+        };
+        let titles = |q: Query| -> Vec<String> {
+            browse(&c, &q)
+                .unwrap()
+                .1
+                .into_iter()
+                .map(|s| s.title)
+                .collect()
+        };
+        assert_eq!(
+            titles(q(Sort::Quality, MusicFilter::default())),
+            ["So What", "Come Together", "In the Flesh", "1999"]
+        );
+        assert_eq!(
+            titles(q(
+                Sort::Title,
+                MusicFilter {
+                    unplayed: true,
+                    ..Default::default()
+                }
+            )),
+            ["1999", "In the Flesh"]
+        );
+        assert_eq!(
+            titles(q(
+                Sort::Title,
+                MusicFilter {
+                    hires: true,
+                    ..Default::default()
+                }
+            )),
+            ["So What"]
+        );
+        let rows = browse(&c, &q(Sort::Plays, MusicFilter::default()))
+            .unwrap()
+            .1;
+        assert_eq!(
+            (rows[0].title.as_str(), rows[0].plays),
+            ("Come Together", 9)
+        );
+        assert_eq!(rows[0].format, "FLAC 16/44");
+        assert_eq!(
+            browse_ids(&c, &q(Sort::Quality, MusicFilter::default()), 3).unwrap(),
+            [11, 31, 21]
+        );
     }
 
     #[test]

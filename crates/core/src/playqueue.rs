@@ -36,6 +36,13 @@ pub(crate) struct QueueState {
 }
 
 pub(crate) enum Op {
+    /// Issue #80: play what a browse query lists (the Songs list's "Play these"), read here so
+    /// a long list never crosses the bridge.
+    PlayQuery {
+        query: huehuecoyotl_library::catalog::Query,
+        start_item: i64,
+        shuffle: bool,
+    },
     Play {
         items: Vec<i64>,
         start_item: i64,
@@ -76,6 +83,9 @@ enum Then {
     Stop,
     Nothing,
 }
+
+/// Issue #80: the most songs "Play these" queues at once.
+const MAX_QUERY_ITEMS: u32 = 100_000;
 
 fn seed() -> u64 {
     SystemTime::now()
@@ -183,6 +193,31 @@ async fn run(inner: &Arc<Inner>, st: &mut QueueState, op: Op, request_id: u64) -
         st.q = inner.lib.read(queue::load).await?;
         st.loaded = true;
     }
+    let op = match op {
+        Op::PlayQuery {
+            query,
+            start_item,
+            shuffle,
+        } => {
+            let items = inner
+                .lib
+                .read(move |c| {
+                    huehuecoyotl_library::catalog::browse_ids(c, &query, MAX_QUERY_ITEMS)
+                })
+                .await?;
+            if items.is_empty() {
+                return Err(CoreError::new(ErrorKind::NotFound, "Nothing to play."));
+            }
+            Op::Play {
+                items,
+                start_item,
+                shuffle,
+                version: 0,
+                preference: "quality".into(),
+            }
+        }
+        op => op,
+    };
     let expand = |items: Vec<i64>, version: i64, preference: String| {
         let inner = inner.clone();
         let offline = inner.offline.lock().unwrap().clone();
@@ -298,6 +333,8 @@ async fn run(inner: &Arc<Inner>, st: &mut QueueState, op: Op, request_id: u64) -
             save = false;
             Then::Nothing
         }
+        // Turned into Play above.
+        Op::PlayQuery { .. } => Then::Nothing,
         Op::Clear => {
             st.q.clear();
             Then::Stop
@@ -389,6 +426,27 @@ impl Core {
                 shuffle,
                 version,
                 preference: preference.to_string(),
+            },
+        );
+    }
+    /// Issue #80: play what `browse_items` would list for these arguments, from `start_item`
+    /// (0: the first, or a random one with shuffle).
+    pub fn queue_play_query(
+        &self,
+        request_id: u64,
+        kind: &str,
+        sort: &str,
+        filter: &str,
+        start_item: i64,
+        shuffle: bool,
+    ) {
+        let query = crate::library::browse_query(kind, 0, sort, filter, 0, 1);
+        self.queue_op(
+            request_id,
+            Op::PlayQuery {
+                query,
+                start_item,
+                shuffle,
             },
         );
     }

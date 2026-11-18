@@ -113,9 +113,17 @@
 <context>
     <name>MusicPage</name>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="430"/>
-        <location filename="../qml/MusicPage.qml" line="683"/>
-        <location filename="../qml/MusicPage.qml" line="693"/>
+        <location filename="../qml/MusicPage.qml" line="364"/>
+        <source>%n song(s)</source>
+        <translation>
+            <numerusform>%n song</numerusform>
+            <numerusform>%n songs</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MusicPage.qml" line="514"/>
+        <location filename="../qml/MusicPage.qml" line="902"/>
+        <location filename="../qml/MusicPage.qml" line="912"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n album</numerusform>
@@ -123,7 +131,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="430"/>
+        <location filename="../qml/MusicPage.qml" line="514"/>
         <source>%n Hi-Res</source>
         <translation>
             <numerusform>%n Hi-Res</numerusform>
@@ -131,7 +139,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="593"/>
+        <location filename="../qml/MusicPage.qml" line="677"/>
         <source>Appears on %n album(s)</source>
         <translation>
             <numerusform>Appears on %n album</numerusform>
