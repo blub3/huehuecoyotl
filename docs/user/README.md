@@ -322,12 +322,19 @@ skip buttons jump.
 Online, Open Library fills in what your files leave out: a description, the year and a cover
 (a book tagged by MusicBrainz Picard is looked up at MusicBrainz). What your files say is never
 replaced. When Open Library has several books that could be yours, the book waits for you:
-**Search again** on its page shows them to choose from. **Settings → Metadata → Music and
+**Search Open Library…** on its page shows them to choose from. **Settings → Metadata → Music and
 book information online** turns this off.
 
 Books with copy protection (Audible `.aax` and `.aaxc`) are listed with a note but cannot be
 played. Rescans read only books whose files changed, and a book is read by its headers, not
 whole, also on a network share.
+
+**Match a book or an author again.** A book's page has **Match again** and **Search Open
+Library…** (title, author or ISBN, or a pasted Open Library link). Before you choose, the search
+shows field by field what the match would add and that your own metadata stays. An author's page
+shows the photo and biography from Open Library once the author is matched, which happens on its
+own when one of their books is matched; **Search Open Library…** (or **Not this author?**) tells
+authors of the same name apart by which of your books are theirs.
 
 ## Watch without the network: Save and Save as…
 

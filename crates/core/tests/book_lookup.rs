@@ -39,6 +39,7 @@ fn hit(id: &str, title: &str, author: &str, year: u16, cover: Option<i64>) -> Bo
         year: Some(year),
         cover_id: cover,
         languages: vec!["eng".into()],
+        ..Default::default()
     }
 }
 

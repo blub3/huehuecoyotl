@@ -46,6 +46,7 @@ qt_add_qml_module(coyotl
     qml/MatchingLibraryRow.qml
     qml/RematchDialog.qml
     qml/MusicMatch.qml
+    qml/BookMatch.qml
     qml/MiniPlayer.qml
     qml/ActionMenu.qml
     qml/MusicKeyRow.qml

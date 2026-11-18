@@ -343,17 +343,17 @@
 <context>
     <name>BookListPage</name>
     <message>
-        <location filename="../qml/BookListPage.qml" line="52"/>
+        <location filename="../qml/BookListPage.qml" line="58"/>
         <source>Series</source>
         <translation>Reihen</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="52"/>
+        <location filename="../qml/BookListPage.qml" line="58"/>
         <source>Author or narrator</source>
         <translation>Autor oder Sprecher</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/BookListPage.qml" line="68"/>
+        <location filename="../qml/BookListPage.qml" line="74"/>
         <source>%n book(s)</source>
         <translation>
             <numerusform>%n Buch</numerusform>
@@ -361,40 +361,277 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="76"/>
+        <location filename="../qml/BookListPage.qml" line="82"/>
         <source>Continue series</source>
         <translation>Reihe fortsetzen</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="76"/>
+        <location filename="../qml/BookListPage.qml" line="82"/>
         <source>Play the series</source>
         <translation>Reihe abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="108"/>
+        <location filename="../qml/BookListPage.qml" line="127"/>
+        <source>Not matched yet: no photo or biography.</source>
+        <translation>Noch nicht zugeordnet: kein Foto und keine Biografie.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookListPage.qml" line="128"/>
+        <source>Matched through the book “%1”.</source>
+        <translation>Zugeordnet über das Buch „%1“.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookListPage.qml" line="129"/>
+        <source>Matched as you chose.</source>
+        <translation>Zugeordnet, wie du gewählt hast.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookListPage.qml" line="146"/>
+        <source>Match again</source>
+        <translation>Neu zuordnen</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookListPage.qml" line="155"/>
+        <source>Not this author?</source>
+        <translation>Nicht dieser Autor?</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookListPage.qml" line="155"/>
+        <source>Search Open Library…</source>
+        <translation>Bei Open Library suchen …</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookListPage.qml" line="193"/>
         <source>finished</source>
         <translation>gehört</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="108"/>
+        <location filename="../qml/BookListPage.qml" line="193"/>
         <source>in progress</source>
         <translation>angefangen</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="154"/>
+        <location filename="../qml/BookListPage.qml" line="239"/>
         <source>Finished</source>
         <translation>Gehört</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="156"/>
+        <location filename="../qml/BookListPage.qml" line="241"/>
         <source>%1 left</source>
         <translation>noch %1</translation>
     </message>
 </context>
 <context>
+    <name>BookMatch</name>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="33"/>
+        <source>Turn on Music and book information online under Settings → Metadata to look books up at Open Library.</source>
+        <translation>Schalte unter Einstellungen → Metadaten „Musik- und Buchinformationen online“ ein, um Bücher bei Open Library nachzuschlagen.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="79"/>
+        <source>You chose the match of this book yourself. Match it again anyway? A sure match replaces your choice.</source>
+        <translation>Die Zuordnung dieses Buchs hast du selbst gewählt. Trotzdem neu zuordnen? Eine sichere Zuordnung ersetzt deine Wahl.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="80"/>
+        <source>You chose the match of this author yourself. Match it again anyway? A sure match replaces your choice.</source>
+        <translation>Die Zuordnung dieses Autors hast du selbst gewählt. Trotzdem neu zuordnen? Eine sichere Zuordnung ersetzt deine Wahl.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="84"/>
+        <source>Description</source>
+        <translation>Beschreibung</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="85"/>
+        <source>Year</source>
+        <translation>Jahr</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="86"/>
+        <source>Subjects</source>
+        <translation>Themen</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="87"/>
+        <source>Cover</source>
+        <translation>Cover</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="92"/>
+        <source>Title and author agree</source>
+        <translation>Titel und Autor passen</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="93"/>
+        <source>%1 of your %2 books are theirs</source>
+        <translation>%1 deiner %2 Bücher sind von ihnen</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/BookMatch.qml" line="98"/>
+        <source>%n work(s)</source>
+        <translation>
+            <numerusform>%n Werk</numerusform>
+            <numerusform>%n Werke</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="109"/>
+        <source>Matched again: no change, “%1” was already right.</source>
+        <translation>Neu zugeordnet: keine Änderung, „%1“ war schon richtig.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="111"/>
+        <source>Matched again: “%1”.</source>
+        <translation>Neu zugeordnet: „%1“.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="115"/>
+        <source>Several matches fit. Choose one.</source>
+        <translation>Mehrere Zuordnungen passen. Wähle eine aus.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="118"/>
+        <source>Nothing sure was found for “%1”; it stays as it is.</source>
+        <translation>Für „%1“ wurde nichts Sicheres gefunden; es bleibt, wie es ist.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="127"/>
+        <source>Matched: “%1”.</source>
+        <translation>Zugeordnet: „%1“.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="168"/>
+        <source>Keep my choice</source>
+        <translation>Meine Wahl behalten</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="173"/>
+        <source>Match again</source>
+        <translation>Neu zuordnen</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="203"/>
+        <source>Find the book</source>
+        <translation>Buch finden</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="203"/>
+        <source>Find the author</source>
+        <translation>Autor finden</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="206"/>
+        <source>at Open Library</source>
+        <translation>bei Open Library</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="217"/>
+        <source>Title</source>
+        <translation>Titel</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="217"/>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="226"/>
+        <source>Author</source>
+        <translation>Autor</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="237"/>
+        <source>ISBN</source>
+        <translation>ISBN</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="244"/>
+        <source>Search</source>
+        <translation>Suchen</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="255"/>
+        <source>Only fields your files leave empty are filled; your own metadata stays. Or paste an Open Library link or an ISBN.</source>
+        <translation>Nur Felder, die deine Dateien leer lassen, werden gefüllt; deine eigenen Metadaten bleiben. Oder füge einen Open-Library-Link oder eine ISBN ein.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="256"/>
+        <source>Several authors can share a name; their dates, works and your books tell them apart. Or paste an Open Library link.</source>
+        <translation>Mehrere Autoren können denselben Namen tragen; Lebensdaten, Werke und deine Bücher unterscheiden sie. Oder füge einen Open-Library-Link ein.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="262"/>
+        <source>No results. Try another spelling, or leave the author out.</source>
+        <translation>Keine Ergebnisse. Versuch eine andere Schreibweise oder lass den Autor weg.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="275"/>
+        <source>Matches</source>
+        <translation>Zuordnungen</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="315"/>
+        <source>matched now</source>
+        <translation>jetzt zugeordnet</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="335"/>
+        <source>Field</source>
+        <translation>Feld</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="336"/>
+        <source>Yours</source>
+        <translation>Deins</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="337"/>
+        <location filename="../qml/BookMatch.qml" line="354"/>
+        <source>Open Library</source>
+        <translation>Open Library</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="338"/>
+        <source>Shown</source>
+        <translation>Angezeigt</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="354"/>
+        <source>yours</source>
+        <translation>deins</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="367"/>
+        <source>The match is locked. The book&apos;s authors without a match are matched with it.</source>
+        <translation>Die Zuordnung ist fest. Die Autoren des Buchs ohne Zuordnung werden mit zugeordnet.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="368"/>
+        <source>The photo and biography come from Open Library; a biography of your own stays.</source>
+        <translation>Foto und Biografie kommen von Open Library; eine eigene Biografie bleibt.</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="371"/>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="372"/>
+        <source>Use this match</source>
+        <translation>Diese Zuordnung verwenden</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="375"/>
+        <source>↓ to the results · Enter shows the comparison, Enter again chooses · Back closes</source>
+        <translation>↓ zu den Ergebnissen · Enter zeigt den Vergleich, nochmals Enter wählt · Zurück schließt</translation>
+    </message>
+</context>
+<context>
     <name>BookPage</name>
     <message numerus="yes">
-        <location filename="../qml/BookPage.qml" line="90"/>
+        <location filename="../qml/BookPage.qml" line="81"/>
         <source>%n file(s) of this book are in that folder already. Choose another folder.</source>
         <translation>
             <numerusform>%n Datei dieses Buchs liegt schon in diesem Ordner. Wähle einen anderen Ordner.</numerusform>
@@ -402,47 +639,47 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="107"/>
+        <location filename="../qml/BookPage.qml" line="92"/>
         <source>Saving a copy to %1. Progress is under Downloads.</source>
         <translation>Eine Kopie wird nach %1 gespeichert. Den Fortschritt siehst du unter Downloads.</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="191"/>
+        <location filename="../qml/BookPage.qml" line="176"/>
         <source>%1, book %2</source>
         <translation>%1, Band %2</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="193"/>
+        <location filename="../qml/BookPage.qml" line="178"/>
         <source>Open the series</source>
         <translation>Reihe öffnen</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="219"/>
+        <location filename="../qml/BookPage.qml" line="204"/>
         <source>Read by %1</source>
         <translation>Gelesen von %1</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="221"/>
+        <location filename="../qml/BookPage.qml" line="206"/>
         <source>Books read by %1</source>
         <translation>Bücher, gelesen von %1</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="221"/>
+        <location filename="../qml/BookPage.qml" line="206"/>
         <source>Books by %1</source>
         <translation>Bücher von %1</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="235"/>
+        <location filename="../qml/BookPage.qml" line="220"/>
         <source>Finished</source>
         <translation>Gehört</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="237"/>
+        <location filename="../qml/BookPage.qml" line="222"/>
         <source>%1 left</source>
         <translation>noch %1</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/BookPage.qml" line="238"/>
+        <location filename="../qml/BookPage.qml" line="223"/>
         <source>%n chapter(s)</source>
         <translation>
             <numerusform>%n Kapitel</numerusform>
@@ -450,78 +687,63 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="248"/>
+        <location filename="../qml/BookPage.qml" line="233"/>
         <source>This book is copy-protected (Audible). It is listed, but it cannot be played.</source>
         <translation>Dieses Buch ist kopiergeschützt (Audible). Es wird angezeigt, kann aber nicht abgespielt werden.</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="255"/>
-        <source>Several books online could be this one. Choose the right one with “Search again”.</source>
-        <translation>Online passen mehrere Bücher zu diesem. Wähle mit „Erneut suchen“ das richtige.</translation>
+        <location filename="../qml/BookPage.qml" line="240"/>
+        <source>Several books online could be this one. Choose the right one with “Search Open Library…”.</source>
+        <translation>Mehrere Bücher online könnten dieses sein. Wähle das richtige mit „Bei Open Library suchen …“.</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="268"/>
+        <location filename="../qml/BookPage.qml" line="283"/>
+        <source>Match again</source>
+        <translation>Neu zuordnen</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookPage.qml" line="292"/>
+        <source>Search Open Library…</source>
+        <translation>Bei Open Library suchen …</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookPage.qml" line="253"/>
         <source>Pause</source>
         <translation>Pause</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="269"/>
+        <location filename="../qml/BookPage.qml" line="254"/>
         <source>Resume</source>
         <translation>Fortsetzen</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="269"/>
+        <location filename="../qml/BookPage.qml" line="254"/>
         <source>Play</source>
         <translation>Abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="279"/>
+        <location filename="../qml/BookPage.qml" line="264"/>
         <source>Mark as unfinished</source>
         <translation>Als ungehört markieren</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="279"/>
+        <location filename="../qml/BookPage.qml" line="264"/>
         <source>Mark as finished</source>
         <translation>Als gehört markieren</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="296"/>
-        <source>Search again</source>
-        <translation>Erneut suchen</translation>
-    </message>
-    <message>
-        <location filename="../qml/BookPage.qml" line="297"/>
-        <source>Find this book at Open Library and choose the right one</source>
-        <translation>Dieses Buch bei Open Library suchen und das richtige wählen</translation>
-    </message>
-    <message>
-        <location filename="../qml/BookPage.qml" line="319"/>
-        <location filename="../qml/BookPage.qml" line="334"/>
+        <location filename="../qml/BookPage.qml" line="314"/>
+        <location filename="../qml/BookPage.qml" line="329"/>
         <source>Chapters</source>
         <translation>Kapitel</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="346"/>
+        <location filename="../qml/BookPage.qml" line="341"/>
         <source>current chapter</source>
         <translation>aktuelles Kapitel</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="394"/>
-        <source>Which book is this?</source>
-        <translation>Welches Buch ist das?</translation>
-    </message>
-    <message>
-        <location filename="../qml/BookPage.qml" line="403"/>
-        <source>Open Library found nothing for this title and author.</source>
-        <translation>Open Library hat zu diesem Titel und Autor nichts gefunden.</translation>
-    </message>
-    <message>
-        <location filename="../qml/BookPage.qml" line="436"/>
-        <source>Cancel</source>
-        <translation>Abbrechen</translation>
-    </message>
-    <message>
-        <location filename="../qml/BookPage.qml" line="446"/>
+        <location filename="../qml/BookPage.qml" line="392"/>
         <source>Copy the book&apos;s files into</source>
         <translation>Die Dateien des Buchs kopieren nach</translation>
     </message>

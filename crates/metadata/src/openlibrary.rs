@@ -19,7 +19,7 @@ pub const COVERS_BASE: &str = "https://covers.openlibrary.org";
 /// A little over one second: one request per second without a contact address (SPEC v1.12).
 pub const INTERVAL: Duration = Duration::from_millis(1100);
 const RETRIES: u32 = 3;
-const FIELDS: &str = "key,title,author_name,first_publish_year,cover_i,language";
+const FIELDS: &str = "key,title,author_name,author_key,first_publish_year,cover_i,language";
 
 pub struct OpenLibrary {
     http: reqwest::Client,
@@ -141,6 +141,7 @@ pub fn parse_search(v: &Value) -> Vec<BookHit> {
                         .map(|y| y as u16),
                     cover_id: d.get("cover_i").and_then(Value::as_i64).filter(|c| *c > 0),
                     languages: strings(d, "language"),
+                    author_ids: strings(d, "author_key"),
                 })
                 .filter(|h| !h.id.is_empty())
                 .collect()

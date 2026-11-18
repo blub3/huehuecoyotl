@@ -18,11 +18,8 @@ FocusScope {
     property var d: ({})
     property var request: 0
     property var finishRequest: 0
-    property var searchRequest: 0
     property var exportRequest: 0
     property string exportDest: ""
-    property var chooseRequest: 0
-    property var found: []
     readonly property bool loaded: d.id !== undefined
     readonly property var chapters: d.chapters || []
     readonly property bool current: Book.bookId === page.itemId
@@ -73,13 +70,7 @@ FocusScope {
     Connections {
         target: Core
         function onMusicDetailReady(requestId, kind, detail) {
-            if (requestId === page.searchRequest) {
-                page.searchRequest = 0
-                page.found = detail.candidates || []
-                searchDialog.open()
-                return
-            }
-            if (requestId !== page.request && requestId !== page.finishRequest && requestId !== page.chooseRequest) return
+            if (requestId !== page.request && requestId !== page.finishRequest) return
             const first = !page.loaded
             page.d = detail
             if (first) playButton.forceActiveFocus()
@@ -92,12 +83,6 @@ FocusScope {
         function onRequestFailed(requestId, kind, message) {
             if (requestId === page.saveRequest || requestId === page.exportRequest || requestId === page.finishRequest)
                 (page.Window.window as Main).showError(message)
-            if (requestId === page.searchRequest) {
-                page.searchRequest = 0
-                page.found = []
-                searchDialog.message = message
-                searchDialog.open()
-            }
         }
         function onSaveStateReady(requestId, id, info) { if (id === page.itemId) page.sv = info }
         function onDownloadsListed(requestId) {
@@ -252,14 +237,16 @@ FocusScope {
                         Label {
                             Layout.fillWidth: true
                             visible: page.d.matchState === "needs_review"
-                            text: qsTr("Several books online could be this one. Choose the right one with “Search again”.")
+                            text: qsTr("Several books online could be this one. Choose the right one with “Search Open Library…”.")
                             color: Theme.textDim
                             font.pixelSize: Theme.fontSmall
                             wrapMode: Text.Wrap
                         }
-                        RowLayout {
+                        // Wraps when the window is narrow (issue #108 added two buttons).
+                        Flow {
                             spacing: 12
                             Layout.topMargin: 8
+                            Layout.fillWidth: true
                             FocusButton {
                                 id: playButton
                                 primary: true
@@ -287,18 +274,28 @@ FocusScope {
                                 sv: page.sv
                                 networkFile: page.onNetwork
                                 KeyNavigation.left: finishButton
-                                KeyNavigation.right: searchButton
+                                KeyNavigation.right: matchButton
                                 KeyNavigation.down: chapterList.count > 0 ? chapterList : null
                                 onTriggered: (action) => page.saveAction(action)
                             }
+                            // Issues #108 and #109: replaces "Search again".
+                            FocusButton {
+                                id: matchButton
+                                objectName: "bookMatchAgain"
+                                text: qsTr("Match again")
+                                KeyNavigation.left: saveMenu
+                                KeyNavigation.right: searchButton
+                                KeyNavigation.down: chapterList.count > 0 ? chapterList : null
+                                onClicked: bookMatch.again(page.itemId, "audiobook", page.d.title, matchButton)
+                            }
                             FocusButton {
                                 id: searchButton
-                                text: qsTr("Search again")
-                                tip: qsTr("Find this book at Open Library and choose the right one")
-                                visible: Core.musicOnline
-                                KeyNavigation.left: saveMenu
+                                objectName: "bookSearch"
+                                text: qsTr("Search Open Library…")
+                                KeyNavigation.left: matchButton
                                 KeyNavigation.down: chapterList.count > 0 ? chapterList : null
-                                onClicked: page.searchRequest = Core.searchBook(page.itemId)
+                                onClicked: bookMatch.search(page.itemId, "audiobook", page.d.title,
+                                                            (page.d.authors || []).length > 0 ? page.d.authors[0].name : "", searchButton)
                             }
                         }
                     }
@@ -384,60 +381,11 @@ FocusScope {
         }
     }
 
-    // "Search again" (issue #67): the works Open Library has for the title and author.
-    Dialog {
-        id: searchDialog
-        property string message: ""
-        anchors.centerIn: parent
-        width: Math.min(640, page.width - 64)
-        modal: true
-        title: qsTr("Which book is this?")
-        onOpened: if (resultList.count > 0) resultList.forceActiveFocus(); else closeButton.forceActiveFocus()
-        onClosed: { message = ""; searchButton.forceActiveFocus() }
-        ColumnLayout {
-            anchors.fill: parent
-            spacing: 12
-            Label {
-                Layout.fillWidth: true
-                visible: page.found.length === 0
-                text: searchDialog.message !== "" ? searchDialog.message : qsTr("Open Library found nothing for this title and author.")
-                color: Theme.textDim
-                wrapMode: Text.Wrap
-            }
-            ListView {
-                id: resultList
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(contentHeight, 360)
-                clip: true
-                model: page.found
-                keyNavigationEnabled: true
-                Keys.onDownPressed: (e) => { if (currentIndex === count - 1) closeButton.forceActiveFocus(); else e.accepted = false }
-                delegate: ItemDelegate {
-                    id: hit
-                    required property var modelData
-                    required property int index
-                    width: resultList.width
-                    text: modelData.title + (modelData.authors ? " — " + modelData.authors : "") + (modelData.year ? " (" + modelData.year + ")" : "")
-                    highlighted: resultList.activeFocus && resultList.currentIndex === index
-                    onClicked: { resultList.currentIndex = index; resultList.choose() }
-                }
-                function choose() {
-                    const h = page.found[currentIndex]
-                    if (!h) return
-                    page.chooseRequest = Core.chooseBookMatch(page.itemId, h.id)
-                    searchDialog.close()
-                }
-                Keys.onReturnPressed: choose()
-                Keys.onEnterPressed: choose()
-            }
-            FocusButton {
-                id: closeButton
-                Layout.alignment: Qt.AlignRight
-                text: qsTr("Cancel")
-                Keys.onUpPressed: if (resultList.count > 0) resultList.forceActiveFocus()
-                onClicked: searchDialog.close()
-            }
-        }
+    BookMatch {
+        id: bookMatch
+        backend: Core
+        onNotice: (text) => (page.Window.window as Main).showError(text)
+        onChanged: page.load()
     }
 
     // "Save as…": all of the book's files into a folder.

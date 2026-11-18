@@ -6,6 +6,7 @@
 //! cancelled; errors carry an [`ErrorKind`]; panics never escape a task.
 
 mod books;
+mod books_matching;
 /// Issue #66: chapter navigation on a book's timeline, for the player (pure).
 pub mod booktime {
     pub use huehuecoyotl_library::books::{end_of_chapter, next_chapter, previous_chapter};

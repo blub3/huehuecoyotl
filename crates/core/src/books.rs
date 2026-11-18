@@ -212,7 +212,11 @@ pub(crate) async fn match_book(inner: &Arc<Inner>, id: i64) -> Result<(), MetaEr
         (hits, false)
     };
     match decide(&hits, &t.title, &t.authors, by_isbn) {
-        BookDecision::Matched(h) => apply_work(inner, &*p, &t, &h, None, false).await?,
+        BookDecision::Matched(h) => {
+            apply_work(inner, &*p, &t, &h, None, false).await?;
+            // Issue #109: authors without a match follow the work's.
+            crate::books_matching::follow_authors(inner, id, &h.author_ids).await?;
+        }
         BookDecision::Review(hits) => {
             let cands = candidates(&hits);
             inner

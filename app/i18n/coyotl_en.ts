@@ -53,7 +53,7 @@
 <context>
     <name>BookListPage</name>
     <message numerus="yes">
-        <location filename="../qml/BookListPage.qml" line="68"/>
+        <location filename="../qml/BookListPage.qml" line="74"/>
         <source>%n book(s)</source>
         <translation>
             <numerusform>%n book</numerusform>
@@ -62,9 +62,20 @@
     </message>
 </context>
 <context>
+    <name>BookMatch</name>
+    <message numerus="yes">
+        <location filename="../qml/BookMatch.qml" line="98"/>
+        <source>%n work(s)</source>
+        <translation>
+            <numerusform>%n work</numerusform>
+            <numerusform>%n works</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>BookPage</name>
     <message numerus="yes">
-        <location filename="../qml/BookPage.qml" line="90"/>
+        <location filename="../qml/BookPage.qml" line="81"/>
         <source>%n file(s) of this book are in that folder already. Choose another folder.</source>
         <translation>
             <numerusform>%n file of this book is in that folder already. Choose another folder.</numerusform>
@@ -72,7 +83,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/BookPage.qml" line="238"/>
+        <location filename="../qml/BookPage.qml" line="223"/>
         <source>%n chapter(s)</source>
         <translation>
             <numerusform>%n chapter</numerusform>
