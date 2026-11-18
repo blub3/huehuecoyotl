@@ -321,6 +321,29 @@ impl MetadataProvider for Tmdb {
         })
     }
 
+    async fn find_imdb(&self, imdb: &str) -> Result<Vec<(MediaType, Candidate)>> {
+        let id: String = imdb.chars().filter(char::is_ascii_alphanumeric).collect();
+        let v = self
+            .get(
+                &format!("/find/{id}"),
+                &[
+                    ("external_source", "imdb_id".to_string()),
+                    ("language", self.language.clone()),
+                ],
+            )
+            .await?;
+        let mut out = Vec::new();
+        for (key, ty) in [
+            ("movie_results", MediaType::Movie),
+            ("tv_results", MediaType::Show),
+        ] {
+            for r in v[key].as_array().into_iter().flatten() {
+                out.push((ty, Self::candidate(ty, r)));
+            }
+        }
+        Ok(out)
+    }
+
     async fn image(&self, path: &str, size: &str) -> Result<Bytes> {
         self.throttle().await;
         let url = format!("{}/{}{}", self.image_base, size, path);
@@ -463,5 +486,25 @@ mod tests {
         assert_eq!(s.episodes[0].title, "Eins");
         assert_eq!(s.episodes[0].year, Some(2010));
         assert_eq!(s.poster_path, None);
+    }
+
+    #[tokio::test]
+    async fn find_by_imdb_id() {
+        let (srv, t) = server().await;
+        Mock::given(method("GET"))
+            .and(path("/find/tt0133093"))
+            .and(query_param("external_source", "imdb_id"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "movie_results": [{"id": 603, "title": "Matrix", "original_title": "The Matrix",
+                                   "release_date": "1999-03-30", "poster_path": "/m.jpg"}],
+                "tv_results": [], "person_results": []
+            })))
+            .expect(1)
+            .mount(&srv)
+            .await;
+        let r = t.find_imdb("tt0133093").await.unwrap();
+        assert_eq!(r.len(), 1);
+        assert_eq!(r[0].0, MediaType::Movie);
+        assert_eq!((r[0].1.id, r[0].1.year), (603, Some(1999)));
     }
 }

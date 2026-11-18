@@ -18,11 +18,11 @@ use serde_json::json;
 use crate::{Event, Inner};
 
 pub const SCAN_KINDS: &[&str] = &["scan", "tiers", "regroup"];
-pub const META_KINDS: &[&str] = &["match", "details", "artwork"];
+pub const META_KINDS: &[&str] = &["match", "details", "artwork", "rematch_video"];
 /// Issue #11: music lookups have their own worker; MusicBrainz's pace never holds up TMDB.
-pub const MUSIC_KINDS: &[&str] = &["music_match", "music_artist"];
+pub const MUSIC_KINDS: &[&str] = &["music_match", "music_artist", "rematch_music"];
 /// Issue #67: book lookups (Open Library's pace) have their own worker too.
-pub const BOOK_KINDS: &[&str] = &["book_match"];
+pub const BOOK_KINDS: &[&str] = &["book_match", "rematch_book"];
 
 enum Outcome {
     Done,
@@ -121,6 +121,17 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
             }
             Err(e) => Err(e.to_string()),
         },
+        // Issue #92: one item of a library rematch.
+        "rematch_video" | "rematch_music" | "rematch_book" => {
+            match crate::matching::run_job(inner, payload).await {
+                Ok(()) => Ok(()),
+                Err(MetaError::RateLimited(s)) => {
+                    return Outcome::Retry("rate limited".into(), Some(s as i64));
+                }
+                Err(MetaError::Auth) => return Outcome::Defer(600),
+                Err(e) => Err(e.to_string()),
+            }
+        }
         "match" | "details" | "artwork" => {
             let Some(p) = inner.provider() else {
                 return Outcome::Defer(300);

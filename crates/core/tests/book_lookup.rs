@@ -73,6 +73,7 @@ impl BookProvider for Books {
             subjects: vec!["Fiction".into()],
             year: Some(1950),
             cover_ids: vec![44],
+            ..Default::default()
         })
     }
     async fn cover(&self, id: i64) -> Result<Option<Bytes>> {

@@ -50,6 +50,9 @@ fn usage() -> ExitCode {
          \x20      | music keys | music key theaudiodb|fanarttv (key from COYOTL_MUSIC_KEY; none removes it)\n\
          \x20      | library add PATH --audiobooks | books | authors | series | book ID (audiobooks; a book with its chapters, a series' or person's books)\n\
          \x20      | book search ID [TITLE [AUTHOR]] | book choose ID WORK (find and pick a book's Open Library work)\n\
+         \x20      | match ID [--unlock] (match an item again) | match search ID [TEXT|ID|LINK] [--year Y] [--kind movie|show]\n\
+         \x20        [--artist A] [--author A] [--isbn I] | match choose ID PROVIDER_ID [KIND] (search and choose by hand)\n\
+         \x20      | library rematch movies|shows|music|books [--all] [--include-locked] | library rematch status|stop LIBRARY\n\
          \x20      | queue | queue play|shuffle|next|add ID... | queue clear (the music play queue; tracks, albums or artists)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
          \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
@@ -443,6 +446,70 @@ fn main() -> ExitCode {
         ("book", [sub, id, work]) if sub == "choose" => {
             let Ok(id) = id.parse() else { return usage() };
             core.choose_book_match(1, id, work);
+            wait()
+        }
+        // Issue #92: matching again, searching and choosing by hand, library rematches.
+        ("match", [id, rest @ ..])
+            if rest.iter().all(|a| a == "--unlock") && id != "search" && id != "choose" =>
+        {
+            let Ok(id) = id.parse() else { return usage() };
+            core.match_again(1, id, !rest.is_empty());
+            wait()
+        }
+        ("match", [sub, id, words @ ..]) if sub == "search" => {
+            let Ok(id) = id.parse() else { return usage() };
+            let mut q = serde_json::Map::new();
+            let mut text = Vec::new();
+            let mut it = words.iter();
+            while let Some(w) = it.next() {
+                match w.as_str() {
+                    "--year" | "--kind" | "--artist" | "--author" | "--isbn" => {
+                        let Some(v) = it.next() else { return usage() };
+                        let key = &w[2..];
+                        let value = if key == "year" {
+                            serde_json::json!(v.parse::<u64>().unwrap_or(0))
+                        } else {
+                            serde_json::json!(v)
+                        };
+                        q.insert(key.to_string(), value);
+                    }
+                    _ => text.push(w.as_str()),
+                }
+            }
+            q.insert("text".into(), serde_json::json!(text.join(" ")));
+            core.match_search(1, id, &serde_json::Value::Object(q).to_string());
+            wait()
+        }
+        ("match", [sub, id, provider_id, rest @ ..]) if sub == "choose" && rest.len() <= 1 => {
+            let Ok(id) = id.parse() else { return usage() };
+            let mut choice = serde_json::json!({ "id": provider_id });
+            if let Some(kind) = rest.first() {
+                choice["kind"] = serde_json::json!(kind);
+            }
+            core.match_choose(1, id, &choice.to_string());
+            wait()
+        }
+        ("library", [sub, what]) if sub == "rematch" && what == "status" => {
+            core.matching_status(1);
+            wait()
+        }
+        ("library", [sub, what, library]) if sub == "rematch" && what == "stop" => {
+            core.rematch_stop(1, library);
+            wait()
+        }
+        ("library", [sub, library, flags @ ..])
+            if sub == "rematch"
+                && flags
+                    .iter()
+                    .all(|f| f == "--all" || f == "--include-locked") =>
+        {
+            let all = flags.iter().any(|f| f == "--all");
+            let locked = flags.iter().any(|f| f == "--include-locked");
+            core.rematch_library(1, library, all, locked);
+            let _ = wait();
+            // Follow the run: the status once nothing is left in the queue.
+            settle();
+            core.matching_status(2);
             wait()
         }
         ("movies" | "shows", []) => {

@@ -15,6 +15,7 @@ mod download;
 mod extras;
 pub mod lang;
 mod library;
+mod matching;
 mod music;
 mod network;
 mod playlists;
@@ -662,6 +663,8 @@ impl Core {
                 }
             }
             worker::spawn_workers(&start);
+            // Issue #92: a library rematch waiting from the last session.
+            matching::kick(&start).await;
             download::spawn_worker(&start);
             network::spawn_reconnect(&start);
         });

@@ -528,7 +528,7 @@ pub fn target(c: &Connection, id: i64) -> Result<Option<BookTarget>> {
 /// week. Books with copy protection too: their pages show the same information.
 pub fn due(c: &Connection, now: i64) -> Result<Vec<i64>> {
     let mut st = c.prepare(
-        "SELECT id FROM item WHERE kind = 'audiobook'
+        "SELECT id FROM item WHERE kind = 'audiobook' AND locked = 0
            AND coalesce(match_state, 'unmatched') IN ('unmatched', 'needs_review')
            AND (meta_fetched_at IS NULL OR meta_fetched_at < ?1)",
     )?;

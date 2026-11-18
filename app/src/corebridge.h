@@ -130,6 +130,16 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 searchBook(qint64 id, const QString &title = QString(),
                                    const QString &author = QString());
     Q_INVOKABLE quint64 chooseBookMatch(qint64 id, const QString &work);
+    // Issue #92: matching again (all answer with musicDetailReady): "matchAgain" (itemId,
+    // newItemId, result: unchanged, newly, changed, review, notFound or locked), "matchCandidates"
+    // (itemId, itemKind, current, candidates), "matchChosen" (itemId, newItemId) and "matching"
+    // (libraries: counts, run, blocked).
+    Q_INVOKABLE quint64 matchAgain(qint64 itemId, bool unlock = false);
+    Q_INVOKABLE quint64 matchSearch(qint64 itemId, const QVariantMap &query);
+    Q_INVOKABLE quint64 matchChoose(qint64 itemId, const QVariantMap &choice);
+    Q_INVOKABLE quint64 rematchLibrary(const QString &library, bool all, bool includeLocked);
+    Q_INVOKABLE quint64 rematchStop(const QString &library);
+    Q_INVOKABLE quint64 matchingStatus();
     Q_INVOKABLE quint64 bookPlay(qint64 book, qint64 positionMs = -1);
     void bookProgress(qint64 book, qint64 positionMs);
     Q_INVOKABLE quint64 bookMarkFinished(qint64 book, bool finished);
