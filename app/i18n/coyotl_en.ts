@@ -111,6 +111,106 @@
     </message>
 </context>
 <context>
+    <name>MatchingLibraryRow</name>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="54"/>
+        <source>%n movie(s)</source>
+        <translation>
+            <numerusform>%n movie</numerusform>
+            <numerusform>%n movies</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="55"/>
+        <source>%n show(s)</source>
+        <translation>
+            <numerusform>%n show</numerusform>
+            <numerusform>%n shows</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="55"/>
+        <source>%n episode(s)</source>
+        <translation>
+            <numerusform>%n episode</numerusform>
+            <numerusform>%n episodes</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="56"/>
+        <source>%n album(s)</source>
+        <translation>
+            <numerusform>%n album</numerusform>
+            <numerusform>%n albums</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="56"/>
+        <source>%n song(s)</source>
+        <translation>
+            <numerusform>%n song</numerusform>
+            <numerusform>%n songs</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="57"/>
+        <source>%n artist(s)</source>
+        <translation>
+            <numerusform>%n artist</numerusform>
+            <numerusform>%n artists</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="58"/>
+        <source>%n book(s)</source>
+        <translation>
+            <numerusform>%n book</numerusform>
+            <numerusform>%n books</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="58"/>
+        <source>%n author(s)</source>
+        <translation>
+            <numerusform>%n author</numerusform>
+            <numerusform>%n authors</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="64"/>
+        <source>%n newly matched</source>
+        <translation>
+            <numerusform>%n newly matched</numerusform>
+            <numerusform>%n newly matched</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="64"/>
+        <source>%n changed</source>
+        <translation>
+            <numerusform>%n changed</numerusform>
+            <numerusform>%n changed</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="65"/>
+        <location filename="../qml/MatchingLibraryRow.qml" line="101"/>
+        <source>%n need(s) a choice</source>
+        <translation>
+            <numerusform>%n needs a choice</numerusform>
+            <numerusform>%n need a choice</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="126"/>
+        <source>Matching… %1 of %2 · about %n min left</source>
+        <translation>
+            <numerusform>Matching… %1 of %2 · about %n min left</numerusform>
+            <numerusform>Matching… %1 of %2 · about %n min left</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>MediaInfo</name>
     <message numerus="yes">
         <location filename="../qml/MediaInfo.js" line="93"/>
@@ -239,6 +339,41 @@
         <translation>
             <numerusform>%n version</numerusform>
             <numerusform>%n versions</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>RematchDialog</name>
+    <message numerus="yes">
+        <location filename="../qml/RematchDialog.qml" line="82"/>
+        <source>The %n item(s) without a sure match. Matched items stay as they are.</source>
+        <translation>
+            <numerusform>The %n item without a sure match. Matched items stay as they are.</numerusform>
+            <numerusform>The %n items without a sure match. Matched items stay as they are.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/RematchDialog.qml" line="104"/>
+        <source>All %n item(s), as if they were new. A match is only replaced by a sure one.</source>
+        <translation>
+            <numerusform>The %n item, as if it were new. A match is only replaced by a sure one.</numerusform>
+            <numerusform>All %n items, as if they were new. A match is only replaced by a sure one.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/RematchDialog.qml" line="135"/>
+        <source>%n item(s). One request a second is allowed: about %1 min.</source>
+        <translation>
+            <numerusform>%n item. One request a second is allowed: about %1 min.</numerusform>
+            <numerusform>%n items. One request a second is allowed: about %1 min.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/RematchDialog.qml" line="136"/>
+        <source>%n item(s): about %1 min.</source>
+        <translation>
+            <numerusform>%n item: about %1 min.</numerusform>
+            <numerusform>%n items: about %1 min.</numerusform>
         </translation>
     </message>
 </context>

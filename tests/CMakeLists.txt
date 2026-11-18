@@ -9,7 +9,9 @@ set(_ui_files Theme.qml FocusButton.qml TrackMenu.qml PlayerControls.qml
   # Issue #52: the TMDB key status in Settings.
   TmdbKeyStatus.qml
   # Issue #83: the full-screen Now Playing view.
-  MusicFullScreen.qml)
+  MusicFullScreen.qml
+  # Issues #93 to #96: Settings → Matching.
+  MatchingLibraryRow.qml RematchDialog.qml)
 file(MAKE_DIRECTORY "${_ui_dir}")
 set(_qmldir "module CoyotlUi\nsingleton Theme 1.0 Theme.qml\n")
 foreach(f IN LISTS _ui_files)

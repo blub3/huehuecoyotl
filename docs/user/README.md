@@ -109,6 +109,14 @@ it puts the item on the **Review matches** list in Settings. Choose the right on
 use **Fix match** on the item's page to search by any title and year. Your choice is never
 changed by later scans.
 
+**Match a whole library again.** **Settings → Matching** lists your movies, TV shows, music and
+audiobooks with how many are matched, need a choice, were not found or were chosen by you.
+**Match again…** looks a library up once more: only the items without a sure match (the
+default), or everything. Matches you chose yourself stay unless you untick **Keep the matches you
+chose yourself**, and a match is only replaced by a sure one. One library runs at a time, in the
+background; you can keep playing, stop it, or close the app: it goes on after the next start.
+Music and audiobooks need **Music and book information online**, movies and shows a TMDB key.
+
 ## Browse and play
 
 - **Home** shows *Continue watching* and *Recently added*.

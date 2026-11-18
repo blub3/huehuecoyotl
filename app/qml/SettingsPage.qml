@@ -52,7 +52,47 @@ FocusScope {
         }
     }
 
-    Component.onCompleted: { storageRequest = Core.downloads(); Core.musicKeys() }
+    Component.onCompleted: { storageRequest = Core.downloads(); Core.musicKeys(); matchingRequest = Core.matchingStatus() }
+
+    // Issues #93 to #96: Settings → Matching. The status comes from Core.matchingStatus(); it is
+    // asked again every few seconds while the page is shown, every second while a library runs.
+    property var matching: ({ libraries: [] })
+    property var matchingRequest: 0
+    property string matchingMessage: ""
+    readonly property bool matchingBusy: (matching.libraries || []).some(l => l.run && (l.run.state === "running" || l.run.state === "waiting"))
+    readonly property int reviewCount: (matching.libraries || []).filter(l => l.library === "movies" || l.library === "shows")
+                                                                  .reduce((n, l) => n + (l.review || 0), 0)
+    readonly property string runningName: {
+        const r = (matching.libraries || []).find(l => l.run && l.run.state === "running")
+        if (!r) return ""
+        return { movies: qsTr("movies"), shows: qsTr("TV shows"), music: qsTr("music"), books: qsTr("audiobooks") }[r.library] || ""
+    }
+    function focusMatchRow(i) {
+        const r = matchRows.itemAt(Math.max(0, Math.min(i, matchRows.count - 1)))
+        if (r) r.firstButton.forceActiveFocus(); else windowSizes.focusSelected()
+    }
+    Timer {
+        interval: page.matchingBusy ? 1000 : 5000
+        running: page.visible
+        repeat: true
+        onTriggered: Core.matchingStatus()
+    }
+    RematchDialog {
+        id: rematchDialog
+        onStartRequested: (library, all, includeLocked) => {
+            page.matchingMessage = ""
+            page.matchingRequest = Core.rematchLibrary(library, all, includeLocked)
+        }
+    }
+    Connections {
+        target: Core
+        function onMusicDetailReady(requestId, kind, detail) {
+            if (kind === "matching") page.matching = detail
+        }
+        function onRequestFailed(requestId, kind, message) {
+            if (requestId === page.matchingRequest) page.matchingMessage = message
+        }
+    }
 
     // One cover-size setting: a label and Small / Medium / Large, moved through with the arrows.
     component SizeChoice: RowLayout {
@@ -100,7 +140,7 @@ FocusScope {
         if (!page.activeFocus) return
         if (keyStatus.activeFocus) return
         for (const c of [keyField, saveKey, cancelReplace, reviewButton, musicOnline, exportButton, noticesButton]) if (c.activeFocus) return
-        (keyStatus.firstButton || (page.showKeyField ? keyField : reviewButton)).forceActiveFocus()
+        (keyStatus.firstButton || (page.showKeyField ? keyField : musicOnline)).forceActiveFocus()
     }
     onActiveFocusChanged: if (activeFocus) Qt.callLater(focusFirst)
 
@@ -171,7 +211,7 @@ FocusScope {
                 keyState: Core.tmdbKeyState
                 validatedAt: Core.tmdbKeyValidatedAt
                 busy: page.keyBusy
-                downTarget: page.showKeyField ? keyField : reviewButton
+                downTarget: page.showKeyField ? keyField : musicOnline
                 onLeftEdge: Nav.focusRail()
                 onReplaceRequested: { page.replacing = true; page.keyMessage = ""; Qt.callLater(() => keyField.forceActiveFocus()) }
                 onTestRequested: { page.keyBusy = true; page.keyTesting = true; page.keyMessage = ""; page.keyNote = ""; page.keyRequest = Core.testTmdbKey() }
@@ -206,7 +246,7 @@ FocusScope {
                     Accessible.name: qsTr("TMDB API key")
                     KeyNavigation.right: saveKey
                     KeyNavigation.up: keyStatus.firstButton
-                    KeyNavigation.down: reviewButton
+                    KeyNavigation.down: musicOnline
                     Keys.onLeftPressed: (e) => { if (cursorPosition === 0) Nav.focusRail(); else e.accepted = false }
                     onAccepted: saveKey.clicked()
                     background: Rectangle {
@@ -225,7 +265,7 @@ FocusScope {
                     KeyNavigation.left: keyField
                     KeyNavigation.right: cancelReplace.visible ? cancelReplace : null
                     KeyNavigation.up: keyStatus.firstButton
-                    KeyNavigation.down: reviewButton
+                    KeyNavigation.down: musicOnline
                     onClicked: { page.keyBusy = true; page.keyMessage = ""; page.keyRequest = Core.setTmdbKey(keyField.text) }
                 }
                 FocusButton {
@@ -233,34 +273,12 @@ FocusScope {
                     visible: page.replacing
                     text: qsTr("Cancel")
                     KeyNavigation.left: saveKey
-                    KeyNavigation.down: reviewButton
+                    KeyNavigation.down: musicOnline
                     onClicked: { page.replacing = false; keyField.text = ""; keyStatus.firstButton.forceActiveFocus() }
                 }
             }
             Label { visible: page.keyNote !== ""; text: page.keyNote; color: Theme.accent; Layout.fillWidth: true; wrapMode: Text.Wrap }
             Label { visible: page.keyMessage !== ""; text: page.keyMessage; color: Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
-
-            RowLayout {
-                spacing: 12
-                Layout.topMargin: 6
-                FocusButton {
-                    id: reviewButton
-                    text: qsTr("Review matches")
-                    KeyNavigation.up: page.showKeyField ? keyField : keyStatus.firstButton
-                    KeyNavigation.down: musicOnline
-                    Keys.onLeftPressed: Nav.focusRail()
-                    onClicked: Nav.open(Qt.resolvedUrl("ReviewPage.qml"))
-                }
-                Label {
-                    text: Core.pendingJobs > 0 ? qsTr("%1 tasks queued").arg(Core.pendingJobs) : ""
-                    color: Theme.textDim
-                }
-                Label {
-                    visible: Core.failedJobs > 0
-                    text: qsTr("%1 failed (see the log)").arg(Core.failedJobs)
-                    color: Theme.danger
-                }
-            }
 
             // Issue #11: music information online, or from file tags only.
             RowLayout {
@@ -273,7 +291,7 @@ FocusScope {
                     glyph: Core.musicOnline ? "✓" : ""
                     text: Core.musicOnline ? qsTr("Music and book information online: on") : qsTr("Music and book information online: off")
                     Accessible.description: musicNote.text
-                    KeyNavigation.up: reviewButton
+                    KeyNavigation.up: page.showKeyField ? keyField : keyStatus.firstButton
                     Keys.onDownPressed: audioDbKey.firstItem.forceActiveFocus()
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: Core.musicOnline = !Core.musicOnline
@@ -325,7 +343,62 @@ FocusScope {
                 onSaveRequested: (key) => page.setMusicKey("fanarttv", key)
                 onRemoveRequested: page.setMusicKey("fanarttv", "")
                 onUpRequested: audioDbKey.firstItem.forceActiveFocus()
-                onDownRequested: windowSizes.focusSelected()
+                onDownRequested: reviewButton.forceActiveFocus()
+            }
+
+            // ---- Matching (issues #93 to #96) ------------------------------------------------
+            Label { text: qsTr("Matching"); color: Theme.textDim; font.pixelSize: Theme.fontLarge; Layout.topMargin: 24 }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.text
+                text: qsTr("Look up a whole library again, for example after a provider fixed its data or after you renamed many files. Your own metadata from tags, NFO and OPF files is never replaced. Items with several possible matches wait under Review matches.")
+            }
+            RowLayout {
+                spacing: 12
+                FocusButton {
+                    id: reviewButton
+                    objectName: "reviewButton"
+                    text: page.reviewCount > 0 ? qsTr("Review matches (%1)").arg(page.reviewCount) : qsTr("Review matches")
+                    Keys.onUpPressed: fanartKey.firstItem.forceActiveFocus()
+                    Keys.onDownPressed: page.focusMatchRow(0)
+                    Keys.onLeftPressed: Nav.focusRail()
+                    onClicked: Nav.open(Qt.resolvedUrl("ReviewPage.qml"))
+                }
+                Label {
+                    text: Core.pendingJobs > 0 ? qsTr("%1 tasks queued").arg(Core.pendingJobs) : ""
+                    color: Theme.textDim
+                }
+                Label {
+                    visible: Core.failedJobs > 0
+                    text: qsTr("%1 failed (see the log)").arg(Core.failedJobs)
+                    color: Theme.danger
+                }
+            }
+            Repeater {
+                id: matchRows
+                model: page.matching.libraries || []
+                MatchingLibraryRow {
+                    id: libRow
+                    required property var modelData
+                    required property int index
+                    Layout.fillWidth: true
+                    info: modelData
+                    runningName: page.runningName
+                    onStartRequested: rematchDialog.show(libRow.modelData, libRow.firstButton)
+                    onStopRequested: page.matchingRequest = Core.rematchStop(libRow.modelData.library)
+                    onUpRequested: libRow.index === 0 ? reviewButton.forceActiveFocus() : page.focusMatchRow(libRow.index - 1)
+                    onDownRequested: libRow.index === matchRows.count - 1 ? windowSizes.focusSelected() : page.focusMatchRow(libRow.index + 1)
+                    onLeftEdge: Nav.focusRail()
+                }
+            }
+            Label { visible: page.matchingMessage !== ""; text: page.matchingMessage; color: Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.textDim
+                font.pixelSize: Theme.fontSmall
+                text: qsTr("One library at a time; the others wait in line. Playing and browsing go on while it runs, and it continues after a restart.")
             }
 
             // ---- Appearance ----------------------------------------------------------------
@@ -335,7 +408,7 @@ FocusScope {
                 label: qsTr("Cover size in window")
                 value: Appearance.coverWindow
                 onPicked: (key) => Appearance.coverWindow = key
-                onUpRequested: fanartKey.firstItem.forceActiveFocus()
+                onUpRequested: page.focusMatchRow(matchRows.count - 1)
                 onDownRequested: fullscreenSizes.focusSelected()
             }
             SizeChoice {
