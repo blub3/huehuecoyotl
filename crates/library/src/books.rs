@@ -914,6 +914,134 @@ pub fn person_books(c: &Connection, person: i64) -> Result<Vec<BookCard>> {
     )
 }
 
+// ---- authors (2.7, issues #109 and #110) ------------------------------------------------------
+
+/// What an author's match needs: the name, the Open Library id, the lock and the titles of the
+/// person's books as author.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AuthorTarget {
+    pub id: i64,
+    pub name: String,
+    pub ol_id: Option<String>,
+    pub locked: bool,
+    pub books: Vec<String>,
+}
+
+pub fn author_target(c: &Connection, person: i64) -> Result<Option<AuthorTarget>> {
+    let row = c
+        .query_row(
+            "SELECT coalesce(title, ''), locked FROM item WHERE id = ?1 AND kind = 'person'",
+            [person],
+            |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)? != 0)),
+        )
+        .optional()?;
+    let Some((name, locked)) = row else {
+        return Ok(None);
+    };
+    let mut st = c.prepare(
+        "SELECT DISTINCT coalesce(i.title, '') FROM book_credit bc JOIN item i ON i.id = bc.book_id
+         WHERE bc.person_id = ?1 AND bc.role = 'author' ORDER BY 1",
+    )?;
+    let books = st
+        .query_map([person], |r| r.get(0))?
+        .collect::<rusqlite::Result<_>>()?;
+    Ok(Some(AuthorTarget {
+        id: person,
+        name,
+        ol_id: external(c, person, "openlibrary", "author")?,
+        locked,
+        books,
+    }))
+}
+
+/// The authors of a book that have no Open Library match and are not locked: (person, name).
+pub fn authors_without_match(c: &Connection, book: i64) -> Result<Vec<(i64, String)>> {
+    let mut st = c.prepare(
+        "SELECT p.id, coalesce(p.title, '') FROM book_credit bc JOIN item p ON p.id = bc.person_id
+         WHERE bc.book_id = ?1 AND bc.role = 'author' AND p.locked = 0
+           AND NOT EXISTS (SELECT 1 FROM external_id e WHERE e.item_id = p.id AND e.provider = 'openlibrary' AND e.kind = 'author')
+         ORDER BY bc.position",
+    )?;
+    Ok(st
+        .query_map([book], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<rusqlite::Result<_>>()?)
+}
+
+/// Issue #110: an author's Open Library match (replacing one it had), locked when the user chose
+/// it; `via` ("book:12") when it came through a book.
+pub fn set_author_match(
+    c: &Connection,
+    person: i64,
+    ol_id: &str,
+    lock: bool,
+    via: Option<&str>,
+) -> Result<()> {
+    crate::matching::set_external(c, person, "openlibrary", "author", Some(ol_id))?;
+    crate::matching::set_matched_via(c, person, via)?;
+    c.execute(
+        "UPDATE item SET locked = ?2, match_state = 'matched' WHERE id = ?1",
+        params![person, lock as i64],
+    )?;
+    Ok(())
+}
+
+/// Issue #110: an author's biography from Open Library: kept unless the person has one of its own
+/// (one filled online is replaced; `meta_json.onlineBio` says which).
+pub fn set_author_bio(c: &Connection, person: i64, bio: Option<&str>) -> Result<()> {
+    let (overview, meta): (String, Option<String>) = c.query_row(
+        "SELECT coalesce(overview, ''), meta_json FROM item WHERE id = ?1",
+        [person],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    let mut m: serde_json::Value = meta
+        .and_then(|m| serde_json::from_str(&m).ok())
+        .filter(serde_json::Value::is_object)
+        .unwrap_or_else(|| serde_json::json!({}));
+    let online = m["onlineBio"].as_bool().unwrap_or(false);
+    if !overview.is_empty() && !online {
+        return Ok(());
+    }
+    m["onlineBio"] = serde_json::json!(bio.is_some());
+    c.execute(
+        "UPDATE item SET overview = ?2, meta_json = ?3 WHERE id = ?1",
+        params![person, bio, m.to_string()],
+    )?;
+    Ok(())
+}
+
+/// Issue #110: what the person page adds about the match: matched, locked, through which book,
+/// the biography and the photo.
+pub fn author_info(c: &Connection, person: i64) -> Result<serde_json::Value> {
+    let (overview, locked): (String, i64) = c.query_row(
+        "SELECT coalesce(overview, ''), locked FROM item WHERE id = ?1",
+        [person],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    let via = crate::matching::external(c, person, "coyotl", "matched_via")?
+        .and_then(|v| v.strip_prefix("book:").and_then(|n| n.parse::<i64>().ok()))
+        .and_then(|id| {
+            c.query_row("SELECT title FROM item WHERE id = ?1", [id], |r| {
+                r.get::<_, String>(0)
+            })
+            .ok()
+            .map(|t| serde_json::json!({ "kind": "book", "id": id, "title": t }))
+        });
+    let photo: Option<String> = c
+        .query_row(
+            "SELECT local_path FROM artwork WHERE item_id = ?1 AND role = 'poster' AND local_path IS NOT NULL",
+            [person],
+            |r| r.get(0),
+        )
+        .optional()?;
+    Ok(serde_json::json!({
+        "matched": external(c, person, "openlibrary", "author")?.is_some(),
+        "locked": locked != 0,
+        "matchedVia": via,
+        "biography": overview,
+        "image": photo.unwrap_or_default(),
+    }))
+}
+
 /// "Continue series": the first unfinished book after the last one listened to, else the first
 /// unfinished one.
 pub fn continue_series(books: &[(i64, bool, Option<i64>)]) -> Option<i64> {

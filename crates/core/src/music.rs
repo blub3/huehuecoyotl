@@ -367,11 +367,19 @@ impl Core {
                             } else {
                                 books::series_books(c, id)?
                             };
-                            (
-                                if k == "person" { "person" } else { "series" },
-                                serde_json::json!({ "id": id, "title": title, "books": list })
-                                    .to_string(),
-                            )
+                            (if k == "person" { "person" } else { "series" }, {
+                                let mut v =
+                                    serde_json::json!({ "id": id, "title": title, "books": list });
+                                // Issue #110: how an author is matched, with the photo and biography.
+                                if k == "person"
+                                    && let Some(o) = books::author_info(c, id)?.as_object()
+                                {
+                                    for (key, val) in o {
+                                        v[key] = val.clone();
+                                    }
+                                }
+                                v.to_string()
+                            })
                         }
                         _ => ("none", "null".to_string()),
                     })

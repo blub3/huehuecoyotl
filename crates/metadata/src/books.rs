@@ -20,6 +20,8 @@ pub struct BookHit {
     pub cover_id: Option<i64>,
     /// ISO 639-2 codes ("eng").
     pub languages: Vec<String>,
+    /// Issue #109: the work's authors at the provider ("OL23919A").
+    pub author_ids: Vec<String>,
 }
 
 /// A work's details.

@@ -91,6 +91,7 @@ pub(crate) async fn rematch_item(
         "audiobook" => rematch_book(inner, item, locked).await,
         "track" => crate::music_matching::rematch_track(inner, item).await,
         "artist" => crate::music_matching::rematch_artist(inner, item).await,
+        "person" => crate::books_matching::rematch_author(inner, item).await,
         _ => Err(MetaError::Other(format!(
             "{kind} items cannot be matched again"
         ))),
@@ -394,6 +395,7 @@ async fn rematch_book(
                 return Ok((Outcome::Unchanged, id));
             }
             crate::books::apply_work(inner, &*p, &t, &h, None, was_matched).await?;
+            crate::books_matching::follow_authors(inner, id, &h.author_ids).await?;
             inner
                 .lib
                 .write(move |c| m::set_locked(c, id, false))
@@ -878,6 +880,7 @@ pub(crate) async fn search(inner: &Arc<Inner>, item: i64, q: &Value) -> crate::C
                 .collect()
         }
         "track" | "artist" => crate::music_matching::search(inner, item, &kind, &text, q).await?,
+        "person" => crate::books_matching::search_authors(inner, item, &text).await?,
         other => {
             return Err(unsupported(&format!(
                 "{other} items cannot be searched yet"
@@ -948,9 +951,14 @@ pub(crate) async fn choose(inner: &Arc<Inner>, item: i64, choice: &Value) -> cra
                 cover_id: w.cover_ids.first().copied(),
                 ..Default::default()
             };
+            let author_ids = w.author_ids.clone();
             crate::books::apply_work(inner, &*p, &t, &hit, Some(w), true)
                 .await
                 .map_err(crate::books::meta_err)?;
+            // Issue #109: authors without a match follow the work's.
+            if let Err(e) = crate::books_matching::follow_authors(inner, item, &author_ids).await {
+                tracing::info!(item, "authors not followed: {e}");
+            }
             inner
                 .lib
                 .write(move |c| {
@@ -964,6 +972,7 @@ pub(crate) async fn choose(inner: &Arc<Inner>, item: i64, choice: &Value) -> cra
             Ok(item)
         }
         "track" | "artist" => crate::music_matching::choose(inner, item, &kind, &id).await,
+        "person" => crate::books_matching::choose_author(inner, item, &id).await,
         other => Err(unsupported(&format!(
             "{other} items cannot be matched by hand yet"
         ))),
@@ -1055,6 +1064,10 @@ impl Core {
             let v = if kind == "album" {
                 let release = choice["id"].as_str().unwrap_or_default().to_string();
                 crate::music_matching::preview_album(&inner, item, &release).await?
+            } else if kind == "audiobook" {
+                // Issue #109: what the work would add, field by field.
+                let work = choice["id"].as_str().unwrap_or_default().to_string();
+                crate::books_matching::preview_book(&inner, item, &work).await?
             } else {
                 crate::kinds::preview(&inner, item, &choice).await?
             };

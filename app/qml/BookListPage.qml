@@ -20,6 +20,12 @@ FocusScope {
     readonly property bool series: kind === "series"
 
     function load() { request = Core.bookDetail(itemId) }
+    BookMatch {
+        id: bookMatch
+        backend: Core
+        onNotice: (text) => (page.Window.window as Main).showError(text)
+        onChanged: page.load()
+    }
     Component.onCompleted: load()
     onActiveFocusChanged: if (activeFocus && !list.activeFocus && !continueButton.activeFocus) (continueButton.visible ? continueButton : list).forceActiveFocus()
 
@@ -40,7 +46,7 @@ FocusScope {
             page.d = detail
             if (first) (continueButton.visible ? continueButton : list).forceActiveFocus()
         }
-        function onItemChanged(id) { if (page.books.some(b => b.id === id)) page.load() }
+        function onItemChanged(id) { if (id === page.itemId || page.books.some(b => b.id === id)) page.load() }
     }
 
     ColumnLayout {
@@ -80,6 +86,81 @@ FocusScope {
             }
         }
 
+        // Issue #110: an author's photo, biography and match, and matching it again.
+        RowLayout {
+            visible: !page.series && page.d.id !== undefined
+            spacing: 24
+            Layout.fillWidth: true
+            Rectangle {
+                Layout.preferredWidth: 120
+                Layout.preferredHeight: 120
+                Layout.alignment: Qt.AlignTop
+                radius: 60
+                clip: true
+                color: Theme.surfaceHi
+                Label {
+                    anchors.centerIn: parent
+                    visible: authorPhoto.status !== Image.Ready
+                    text: (page.d.title || "").split(/\s+/).filter(w => w.length > 0).slice(0, 2).map(w => w[0].toUpperCase()).join("")
+                    color: Theme.text
+                    font.pixelSize: 40
+                    font.bold: true
+                }
+                Image {
+                    id: authorPhoto
+                    anchors.fill: parent
+                    source: page.d.image || ""
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    sourceSize.width: 240
+                }
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                Label {
+                    objectName: "authorState"
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    font.pixelSize: Theme.fontSmall
+                    color: page.d.matched ? Theme.textDim : Theme.focus
+                    text: !page.d.matched ? qsTr("Not matched yet: no photo or biography.")
+                          : page.d.matchedVia ? qsTr("Matched through the book “%1”.").arg(page.d.matchedVia.title)
+                          : page.d.locked ? qsTr("Matched as you chose.") : ""
+                }
+                Label {
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: 900
+                    visible: (page.d.biography || "") !== ""
+                    text: page.d.biography || ""
+                    color: Theme.text
+                    wrapMode: Text.Wrap
+                    maximumLineCount: 6
+                    elide: Text.ElideRight
+                }
+                RowLayout {
+                    spacing: 10
+                    FocusButton {
+                        id: authorMatch
+                        objectName: "authorMatchAgain"
+                        text: qsTr("Match again")
+                        KeyNavigation.right: authorSearch
+                        KeyNavigation.down: list
+                        Keys.onLeftPressed: Nav.focusRail()
+                        onClicked: bookMatch.again(page.itemId, "person", page.d.title, authorMatch)
+                    }
+                    FocusButton {
+                        id: authorSearch
+                        objectName: "authorSearch"
+                        text: page.d.matchedVia ? qsTr("Not this author?") : qsTr("Search Open Library…")
+                        KeyNavigation.left: authorMatch
+                        KeyNavigation.down: list
+                        onClicked: bookMatch.search(page.itemId, "person", page.d.title, "", authorSearch)
+                    }
+                }
+            }
+        }
+
         ListView {
             id: list
             Layout.fillWidth: true
@@ -92,7 +173,11 @@ FocusScope {
             Accessible.name: page.d.title || ""
             ScrollBar.vertical: ScrollBar {}
             Keys.onLeftPressed: Nav.focusRail()
-            Keys.onUpPressed: (e) => { if (currentIndex === 0 && continueButton.visible) continueButton.forceActiveFocus(); else e.accepted = false }
+            Keys.onUpPressed: (e) => {
+                if (currentIndex === 0 && continueButton.visible) continueButton.forceActiveFocus()
+                else if (currentIndex === 0 && !page.series) authorMatch.forceActiveFocus()
+                else e.accepted = false
+            }
             Keys.onReturnPressed: if (currentItem) Nav.openItem(page.books[currentIndex].id, "audiobook")
             Keys.onEnterPressed: if (currentItem) Nav.openItem(page.books[currentIndex].id, "audiobook")
             Keys.onPressed: (e) => {
