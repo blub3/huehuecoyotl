@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 ## Unreleased
 
 - Music: a new layout (#78, part of 2.6). A top menu with **Albums**, **Artists** and **Genres**, and **Search music** next to it. The **Quality lens** filters albums by **Hi-Res**, **Lossless**, **Several versions** and **Saved** (they combine, and each shows how many albums it finds), together with a genre and a decade; sort by recently added, A–Z, year or most played. Every cover shows the format of the version that plays, gold for Hi-Res. Play, Shuffle and More appear on the focused cover. Sorted A–Z, a letter rail jumps to an initial. **Genres** lists the genres of your music.
+- Music: artists at a glance (#79, part of 2.6). Artists are round pictures with how many albums, and how many in Hi-Res, they have. A panel beside them shows the focused artist with **Play all**, **Shuffle**, **Open page**, the start of the biography and the albums. Filters: **Album artists** (now the default), **Everyone credited** and **With Hi-Res albums**; the letter rail works here too.
 
 ## 2.5.0 – 2026-11-18 (Linux)
 

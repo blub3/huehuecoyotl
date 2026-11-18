@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Effects
 
 // Grid tile: pre-scaled poster from disk (never a full-size image, SPEC 9), title, year,
 // progress, watched mark and unwatched count.
@@ -24,6 +25,9 @@ ItemDelegate {
     // Issue #78: a format ribbon along the cover's bottom edge ("FLAC 24/96"), gold for Hi-Res;
     // and Play, Shuffle and More on the cover while it has focus or the mouse.
     property string ribbon: ""
+    // Issue #79: a round image (artists), with the initials while there is none.
+    property bool round: false
+    readonly property string initials: title.split(" ").filter(w => w.length > 0).slice(0, 2).map(w => w.charAt(0)).join("").toUpperCase()
     property bool ribbonGold: false
     property bool quickActions: false
     signal playRequested()
@@ -56,7 +60,7 @@ ItemDelegate {
             anchors.horizontalCenter: parent.horizontalCenter
             width: card.frameWidth
             height: card.frameHeight
-            radius: Theme.radius
+            radius: card.round ? width / 2 : Theme.radius
             clip: true
             color: Qt.hsla((card.title.length * 37 % 360) / 360, 0.30, 0.24, 1)
             scale: card.activeFocus ? 1.05 : 1
@@ -66,9 +70,9 @@ ItemDelegate {
                 anchors.centerIn: parent
                 width: parent.width - 24
                 visible: img.status !== Image.Ready
-                text: card.title
+                text: card.round ? card.initials : card.title
                 color: Theme.text
-                font.pixelSize: Math.round(17 * card.textScale)
+                font.pixelSize: Math.round((card.round ? 40 : 17) * card.textScale)
                 font.bold: true
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
@@ -84,6 +88,19 @@ ItemDelegate {
                 cache: true
                 fillMode: Image.PreserveAspectCrop
                 sourceSize.width: Math.ceil(card.posterWidth * Screen.devicePixelRatio)
+                // Round tiles (issue #79) are masked to a circle; square ones need no layer.
+                layer.enabled: card.round
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskSource: roundMask
+                }
+            }
+            Rectangle {
+                id: roundMask
+                visible: false
+                anchors.fill: parent
+                radius: width / 2
+                layer.enabled: card.round
             }
             Rectangle {   // format ribbon (issue #78)
                 visible: card.ribbon !== ""
@@ -174,7 +191,7 @@ ItemDelegate {
             }
             Rectangle {   // focus ring drawn above the image
                 anchors.fill: parent
-                radius: Theme.radius
+                radius: card.round ? width / 2 : Theme.radius
                 color: "transparent"
                 border.width: card.activeFocus ? Theme.focusWidth + 1 : 0
                 border.color: Theme.focus

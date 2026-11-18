@@ -155,6 +155,12 @@ Play, Shuffle and More (Play next, Add to queue, Save) appear; P plays, Shift+P 
 opens More. Sorted A–Z, a letter rail on the right jumps to an initial: Right from the last
 column reaches it. **Genres** shows your genres; choosing one shows its albums.
 
+**Artists** (from 2.6) shows each artist as a round picture with the number of albums and Hi-Res
+albums. The panel on the right follows the artist you are on: **Play all**, **Shuffle**, **Open
+page**, the beginning of the biography and the albums. **Album artists** shows artists with
+albums of their own; **Everyone credited** also those who only appear on tracks; **With Hi-Res
+albums** narrows to artists with Hi-Res music. P plays all of an artist, Shift+P shuffles.
+
 **Versions of an album** (from 2.1). When the same album is in your library more than once — as
 FLAC and as MP3, on two shares, or as a remaster next to the original — it appears once, with a
 small mark (for example "3×") on its cover. On the album page, the button under the format line

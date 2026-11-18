@@ -260,6 +260,9 @@ pub struct Summary {
     /// Issue #78: albums and tracks: the best version's format ("FLAC 24/96"), "" otherwise.
     pub format: String,
     pub hires: bool,
+    /// Issue #79: artists: their albums, and how many of them are Hi-Res.
+    pub albums: i64,
+    pub hires_albums: i64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -284,6 +287,8 @@ pub struct MusicFilter {
     pub multi: bool,
     /// Songs never played (#80).
     pub unplayed: bool,
+    /// Issue #79: artists: everyone credited on a track, not only album artists.
+    pub credited: bool,
     pub genre: Option<String>,
     /// The first year of a decade (1990 for the nineties).
     pub decade: Option<i64>,
@@ -334,6 +339,34 @@ pub fn music_where(m: &MusicFilter) -> String {
         out.push_str(&format!(" AND i.year BETWEEN {d} AND {}", d + 9));
     }
     out
+}
+
+/// Issue #79: artists with an album (album artists), unless `credited` asks for everyone with a
+/// credit; `hires`: with at least one Hi-Res album.
+fn artist_where(m: &MusicFilter) -> String {
+    let mut out = String::new();
+    if !m.credited {
+        out.push_str(
+            " AND EXISTS (SELECT 1 FROM item a WHERE a.parent_id = i.id AND a.kind = 'album')",
+        );
+    }
+    if m.hires {
+        out.push_str(
+            " AND EXISTS (SELECT 1 FROM item a JOIN item t ON t.parent_id = a.id JOIN file f ON f.item_id = t.id
+                JOIN file_audio fa ON fa.file_id = f.id
+                WHERE a.parent_id = i.id AND fa.lossless = 1 AND (coalesce(fa.bit_depth, 0) > 16 OR coalesce(fa.sample_rate, 0) > 48000))",
+        );
+    }
+    out
+}
+
+/// The SQL conditions of a music filter for a kind of item.
+pub fn filter_where(kind: &str, m: &MusicFilter) -> String {
+    if kind == "artist" {
+        artist_where(m)
+    } else {
+        music_where(m)
+    }
 }
 
 /// Issue #78: "FLAC 24/96", "MP3 320k": a file's format for the cover ribbon and the Songs
@@ -434,7 +467,11 @@ const SUMMARY_COLS: &str = concat!("i.id, i.kind, i.title, i.year, i.season_no, 
            || '|' || coalesce(fa.bitrate, 0) || '|' || coalesce(fa.lossless, 0)
          FROM file_audio fa WHERE fa.file_id IN (SELECT f.id FROM file f JOIN item t ON t.id = f.item_id
            WHERE (i.kind = 'album' AND t.parent_id = i.id) OR (i.kind = 'track' AND t.id = i.id))
-         ORDER BY fa.lossless DESC, coalesce(fa.bit_depth, 0) DESC, coalesce(fa.sample_rate, 0) DESC, coalesce(fa.bitrate, 0) DESC LIMIT 1) END");
+         ORDER BY fa.lossless DESC, coalesce(fa.bit_depth, 0) DESC, coalesce(fa.sample_rate, 0) DESC, coalesce(fa.bitrate, 0) DESC LIMIT 1) END,
+    CASE WHEN i.kind = 'artist' THEN (SELECT count(*) FROM item a WHERE a.parent_id = i.id AND a.kind = 'album') ELSE 0 END,
+    CASE WHEN i.kind = 'artist' THEN (SELECT count(*) FROM item a WHERE a.parent_id = i.id AND a.kind = 'album'
+      AND EXISTS (SELECT 1 FROM item t JOIN file f ON f.item_id = t.id JOIN file_audio fa ON fa.file_id = f.id
+        WHERE t.parent_id = a.id AND fa.lossless = 1 AND (coalesce(fa.bit_depth, 0) > 16 OR coalesce(fa.sample_rate, 0) > 48000))) ELSE 0 END");
 
 fn summary(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
     let mut s = summary_base(r)?;
@@ -468,6 +505,8 @@ fn summary_base(r: &rusqlite::Row) -> rusqlite::Result<Summary> {
         ratio: r.get::<_, Option<f64>>(19)?.unwrap_or(0.0),
         format: String::new(),
         hires: false,
+        albums: r.get(21)?,
+        hires_albums: r.get(22)?,
         progress: st.progress(),
         watched: st.watched,
         unwatched: r.get(10)?,
@@ -528,7 +567,7 @@ pub fn browse(c: &Connection, q: &Query) -> Result<(u32, Vec<Summary>)> {
         }
         _ => "",
     };
-    let music = music_where(&q.music);
+    let music = filter_where(&q.kind, &q.music);
     const PLAYED: &str =
         "(CASE WHEN i.kind = 'album' THEN (SELECT max(pt.last_played_at) FROM item t
         JOIN playstate pt ON pt.item_id = t.id AND pt.profile_id = 1 WHERE t.parent_id = i.id)
@@ -607,15 +646,30 @@ pub fn facets(c: &Connection, kind: &str, music: &MusicFilter, saved_only: bool)
         decade: music.decade,
         ..Default::default()
     };
-    let base = music_where(&ctx);
-    let lens = |f: MusicFilter| {
-        music_where(&MusicFilter {
-            genre: ctx.genre.clone(),
-            decade: ctx.decade,
-            ..f
-        })
+    let artists = kind == "artist";
+    let base = if artists {
+        filter_where(
+            kind,
+            &MusicFilter {
+                credited: music.credited,
+                ..Default::default()
+            },
+        )
+    } else {
+        music_where(&ctx)
     };
-    let full = format!("{}{}", music_where(music), saved(saved_only));
+    let lens = |f: MusicFilter| {
+        filter_where(
+            kind,
+            &MusicFilter {
+                genre: ctx.genre.clone(),
+                decade: ctx.decade,
+                credited: music.credited,
+                ..f
+            },
+        )
+    };
+    let full = format!("{}{}", filter_where(kind, music), saved(saved_only));
     let mut out = Facets {
         all: count(&base)?,
         total: count(&full)?,
@@ -642,6 +696,10 @@ pub fn facets(c: &Connection, kind: &str, music: &MusicFilter, saved_only: bool)
         }))?,
         ..Default::default()
     };
+    if artists {
+        out.letters = letters(c, &from, &full)?;
+        return Ok(out);
+    }
     // Genres within the other filters.
     let no_genre = format!(
         "{}{}",
@@ -678,22 +736,29 @@ pub fn facets(c: &Connection, kind: &str, music: &MusicFilter, saved_only: bool)
     out.decades = st
         .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
         .collect::<rusqlite::Result<_>>()?;
-    // Initials in the A–Z order (`i.sort_title`), as browse sorts by title.
+    out.letters = letters(c, &from, &full)?;
+    Ok(out)
+}
+
+/// Initials in the A–Z order (`i.sort_title`, as browse sorts by title) with the offset of
+/// each one's first item.
+fn letters(c: &Connection, from: &str, filter: &str) -> Result<Vec<(String, u32)>> {
     let mut st = c.prepare(&format!(
-        "SELECT substr(coalesce(i.sort_title, ''), 1, 1) AS l, count(*) {from}{full}
+        "SELECT substr(coalesce(i.sort_title, ''), 1, 1) AS l, count(*) {from}{filter}
          GROUP BY l ORDER BY l"
     ))?;
     let groups: Vec<(String, u32)> = st
         .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
         .collect::<rusqlite::Result<_>>()?;
+    let mut out: Vec<(String, u32)> = Vec::new();
     let mut offset = 0;
     for (l, n) in groups {
         let label = match l.chars().next() {
             Some(ch) if ch.is_alphabetic() => ch.to_uppercase().collect::<String>(),
             _ => "#".to_string(),
         };
-        if !out.letters.iter().any(|(x, _)| *x == label) {
-            out.letters.push((label, offset));
+        if !out.iter().any(|(x, _)| *x == label) {
+            out.push((label, offset));
         }
         offset += n;
     }
@@ -1608,6 +1673,65 @@ mod tests {
             .into_iter()
             .map(|s| s.title)
             .collect()
+    }
+
+    /// Issue #79: album artists by default, everyone credited on request, artists with Hi-Res
+    /// albums, and the album counts on their tiles.
+    #[test]
+    fn artist_filters_and_counts() {
+        let c = music_fixture();
+        c.execute_batch(
+            "INSERT INTO item(id, kind, title, sort_title) VALUES (50, 'artist', 'Miles Davis', 'miles davis'),
+               (60, 'artist', 'The Band', 'band'), (70, 'artist', 'Guest Singer', 'guest singer');
+             UPDATE item SET parent_id = 50 WHERE id = 10;
+             UPDATE item SET parent_id = 60 WHERE id IN (20, 30);
+             INSERT INTO credit(item_id, artist_id, role, position) VALUES (21, 70, 'artist', 1);",
+        )
+        .unwrap();
+        let list = |m: MusicFilter| -> Vec<(String, i64, i64)> {
+            let q = Query {
+                kind: "artist".into(),
+                parent: None,
+                sort: Sort::Title,
+                unwatched_only: false,
+                saved_only: false,
+                book_filter: "",
+                music: m,
+                offset: 0,
+                limit: 50,
+            };
+            browse(&c, &q)
+                .unwrap()
+                .1
+                .into_iter()
+                .map(|s| (s.title, s.albums, s.hires_albums))
+                .collect()
+        };
+        assert_eq!(
+            list(MusicFilter::default()),
+            [
+                ("The Band".to_string(), 2, 0),
+                ("Miles Davis".to_string(), 1, 1)
+            ]
+        );
+        let everyone: Vec<String> = list(MusicFilter {
+            credited: true,
+            ..Default::default()
+        })
+        .into_iter()
+        .map(|a| a.0)
+        .collect();
+        assert_eq!(everyone, ["The Band", "Guest Singer", "Miles Davis"]);
+        assert_eq!(
+            list(MusicFilter {
+                hires: true,
+                ..Default::default()
+            }),
+            [("Miles Davis".to_string(), 1, 1)]
+        );
+        let fc = facets(&c, "artist", &MusicFilter::default(), false).unwrap();
+        assert_eq!((fc.all, fc.hires), (2, 1));
+        assert_eq!(fc.letters, [("B".to_string(), 0), ("M".to_string(), 1)]);
     }
 
     #[test]

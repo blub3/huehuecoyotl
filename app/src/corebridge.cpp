@@ -66,7 +66,9 @@ QVariantMap summaryMap(const coyotl::core::ItemSummary &s)
             {"versions", qlonglong(s.versions)},
             {"ratio", s.ratio},
             {"format", qs(s.format)},
-            {"hires", s.hires}};
+            {"hires", s.hires},
+            {"albums", qlonglong(s.albums)},
+            {"hiresAlbums", qlonglong(s.hires_albums)}};
 }
 
 // Issue #4: the state of an item's saved copies.
