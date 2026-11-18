@@ -240,6 +240,15 @@ Popup {
                 }
                 TextField {
                     id: titleField
+                    color: Theme.text
+                    placeholderTextColor: Theme.textDim
+                    background: Rectangle {
+                        implicitHeight: 44
+                        radius: Theme.radius
+                        color: Theme.bg
+                        border.width: titleField.activeFocus ? Theme.focusWidth : 1
+                        border.color: titleField.activeFocus ? Theme.focus : Theme.surfaceHi
+                    }
                     objectName: "titleField"
                     Layout.fillWidth: true
                     placeholderText: qsTr("Title, or a TMDB or IMDb id or link")
@@ -252,6 +261,15 @@ Popup {
                 }
                 TextField {
                     id: yearField
+                    color: Theme.text
+                    placeholderTextColor: Theme.textDim
+                    background: Rectangle {
+                        implicitHeight: 44
+                        radius: Theme.radius
+                        color: Theme.bg
+                        border.width: yearField.activeFocus ? Theme.focusWidth : 1
+                        border.color: yearField.activeFocus ? Theme.focus : Theme.surfaceHi
+                    }
                     Layout.preferredWidth: 90
                     placeholderText: qsTr("Year")
                     inputMethodHints: Qt.ImhDigitsOnly

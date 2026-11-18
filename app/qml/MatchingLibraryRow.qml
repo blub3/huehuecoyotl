@@ -108,7 +108,7 @@ Rectangle {
                 Layout.fillWidth: true
                 from: 0
                 to: Math.max(1, row.run ? row.run.total : 1)
-                value: row.run ? row.run.done : 0
+                value: row.run && row.run.done ? row.run.done : 0
                 Accessible.name: progressLine.text
                 background: Rectangle { implicitHeight: 6; radius: 3; color: Theme.surfaceHi }
                 contentItem: Item {

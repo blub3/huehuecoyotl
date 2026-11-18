@@ -31,7 +31,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="411"/>
+        <location filename="../qml/AlbumPage.qml" line="424"/>
         <source>%n version(s)</source>
         <translation>
             <numerusform>%n version</numerusform>
@@ -42,7 +42,7 @@
 <context>
     <name>ArtistPage</name>
     <message numerus="yes">
-        <location filename="../qml/ArtistPage.qml" line="147"/>
+        <location filename="../qml/ArtistPage.qml" line="153"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n album</numerusform>
@@ -233,14 +233,33 @@
     </message>
 </context>
 <context>
+    <name>MusicMatch</name>
+    <message numerus="yes">
+        <location filename="../qml/MusicMatch.qml" line="99"/>
+        <source>%n track(s)</source>
+        <translation>
+            <numerusform>%n track</numerusform>
+            <numerusform>%n tracks</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MusicMatch.qml" line="360"/>
+        <source>%n track(s) on the release you do not have</source>
+        <translation>
+            <numerusform>%n track on the release you do not have</numerusform>
+            <numerusform>%n tracks on the release you do not have</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>MusicPage</name>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="405"/>
-        <location filename="../qml/MusicPage.qml" line="976"/>
-        <location filename="../qml/MusicPage.qml" line="1003"/>
-        <location filename="../qml/MusicPage.qml" line="1045"/>
-        <location filename="../qml/MusicPage.qml" line="1084"/>
-        <location filename="../qml/MusicPage.qml" line="1115"/>
+        <location filename="../qml/MusicPage.qml" line="408"/>
+        <location filename="../qml/MusicPage.qml" line="982"/>
+        <location filename="../qml/MusicPage.qml" line="1009"/>
+        <location filename="../qml/MusicPage.qml" line="1051"/>
+        <location filename="../qml/MusicPage.qml" line="1090"/>
+        <location filename="../qml/MusicPage.qml" line="1121"/>
         <source>%n song(s)</source>
         <translation>
             <numerusform>%n song</numerusform>
@@ -248,9 +267,9 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="555"/>
-        <location filename="../qml/MusicPage.qml" line="1210"/>
-        <location filename="../qml/MusicPage.qml" line="1220"/>
+        <location filename="../qml/MusicPage.qml" line="558"/>
+        <location filename="../qml/MusicPage.qml" line="1216"/>
+        <location filename="../qml/MusicPage.qml" line="1226"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n album</numerusform>
@@ -258,7 +277,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="555"/>
+        <location filename="../qml/MusicPage.qml" line="558"/>
         <source>%n Hi-Res</source>
         <translation>
             <numerusform>%n Hi-Res</numerusform>
@@ -266,7 +285,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="718"/>
+        <location filename="../qml/MusicPage.qml" line="721"/>
         <source>Appears on %n album(s)</source>
         <translation>
             <numerusform>Appears on %n album</numerusform>
@@ -274,7 +293,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="1267"/>
+        <location filename="../qml/MusicPage.qml" line="1273"/>
         <source>Saving %n song(s). Progress is under Downloads.</source>
         <translation>
             <numerusform>Saving %n song. Progress is under Downloads.</numerusform>

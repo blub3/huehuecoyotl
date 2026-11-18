@@ -273,6 +273,14 @@ or per album so an album keeps its own dynamics.
 
 Without a music folder the Music page explains how to add one.
 
+**Match music again.** The **⋯** menu of an album, a song or an artist (and the album page's
+**⋯** button) has **Match again** and **Search MusicBrainz…**. The search lists the exact
+editions of an album with their track count, country, label and format; press Enter on one to
+compare it with your files track by track, and Enter again to use it. Songs are compared by
+length, artists of the same name by which of your albums are theirs. An artist without a match
+takes the one its album or song names; its page says so, with **Not this artist?** to choose
+another. Matches you choose are kept; your tags are never changed.
+
 ## Audiobooks
 
 From 2.5, a folder added as **Audiobooks** becomes a library of books, authors, narrators and
