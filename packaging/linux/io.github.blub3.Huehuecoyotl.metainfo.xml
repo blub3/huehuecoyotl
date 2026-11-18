@@ -93,6 +93,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="2.7.0" date="2026-11-18" type="stable">
+      <description>
+        <p>Matching, again: match a whole library of movies, shows, music or audiobooks again from Settings, or a single movie, show, album, song, artist, book or author. Search by hand by title or a pasted link, and see what a match changes before you choose it. A film taken for a series, or the reverse, can be corrected with its watched state. Artists and authors without a match take the one their album, song or book names, with photos and biographies. Your own metadata and your choices are kept.</p>
+      </description>
+    </release>
     <release version="2.6.0" date="2026-11-18" type="stable">
       <description>
         <p>Music, redesigned: Albums, Artists, Songs, Genres and Playlists in a top menu, and a Quality lens that finds your Hi-Res and lossless albums. Smart playlists fill themselves and your own playlists keep the exact files you chose. Now Playing takes the whole window in the colours of the cover, with the song's waveform and the signal path from file to speakers, and a full-screen view for the living room.</p>
