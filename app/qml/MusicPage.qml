@@ -4,6 +4,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import QtQuick.Effects
 import Coyotl
+import "PlaylistInfo.js" as PlaylistInfo
 
 // Music (issue #78): a top menu (Albums, Artists, Genres) over one paged grid, "Search music",
 // the Quality lens (Hi-Res, Lossless, Several versions, Saved; they combine), Genre and Decade
@@ -20,7 +21,8 @@ FocusScope {
         { key: "albums", label: qsTr("Albums") },
         { key: "artists", label: qsTr("Artists") },
         { key: "songs", label: qsTr("Songs") },
-        { key: "genres", label: qsTr("Genres") }
+        { key: "genres", label: qsTr("Genres") },
+        { key: "playlists", label: qsTr("Playlists") }
     ]
     readonly property var lenses: [
         { key: "hires", label: qsTr("Hi-Res") },
@@ -57,6 +59,26 @@ FocusScope {
         { key: "lossless", label: qsTr("Lossless") },
         { key: "unplayed", label: qsTr("Never played") }
     ]
+    // Issue #81: playlists: the smart ones and the user's, and the one in the preview.
+    readonly property bool playlistsView: view === "playlists"
+    property var lists: ({ smart: [], mine: [] })
+    property var listsRequest: 0
+    property string listKey: ""
+    property var listDetail: ({})
+    property var listDetailRequest: 0
+    property var createRequest: 0
+    function loadLists() { listsRequest = Core.playlists() }
+    function previewList(key) {
+        if (key === listKey) return
+        listKey = key
+        listTimer.restart()
+    }
+    function openList(key) { Nav.open(Qt.resolvedUrl("PlaylistPage.qml"), { key: key }) }
+    Timer {
+        id: listTimer
+        interval: 150
+        onTriggered: page.listDetailRequest = Core.playlistDetail(page.listKey, 7)
+    }
     function playSongs(startId, shuffle) { Music.playQuery("track", songSort, filter, startId, shuffle) }
     readonly property string filter: {
         if (artistsView) return [credited ? "credited" : "", artistHires ? "hires" : ""].filter(t => t).join("\n")
@@ -71,7 +93,15 @@ FocusScope {
     property var facetsRequest: 0
     function refreshFacets() { facetsRequest = Core.musicFacets(artistsView ? "artist" : songsView ? "track" : "album", filter) }
     onFilterChanged: Qt.callLater(refreshFacets)
-    onViewChanged: { Qt.callLater(refreshFacets); artist = ({}); if (artistsView) artistTimer.restart() }
+    onViewChanged: {
+        Qt.callLater(refreshFacets)
+        artist = ({})
+        // `view` itself: the bindings on it may not have updated yet.
+        if (view === "artists") artistTimer.restart()
+        if (view === "playlists") loadLists()
+    }
+    // Back from a playlist's page: names, counts and covers may have changed.
+    onVisibleChanged: if (visible && playlistsView) loadLists()
 
     function toggleLens(key) {
         const l = Object.assign({}, lens)
@@ -81,7 +111,7 @@ FocusScope {
     function clearFilters() { lens = ({}); genre = ""; decade = 0 }
     function choose(v) {
         view = v
-        Qt.callLater(() => (v === "genres" ? genreGrid : v === "songs" ? songList : grid).forceActiveFocus())
+        Qt.callLater(() => (v === "genres" ? genreGrid : v === "songs" ? songList : v === "playlists" ? smartGrid : grid).forceActiveFocus())
     }
     function lensCount(key) { return page.facets[key] ?? "" }
 
@@ -104,6 +134,7 @@ FocusScope {
         itemMenu.show(item, [
             { label: qsTr("Play next"), value: "next" },
             { label: qsTr("Add to queue"), value: "queue" },
+            { label: qsTr("Add to playlist…"), value: "playlist" },
             { label: qsTr("Save on this computer"), value: "save" },
             { label: m.kind === "album" ? qsTr("Open album") : qsTr("Open artist"), value: "open" }
         ])
@@ -146,6 +177,16 @@ FocusScope {
     Connections {
         target: Core
         function onMusicDetailReady(requestId, kind, detail) {
+            if (requestId === page.listsRequest) {
+                page.lists = detail
+                if (page.listKey === "" && (detail.smart || []).length > 0) page.previewList(detail.smart[0].key)
+            }
+            if (requestId === page.listDetailRequest) page.listDetail = detail
+            if (requestId === page.createRequest) {
+                page.createRequest = 0
+                page.loadLists()
+                page.openList(detail.card.key)
+            }
             if (requestId === page.artistRequest) page.artist = detail
             if (requestId !== page.facetsRequest) return
             page.facets = detail
@@ -177,7 +218,7 @@ FocusScope {
         grid.forceActiveFocus()
     }
     onActiveFocusChanged: if (activeFocus && !header.activeFocus && !lensRow.activeFocus && !artistRow.activeFocus && !songRow.activeFocus && !letterRail.activeFocus && !panel.activeFocus)
-                              (view === "genres" ? genreGrid : view === "songs" ? songList : grid).forceActiveFocus()
+                              (view === "genres" ? genreGrid : view === "songs" ? songList : view === "playlists" ? smartGrid : grid).forceActiveFocus()
 
     ColumnLayout {
         anchors.fill: parent
@@ -223,7 +264,7 @@ FocusScope {
                                 Accessible.selected: page.view === modelData.key
                                 Keys.onLeftPressed: index === 0 ? Nav.focusRail() : menu.itemAt(index - 1).forceActiveFocus()
                                 Keys.onRightPressed: index === page.views.length - 1 ? search.forceActiveFocus() : menu.itemAt(index + 1).forceActiveFocus()
-                                Keys.onDownPressed: page.albums ? lensRow.focusFirst() : page.artistsView ? artistRow.focusFirst() : page.songsView ? songRow.focusFirst() : genreGrid.forceActiveFocus()
+                                Keys.onDownPressed: page.albums ? lensRow.focusFirst() : page.artistsView ? artistRow.focusFirst() : page.songsView ? songRow.focusFirst() : page.playlistsView ? smartGrid.forceActiveFocus() : genreGrid.forceActiveFocus()
                                 onClicked: page.choose(modelData.key)
                             }
                         }
@@ -774,7 +815,7 @@ FocusScope {
                         Layout.preferredWidth: modelData.w ?? 0
                         Layout.minimumWidth: modelData.w ?? 0
                         Layout.fillWidth: modelData.fill !== undefined
-                        Layout.horizontalStretchFactor: modelData.fill ?? 1
+                        Layout.horizontalStretchFactor: modelData.fill ?? -1
                         Layout.preferredHeight: 32
                         padding: 0
                         enabled: modelData.key !== ""
@@ -870,9 +911,276 @@ FocusScope {
                         songMenu.show(song, [
                             { label: qsTr("Play next"), value: "next" },
                             { label: qsTr("Add to queue"), value: "queue" },
+                            { label: qsTr("Add to playlist…"), value: "playlist" },
                             { label: qsTr("Go to album"), value: "album" }
                         ])
                     }
+                }
+            }
+        }
+
+        // ---- playlists (issue #81) -----------------------------------------------------------
+        RowLayout {
+            visible: page.playlistsView
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: 24
+            Flickable {
+                id: listsFlick
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                contentHeight: listsCol.implicitHeight + 24
+                ScrollBar.vertical: ScrollBar {}
+                function reveal(item) {
+                    const p = item.mapToItem(contentItem, 0, 0)
+                    if (p.y < contentY) contentY = Math.max(0, p.y - 20)
+                    else if (p.y + item.height > contentY + height) contentY = Math.min(p.y + item.height - height + 20, Math.max(0, contentHeight - height))
+                }
+                ColumnLayout {
+                    id: listsCol
+                    width: listsFlick.width
+                    spacing: 12
+                    RowLayout {
+                        spacing: 12
+                        Label { text: qsTr("Smart playlists"); color: Theme.text; font.pixelSize: Theme.fontLarge; font.bold: true; Accessible.role: Accessible.Heading }
+                        Label { text: qsTr("They fill themselves from your library."); color: Theme.textDim; font.pixelSize: Theme.fontSmall }
+                    }
+                    GridView {
+                        id: smartGrid
+                        Layout.fillWidth: true
+                        // All rows, measured from the count (contentHeight stays 0 while the
+                        // view has no height of its own).
+                        Layout.preferredHeight: Math.ceil(count / columns) * cellHeight
+                        interactive: false
+                        model: page.lists.smart || []
+                        readonly property int columns: Math.max(1, Math.floor(width / 300))
+                        cellWidth: Math.floor(width / columns)
+                        cellHeight: 100
+                        keyNavigationEnabled: true
+                        Accessible.role: Accessible.List
+                        Accessible.name: qsTr("Smart playlists")
+                        onCurrentIndexChanged: if (activeFocus && currentItem) { page.previewList(page.lists.smart[currentIndex].key); listsFlick.reveal(currentItem) }
+                        onActiveFocusChanged: if (activeFocus && currentItem) { page.previewList(page.lists.smart[currentIndex].key); listsFlick.reveal(currentItem) }
+                        Keys.onLeftPressed: (e) => { if (currentIndex % columns === 0) Nav.focusRail(); else e.accepted = false }
+                        Keys.onRightPressed: (e) => { if (currentIndex % columns === columns - 1 || currentIndex === count - 1) listPlay.forceActiveFocus(); else e.accepted = false }
+                        Keys.onUpPressed: (e) => { if (currentIndex < columns) menu.itemAt(4).forceActiveFocus(); else e.accepted = false }
+                        Keys.onDownPressed: (e) => { if (currentIndex + columns >= count) mineGrid.forceActiveFocus(); else e.accepted = false }
+                        delegate: ItemDelegate {
+                            id: smartCard
+                            required property var modelData
+                            required property int index
+                            width: smartGrid.cellWidth - 14
+                            height: 86
+                            focus: GridView.isCurrentItem
+                            Accessible.name: PlaylistInfo.name(modelData.smart) + ", " + qsTr("%n song(s)", "", modelData.count)
+                            background: Rectangle {
+                                radius: Theme.radius
+                                color: Theme.surface
+                                border.width: smartCard.activeFocus ? Theme.focusWidth + 1 : (page.listKey === smartCard.modelData.key ? 1 : 0)
+                                border.color: smartCard.activeFocus ? Theme.focus : Theme.surfaceHi
+                            }
+                            contentItem: RowLayout {
+                                spacing: 14
+                                Rectangle {
+                                    Layout.preferredWidth: 52
+                                    Layout.preferredHeight: 52
+                                    radius: 12
+                                    color: smartCard.modelData.smart === "hires" ? Theme.accent : Theme.surfaceHi
+                                    Label {
+                                        anchors.centerIn: parent
+                                        text: PlaylistInfo.glyph(smartCard.modelData.smart)
+                                        color: smartCard.modelData.smart === "hires" ? Theme.bg : Theme.accent
+                                        font.pixelSize: 18
+                                        font.bold: true
+                                    }
+                                }
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 2
+                                    Label { Layout.fillWidth: true; text: PlaylistInfo.name(smartCard.modelData.smart); color: Theme.text; font.bold: true; elide: Text.ElideRight }
+                                    Label { Layout.fillWidth: true; text: PlaylistInfo.rule(smartCard.modelData.smart); color: Theme.textDim; font.pixelSize: 12; elide: Text.ElideRight }
+                                    Label { text: qsTr("%n song(s)", "", smartCard.modelData.count); color: Theme.textDim; font.pixelSize: 12 }
+                                }
+                            }
+                            onClicked: { smartGrid.currentIndex = index; page.openList(modelData.key) }
+                            Keys.onReturnPressed: page.openList(modelData.key)
+                            Keys.onEnterPressed: page.openList(modelData.key)
+                            Keys.onPressed: (e) => { if (e.key === Qt.Key_P) { Music.playPlaylist(modelData.key, 0, (e.modifiers & Qt.ShiftModifier) !== 0); e.accepted = true } }
+                        }
+                    }
+                    RowLayout {
+                        Layout.topMargin: 12
+                        spacing: 12
+                        Label { text: qsTr("Your playlists"); color: Theme.text; font.pixelSize: Theme.fontLarge; font.bold: true; Accessible.role: Accessible.Heading }
+                        Label { text: qsTr("Menu on any album or song: Add to playlist."); color: Theme.textDim; font.pixelSize: Theme.fontSmall }
+                    }
+                    GridView {
+                        id: mineGrid
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Math.ceil(count / columns) * cellHeight
+                        interactive: false
+                        // The first tile makes a new playlist.
+                        model: [{ key: "new" }].concat(page.lists.mine || [])
+                        readonly property int columns: Math.max(1, Math.floor(width / 200))
+                        cellWidth: Math.floor(width / columns)
+                        cellHeight: cellWidth + 50
+                        keyNavigationEnabled: true
+                        Accessible.role: Accessible.List
+                        Accessible.name: qsTr("Your playlists")
+                        onCurrentIndexChanged: if (activeFocus && currentItem) { if (currentIndex > 0) page.previewList(page.lists.mine[currentIndex - 1].key); listsFlick.reveal(currentItem) }
+                        onActiveFocusChanged: if (activeFocus && currentItem) { if (currentIndex > 0) page.previewList(page.lists.mine[currentIndex - 1].key); listsFlick.reveal(currentItem) }
+                        Keys.onLeftPressed: (e) => { if (currentIndex % columns === 0) Nav.focusRail(); else e.accepted = false }
+                        Keys.onRightPressed: (e) => { if (currentIndex % columns === columns - 1 || currentIndex === count - 1) listPlay.forceActiveFocus(); else e.accepted = false }
+                        Keys.onUpPressed: (e) => { if (currentIndex < columns) smartGrid.forceActiveFocus(); else e.accepted = false }
+                        delegate: ItemDelegate {
+                            id: mineTile
+                            required property var modelData
+                            required property int index
+                            readonly property bool isNew: modelData.key === "new"
+                            width: mineGrid.cellWidth - 16
+                            height: mineGrid.cellHeight - 8
+                            focus: GridView.isCurrentItem
+                            padding: 0
+                            Accessible.name: isNew ? qsTr("New playlist") : modelData.name + ", " + qsTr("%n song(s)", "", modelData.count)
+                            background: Item {}
+                            contentItem: ColumnLayout {
+                                spacing: 6
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: width
+                                    radius: Theme.radius
+                                    color: mineTile.isNew ? "transparent" : Theme.surfaceHi
+                                    border.width: mineTile.activeFocus ? Theme.focusWidth + 1 : (mineTile.isNew ? 2 : 0)
+                                    border.color: mineTile.activeFocus ? Theme.focus : "#3a4252"
+                                    clip: true
+                                    Label {
+                                        anchors.centerIn: parent
+                                        visible: mineTile.isNew || (mineTile.modelData.covers || []).length === 0
+                                        text: mineTile.isNew ? "+" : "♫"
+                                        color: Theme.accent
+                                        font.pixelSize: 40
+                                    }
+                                    Grid {
+                                        anchors.fill: parent
+                                        anchors.margins: mineTile.activeFocus ? Theme.focusWidth + 1 : 0
+                                        columns: 2
+                                        visible: !mineTile.isNew
+                                        Repeater {
+                                            model: (mineTile.modelData.covers || []).length >= 4 ? mineTile.modelData.covers : (mineTile.modelData.covers || []).slice(0, 1)
+                                            Image {
+                                                required property string modelData
+                                                width: (mineTile.modelData.covers || []).length >= 4 ? parent.width / 2 : parent.width
+                                                height: width
+                                                source: modelData
+                                                fillMode: Image.PreserveAspectCrop
+                                                asynchronous: true
+                                                sourceSize.width: 240
+                                            }
+                                        }
+                                    }
+                                }
+                                Label { Layout.fillWidth: true; text: mineTile.isNew ? qsTr("New playlist") : mineTile.modelData.name; color: Theme.text; font.bold: true; elide: Text.ElideRight }
+                                Label { visible: !mineTile.isNew; text: qsTr("%n song(s)", "", mineTile.modelData.count ?? 0); color: Theme.textDim; font.pixelSize: 12 }
+                            }
+                            function activate() {
+                                if (isNew) { newName.text = ""; newDialog.open() }
+                                else page.openList(modelData.key)
+                            }
+                            onClicked: { mineGrid.currentIndex = index; activate() }
+                            Keys.onReturnPressed: activate()
+                            Keys.onEnterPressed: activate()
+                            Keys.onPressed: (e) => { if (e.key === Qt.Key_P && !isNew) { Music.playPlaylist(modelData.key, 0, (e.modifiers & Qt.ShiftModifier) !== 0); e.accepted = true } }
+                        }
+                    }
+                }
+            }
+            // The playlist in focus.
+            Rectangle {
+                Layout.preferredWidth: 360
+                Layout.fillHeight: true
+                Layout.bottomMargin: 8
+                radius: 14
+                color: Theme.surface
+                Accessible.role: Accessible.Pane
+                Accessible.name: qsTr("Playlist preview")
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 10
+                    readonly property var card: page.listDetail.card || ({})
+                    Label { text: (page.listDetail.card?.smart ?? "") !== "" ? qsTr("Smart playlist") : qsTr("Playlist"); color: Theme.focus; font.pixelSize: 12; font.capitalization: Font.AllUppercase; font.letterSpacing: 1 }
+                    Label { Layout.fillWidth: true; text: PlaylistInfo.title(page.listDetail.card || {}); color: Theme.text; font.pixelSize: Theme.fontLarge + 6; font.bold: true; wrapMode: Text.Wrap }
+                    Label {
+                        text: [qsTr("%n song(s)", "", page.listDetail.card?.count ?? 0),
+                               (page.listDetail.card?.durationMs ?? 0) > 0 ? Theme.time(page.listDetail.card.durationMs / 1000) : ""].filter(x => x).join("  ·  ")
+                        color: Theme.textDim
+                        font.pixelSize: Theme.fontSmall
+                    }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        FocusButton {
+                            id: listPlay
+                            primary: true
+                            glyph: "▶"
+                            text: qsTr("Play")
+                            font.pixelSize: Theme.fontSmall
+                            enabled: (page.listDetail.entries || []).length > 0
+                            Keys.onLeftPressed: smartGrid.forceActiveFocus()
+                            KeyNavigation.right: listShuffle
+                            onClicked: Music.playPlaylist(page.listKey, 0, false)
+                        }
+                        FocusButton {
+                            id: listShuffle
+                            text: qsTr("Shuffle")
+                            font.pixelSize: Theme.fontSmall
+                            enabled: listPlay.enabled
+                            KeyNavigation.left: listPlay
+                            KeyNavigation.right: listSave
+                            onClicked: Music.playPlaylist(page.listKey, 0, true)
+                        }
+                        FocusButton {
+                            id: listSave
+                            text: qsTr("Save offline")
+                            font.pixelSize: Theme.fontSmall
+                            enabled: listPlay.enabled
+                            KeyNavigation.left: listShuffle
+                            KeyNavigation.right: listOpen
+                            onClicked: listSaveRequest.value = Core.playlistSave(page.listKey)
+                        }
+                        FocusButton {
+                            id: listOpen
+                            text: qsTr("Open")
+                            font.pixelSize: Theme.fontSmall
+                            KeyNavigation.left: listSave
+                            onClicked: page.openList(page.listKey)
+                        }
+                    }
+                    Repeater {
+                        model: page.listDetail.entries || []
+                        RowLayout {
+                            id: entryRow
+                            required property var modelData
+                            Layout.fillWidth: true
+                            spacing: 10
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 0
+                                Label { Layout.fillWidth: true; text: entryRow.modelData.title; color: Theme.text; font.pixelSize: Theme.fontSmall; elide: Text.ElideRight }
+                                Label { Layout.fillWidth: true; text: entryRow.modelData.artist; color: Theme.textDim; font.pixelSize: 12; elide: Text.ElideRight }
+                            }
+                            Rectangle {
+                                visible: entryRow.modelData.format !== ""
+                                implicitWidth: entryFmt.implicitWidth + 10
+                                implicitHeight: 20
+                                radius: 5
+                                color: entryRow.modelData.hires ? Theme.accent : Theme.surfaceHi
+                                Label { id: entryFmt; anchors.centerIn: parent; text: entryRow.modelData.format; font.pixelSize: 11; font.bold: true; color: entryRow.modelData.hires ? Theme.bg : Theme.text }
+                            }
+                        }
+                    }
+                    Item { Layout.fillHeight: true }
                 }
             }
         }
@@ -921,7 +1229,7 @@ FocusScope {
 
     ColumnLayout {
         anchors.centerIn: parent
-        visible: !lib.loading && lib.total === 0 && page.view !== "genres"
+        visible: !lib.loading && lib.total === 0 && page.view !== "genres" && page.view !== "playlists"
         spacing: 16
         Label {
             Layout.alignment: Qt.AlignHCenter
@@ -946,6 +1254,55 @@ FocusScope {
             else page.albumSort = v
         }
     }
+    QtObject {
+        id: listSaveRequest
+        property var value: 0
+    }
+    Connections {
+        target: Core
+        function onMusicDetailReady(requestId, kind, detail) {
+            if (requestId !== listSaveRequest.value) return
+            listSaveRequest.value = 0;
+            (page.Window.window as Main).showError(detail.started > 0
+                ? qsTr("Saving %n song(s). Progress is under Downloads.", "", detail.started)
+                : qsTr("These songs are saved or on this computer already."))
+        }
+    }
+    // A new, empty playlist; it opens for adding songs.
+    Popup {
+        id: newDialog
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(460, parent.width - 80)
+        modal: true
+        padding: 24
+        background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
+        onOpened: newName.forceActiveFocus()
+        onClosed: mineGrid.forceActiveFocus()
+        RowLayout {
+            anchors.fill: parent
+            spacing: 8
+            TextField {
+                id: newName
+                Layout.fillWidth: true
+                placeholderText: qsTr("Name of the playlist")
+                Accessible.name: qsTr("Name of the playlist")
+                KeyNavigation.right: newCreate
+                onAccepted: newCreate.clicked()
+            }
+            FocusButton {
+                id: newCreate
+                primary: true
+                text: qsTr("Create")
+                KeyNavigation.left: newName
+                onClicked: {
+                    page.createRequest = Core.playlistCreate(newName.text)
+                    newDialog.close()
+                }
+            }
+        }
+    }
+    AddToPlaylist { id: addToPlaylist }
     ActionMenu {
         id: songMenu
         property var target: ({})
@@ -953,6 +1310,7 @@ FocusScope {
             const m = target
             if (v === "next") Music.playNext([m.id])
             else if (v === "queue") Music.addToQueue([m.id])
+            else if (v === "playlist") addToPlaylist.show([m.id], 0, songList)
             else Nav.openItem(m.id, "track", m.parentId)
         }
     }
@@ -964,6 +1322,7 @@ FocusScope {
             if (v === "next") Music.playNext([m.id])
             else if (v === "queue") Music.addToQueue([m.id])
             else if (v === "save") Core.saveItem(m.id, 0)
+            else if (v === "playlist") addToPlaylist.show([m.id], 0, grid)
             else page.open(m)
         }
     }

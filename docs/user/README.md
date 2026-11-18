@@ -167,6 +167,15 @@ played it. Choose a column heading (or press S) to sort by it; Quality puts the 
 plays exactly the songs shown. Enter plays from a song; Menu offers Play next, Add to queue and
 Go to album.
 
+**Playlists** (from 2.6). The smart playlists fill themselves from your library: Hi-Res gems,
+Most played, Recently added, Not played yet, Saved offline and Forgotten favourites (played often,
+but not in the last six months). To make your own, choose **New playlist**, or press Menu on any
+album or song (in the grids, the Songs list, an album's page or Now Playing's queue) and choose
+**Add to playlist**. On a playlist's page Enter plays from a song, Ctrl+↑ and Ctrl+↓ move it,
+Delete removes it, and **Rename** and **Delete playlist** change the playlist itself. A playlist
+remembers which copy of a song you added; if that copy is gone, another version plays.
+**Save offline** saves all its songs on this computer.
+
 **Versions of an album** (from 2.1). When the same album is in your library more than once — as
 FLAC and as MP3, on two shares, or as a remaster next to the original — it appears once, with a
 small mark (for example "3×") on its cover. On the album page, the button under the format line

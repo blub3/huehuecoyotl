@@ -17,6 +17,7 @@ pub mod lang;
 mod library;
 mod music;
 mod network;
+mod playlists;
 mod playqueue;
 mod probe;
 pub mod secrets;

@@ -298,16 +298,28 @@ FocusScope {
                                 enabled: page.tracks.length > 0 && page.d.playable === true
                                 KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
                                 KeyNavigation.left: playNextButton
-                                KeyNavigation.right: saveMenu.visible ? saveMenu : null
+                                KeyNavigation.right: playlistButton
                                 KeyNavigation.down: trackList
                                 onClicked: Music.addToQueue([page.itemId], page.d.versionId || 0)
+                            }
+                            // Issue #81: this version's songs to a playlist.
+                            FocusButton {
+                                id: playlistButton
+                                glyph: "≡+"
+                                tip: qsTr("Add to playlist")
+                                enabled: page.tracks.length > 0
+                                KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
+                                KeyNavigation.left: queueButton
+                                KeyNavigation.right: saveMenu.visible ? saveMenu : null
+                                KeyNavigation.down: trackList
+                                onClicked: addToPlaylist.show([page.itemId], page.d.versionId || 0, playlistButton)
                             }
                             SaveMenu {
                                 id: saveMenu
                                 sv: page.sv
                                 canExport: false
                                 KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
-                                KeyNavigation.left: queueButton
+                                KeyNavigation.left: playlistButton
                                 KeyNavigation.down: trackList
                                 onTriggered: (action) => page.saveAction(action)
                             }
@@ -418,6 +430,8 @@ FocusScope {
         }
     }
 
+    AddToPlaylist { id: addToPlaylist }
+
     // Menu on a track (issue #8).
     ActionMenu {
         id: trackMenu
@@ -426,7 +440,8 @@ FocusScope {
         // Issue #63: a track with two files in this version offers each ("Version: …").
         function showFor(item, t) {
             trackId = t.id
-            const list = [{ value: "next", label: qsTr("Play next") }, { value: "queue", label: qsTr("Add to queue") }]
+            const list = [{ value: "next", label: qsTr("Play next") }, { value: "queue", label: qsTr("Add to queue") },
+                          { value: "playlist", label: qsTr("Add to playlist…") }]
             for (const f of (t.files || []))
                 list.push({ value: "file:" + f.id,
                             label: (f.id === t.fileId ? "✓ " : "") + qsTr("Version: %1").arg(MediaInfo.trackFileLabel(f)) })
@@ -435,6 +450,7 @@ FocusScope {
         onChosen: (v) => {
             if (v === "next") Music.playNext([trackId], page.d.versionId || 0)
             else if (v === "queue") Music.addToQueue([trackId], page.d.versionId || 0)
+            else if (v === "playlist") addToPlaylist.show([trackId], page.d.versionId || 0, trackList)
             else if (v.startsWith("file:")) Core.setTrackFile(trackId, Number(v.slice(5)))
         }
     }

@@ -46,6 +46,9 @@ qt_add_qml_module(coyotl
     qml/ActionMenu.qml
     qml/MusicKeyRow.qml
     qml/MediaInfo.js
+    qml/PlaylistInfo.js
+    qml/PlaylistPage.qml
+    qml/AddToPlaylist.qml
     qml/Nav.qml
     qml/NavRail.qml
     qml/Shell.qml

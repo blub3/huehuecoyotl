@@ -183,6 +183,23 @@ CREATE TABLE setting(key TEXT PRIMARY KEY, value TEXT NOT NULL);
     // 10 (2.5, SPEC 7 "Audiobook library"): the kinds audiobook, person and book_series, the
     // content type audiobooks, and the book tables. Ids are kept.
     Migration::Rebuild(audiobook_schema),
+    // 11 (2.6, issue #81): playlists. Each entry keeps the track and the file chosen for it,
+    // like the play queue; a file that goes away leaves the track, which then plays another
+    // version.
+    Migration::Sql(
+        r#"
+CREATE TABLE playlist      (id INTEGER PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            created_at INTEGER NOT NULL,
+                            updated_at INTEGER NOT NULL);
+CREATE TABLE playlist_entry(playlist_id INTEGER NOT NULL REFERENCES playlist(id) ON DELETE CASCADE,
+                            position INTEGER NOT NULL,
+                            item_id INTEGER NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+                            file_id INTEGER REFERENCES file(id) ON DELETE SET NULL,
+                            PRIMARY KEY (playlist_id, position));
+CREATE INDEX playlist_entry_item ON playlist_entry(item_id);
+"#,
+    ),
 ];
 
 /// The old and new kind constraint of `item`.

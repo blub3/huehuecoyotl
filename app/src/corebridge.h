@@ -111,6 +111,19 @@ class CoreBridge : public QObject {
     // (musicDetailReady of kind "facets": all, total, hires, lossless, multi, saved, unplayed,
     // genres [[name, n]], decades [[year, n]], letters [[initial, offset]]).
     Q_INVOKABLE quint64 musicFacets(const QString &kind, const QString &filter);
+    // Issue #81: playlists (musicDetailReady of kind "playlists", "playlist" or
+    // "playlistSaved"). `key` is "smart:<rule>" or an own playlist's id; items are albums,
+    // artists or songs; `to` < 0 removes the song at `index`.
+    Q_INVOKABLE quint64 playlists();
+    Q_INVOKABLE quint64 playlistDetail(const QString &key, int limit = 5000);
+    Q_INVOKABLE quint64 playlistCreate(const QString &name, const QVariantList &items = {},
+                                       qint64 version = 0);
+    Q_INVOKABLE quint64 playlistAdd(qint64 id, const QVariantList &items, qint64 version = 0);
+    Q_INVOKABLE quint64 playlistRename(qint64 id, const QString &name);
+    Q_INVOKABLE quint64 playlistDelete(qint64 id);
+    Q_INVOKABLE quint64 playlistMove(qint64 id, int index, int to);
+    Q_INVOKABLE quint64 playPlaylist(const QString &key, int start = 0, bool shuffle = false);
+    Q_INVOKABLE quint64 playlistSave(const QString &key);
     Q_INVOKABLE quint64 searchBook(qint64 id, const QString &title = QString(),
                                    const QString &author = QString());
     Q_INVOKABLE quint64 chooseBookMatch(qint64 id, const QString &work);

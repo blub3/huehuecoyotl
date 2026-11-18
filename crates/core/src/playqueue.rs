@@ -36,6 +36,18 @@ pub(crate) struct QueueState {
 }
 
 pub(crate) enum Op {
+    /// Issue #81: a playlist ("smart:<key>" or an id), from the song at `start`.
+    PlayPlaylist {
+        key: String,
+        start: usize,
+        shuffle: bool,
+    },
+    /// Songs with their files, as they are (a playlist's).
+    PlayTracks {
+        tracks: Vec<queue::Track>,
+        start: usize,
+        shuffle: bool,
+    },
     /// Issue #80: play what a browse query lists (the Songs list's "Play these"), read here so
     /// a long list never crosses the bridge.
     PlayQuery {
@@ -216,6 +228,28 @@ async fn run(inner: &Arc<Inner>, st: &mut QueueState, op: Op, request_id: u64) -
                 preference: "quality".into(),
             }
         }
+        Op::PlayPlaylist {
+            key,
+            start,
+            shuffle,
+        } => {
+            let now = now_ms();
+            let tracks = inner
+                .lib
+                .read(move |c| huehuecoyotl_library::playlists::resolve(c, &key, now))
+                .await?;
+            if tracks.is_empty() {
+                return Err(CoreError::new(
+                    ErrorKind::NotFound,
+                    "This playlist is empty.",
+                ));
+            }
+            Op::PlayTracks {
+                tracks,
+                start,
+                shuffle,
+            }
+        }
         op => op,
     };
     let expand = |items: Vec<i64>, version: i64, preference: String| {
@@ -333,8 +367,21 @@ async fn run(inner: &Arc<Inner>, st: &mut QueueState, op: Op, request_id: u64) -
             save = false;
             Then::Nothing
         }
-        // Turned into Play above.
-        Op::PlayQuery { .. } => Then::Nothing,
+        Op::PlayTracks {
+            tracks,
+            start,
+            shuffle,
+        } => {
+            let start = if shuffle && start == 0 {
+                (seed() % tracks.len().max(1) as u64) as usize
+            } else {
+                start.min(tracks.len().saturating_sub(1))
+            };
+            st.q.play(tracks, start, shuffle, seed());
+            Then::Play(0)
+        }
+        // Turned into Play and PlayTracks above.
+        Op::PlayQuery { .. } | Op::PlayPlaylist { .. } => Then::Nothing,
         Op::Clear => {
             st.q.clear();
             Then::Stop

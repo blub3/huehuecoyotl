@@ -2,6 +2,17 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en" sourcelanguage="en">
 <context>
+    <name>AddToPlaylist</name>
+    <message numerus="yes">
+        <location filename="../qml/AddToPlaylist.qml" line="124"/>
+        <source>%n song(s)</source>
+        <translation>
+            <numerusform>%n song</numerusform>
+            <numerusform>%n songs</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>AlbumPage</name>
     <message numerus="yes">
         <location filename="../qml/AlbumPage.qml" line="185"/>
@@ -20,7 +31,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="399"/>
+        <location filename="../qml/AlbumPage.qml" line="411"/>
         <source>%n version(s)</source>
         <translation>
             <numerusform>%n version</numerusform>
@@ -113,7 +124,12 @@
 <context>
     <name>MusicPage</name>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="364"/>
+        <location filename="../qml/MusicPage.qml" line="405"/>
+        <location filename="../qml/MusicPage.qml" line="976"/>
+        <location filename="../qml/MusicPage.qml" line="1003"/>
+        <location filename="../qml/MusicPage.qml" line="1045"/>
+        <location filename="../qml/MusicPage.qml" line="1084"/>
+        <location filename="../qml/MusicPage.qml" line="1115"/>
         <source>%n song(s)</source>
         <translation>
             <numerusform>%n song</numerusform>
@@ -121,9 +137,9 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="514"/>
-        <location filename="../qml/MusicPage.qml" line="902"/>
-        <location filename="../qml/MusicPage.qml" line="912"/>
+        <location filename="../qml/MusicPage.qml" line="555"/>
+        <location filename="../qml/MusicPage.qml" line="1210"/>
+        <location filename="../qml/MusicPage.qml" line="1220"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n album</numerusform>
@@ -131,7 +147,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="514"/>
+        <location filename="../qml/MusicPage.qml" line="555"/>
         <source>%n Hi-Res</source>
         <translation>
             <numerusform>%n Hi-Res</numerusform>
@@ -139,11 +155,19 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="677"/>
+        <location filename="../qml/MusicPage.qml" line="718"/>
         <source>Appears on %n album(s)</source>
         <translation>
             <numerusform>Appears on %n album</numerusform>
             <numerusform>Appears on %n albums</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MusicPage.qml" line="1267"/>
+        <source>Saving %n song(s). Progress is under Downloads.</source>
+        <translation>
+            <numerusform>Saving %n song. Progress is under Downloads.</numerusform>
+            <numerusform>Saving %n songs. Progress is under Downloads.</numerusform>
         </translation>
     </message>
 </context>
@@ -166,6 +190,25 @@
         <translation>
             <numerusform>%n track</numerusform>
             <numerusform>%n tracks</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>PlaylistPage</name>
+    <message numerus="yes">
+        <location filename="../qml/PlaylistPage.qml" line="34"/>
+        <source>Saving %n song(s). Progress is under Downloads.</source>
+        <translation>
+            <numerusform>Saving %n song. Progress is under Downloads.</numerusform>
+            <numerusform>Saving %n songs. Progress is under Downloads.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/PlaylistPage.qml" line="78"/>
+        <source>%n song(s)</source>
+        <translation>
+            <numerusform>%n song</numerusform>
+            <numerusform>%n songs</numerusform>
         </translation>
     </message>
 </context>
