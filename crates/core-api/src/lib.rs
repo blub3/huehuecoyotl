@@ -437,6 +437,8 @@ mod ffi {
         fn match_again(self: &Core, request_id: u64, item: i64, unlock: bool);
         fn match_search(self: &Core, request_id: u64, item: i64, query_json: &str);
         fn match_choose(self: &Core, request_id: u64, item: i64, choice_json: &str);
+        /// Issues #97 to #100: what a choice would do (MusicDetail "matchPreview").
+        fn match_preview(self: &Core, request_id: u64, item: i64, choice_json: &str);
         fn rematch_library(
             self: &Core,
             request_id: u64,
@@ -1352,6 +1354,11 @@ impl Core {
     fn match_choose(&self, request_id: u64, item: i64, choice_json: &str) {
         guard("match_choose", || {
             self.0.match_choose(request_id, item, choice_json)
+        })
+    }
+    fn match_preview(&self, request_id: u64, item: i64, choice_json: &str) {
+        guard("match_preview", || {
+            self.0.match_preview(request_id, item, choice_json)
         })
     }
     fn rematch_library(&self, request_id: u64, library: &str, all: bool, include_locked: bool) {

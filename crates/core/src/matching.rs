@@ -908,12 +908,14 @@ pub(crate) async fn choose(inner: &Arc<Inner>, item: i64, choice: &Value) -> cra
         ));
     }
     match kind.as_str() {
-        "movie" | "show" => {
+        "movie" | "show" | "episode" => {
             let chosen = choice["kind"].as_str().unwrap_or(&kind).to_string();
-            if chosen != kind {
-                return Err(unsupported(
-                    "changing a movie into a show or back is not possible yet",
-                ));
+            // Issues #99 and #100: a movie that is really a show, or the reverse.
+            if chosen != kind && !(kind == "episode" && chosen == "show") {
+                return crate::kinds::change_kind(inner, item, choice).await;
+            }
+            if kind == "episode" {
+                return Err(unsupported("choose the show's match on the show's page"));
             }
             let tmdb: i64 = id.parse().map_err(|_| unsupported("not a TMDB id"))?;
             let new = inner
@@ -1032,6 +1034,17 @@ impl Core {
                 "matchChosen",
                 json!({ "itemId": item, "newItemId": new }),
             ))
+        });
+    }
+
+    /// Issues #97 to #100: what choosing `choice_json` would do, before it is applied (a merge,
+    /// episodes the new show lacks, or for a kind change the files that move). Answers with a
+    /// `MusicDetail` of kind "matchPreview".
+    pub fn match_preview(&self, request_id: u64, item: i64, choice_json: &str) {
+        let choice: Value = serde_json::from_str(choice_json).unwrap_or_default();
+        self.spawn(request_id, move |inner| async move {
+            let v = crate::kinds::preview(&inner, item, &choice).await?;
+            Ok(result_event(request_id, "matchPreview", v))
         });
     }
 

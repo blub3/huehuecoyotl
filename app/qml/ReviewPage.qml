@@ -95,7 +95,7 @@ FocusScope {
                             FocusButton {
                                 anchors.centerIn: parent
                                 text: qsTr("Search…")
-                                onClicked: fixDialog.openFor(entry.modelData.id, entry.modelData.title, entry.modelData.year)
+                                onClicked: fixDialog.openFor(entry.modelData.id, entry.modelData.title, entry.modelData.year, entry.modelData.kind)
                             }
                         }
                     }
@@ -104,5 +104,5 @@ FocusScope {
         }
     }
 
-    FixMatchDialog { id: fixDialog; anchors.centerIn: parent }
+    FixMatchDialog { id: fixDialog; backend: Core; onChosen: page.load() }
 }

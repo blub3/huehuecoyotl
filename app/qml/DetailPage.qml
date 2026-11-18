@@ -588,11 +588,11 @@ FocusScope {
                             }
                             FocusButton {
                                 id: fixButton
-                                visible: Core.hasTmdbKey && (page.kind === "movie" || page.kind === "show")
+                                visible: Core.hasTmdbKey && (page.kind === "movie" || page.kind === "show" || page.kind === "episode")
                                 text: qsTr("Fix match")
                                 KeyNavigation.left: watchedButton
                                 KeyNavigation.down: page.belowActions()
-                                onClicked: fixDialog.openFor(page.itemId, page.d.title, page.d.year)
+                                onClicked: fixDialog.openFor(page.itemId, page.d.title, page.d.year, page.kind)
                             }
                         }
 
@@ -1013,8 +1013,15 @@ FocusScope {
         }
     }
 
+    // Issues #97 to #100: the page moves to the item that carries the chosen match (a merge or a
+    // movie that became a show).
     FixMatchDialog {
         id: fixDialog
-        anchors.centerIn: parent
+        backend: Core
+        onChosen: (newItemId) => {
+            if (newItemId !== undefined && newItemId !== page.itemId) page.itemId = newItemId
+            page.load()
+            fixButton.forceActiveFocus()
+        }
     }
 }
