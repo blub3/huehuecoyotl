@@ -10,6 +10,8 @@ QtObject {
     // Issue #34, Settings → Playback: which version of a movie is preselected when none was
     // played yet: "quality" (resolution, then HDR, then bit rate) or "smallest" (slow networks).
     property string preferredVersion: "quality"
+    // Issue #117: the Settings tab used last.
+    property string settingsTab: "metadata"
 
     readonly property var sizes: [
         { key: "small", label: qsTr("Small"), width: 140 },

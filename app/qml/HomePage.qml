@@ -98,7 +98,7 @@ FocusScope {
                             visible: Core.tmdbKeyState === "none" || Core.tmdbKeyState === "unavailable"
                             text: qsTr("Set up TMDB")
                             KeyNavigation.left: setupButton
-                            onClicked: Nav.go("settings")
+                            onClicked: Nav.settings("metadata")
                         }
                     }
                 }

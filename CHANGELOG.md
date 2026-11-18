@@ -2,6 +2,10 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased (2.7.1)
+
+- Settings with tabs (#117, part of 2.7.1). Settings shows one part at a time, chosen in a tab bar at the top: Metadata, Matching, Appearance, Playback, Audio, Storage, Troubleshooting and About. Left and Right switch tabs, Down enters the one shown; Settings opens on the tab you used last, and "Set up TMDB" and the match dialogs' "Open Settings" open the right one.
+
 ## 2.7.0 – 2026-11-18 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). Matching, again: whole libraries and single items can be matched again, searched by hand and corrected, also when a film was taken for a series or the reverse.

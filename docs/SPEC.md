@@ -2,6 +2,8 @@
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
 
+**Changes in v1.15:** 2.7.1: Settings has a tab bar, one tab per section (issue #117, section 9).
+
 **Changes in v1.14:** 2.7 is released for Linux on Nov 18, 2026: matching again (issues #92 to #110), without a migration: the shared core for matching items again, searching and choosing by hand and library rematches (section 7, *Matching again*; bridge additions in 8); Settings → Matching (#93 to #96) and Fix match for movies, shows and episodes with Movie ↔ TV show (#97 to #100), matching music again with artists following their albums and songs (#101 to #107), matching audiobooks and authors again with author photos and biographies (#108 to #110, decided in section 12), sections 7 and 9.
 
 **Changes in v1.13:** 2.6 is released for Linux on Nov 18, 2026: the music redesign (issues #78 to #83), with migrations 11 (playlists) and 12 (cover colours and waveforms), as built in sections 9 and 10.
@@ -647,6 +649,8 @@ Under heavy background work (tens of thousands of queued jobs) the grids kept gr
 - These are measured by an automated scroll benchmark in CI, not asserted. `--benchmark episodes` (since 1.6) scrolls the first show's episode tiles while ten episodes save; on the development machine (NVIDIA, 60 Hz) a 200-episode season scrolled with no dropped frames (p99 20.5 ms). Rerun for 2.6 with the screen on (60 Hz, NVIDIA): `--benchmark music` with 2,500 albums and the new covers (ribbons, quick actions), 0 of 1,200 frames dropped in two runs (p99 20.0 to 21.3 ms); `--benchmark songs` with 50,000 tracks, 0 dropped in two runs (p99 18.8 to 18.9 ms); `--benchmark books` with 2,000 books, 0 dropped in three runs (p99 20.5 to 21.1 ms).
 
 **Qt version policy.** Develop against the current release, [Qt 6.12](https://doc.qt.io/qt-6.12/qt-releases.html), with 6.8 as the minimum. Official packages bundle Qt, so the version a distribution ships does not matter; Jellyfin Desktop could not support Ubuntu 24.04 because that release carries Qt 6.4. Later patch releases of Qt's long-term-support versions are reserved for commercial customers, so an open-source project should follow the newest minor release instead of staying on one.
+
+**Settings tabs (2.7.1, issue #117, as built).** Under the heading a tab bar (`SettingsTabs.qml`) with one tab per section: Metadata, Matching, Appearance, Playback, Audio, Storage, Troubleshooting, About, styled like the Music top menu; only the chosen section is shown and it is its own heading. The tab follows focus along the bar (Left and Right); Down, Enter or Return enter the section's first control; Up from a control with nowhere else to go returns to the bar; Left on the first tab goes to the rail. Settings opens on the tab used last (`ui.ini`, `appearance/settingsTab`); `Nav.settings(tab)` opens it on a given tab: Home's "Set up TMDB" (Metadata) and the "Open Settings" button that the music and book match dialogs show while online information is off (Metadata). The matching status is asked for only while the Matching tab is shown. The bar is an accessible tab list. QML test: `tests/qml/tst_settingstabs.qml`.
 
 **Matching again (2.7, issues #93 to #110)**
 

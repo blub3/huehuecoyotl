@@ -28,6 +28,8 @@ Item {
     property string hint: ""
     signal notice(string text)
     signal changed(var newItemId)
+    // Issue #117: open Settings on a tab (the page calls Nav.settings).
+    signal settingsRequested(string tab)
 
     readonly property bool offline: backend !== null && backend.musicOnline === false
     readonly property string offlineText: qsTr("Turn on Music and book information online under Settings → Metadata to look books up at Open Library.")
@@ -255,7 +257,18 @@ Item {
                 text: matcher.isBook ? qsTr("Only fields your files leave empty are filled; your own metadata stays. Or paste an Open Library link or an ISBN.")
                                      : qsTr("Several authors can share a name; their dates, works and your books tell them apart. Or paste an Open Library link.")
             }
-            Label { visible: matcher.message !== ""; text: matcher.message; color: Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            RowLayout {
+                visible: matcher.message !== ""
+                Layout.fillWidth: true
+                spacing: 12
+                Label { text: matcher.message; color: Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                FocusButton {
+                    objectName: "openSettings"
+                    visible: matcher.offline
+                    text: qsTr("Open Settings")
+                    onClicked: { dialog.close(); matcher.settingsRequested("metadata") }
+                }
+            }
             BusyIndicator { visible: matcher.searching; running: visible; Layout.alignment: Qt.AlignHCenter }
             Label {
                 visible: !matcher.searching && matcher.candidates.length === 0 && matcher.message === ""
