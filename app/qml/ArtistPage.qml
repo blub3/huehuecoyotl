@@ -36,6 +36,12 @@ FocusScope {
     }
 
     Component.onCompleted: request = Core.artistDetail(itemId)
+    MusicMatch {
+        id: musicMatch
+        backend: Core
+        onNotice: (text) => (page.Window.window as Main).showError(text)
+        onChanged: page.request = Core.artistDetail(page.itemId)
+    }
     onActiveFocusChanged: if (activeFocus && loaded) Qt.callLater(() => { if (!page.Window.activeFocusItem || page.Window.activeFocusItem === page) page.focusRow(0) })
 
     Connections {
@@ -148,6 +154,39 @@ FocusScope {
                         color: Theme.textDim
                         font.pixelSize: Theme.fontBody
                     }
+                    // Issues #105 and #106: how the artist is matched, and matching it again.
+                    Label {
+                        objectName: "matchState"
+                        Layout.fillWidth: true
+                        visible: page.loaded
+                        wrapMode: Text.Wrap
+                        font.pixelSize: Theme.fontSmall
+                        color: page.d.matched ? Theme.textDim : Theme.focus
+                        text: !page.d.matched ? qsTr("Not matched yet: names, image and biography come from your files only.")
+                              : page.d.matchedVia ? (page.d.matchedVia.kind === "album" ? qsTr("Matched through the album “%1”.")
+                                                                                       : qsTr("Matched through the song “%1”.")).arg(page.d.matchedVia.title)
+                              : page.d.locked ? qsTr("Matched as you chose.") : ""
+                    }
+                    RowLayout {
+                        spacing: 10
+                        FocusButton {
+                            id: matchButton
+                            objectName: "artistMatchAgain"
+                            text: qsTr("Match again")
+                            KeyNavigation.right: searchArtist
+                            Keys.onDownPressed: page.focusRow(0)
+                            Keys.onLeftPressed: Nav.focusRail()
+                            onClicked: musicMatch.again(page.itemId, "artist", page.d.title, matchButton)
+                        }
+                        FocusButton {
+                            id: searchArtist
+                            objectName: "artistSearch"
+                            text: page.d.matchedVia ? qsTr("Not this artist?") : qsTr("Search MusicBrainz…")
+                            KeyNavigation.left: matchButton
+                            Keys.onDownPressed: page.focusRow(0)
+                            onClicked: musicMatch.search(page.itemId, "artist", page.d.title, "", searchArtist)
+                        }
+                    }
                     Label {
                         Layout.fillWidth: true
                         Layout.maximumWidth: 900
@@ -194,7 +233,7 @@ FocusScope {
                         leftMargin: 10
                         Accessible.role: Accessible.List
                         Accessible.name: rowBox.modelData.label
-                        Keys.onUpPressed: (e) => { if (rowBox.index > 0) page.focusRow(rowBox.index - 1) }
+                        Keys.onUpPressed: (e) => { if (rowBox.index > 0) page.focusRow(rowBox.index - 1); else matchButton.forceActiveFocus() }
                         Keys.onDownPressed: (e) => { if (rowBox.index < rows.count - 1) page.focusRow(rowBox.index + 1) }
                         Keys.onLeftPressed: (e) => { if (currentIndex === 0) Nav.focusRail(); else e.accepted = false }
                         onActiveFocusChanged: if (activeFocus) flick.reveal(rowBox)

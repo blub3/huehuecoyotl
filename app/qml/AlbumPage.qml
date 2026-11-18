@@ -310,7 +310,7 @@ FocusScope {
                                 enabled: page.tracks.length > 0
                                 KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
                                 KeyNavigation.left: queueButton
-                                KeyNavigation.right: saveMenu.visible ? saveMenu : null
+                                KeyNavigation.right: saveMenu.visible ? saveMenu : moreButton
                                 KeyNavigation.down: trackList
                                 onClicked: addToPlaylist.show([page.itemId], page.d.versionId || 0, playlistButton)
                             }
@@ -320,8 +320,21 @@ FocusScope {
                                 canExport: false
                                 KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
                                 KeyNavigation.left: playlistButton
+                                KeyNavigation.right: moreButton
                                 KeyNavigation.down: trackList
                                 onTriggered: (action) => page.saveAction(action)
+                            }
+                            // Issues #101 and #102: match the album again, or search MusicBrainz.
+                            FocusButton {
+                                id: moreButton
+                                objectName: "albumMore"
+                                glyph: "⋯"
+                                tip: qsTr("More")
+                                KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
+                                KeyNavigation.left: saveMenu.visible ? saveMenu : playlistButton
+                                KeyNavigation.down: trackList
+                                onClicked: albumMenu.show(moreButton, [{ value: "match", label: qsTr("Match again") },
+                                                                       { value: "search", label: qsTr("Search MusicBrainz…") }])
                             }
                         }
                     }
@@ -436,15 +449,21 @@ FocusScope {
     ActionMenu {
         id: trackMenu
         property var trackId: 0
+        property string trackTitle: ""
+        property string trackArtist: ""
         menuWidth: Math.min(640, page.width - 120)
         // Issue #63: a track with two files in this version offers each ("Version: …").
         function showFor(item, t) {
             trackId = t.id
+            trackTitle = t.title || ""
+            trackArtist = t.artists || page.d.artist || ""
             const list = [{ value: "next", label: qsTr("Play next") }, { value: "queue", label: qsTr("Add to queue") },
                           { value: "playlist", label: qsTr("Add to playlist…") }]
             for (const f of (t.files || []))
                 list.push({ value: "file:" + f.id,
                             label: (f.id === t.fileId ? "✓ " : "") + qsTr("Version: %1").arg(MediaInfo.trackFileLabel(f)) })
+            // Issues #103 and #104.
+            list.push({ value: "match", label: qsTr("Match again") }, { value: "search", label: qsTr("Search MusicBrainz…") })
             show(item, list)
         }
         onChosen: (v) => {
@@ -452,6 +471,26 @@ FocusScope {
             else if (v === "queue") Music.addToQueue([trackId], page.d.versionId || 0)
             else if (v === "playlist") addToPlaylist.show([trackId], page.d.versionId || 0, trackList)
             else if (v.startsWith("file:")) Core.setTrackFile(trackId, Number(v.slice(5)))
+            else if (v === "match") musicMatch.again(trackId, "track", trackTitle, trackList)
+            else if (v === "search") musicMatch.search(trackId, "track", trackTitle, trackArtist, trackList)
+        }
+    }
+
+    ActionMenu {
+        id: albumMenu
+        onChosen: (v) => {
+            if (v === "match") musicMatch.again(page.itemId, "album", page.d.title, moreButton)
+            else musicMatch.search(page.itemId, "album", page.d.title, page.d.artist, moreButton)
+        }
+    }
+    MusicMatch {
+        id: musicMatch
+        backend: Core
+        onNotice: (text) => (page.Window.window as Main).showError(text)
+        onChanged: (id) => {
+            // A merge can keep another album: the page follows it.
+            if (id !== undefined && id !== page.itemId && musicMatch.kind === "album") page.itemId = id
+            page.load()
         }
     }
 

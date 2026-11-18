@@ -18,6 +18,7 @@ pub mod lang;
 mod library;
 mod matching;
 mod music;
+mod music_matching;
 mod network;
 mod playlists;
 mod playqueue;

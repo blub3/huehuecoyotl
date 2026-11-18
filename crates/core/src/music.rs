@@ -157,17 +157,22 @@ pub(crate) async fn match_album(inner: &Arc<Inner>, mut album: i64) -> Result<()
             let f = facts(&r);
             // Issue #63: other copies of this release or editions of its group join this album
             // (the oldest of them remains).
-            album = inner
+            let (kept, followed) = inner
                 .lib
                 .write(move |c| {
-                    music::apply_release(c, album, &f)?;
-                    huehuecoyotl_library::versions::merge_same_release(c, album)
+                    let followed = music::apply_release(c, album, &f)?;
+                    let kept = huehuecoyotl_library::versions::merge_same_release(c, album)?;
+                    crate::music_matching::move_via(c, album, kept)?;
+                    Ok((kept, followed))
                 })
                 .await
                 .map_err(db)?;
+            album = kept;
             release = Some(r);
-            // Issue #12: the album's artists now have their MusicBrainz ids.
+            // Issue #12: the album's artists now have their MusicBrainz ids. Issue #106: artists
+            // that took their match from this release bring their other albums along.
             crate::extras::enqueue_artists(inner, &[]).await;
+            crate::music_matching::after_artists(inner, &followed).await;
         }
     }
     if !t.has_cover {

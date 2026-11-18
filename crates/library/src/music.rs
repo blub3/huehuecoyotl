@@ -132,7 +132,7 @@ fn set_external(c: &Connection, item: i64, kind: &str, value: &str) -> Result<()
 
 /// Issue #102: another release replaces the album's match: its old release, release group and
 /// recording ids go first, then the new release applies as usual.
-pub fn replace_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result<()> {
+pub fn replace_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result<Vec<i64>> {
     c.execute(
         "DELETE FROM external_id WHERE provider = 'musicbrainz' AND (
            (item_id = ?1 AND kind IN ('release', 'release_group'))
@@ -144,7 +144,8 @@ pub fn replace_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Resu
 
 /// A matched release: ids, release type and date where the tags had none; the album artists'
 /// and the tracks' ids (tracks by disc and position, or by title when the counts differ).
-pub fn apply_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result<()> {
+/// Returns the artists that had no match and took one from the release (issue #106).
+pub fn apply_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result<Vec<i64>> {
     let tx = c.transaction()?;
     set_external(&tx, album, "release", &r.id)?;
     if let Some(g) = &r.group_id {
@@ -167,25 +168,8 @@ pub fn apply_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result
         "UPDATE item SET year = coalesce(year, ?2) WHERE id = ?1",
         params![album, year],
     )?;
-    // Album artists by name.
-    let artists: Vec<(i64, String)> = {
-        let mut st = tx.prepare(
-            "SELECT a.id, a.title FROM credit c JOIN item a ON a.id = c.artist_id WHERE c.item_id = ?1
-             UNION SELECT p.id, p.title FROM item al JOIN item p ON p.id = al.parent_id WHERE al.id = ?1",
-        )?;
-        st.query_map([album], |row| {
-            Ok((
-                row.get(0)?,
-                row.get::<_, Option<String>>(1)?.unwrap_or_default(),
-            ))
-        })?
-        .collect::<rusqlite::Result<_>>()?
-    };
-    for (id, name) in &artists {
-        if let Some((_, mb)) = r.artists.iter().find(|(n, _)| norm(n) == norm(name)) {
-            set_external(&tx, *id, "artist", mb)?;
-        }
-    }
+    // Issue #106: album artists without a match take the release's ids, by name.
+    let followed = follow_artists(&tx, album, &r.artists, &format!("album:{album}"))?;
     // Tracks.
     let local: Vec<(i64, u32, u32, String)> = {
         let mut st = tx.prepare(
@@ -214,7 +198,234 @@ pub fn apply_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result
         params![album, now_ms()],
     )?;
     tx.commit()?;
+    Ok(followed)
+}
+
+// ---- following, songs and artists (2.7, issues #101 to #107) --------------------------------
+
+/// "Various Artists" (by name or MusicBrainz's special artist) never takes a match from a
+/// release.
+const VARIOUS_MBID: &str = "89ad4ac3-39f7-470e-963a-56509c546377";
+
+/// Issues #106 and #107: the artists credited on an album (its album artist and credits) or a
+/// song (its track artists) that have no match and are not locked take the id the release or
+/// recording gives the same name. `via` ("album:12", "track:40") is kept for the artist page.
+/// Returns those artists.
+pub fn follow_artists(
+    c: &Connection,
+    item: i64,
+    credits: &[(String, String)],
+    via: &str,
+) -> Result<Vec<i64>> {
+    let artists: Vec<(i64, String, bool)> = {
+        let mut st = c.prepare(
+            "SELECT a.id, coalesce(a.title, ''), a.locked FROM credit cr JOIN item a ON a.id = cr.artist_id
+               WHERE cr.item_id = ?1 AND a.kind = 'artist'
+             UNION SELECT p.id, coalesce(p.title, ''), p.locked FROM item al JOIN item p ON p.id = al.parent_id
+               WHERE al.id = ?1 AND al.kind = 'album' AND p.kind = 'artist'",
+        )?;
+        st.query_map([item], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get::<_, i64>(2)? != 0))
+        })?
+        .collect::<rusqlite::Result<_>>()?
+    };
+    let mut out = Vec::new();
+    for (id, name, locked) in artists {
+        if locked || norm(&name) == "variousartists" || external(c, id, "artist")?.is_some() {
+            continue;
+        }
+        let Some((_, mb)) = credits
+            .iter()
+            .find(|(n, mb)| norm(n) == norm(&name) && !mb.is_empty() && mb != VARIOUS_MBID)
+        else {
+            continue;
+        };
+        crate::matching::set_external(c, id, "musicbrainz", "artist", Some(&mb.to_lowercase()))?;
+        crate::matching::set_matched_via(c, id, Some(via))?;
+        c.execute(
+            "UPDATE item SET match_state = 'matched', meta_fetched_at = NULL WHERE id = ?1",
+            [id],
+        )?;
+        out.push(id);
+    }
+    Ok(out)
+}
+
+/// Issue #107: like [`follow_artists`], for a song's own artists only (never the album artist).
+pub fn follow_artists_of_track(
+    c: &Connection,
+    track: i64,
+    credits: &[(String, String)],
+    via: &str,
+) -> Result<Vec<i64>> {
+    follow_artists(c, track, credits, via)
+}
+
+/// The albums of an artist that are not matched and not locked: looked up again once the artist
+/// is matched (issues #105 and #106).
+pub fn unmatched_albums_of(c: &Connection, artist: i64) -> Result<Vec<i64>> {
+    let mut st = c.prepare(
+        "SELECT id FROM item WHERE kind = 'album' AND parent_id = ?1 AND locked = 0
+           AND coalesce(match_state, 'unmatched') <> 'matched' ORDER BY id",
+    )?;
+    Ok(st
+        .query_map([artist], |r| r.get(0))?
+        .collect::<rusqlite::Result<_>>()?)
+}
+
+/// Issue #103: what a song's match needs.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TrackTarget {
+    pub id: i64,
+    pub title: String,
+    /// The first track artist, else the album artist.
+    pub artist: String,
+    pub album: i64,
+    pub album_title: String,
+    pub disc: u32,
+    pub position: u32,
+    pub length_ms: Option<u64>,
+    pub recording: Option<String>,
+    /// The album's release, when the album is matched.
+    pub release: Option<String>,
+    pub locked: bool,
+}
+
+pub fn track_target(c: &Connection, track: i64) -> Result<Option<TrackTarget>> {
+    let row = c
+        .query_row(
+            "SELECT coalesce(t.title, ''), coalesce(
+                (SELECT a.title FROM credit cr JOIN item a ON a.id = cr.artist_id
+                 WHERE cr.item_id = t.id AND cr.role = 'artist' ORDER BY cr.position LIMIT 1),
+                (SELECT p.title FROM item p WHERE p.id = al.parent_id), ''),
+                al.id, coalesce(al.title, ''), coalesce(t.season_no, 1), coalesce(t.episode_no, 0),
+                (SELECT max(fa.duration_ms) FROM file f JOIN file_audio fa ON fa.file_id = f.id WHERE f.item_id = t.id),
+                t.locked, coalesce(al.match_state, '')
+             FROM item t JOIN item al ON al.id = t.parent_id WHERE t.id = ?1 AND t.kind = 'track'",
+            [track],
+            |r| {
+                Ok((
+                    TrackTarget {
+                        id: track,
+                        title: r.get(0)?,
+                        artist: r.get(1)?,
+                        album: r.get(2)?,
+                        album_title: r.get(3)?,
+                        disc: r.get::<_, i64>(4)? as u32,
+                        position: r.get::<_, i64>(5)? as u32,
+                        length_ms: r.get::<_, Option<i64>>(6)?.filter(|l| *l > 0).map(|l| l as u64),
+                        locked: r.get::<_, i64>(7)? != 0,
+                        ..Default::default()
+                    },
+                    r.get::<_, String>(8)? == "matched",
+                ))
+            },
+        )
+        .optional()?;
+    let Some((mut t, album_matched)) = row else {
+        return Ok(None);
+    };
+    t.recording = external(c, track, "recording")?;
+    if album_matched {
+        t.release = external(c, t.album, "release")?;
+    }
+    Ok(Some(t))
+}
+
+/// Issue #103: a song's recording (and its ISRCs). Tags are never touched. `lock` when the user
+/// chose it.
+pub fn set_recording(
+    c: &Connection,
+    track: i64,
+    recording: &str,
+    isrcs: &[String],
+    lock: bool,
+) -> Result<()> {
+    crate::matching::set_external(
+        c,
+        track,
+        "musicbrainz",
+        "recording",
+        Some(&recording.to_lowercase()),
+    )?;
+    c.execute(
+        "DELETE FROM external_id WHERE item_id = ?1 AND provider = 'musicbrainz' AND kind = 'isrc'",
+        [track],
+    )?;
+    for i in isrcs {
+        c.execute(
+            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'musicbrainz', 'isrc', ?2)",
+            params![track, i],
+        )?;
+    }
+    c.execute(
+        "UPDATE item SET locked = ?2, match_state = 'matched' WHERE id = ?1",
+        params![track, lock as i64],
+    )?;
     Ok(())
+}
+
+/// Issue #105: what an artist's match needs: its name, id, lock and its albums' titles.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ArtistMatchTarget {
+    pub id: i64,
+    pub name: String,
+    pub mbid: Option<String>,
+    pub locked: bool,
+    pub albums: Vec<String>,
+}
+
+pub fn artist_match_target(c: &Connection, artist: i64) -> Result<Option<ArtistMatchTarget>> {
+    let row = c
+        .query_row(
+            "SELECT coalesce(title, ''), locked FROM item WHERE id = ?1 AND kind = 'artist'",
+            [artist],
+            |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)? != 0)),
+        )
+        .optional()?;
+    let Some((name, locked)) = row else {
+        return Ok(None);
+    };
+    let mut st = c.prepare(
+        "SELECT coalesce(title, '') FROM item WHERE kind = 'album' AND parent_id = ?1 ORDER BY sort_title",
+    )?;
+    let albums = st
+        .query_map([artist], |r| r.get(0))?
+        .collect::<rusqlite::Result<_>>()?;
+    Ok(Some(ArtistMatchTarget {
+        id: artist,
+        name,
+        mbid: external(c, artist, "artist")?,
+        locked,
+        albums,
+    }))
+}
+
+/// Issue #105: an artist's match (replacing one it had); its information is looked up again.
+pub fn set_artist_match(c: &Connection, artist: i64, mbid: &str, lock: bool) -> Result<()> {
+    crate::matching::set_external(
+        c,
+        artist,
+        "musicbrainz",
+        "artist",
+        Some(&mbid.to_lowercase()),
+    )?;
+    crate::matching::set_matched_via(c, artist, None)?;
+    c.execute(
+        "UPDATE item SET locked = ?2, match_state = 'matched', meta_fetched_at = NULL WHERE id = ?1",
+        params![artist, lock as i64],
+    )?;
+    Ok(())
+}
+
+/// How many of `mine` (album titles) are among `theirs` (release group titles).
+pub fn albums_in_common(mine: &[String], theirs: &[String]) -> usize {
+    mine.iter()
+        .filter(|a| {
+            let k = norm(a);
+            !k.is_empty() && theirs.iter().any(|t| norm(t) == k)
+        })
+        .count()
 }
 
 // ---- artist extras (issue #12) ---------------------------------------------------------------
@@ -608,6 +819,11 @@ pub struct ArtistDetail {
     pub albums: Vec<AlbumCard>,
     /// Albums by others with a track credited to this artist ("Appears on").
     pub appears_on: Vec<AlbumCard>,
+    /// Issues #105 and #106: whether the artist has a MusicBrainz match, whether the user chose
+    /// it, and the album or song it came through ({kind, id, title}), if it came through one.
+    pub matched: bool,
+    pub locked: bool,
+    pub matched_via: Option<serde_json::Value>,
 }
 
 /// The release type an album is listed under on its artist's page.
@@ -704,7 +920,28 @@ pub fn artist_detail(c: &Connection, artist: i64) -> Result<Option<ArtistDetail>
         biography,
         albums,
         appears_on,
+        matched: external(c, artist, "artist")?.is_some(),
+        locked: crate::matching::locked(c, artist)?,
+        matched_via: matched_via(c, artist)?,
     }))
+}
+
+/// "album:12" → {kind: "album", id: 12, title}.
+fn matched_via(c: &Connection, artist: i64) -> Result<Option<serde_json::Value>> {
+    let Some(via) = crate::matching::external(c, artist, "coyotl", "matched_via")? else {
+        return Ok(None);
+    };
+    let Some((kind, id)) = via.split_once(':') else {
+        return Ok(None);
+    };
+    let Ok(id) = id.parse::<i64>() else {
+        return Ok(None);
+    };
+    let title: Option<String> = c
+        .query_row("SELECT title FROM item WHERE id = ?1", [id], |r| r.get(0))
+        .optional()?
+        .flatten();
+    Ok(title.map(|t| serde_json::json!({ "kind": kind, "id": id, "title": t })))
 }
 
 #[cfg(test)]

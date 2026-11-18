@@ -136,7 +136,10 @@ FocusScope {
             { label: qsTr("Add to queue"), value: "queue" },
             { label: qsTr("Add to playlist…"), value: "playlist" },
             { label: qsTr("Save on this computer"), value: "save" },
-            { label: m.kind === "album" ? qsTr("Open album") : qsTr("Open artist"), value: "open" }
+            { label: m.kind === "album" ? qsTr("Open album") : qsTr("Open artist"), value: "open" },
+            // Issues #101, #102 and #105.
+            { label: qsTr("Match again"), value: "match" },
+            { label: qsTr("Search MusicBrainz…"), value: "search" }
         ])
     }
 
@@ -912,7 +915,10 @@ FocusScope {
                             { label: qsTr("Play next"), value: "next" },
                             { label: qsTr("Add to queue"), value: "queue" },
                             { label: qsTr("Add to playlist…"), value: "playlist" },
-                            { label: qsTr("Go to album"), value: "album" }
+                            { label: qsTr("Go to album"), value: "album" },
+                            // Issues #103 and #104.
+                            { label: qsTr("Match again"), value: "match" },
+                            { label: qsTr("Search MusicBrainz…"), value: "search" }
                         ])
                     }
                 }
@@ -1311,6 +1317,8 @@ FocusScope {
             if (v === "next") Music.playNext([m.id])
             else if (v === "queue") Music.addToQueue([m.id])
             else if (v === "playlist") addToPlaylist.show([m.id], 0, songList)
+            else if (v === "match") musicMatch.again(m.id, "track", m.title, songList)
+            else if (v === "search") musicMatch.search(m.id, "track", m.title, m.artist || "", songList)
             else Nav.openItem(m.id, "track", m.parentId)
         }
     }
@@ -1323,7 +1331,14 @@ FocusScope {
             else if (v === "queue") Music.addToQueue([m.id])
             else if (v === "save") Core.saveItem(m.id, 0)
             else if (v === "playlist") addToPlaylist.show([m.id], 0, grid)
+            else if (v === "match") musicMatch.again(m.id, m.kind, m.title, grid)
+            else if (v === "search") musicMatch.search(m.id, m.kind, m.title, m.kind === "album" ? (m.subtitle || "") : "", grid)
             else page.open(m)
         }
+    }
+    MusicMatch {
+        id: musicMatch
+        backend: Core
+        onNotice: (text) => (page.Window.window as Main).showError(text)
     }
 }

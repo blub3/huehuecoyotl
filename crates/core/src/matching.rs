@@ -89,6 +89,8 @@ pub(crate) async fn rematch_item(
         "movie" | "show" => rematch_video(inner, item, locked).await,
         "album" => rematch_album(inner, item, locked).await,
         "audiobook" => rematch_book(inner, item, locked).await,
+        "track" => crate::music_matching::rematch_track(inner, item).await,
+        "artist" => crate::music_matching::rematch_artist(inner, item).await,
         _ => Err(MetaError::Other(format!(
             "{kind} items cannot be matched again"
         ))),
@@ -325,13 +327,15 @@ pub(crate) async fn apply_release(
         .read(move |c| Ok(music::album_target(c, album)?.is_some_and(|t| t.has_cover)))
         .await
         .map_err(db)?;
-    let new = inner
+    let (new, followed) = inner
         .lib
         .write(move |c| {
-            music::replace_release(c, album, &f)?;
+            let followed = music::replace_release(c, album, &f)?;
             m::set_locked(c, album, lock)?;
             c.execute("DELETE FROM match_candidate WHERE item_id = ?1", [album])?;
-            versions::merge_same_release(c, album)
+            let new = versions::merge_same_release(c, album)?;
+            crate::music_matching::move_via(c, album, new)?;
+            Ok((new, followed))
         })
         .await
         .map_err(db)?;
@@ -345,6 +349,7 @@ pub(crate) async fn apply_release(
         .await;
     }
     crate::extras::enqueue_artists(inner, &[]).await;
+    crate::music_matching::after_artists(inner, &followed).await;
     inner.sink.post(Event::ItemChanged { item_id: new });
     Ok(new)
 }
@@ -615,11 +620,6 @@ fn tmdb_candidate(
 }
 
 fn release_candidate(h: &ReleaseHit, local_tracks: u32, current: Option<&str>) -> Value {
-    let fit = match h.track_count {
-        Some(n) if local_tracks > 0 && n == local_tracks => format!("{n} of {local_tracks} tracks"),
-        Some(n) if local_tracks > 0 => format!("{n} tracks, you have {local_tracks}"),
-        _ => String::new(),
-    };
     json!({
         "provider": "musicbrainz",
         "id": h.id,
@@ -634,7 +634,7 @@ fn release_candidate(h: &ReleaseHit, local_tracks: u32, current: Option<&str>) -
         "type": h.release_type,
         "tracks": h.track_count,
         "group": h.group_id,
-        "fit": fit,
+        "localTracks": local_tracks,
         "good": local_tracks > 0 && h.track_count == Some(local_tracks),
         "score": f64::from(h.score) / 100.0,
         "image": format!("{CAA_THUMB}/{}/front-250", h.id),
@@ -682,7 +682,7 @@ async fn current_of(inner: &Arc<Inner>, item: i64) -> crate::CResult<Value> {
         .await?)
 }
 
-fn unsupported(msg: &str) -> CoreError {
+pub(crate) fn unsupported(msg: &str) -> CoreError {
     CoreError::new(ErrorKind::Unsupported, msg.to_string())
 }
 
@@ -877,6 +877,7 @@ pub(crate) async fn search(inner: &Arc<Inner>, item: i64, q: &Value) -> crate::C
                 .map(|h| book_candidate(h, &t.title, &t.authors, t.work.as_deref()))
                 .collect()
         }
+        "track" | "artist" => crate::music_matching::search(inner, item, &kind, &text, q).await?,
         other => {
             return Err(unsupported(&format!(
                 "{other} items cannot be searched yet"
@@ -962,6 +963,7 @@ pub(crate) async fn choose(inner: &Arc<Inner>, item: i64, choice: &Value) -> cra
             inner.mark_changed();
             Ok(item)
         }
+        "track" | "artist" => crate::music_matching::choose(inner, item, &kind, &id).await,
         other => Err(unsupported(&format!(
             "{other} items cannot be matched by hand yet"
         ))),
@@ -1043,7 +1045,19 @@ impl Core {
     pub fn match_preview(&self, request_id: u64, item: i64, choice_json: &str) {
         let choice: Value = serde_json::from_str(choice_json).unwrap_or_default();
         self.spawn(request_id, move |inner| async move {
-            let v = crate::kinds::preview(&inner, item, &choice).await?;
+            let kind = inner
+                .lib
+                .read(move |c| m::kind_title(c, item))
+                .await?
+                .map(|(k, _)| k)
+                .unwrap_or_default();
+            // Issue #102: an album against a release, track by track.
+            let v = if kind == "album" {
+                let release = choice["id"].as_str().unwrap_or_default().to_string();
+                crate::music_matching::preview_album(&inner, item, &release).await?
+            } else {
+                crate::kinds::preview(&inner, item, &choice).await?
+            };
             Ok(result_event(request_id, "matchPreview", v))
         });
     }

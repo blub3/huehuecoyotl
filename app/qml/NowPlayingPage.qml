@@ -603,7 +603,7 @@ FocusScope {
                         Keys.onEnterPressed: Music.jump(modelData.index)
                         Keys.onPressed: (ev) => {
                             if (ev.key === Qt.Key_Menu || ev.key === Qt.Key_Delete) {
-                                entryMenu.showFor(row, row.modelData.index, row.modelData.id)
+                                entryMenu.showFor(row, row.modelData.index, row.modelData.id, row.modelData.title, row.modelData.artists)
                                 ev.accepted = true
                             } else if ((ev.modifiers & Qt.ControlModifier) && ev.key === Qt.Key_Up && row.modelData.index > 0) {
                                 Music.move(row.modelData.index, row.modelData.index - 1)
@@ -731,18 +731,31 @@ FocusScope {
         property int position: -1
         property var itemId: 0
         property Item row: null
-        function showFor(item, pos, id) {
+        property string title: ""
+        property string artist: ""
+        function showFor(item, pos, id, title, artist) {
             position = pos
             row = item
             itemId = id
+            entryMenu.title = title || ""
+            entryMenu.artist = artist || ""
             show(item, [{ value: "play", label: qsTr("Play now") }, { value: "remove", label: qsTr("Remove from queue") },
-                        { value: "playlist", label: qsTr("Add to playlist…") }])
+                        { value: "playlist", label: qsTr("Add to playlist…") },
+                        // Issues #103 and #104.
+                        { value: "match", label: qsTr("Match again") }, { value: "search", label: qsTr("Search MusicBrainz…") }])
         }
         onChosen: (v) => {
             if (v === "play") Music.jump(position)
             else if (v === "playlist") { if (itemId) addToPlaylist.show([itemId], 0, row) }
+            else if (v === "match") { if (itemId) musicMatch.again(itemId, "track", title, row) }
+            else if (v === "search") { if (itemId) musicMatch.search(itemId, "track", title, artist, row) }
             else Music.remove(position)
         }
+    }
+    MusicMatch {
+        id: musicMatch
+        backend: Core
+        onNotice: (text) => (page.Window.window as Main).showError(text)
     }
     // Issue #81.
     AddToPlaylist { id: addToPlaylist }
