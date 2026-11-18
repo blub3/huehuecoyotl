@@ -55,6 +55,9 @@ pub struct Counts {
     pub songs: i64,
     pub artists: i64,
     pub authors: i64,
+    /// Issue #124: artists without a MusicBrainz match (music), and those the user chose.
+    pub artists_open: i64,
+    pub artists_locked: i64,
 }
 
 pub fn counts(c: &Connection, library: &str) -> Result<Counts> {
@@ -88,6 +91,11 @@ pub fn counts(c: &Connection, library: &str) -> Result<Counts> {
         "music" => {
             n.songs = count("SELECT count(*) FROM item WHERE kind = 'track'")?;
             n.artists = count("SELECT count(*) FROM item WHERE kind = 'artist'")?;
+            n.artists_open = count(&format!(
+                "SELECT count(*) FROM item a WHERE a.kind = 'artist' AND {NO_ARTIST_ID}"
+            ))?;
+            n.artists_locked =
+                count("SELECT count(*) FROM item WHERE kind = 'artist' AND locked <> 0")?;
         }
         "books" => {
             n.authors =
@@ -113,10 +121,34 @@ pub fn targets(c: &Connection, library: &str, all: bool, include_locked: bool) -
     }
     sql.push_str(" ORDER BY id");
     let mut st = c.prepare(&sql)?;
-    Ok(st
+    let mut ids: Vec<i64> = st
         .query_map([kind], |r| r.get(0))?
-        .collect::<rusqlite::Result<_>>()?)
+        .collect::<rusqlite::Result<_>>()?;
+    // Issue #124: a music run matches artists too, after the albums (an artist that follows an
+    // album during the run needs no lookup of its own). "Various Artists" never.
+    if library == "music" {
+        let mut sql = String::from(
+            "SELECT a.id FROM item a WHERE a.kind = 'artist'
+               AND replace(replace(lower(coalesce(a.title, '')), ' ', ''), '-', '') <> 'variousartists'",
+        );
+        if !all {
+            sql.push_str(&format!(" AND {NO_ARTIST_ID}"));
+        }
+        if !include_locked {
+            sql.push_str(" AND a.locked = 0");
+        }
+        sql.push_str(" ORDER BY a.id");
+        let mut st = c.prepare(&sql)?;
+        ids.extend(
+            st.query_map([], |r| r.get::<_, i64>(0))?
+                .collect::<rusqlite::Result<Vec<_>>>()?,
+        );
+    }
+    Ok(ids)
 }
+
+/// An artist `a` without a MusicBrainz match (SQL).
+const NO_ARTIST_ID: &str = "NOT EXISTS (SELECT 1 FROM external_id e WHERE e.item_id = a.id AND e.provider = 'musicbrainz' AND e.kind = 'artist')";
 
 // ---- rematch runs ------------------------------------------------------------------------------
 

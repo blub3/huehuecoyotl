@@ -15,7 +15,7 @@ use huehuecoyotl_core::{Core, Event};
 use huehuecoyotl_library::rusqlite::Connection;
 use huehuecoyotl_metadata::books::{BookHit, BookProvider, BookQuery, Work};
 use huehuecoyotl_metadata::music::{
-    ArtistCredit, Medium, MusicProvider, Release, ReleaseHit, Track,
+    Artist, ArtistCredit, Medium, MusicProvider, Release, ReleaseHit, Track,
 };
 use huehuecoyotl_metadata::{
     Candidate, Details, MediaType, MetadataProvider, Result, SeasonDetails, SeasonRef,
@@ -306,6 +306,19 @@ impl MusicProvider for Mb {
     async fn front_cover(&self, _release: &str, _group: Option<&str>) -> Result<Option<Bytes>> {
         Ok(Some(png()))
     }
+    async fn search_artists(&self, name: &str) -> Result<Vec<Artist>> {
+        self.calls.lock().unwrap().push(format!("artist {name}"));
+        Ok(if name == "Solo Act" {
+            vec![Artist {
+                id: "solo-id".into(),
+                name: name.into(),
+                score: 100,
+                ..Default::default()
+            }]
+        } else {
+            vec![]
+        })
+    }
 }
 
 #[test]
@@ -367,9 +380,11 @@ fn music_runs_skip_chosen_albums_and_send_nothing_offline() {
     core.rematch_library(next, "music", true, false);
     answer(&rx, next);
     let l = finished_run(&core, &rx, "music", &mut next);
+    // Issue #124: Odd, then the artists Singer and Band (everything: both are looked up; neither
+    // is found by name here, and their matches from the albums stay).
     assert_eq!(
         (l["run"]["total"].as_i64(), l["run"]["newly"].as_i64()),
-        (Some(1), Some(1))
+        (Some(3), Some(1))
     );
     assert_eq!(
         query::<String>(
@@ -491,4 +506,77 @@ fn book_runs_fill_only_what_the_book_lacks() {
         query::<i64>(&db, "SELECT year FROM item WHERE kind = 'audiobook'"),
         Some(1950)
     );
+}
+
+/// Issue #124: a music run matches the artists its albums do not, and looks up no artist that
+/// has a match already (in an "unmatched only" run).
+#[test]
+fn music_runs_match_artists_too() {
+    if !ffmpeg() {
+        eprintln!("skipped: ffmpeg is not installed");
+        return;
+    }
+    let d = tempfile::tempdir().unwrap();
+    let m = d.path().join("music");
+    audio(
+        &m.join("Singer/Named/01.flac"),
+        "flac",
+        &[
+            ("artist", "Singer"),
+            ("album", "Named"),
+            ("title", "Song"),
+            ("track", "1"),
+        ],
+    );
+    audio(
+        &m.join("Solo Act/Lonely/01.flac"),
+        "flac",
+        &[
+            ("artist", "Solo Act"),
+            ("album", "Lonely"),
+            ("title", "Song"),
+            ("track", "1"),
+        ],
+    );
+    let data = d.path().join("data");
+    let db = data.join("library.db");
+    let (core, rx) = open(&data);
+    let mb = Arc::new(Mb::default());
+    core.set_music_provider(mb.clone());
+    core.add_library(1, &m.to_string_lossy(), "music");
+    // Named is found and Singer follows it; Lonely is not, so Solo Act has no match.
+    poll("albums looked up", || {
+        let named = query::<String>(
+            &db,
+            "SELECT match_state FROM item WHERE kind = 'album' AND title = 'Named'",
+        )?;
+        let lonely = query::<String>(
+            &db,
+            "SELECT match_state FROM item WHERE kind = 'album' AND title = 'Lonely'",
+        )?;
+        (named == "matched" && lonely == "unmatched").then_some(())
+    });
+    mb.calls.lock().unwrap().clear();
+    let mut next = 100;
+    core.matching_status(next);
+    answer(&rx, next);
+    core.rematch_library(next + 1, "music", false, false);
+    next += 1;
+    answer(&rx, next);
+    let l = finished_run(&core, &rx, "music", &mut next);
+    assert_eq!(
+        (l["run"]["total"].as_i64(), l["run"]["newly"].as_i64()),
+        (Some(2), Some(1)),
+        "Lonely and Solo Act"
+    );
+    assert_eq!(
+        query::<String>(&db, "SELECT e.value FROM external_id e JOIN item a ON a.id = e.item_id WHERE a.title = 'Solo Act' AND e.kind = 'artist'").as_deref(),
+        Some("solo-id")
+    );
+    let calls = mb.calls.lock().unwrap().clone();
+    assert!(
+        !calls.iter().any(|c| c == "artist Singer"),
+        "Singer has its match: {calls:?}"
+    );
+    assert_eq!(l["artistsOpen"], 0);
 }

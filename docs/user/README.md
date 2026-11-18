@@ -123,7 +123,7 @@ audiobooks with how many are matched, need a choice, were not found or were chos
 default), or everything. Matches you chose yourself stay unless you untick **Keep the matches you
 chose yourself**, and a match is only replaced by a sure one. One library runs at a time, in the
 background; you can keep playing, stop it, or close the app: it goes on after the next start.
-Music and audiobooks need **Music and book information online**, movies and shows a TMDB key.
+For music, the albums come first, then the artists that still have no match. Music and audiobooks need **Music and book information online**, movies and shows a TMDB key.
 
 ## Browse and play
 

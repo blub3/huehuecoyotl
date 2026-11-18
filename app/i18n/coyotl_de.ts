@@ -2067,18 +2067,26 @@
         <source>%1 chosen by you</source>
         <translation>%1 von dir gewählt</translation>
     </message>
+    <message numerus="yes">
+        <location filename="../qml/MatchingLibraryRow.qml" line="104"/>
+        <source>%n artist(s) without a match</source>
+        <translation>
+            <numerusform>%n Künstler ohne Zuordnung</numerusform>
+            <numerusform>%n Künstler ohne Zuordnung</numerusform>
+        </translation>
+    </message>
     <message>
-        <location filename="../qml/MatchingLibraryRow.qml" line="125"/>
+        <location filename="../qml/MatchingLibraryRow.qml" line="127"/>
         <source>Waiting for %1 to finish.</source>
         <translation>Wartet, bis %1 fertig ist.</translation>
     </message>
     <message>
-        <location filename="../qml/MatchingLibraryRow.qml" line="125"/>
+        <location filename="../qml/MatchingLibraryRow.qml" line="127"/>
         <source>Waiting…</source>
         <translation>Wartet …</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MatchingLibraryRow.qml" line="126"/>
+        <location filename="../qml/MatchingLibraryRow.qml" line="128"/>
         <source>Matching… %1 of %2 · about %n min left</source>
         <translation>
             <numerusform>Ordne zu … %1 von %2 · noch etwa %n Minute</numerusform>
@@ -2086,22 +2094,22 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/MatchingLibraryRow.qml" line="152"/>
+        <location filename="../qml/MatchingLibraryRow.qml" line="154"/>
         <source>Stop</source>
         <translation>Anhalten</translation>
     </message>
     <message>
-        <location filename="../qml/MatchingLibraryRow.qml" line="153"/>
+        <location filename="../qml/MatchingLibraryRow.qml" line="155"/>
         <source>Stop matching %1 again; what was matched so far stays.</source>
         <translation>Neue Zuordnung von %1 anhalten; was bisher zugeordnet wurde, bleibt.</translation>
     </message>
     <message>
-        <location filename="../qml/MatchingLibraryRow.qml" line="165"/>
+        <location filename="../qml/MatchingLibraryRow.qml" line="167"/>
         <source>Match again…</source>
         <translation>Neu zuordnen …</translation>
     </message>
     <message>
-        <location filename="../qml/MatchingLibraryRow.qml" line="166"/>
+        <location filename="../qml/MatchingLibraryRow.qml" line="168"/>
         <source>Match %1 again</source>
         <translation>%1 neu zuordnen</translation>
     </message>
@@ -4344,22 +4352,22 @@
         <translation>Hörbücher</translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="56"/>
+        <location filename="../qml/RematchDialog.qml" line="59"/>
         <source>Match %1 again</source>
         <translation>%1 neu zuordnen</translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="62"/>
+        <location filename="../qml/RematchDialog.qml" line="65"/>
         <source>Which items</source>
         <translation>Welche Einträge</translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="67"/>
+        <location filename="../qml/RematchDialog.qml" line="70"/>
         <source>Unmatched and uncertain only</source>
         <translation>Nur nicht oder unsicher zugeordnete</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="84"/>
+        <location filename="../qml/RematchDialog.qml" line="87"/>
         <source>The %n item(s) without a sure match. Matched items stay as they are.</source>
         <translation>
             <numerusform>Der %n Eintrag ohne sichere Zuordnung. Zugeordnete bleiben, wie sie sind.</numerusform>
@@ -4367,12 +4375,17 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="90"/>
+        <location filename="../qml/RematchDialog.qml" line="96"/>
+        <source>Albums first, then artists: an artist that gets its match from an album is not looked up again.</source>
+        <translation>Erst die Alben, dann die Künstler: Ein Künstler, der seine Zuordnung von einem Album bekommt, wird nicht noch einmal nachgeschlagen.</translation>
+    </message>
+    <message>
+        <location filename="../qml/RematchDialog.qml" line="102"/>
         <source>Everything</source>
         <translation>Alles</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="108"/>
+        <location filename="../qml/RematchDialog.qml" line="120"/>
         <source>All %n item(s), as if they were new. A match is only replaced by a sure one.</source>
         <translation>
             <numerusform>Der %n Eintrag, als wäre er neu. Eine Zuordnung wird nur durch eine sichere ersetzt.</numerusform>
@@ -4380,22 +4393,22 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="114"/>
+        <location filename="../qml/RematchDialog.qml" line="126"/>
         <source>Keep the matches you chose yourself (%1)</source>
         <translation>Selbst gewählte Zuordnungen behalten (%1)</translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="115"/>
+        <location filename="../qml/RematchDialog.qml" line="127"/>
         <source>Off: they are looked up again too and may change.</source>
         <translation>Aus: Auch sie werden neu nachgeschlagen und können sich ändern.</translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="139"/>
+        <location filename="../qml/RematchDialog.qml" line="151"/>
         <source>Nothing to do: every item has a sure match.</source>
         <translation>Nichts zu tun: Jeder Eintrag ist sicher zugeordnet.</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="141"/>
+        <location filename="../qml/RematchDialog.qml" line="153"/>
         <source>%n item(s). One request a second is allowed: about %1 min.</source>
         <translation>
             <numerusform>%n Eintrag. Erlaubt ist eine Anfrage pro Sekunde: etwa %1 Min.</numerusform>
@@ -4403,7 +4416,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="142"/>
+        <location filename="../qml/RematchDialog.qml" line="154"/>
         <source>%n item(s): about %1 min.</source>
         <translation>
             <numerusform>%n Eintrag: etwa %1 Min.</numerusform>
@@ -4411,17 +4424,17 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="151"/>
+        <location filename="../qml/RematchDialog.qml" line="163"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="161"/>
+        <location filename="../qml/RematchDialog.qml" line="173"/>
         <source>Start</source>
         <translation>Starten</translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="171"/>
+        <location filename="../qml/RematchDialog.qml" line="183"/>
         <source>↑/↓ chooses · Space ticks · Enter starts · Back cancels</source>
         <translation>↑/↓ wählt · Leertaste hakt an · Enter startet · Zurück bricht ab</translation>
     </message>

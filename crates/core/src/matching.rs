@@ -524,20 +524,30 @@ pub(crate) async fn run_job(inner: &Arc<Inner>, payload: &str) -> Result<(), Met
     let v: Value = serde_json::from_str(payload).unwrap_or_default();
     let item = v["item_id"].as_i64().unwrap_or(0);
     let library = v["library"].as_str().unwrap_or_default().to_string();
-    let include_locked = inner
+    let (include_locked, all, matched_artist) = inner
         .lib
         .read({
             let library = library.clone();
             move |c| {
-                Ok(m::runs(c)?
-                    .into_iter()
-                    .find(|r| r.library == library)
-                    .is_some_and(|r| r.include_locked))
+                let run = m::runs(c)?.into_iter().find(|r| r.library == library);
+                let artist = m::kind_title(c, item)?.is_some_and(|(k, _)| k == "artist")
+                    && m::external(c, item, "musicbrainz", "artist")?.is_some();
+                Ok((
+                    run.as_ref().is_some_and(|r| r.include_locked),
+                    run.as_ref().is_some_and(|r| r.all),
+                    artist,
+                ))
             }
         })
         .await
         .map_err(db)?;
-    let outcome = match rematch_item(inner, item, include_locked).await {
+    // Issue #124: an artist that followed an album earlier in this run needs no lookup.
+    let skip = matched_artist && !all;
+    let outcome = match if skip {
+        Ok((Outcome::Unchanged, item))
+    } else {
+        rematch_item(inner, item, include_locked).await
+    } {
         Ok((o, _)) => o,
         Err(e @ (MetaError::RateLimited(_) | MetaError::Network(_) | MetaError::Auth)) => {
             return Err(e);
