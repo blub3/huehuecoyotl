@@ -9,6 +9,12 @@ QtObject {
     function open(url, props) { if (shell) shell.openPage(url, props || {}) }
     function back() { if (shell) shell.back() }
     function go(section) { if (shell) shell.go(section) }
+    // Issue #117: Settings on one of its tabs (metadata, matching, appearance, playback, audio,
+    // storage, troubleshooting, about).
+    function settings(tab) {
+        if (tab) Appearance.settingsTab = tab
+        go("settings")
+    }
     function focusRail() { if (shell) shell.focusRail() }
     function nowPlaying() { if (shell) shell.openNowPlaying() }
     // Music (2.0) has pages of its own: an album, an artist; a track opens its album.

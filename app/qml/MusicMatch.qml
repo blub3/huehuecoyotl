@@ -27,6 +27,8 @@ Item {
     property string hint: ""
     signal notice(string text)
     signal changed(var newItemId)
+    // Issue #117: open Settings on a tab (the page calls Nav.settings).
+    signal settingsRequested(string tab)
 
     function lockText() {
         if (kind === "track") return qsTr("You chose the match of this song yourself. Match it again anyway? A sure match replaces your choice.")
@@ -263,7 +265,18 @@ Item {
                        : qsTr("Several artists can share a name; the description, country and your albums tell them apart."))
                       + " " + qsTr("Or paste a MusicBrainz link.")
             }
-            Label { visible: matcher.message !== ""; text: matcher.message; color: Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            RowLayout {
+                visible: matcher.message !== ""
+                Layout.fillWidth: true
+                spacing: 12
+                Label { text: matcher.message; color: Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                FocusButton {
+                    objectName: "openSettings"
+                    visible: matcher.offline
+                    text: qsTr("Open Settings")
+                    onClicked: { dialog.close(); matcher.settingsRequested("metadata") }
+                }
+            }
             BusyIndicator { visible: matcher.searching; running: visible; Layout.alignment: Qt.AlignHCenter }
             Label {
                 visible: !matcher.searching && matcher.candidates.length === 0 && matcher.message === ""

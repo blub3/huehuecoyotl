@@ -385,6 +385,7 @@ FocusScope {
         id: bookMatch
         backend: Core
         onNotice: (text) => (page.Window.window as Main).showError(text)
+        onSettingsRequested: (tab) => Nav.settings(tab)
         onChanged: page.load()
     }
 

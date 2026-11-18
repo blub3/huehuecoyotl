@@ -170,37 +170,37 @@
         <translation>Version: %1</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="515"/>
+        <location filename="../qml/AlbumPage.qml" line="516"/>
         <source>Make “%1” an album of its own? It stays apart from this one, also after the next scan.</source>
         <translation>„%1“ zu einem eigenen Album machen? Es bleibt von diesem getrennt, auch nach dem nächsten Scan.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="520"/>
+        <location filename="../qml/AlbumPage.qml" line="521"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="524"/>
+        <location filename="../qml/AlbumPage.qml" line="525"/>
         <source>Make it an album</source>
         <translation>Eigenes Album machen</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="550"/>
+        <location filename="../qml/AlbumPage.qml" line="551"/>
         <source>Stop saving and remove what was copied so far? The files on the server stay.</source>
         <translation>Speichern abbrechen und das bisher Kopierte entfernen? Die Dateien auf dem Server bleiben.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="551"/>
+        <location filename="../qml/AlbumPage.qml" line="552"/>
         <source>Delete the saved copies of this album from this computer? The files on the server stay.</source>
         <translation>Die gespeicherten Kopien dieses Albums von diesem Computer löschen? Die Dateien auf dem Server bleiben.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="555"/>
+        <location filename="../qml/AlbumPage.qml" line="556"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="559"/>
+        <location filename="../qml/AlbumPage.qml" line="560"/>
         <source>Delete saved copies</source>
         <translation>Gespeicherte Kopien löschen</translation>
     </message>
@@ -216,17 +216,17 @@
 <context>
     <name>Appearance</name>
     <message>
-        <location filename="../qml/Appearance.qml" line="15"/>
+        <location filename="../qml/Appearance.qml" line="17"/>
         <source>Small</source>
         <translation>Klein</translation>
     </message>
     <message>
-        <location filename="../qml/Appearance.qml" line="16"/>
+        <location filename="../qml/Appearance.qml" line="18"/>
         <source>Medium</source>
         <translation>Mittel</translation>
     </message>
     <message>
-        <location filename="../qml/Appearance.qml" line="17"/>
+        <location filename="../qml/Appearance.qml" line="19"/>
         <source>Large</source>
         <translation>Groß</translation>
     </message>
@@ -264,7 +264,7 @@
         <translation>Mitwirkend bei</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ArtistPage.qml" line="153"/>
+        <location filename="../qml/ArtistPage.qml" line="154"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n Album</numerusform>
@@ -272,37 +272,37 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="165"/>
+        <location filename="../qml/ArtistPage.qml" line="166"/>
         <source>Not matched yet: names, image and biography come from your files only.</source>
         <translation>Noch nicht zugeordnet: Namen, Bild und Biografie kommen nur aus deinen Dateien.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="166"/>
+        <location filename="../qml/ArtistPage.qml" line="167"/>
         <source>Matched through the album “%1”.</source>
         <translation>Zugeordnet über das Album „%1“.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="167"/>
+        <location filename="../qml/ArtistPage.qml" line="168"/>
         <source>Matched through the song “%1”.</source>
         <translation>Zugeordnet über den Song „%1“.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="168"/>
+        <location filename="../qml/ArtistPage.qml" line="169"/>
         <source>Matched as you chose.</source>
         <translation>Zugeordnet, wie du gewählt hast.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="175"/>
+        <location filename="../qml/ArtistPage.qml" line="176"/>
         <source>Match again</source>
         <translation>Neu zuordnen</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="184"/>
+        <location filename="../qml/ArtistPage.qml" line="185"/>
         <source>Not this artist?</source>
         <translation>Nicht dieser Künstler?</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="184"/>
+        <location filename="../qml/ArtistPage.qml" line="185"/>
         <source>Search MusicBrainz…</source>
         <translation>Bei MusicBrainz suchen …</translation>
     </message>
@@ -343,17 +343,17 @@
 <context>
     <name>BookListPage</name>
     <message>
-        <location filename="../qml/BookListPage.qml" line="58"/>
+        <location filename="../qml/BookListPage.qml" line="59"/>
         <source>Series</source>
         <translation>Reihen</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="58"/>
+        <location filename="../qml/BookListPage.qml" line="59"/>
         <source>Author or narrator</source>
         <translation>Autor oder Sprecher</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/BookListPage.qml" line="74"/>
+        <location filename="../qml/BookListPage.qml" line="75"/>
         <source>%n book(s)</source>
         <translation>
             <numerusform>%n Buch</numerusform>
@@ -361,62 +361,62 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="82"/>
+        <location filename="../qml/BookListPage.qml" line="83"/>
         <source>Continue series</source>
         <translation>Reihe fortsetzen</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="82"/>
+        <location filename="../qml/BookListPage.qml" line="83"/>
         <source>Play the series</source>
         <translation>Reihe abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="127"/>
+        <location filename="../qml/BookListPage.qml" line="128"/>
         <source>Not matched yet: no photo or biography.</source>
         <translation>Noch nicht zugeordnet: kein Foto und keine Biografie.</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="128"/>
+        <location filename="../qml/BookListPage.qml" line="129"/>
         <source>Matched through the book “%1”.</source>
         <translation>Zugeordnet über das Buch „%1“.</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="129"/>
+        <location filename="../qml/BookListPage.qml" line="130"/>
         <source>Matched as you chose.</source>
         <translation>Zugeordnet, wie du gewählt hast.</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="146"/>
+        <location filename="../qml/BookListPage.qml" line="147"/>
         <source>Match again</source>
         <translation>Neu zuordnen</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="155"/>
+        <location filename="../qml/BookListPage.qml" line="156"/>
         <source>Not this author?</source>
         <translation>Nicht dieser Autor?</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="155"/>
+        <location filename="../qml/BookListPage.qml" line="156"/>
         <source>Search Open Library…</source>
         <translation>Bei Open Library suchen …</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="193"/>
+        <location filename="../qml/BookListPage.qml" line="194"/>
         <source>finished</source>
         <translation>gehört</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="193"/>
+        <location filename="../qml/BookListPage.qml" line="194"/>
         <source>in progress</source>
         <translation>angefangen</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="239"/>
+        <location filename="../qml/BookListPage.qml" line="240"/>
         <source>Finished</source>
         <translation>Gehört</translation>
     </message>
     <message>
-        <location filename="../qml/BookListPage.qml" line="241"/>
+        <location filename="../qml/BookListPage.qml" line="242"/>
         <source>%1 left</source>
         <translation>noch %1</translation>
     </message>
@@ -424,52 +424,52 @@
 <context>
     <name>BookMatch</name>
     <message>
-        <location filename="../qml/BookMatch.qml" line="33"/>
+        <location filename="../qml/BookMatch.qml" line="35"/>
         <source>Turn on Music and book information online under Settings → Metadata to look books up at Open Library.</source>
         <translation>Schalte unter Einstellungen → Metadaten „Musik- und Buchinformationen online“ ein, um Bücher bei Open Library nachzuschlagen.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="79"/>
+        <location filename="../qml/BookMatch.qml" line="81"/>
         <source>You chose the match of this book yourself. Match it again anyway? A sure match replaces your choice.</source>
         <translation>Die Zuordnung dieses Buchs hast du selbst gewählt. Trotzdem neu zuordnen? Eine sichere Zuordnung ersetzt deine Wahl.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="80"/>
+        <location filename="../qml/BookMatch.qml" line="82"/>
         <source>You chose the match of this author yourself. Match it again anyway? A sure match replaces your choice.</source>
         <translation>Die Zuordnung dieses Autors hast du selbst gewählt. Trotzdem neu zuordnen? Eine sichere Zuordnung ersetzt deine Wahl.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="84"/>
+        <location filename="../qml/BookMatch.qml" line="86"/>
         <source>Description</source>
         <translation>Beschreibung</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="85"/>
+        <location filename="../qml/BookMatch.qml" line="87"/>
         <source>Year</source>
         <translation>Jahr</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="86"/>
+        <location filename="../qml/BookMatch.qml" line="88"/>
         <source>Subjects</source>
         <translation>Themen</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="87"/>
+        <location filename="../qml/BookMatch.qml" line="89"/>
         <source>Cover</source>
         <translation>Cover</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="92"/>
+        <location filename="../qml/BookMatch.qml" line="94"/>
         <source>Title and author agree</source>
         <translation>Titel und Autor passen</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="93"/>
+        <location filename="../qml/BookMatch.qml" line="95"/>
         <source>%1 of your %2 books are theirs</source>
         <translation>%1 deiner %2 Bücher sind von ihnen</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/BookMatch.qml" line="98"/>
+        <location filename="../qml/BookMatch.qml" line="100"/>
         <source>%n work(s)</source>
         <translation>
             <numerusform>%n Werk</numerusform>
@@ -477,153 +477,158 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="109"/>
+        <location filename="../qml/BookMatch.qml" line="111"/>
         <source>Matched again: no change, “%1” was already right.</source>
         <translation>Neu zugeordnet: keine Änderung, „%1“ war schon richtig.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="111"/>
+        <location filename="../qml/BookMatch.qml" line="113"/>
         <source>Matched again: “%1”.</source>
         <translation>Neu zugeordnet: „%1“.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="115"/>
+        <location filename="../qml/BookMatch.qml" line="117"/>
         <source>Several matches fit. Choose one.</source>
         <translation>Mehrere Zuordnungen passen. Wähle eine aus.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="118"/>
+        <location filename="../qml/BookMatch.qml" line="120"/>
         <source>Nothing sure was found for “%1”; it stays as it is.</source>
         <translation>Für „%1“ wurde nichts Sicheres gefunden; es bleibt, wie es ist.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="127"/>
+        <location filename="../qml/BookMatch.qml" line="129"/>
         <source>Matched: “%1”.</source>
         <translation>Zugeordnet: „%1“.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="168"/>
+        <location filename="../qml/BookMatch.qml" line="170"/>
         <source>Keep my choice</source>
         <translation>Meine Wahl behalten</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="173"/>
+        <location filename="../qml/BookMatch.qml" line="175"/>
         <source>Match again</source>
         <translation>Neu zuordnen</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="203"/>
+        <location filename="../qml/BookMatch.qml" line="205"/>
         <source>Find the book</source>
         <translation>Buch finden</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="203"/>
+        <location filename="../qml/BookMatch.qml" line="205"/>
         <source>Find the author</source>
         <translation>Autor finden</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="206"/>
+        <location filename="../qml/BookMatch.qml" line="208"/>
         <source>at Open Library</source>
         <translation>bei Open Library</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="217"/>
+        <location filename="../qml/BookMatch.qml" line="219"/>
         <source>Title</source>
         <translation>Titel</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="217"/>
+        <location filename="../qml/BookMatch.qml" line="219"/>
         <source>Name</source>
         <translation>Name</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="226"/>
+        <location filename="../qml/BookMatch.qml" line="228"/>
         <source>Author</source>
         <translation>Autor</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="237"/>
+        <location filename="../qml/BookMatch.qml" line="239"/>
         <source>ISBN</source>
         <translation>ISBN</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="244"/>
+        <location filename="../qml/BookMatch.qml" line="246"/>
         <source>Search</source>
         <translation>Suchen</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="255"/>
+        <location filename="../qml/BookMatch.qml" line="257"/>
         <source>Only fields your files leave empty are filled; your own metadata stays. Or paste an Open Library link or an ISBN.</source>
         <translation>Nur Felder, die deine Dateien leer lassen, werden gefüllt; deine eigenen Metadaten bleiben. Oder füge einen Open-Library-Link oder eine ISBN ein.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="256"/>
+        <location filename="../qml/BookMatch.qml" line="258"/>
         <source>Several authors can share a name; their dates, works and your books tell them apart. Or paste an Open Library link.</source>
         <translation>Mehrere Autoren können denselben Namen tragen; Lebensdaten, Werke und deine Bücher unterscheiden sie. Oder füge einen Open-Library-Link ein.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="262"/>
+        <location filename="../qml/BookMatch.qml" line="268"/>
+        <source>Open Settings</source>
+        <translation>Einstellungen öffnen</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookMatch.qml" line="275"/>
         <source>No results. Try another spelling, or leave the author out.</source>
         <translation>Keine Ergebnisse. Versuch eine andere Schreibweise oder lass den Autor weg.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="275"/>
+        <location filename="../qml/BookMatch.qml" line="288"/>
         <source>Matches</source>
         <translation>Zuordnungen</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="315"/>
+        <location filename="../qml/BookMatch.qml" line="328"/>
         <source>matched now</source>
         <translation>jetzt zugeordnet</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="335"/>
+        <location filename="../qml/BookMatch.qml" line="348"/>
         <source>Field</source>
         <translation>Feld</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="336"/>
+        <location filename="../qml/BookMatch.qml" line="349"/>
         <source>Yours</source>
         <translation>Deins</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="337"/>
-        <location filename="../qml/BookMatch.qml" line="354"/>
+        <location filename="../qml/BookMatch.qml" line="350"/>
+        <location filename="../qml/BookMatch.qml" line="367"/>
         <source>Open Library</source>
         <translation>Open Library</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="338"/>
+        <location filename="../qml/BookMatch.qml" line="351"/>
         <source>Shown</source>
         <translation>Angezeigt</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="354"/>
+        <location filename="../qml/BookMatch.qml" line="367"/>
         <source>yours</source>
         <translation>deins</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="367"/>
+        <location filename="../qml/BookMatch.qml" line="380"/>
         <source>The match is locked. The book&apos;s authors without a match are matched with it.</source>
         <translation>Die Zuordnung ist fest. Die Autoren des Buchs ohne Zuordnung werden mit zugeordnet.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="368"/>
+        <location filename="../qml/BookMatch.qml" line="381"/>
         <source>The photo and biography come from Open Library; a biography of your own stays.</source>
         <translation>Foto und Biografie kommen von Open Library; eine eigene Biografie bleibt.</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="371"/>
+        <location filename="../qml/BookMatch.qml" line="384"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="372"/>
+        <location filename="../qml/BookMatch.qml" line="385"/>
         <source>Use this match</source>
         <translation>Diese Zuordnung verwenden</translation>
     </message>
     <message>
-        <location filename="../qml/BookMatch.qml" line="375"/>
+        <location filename="../qml/BookMatch.qml" line="388"/>
         <source>↓ to the results · Enter shows the comparison, Enter again chooses · Back closes</source>
         <translation>↓ zu den Ergebnissen · Enter zeigt den Vergleich, nochmals Enter wählt · Zurück schließt</translation>
     </message>
@@ -697,53 +702,53 @@
         <translation>Mehrere Bücher online könnten dieses sein. Wähle das richtige mit „Bei Open Library suchen …“.</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="283"/>
+        <location filename="../qml/BookPage.qml" line="285"/>
         <source>Match again</source>
         <translation>Neu zuordnen</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="292"/>
+        <location filename="../qml/BookPage.qml" line="294"/>
         <source>Search Open Library…</source>
         <translation>Bei Open Library suchen …</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="253"/>
+        <location filename="../qml/BookPage.qml" line="255"/>
         <source>Pause</source>
         <translation>Pause</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="254"/>
+        <location filename="../qml/BookPage.qml" line="256"/>
         <source>Resume</source>
         <translation>Fortsetzen</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="254"/>
+        <location filename="../qml/BookPage.qml" line="256"/>
         <source>Play</source>
         <translation>Abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="264"/>
+        <location filename="../qml/BookPage.qml" line="266"/>
         <source>Mark as unfinished</source>
         <translation>Als ungehört markieren</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="264"/>
+        <location filename="../qml/BookPage.qml" line="266"/>
         <source>Mark as finished</source>
         <translation>Als gehört markieren</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="314"/>
-        <location filename="../qml/BookPage.qml" line="329"/>
+        <location filename="../qml/BookPage.qml" line="316"/>
+        <location filename="../qml/BookPage.qml" line="331"/>
         <source>Chapters</source>
         <translation>Kapitel</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="341"/>
+        <location filename="../qml/BookPage.qml" line="343"/>
         <source>current chapter</source>
         <translation>aktuelles Kapitel</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="392"/>
+        <location filename="../qml/BookPage.qml" line="395"/>
         <source>Copy the book&apos;s files into</source>
         <translation>Die Dateien des Buchs kopieren nach</translation>
     </message>
@@ -975,11 +980,6 @@
         <translation>Fortsetzen bei %1</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="295"/>
-        <source>“%1” is now a separate entry. Choose its match under Settings → Review matches.</source>
-        <translation>„%1“ ist jetzt ein eigener Eintrag. Wähle die Zuordnung unter Einstellungen → Zuordnungen prüfen.</translation>
-    </message>
-    <message>
         <location filename="../qml/DetailPage.qml" line="324"/>
         <source>Saving a copy to %1. Progress is under Downloads. Subtitle files are not copied along: the system&apos;s file dialog grants this one file only. Choose a folder (Save as… on a season) to include them.</source>
         <translation>Eine Kopie wird nach %1 gespeichert. Den Fortschritt siehst du unter Downloads. Untertiteldateien werden nicht mitkopiert: Der Dateidialog des Systems gibt nur diese eine Datei frei. Wähle einen Ordner (Speichern unter … bei einer Staffel), damit sie dabei sind.</translation>
@@ -1111,11 +1111,6 @@
         <location filename="../qml/DetailPage.qml" line="812"/>
         <source>Mark season watched</source>
         <translation>Staffel als gesehen markieren</translation>
-    </message>
-    <message>
-        <location filename="../qml/DetailPage.qml" line="886"/>
-        <source>Move “%1” into its own entry? It will not be merged with this movie again, and you can choose its match under Settings → Review matches.</source>
-        <translation>„%1“ in einen eigenen Eintrag verschieben? Er wird nicht wieder mit diesem Film zusammengeführt, und du kannst die Zuordnung unter Einstellungen → Zuordnungen prüfen wählen.</translation>
     </message>
     <message>
         <location filename="../qml/DetailPage.qml" line="929"/>
@@ -1255,9 +1250,19 @@
         <translation>%1 von %2 Folgen gespeichert</translation>
     </message>
     <message>
+        <location filename="../qml/DetailPage.qml" line="295"/>
+        <source>“%1” is now a separate entry. Choose its match under Settings → Matching → Review matches.</source>
+        <translation>„%1“ ist jetzt ein eigener Eintrag. Wähle die Zuordnung unter Einstellungen → Zuordnung → Zuordnungen prüfen.</translation>
+    </message>
+    <message>
         <location filename="../qml/DetailPage.qml" line="553"/>
         <source>This version&apos;s source cannot be reached right now; the saved copy plays.</source>
         <translation>Die Quelle dieser Version ist gerade nicht erreichbar; die gespeicherte Kopie wird abgespielt.</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="886"/>
+        <source>Move “%1” into its own entry? It will not be merged with this movie again, and you can choose its match under Settings → Matching → Review matches.</source>
+        <translation>„%1“ in einen eigenen Eintrag verschieben? Er wird nicht wieder mit diesem Film zusammengeführt, und du kannst die Zuordnung unter Einstellungen → Zuordnung → Zuordnungen prüfen wählen.</translation>
     </message>
     <message>
         <location filename="../qml/DetailPage.qml" line="899"/>
@@ -2736,37 +2741,37 @@
 <context>
     <name>MusicMatch</name>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="83"/>
+        <location filename="../qml/MusicMatch.qml" line="85"/>
         <source>%1 of your %2 albums are theirs</source>
         <translation>%1 deiner %2 Alben sind von ihnen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="86"/>
+        <location filename="../qml/MusicMatch.qml" line="88"/>
         <source>Length agrees: %1</source>
         <translation>Länge passt: %1</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="87"/>
+        <location filename="../qml/MusicMatch.qml" line="89"/>
         <source>Length differs by %1</source>
         <translation>Länge weicht um %1 ab</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="88"/>
+        <location filename="../qml/MusicMatch.qml" line="90"/>
         <source>Other artist</source>
         <translation>Anderer Künstler</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="92"/>
+        <location filename="../qml/MusicMatch.qml" line="94"/>
         <source>%1 of %2 tracks</source>
         <translation>%1 von %2 Titeln</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="93"/>
+        <location filename="../qml/MusicMatch.qml" line="95"/>
         <source>%1 tracks, you have %2</source>
         <translation>%1 Titel, du hast %2</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicMatch.qml" line="99"/>
+        <location filename="../qml/MusicMatch.qml" line="101"/>
         <source>%n track(s)</source>
         <translation>
             <numerusform>%n Titel</numerusform>
@@ -2774,168 +2779,173 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="106"/>
+        <location filename="../qml/MusicMatch.qml" line="108"/>
         <source>Release type, date and cover come from this release. Its artists without a match are matched with it.</source>
         <translation>Veröffentlichungsart, Datum und Cover kommen von dieser Veröffentlichung. Ihre Künstler ohne Zuordnung werden mit zugeordnet.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="107"/>
+        <location filename="../qml/MusicMatch.qml" line="109"/>
         <source>The song&apos;s recording, ISRC and credits come from this match; your tags stay. Its artists without a match are matched with it.</source>
         <translation>Aufnahme, ISRC und Mitwirkende des Songs kommen von dieser Zuordnung; deine Tags bleiben. Seine Künstler ohne Zuordnung werden mit zugeordnet.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="108"/>
+        <location filename="../qml/MusicMatch.qml" line="110"/>
         <source>Image, biography and links are looked up again for this artist, and its albums without a match too.</source>
         <translation>Bild, Biografie und Links dieses Künstlers werden neu nachgeschlagen, ebenso seine Alben ohne Zuordnung.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="119"/>
+        <location filename="../qml/MusicMatch.qml" line="121"/>
         <source>Matched again: no change, “%1” was already right.</source>
         <translation>Neu zugeordnet: keine Änderung, „%1“ war schon richtig.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="121"/>
+        <location filename="../qml/MusicMatch.qml" line="123"/>
         <source>Matched again: “%1”.</source>
         <translation>Neu zugeordnet: „%1“.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="125"/>
+        <location filename="../qml/MusicMatch.qml" line="127"/>
         <source>Several matches fit. Choose one.</source>
         <translation>Mehrere Zuordnungen passen. Wähle eine aus.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="128"/>
+        <location filename="../qml/MusicMatch.qml" line="130"/>
         <source>Nothing sure was found for “%1”; it stays as it is.</source>
         <translation>Für „%1“ wurde nichts Sicheres gefunden; es bleibt, wie es ist.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="137"/>
+        <location filename="../qml/MusicMatch.qml" line="139"/>
         <source>Matched: “%1”.</source>
         <translation>Zugeordnet: „%1“.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="32"/>
+        <location filename="../qml/MusicMatch.qml" line="34"/>
         <source>You chose the match of this song yourself. Match it again anyway? A sure match replaces your choice.</source>
         <translation>Die Zuordnung dieses Songs hast du selbst gewählt. Trotzdem neu zuordnen? Eine sichere Zuordnung ersetzt deine Wahl.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="33"/>
+        <location filename="../qml/MusicMatch.qml" line="35"/>
         <source>You chose the match of this artist yourself. Match it again anyway? A sure match replaces your choice.</source>
         <translation>Die Zuordnung dieses Künstlers hast du selbst gewählt. Trotzdem neu zuordnen? Eine sichere Zuordnung ersetzt deine Wahl.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="34"/>
+        <location filename="../qml/MusicMatch.qml" line="36"/>
         <source>You chose the match of this album yourself. Match it again anyway? A sure match replaces your choice.</source>
         <translation>Die Zuordnung dieses Albums hast du selbst gewählt. Trotzdem neu zuordnen? Eine sichere Zuordnung ersetzt deine Wahl.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="38"/>
+        <location filename="../qml/MusicMatch.qml" line="40"/>
         <source>Turn on Music and book information online under Settings → Metadata to look music up at MusicBrainz.</source>
         <translation>Schalte unter Einstellungen → Metadaten „Musik- und Buchinformationen online“ ein, um Musik bei MusicBrainz nachzuschlagen.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="171"/>
+        <location filename="../qml/MusicMatch.qml" line="173"/>
         <source>Keep my choice</source>
         <translation>Meine Wahl behalten</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="176"/>
+        <location filename="../qml/MusicMatch.qml" line="178"/>
         <source>Match again</source>
         <translation>Neu zuordnen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="206"/>
+        <location filename="../qml/MusicMatch.qml" line="208"/>
         <source>Find the song</source>
         <translation>Song finden</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="206"/>
+        <location filename="../qml/MusicMatch.qml" line="208"/>
         <source>Find the artist</source>
         <translation>Künstler finden</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="206"/>
+        <location filename="../qml/MusicMatch.qml" line="208"/>
         <source>Find the album</source>
         <translation>Album finden</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="209"/>
+        <location filename="../qml/MusicMatch.qml" line="211"/>
         <source>at MusicBrainz</source>
         <translation>bei MusicBrainz</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="228"/>
+        <location filename="../qml/MusicMatch.qml" line="230"/>
         <source>Title</source>
         <translation>Titel</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="228"/>
+        <location filename="../qml/MusicMatch.qml" line="230"/>
         <source>Name</source>
         <translation>Name</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="228"/>
+        <location filename="../qml/MusicMatch.qml" line="230"/>
         <source>Album</source>
         <translation>Album</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="247"/>
-        <location filename="../qml/MusicMatch.qml" line="248"/>
+        <location filename="../qml/MusicMatch.qml" line="249"/>
+        <location filename="../qml/MusicMatch.qml" line="250"/>
         <source>Artist</source>
         <translation>Künstler</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="254"/>
+        <location filename="../qml/MusicMatch.qml" line="256"/>
         <source>Search</source>
         <translation>Suchen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="261"/>
+        <location filename="../qml/MusicMatch.qml" line="263"/>
         <source>Releases are listed, so you can pick the exact edition: track count, country, label and format tell them apart.</source>
         <translation>Es werden Veröffentlichungen gelistet, damit du die genaue Ausgabe wählen kannst: Titelzahl, Land, Label und Format unterscheiden sie.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="262"/>
+        <location filename="../qml/MusicMatch.qml" line="264"/>
         <source>Songs are recordings at MusicBrainz; choosing one also tells which artists it belongs to.</source>
         <translation>Songs sind bei MusicBrainz Aufnahmen; die Wahl sagt auch, zu welchen Künstlern sie gehören.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="263"/>
+        <location filename="../qml/MusicMatch.qml" line="265"/>
         <source>Several artists can share a name; the description, country and your albums tell them apart.</source>
         <translation>Mehrere Künstler können denselben Namen tragen; Beschreibung, Land und deine Alben unterscheiden sie.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="264"/>
+        <location filename="../qml/MusicMatch.qml" line="266"/>
         <source>Or paste a MusicBrainz link.</source>
         <translation>Oder füge einen MusicBrainz-Link ein.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="270"/>
+        <location filename="../qml/MusicMatch.qml" line="276"/>
+        <source>Open Settings</source>
+        <translation>Einstellungen öffnen</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicMatch.qml" line="283"/>
         <source>No results. Try another spelling, or leave the artist out.</source>
         <translation>Keine Ergebnisse. Versuch eine andere Schreibweise oder lass den Künstler weg.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="283"/>
+        <location filename="../qml/MusicMatch.qml" line="296"/>
         <source>Matches</source>
         <translation>Zuordnungen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="323"/>
+        <location filename="../qml/MusicMatch.qml" line="336"/>
         <source>matched now</source>
         <translation>jetzt zugeordnet</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="341"/>
+        <location filename="../qml/MusicMatch.qml" line="354"/>
         <source>Yours → MusicBrainz</source>
         <translation>Deins → MusicBrainz</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="355"/>
+        <location filename="../qml/MusicMatch.qml" line="368"/>
         <source>missing</source>
         <translation>fehlt</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicMatch.qml" line="360"/>
+        <location filename="../qml/MusicMatch.qml" line="373"/>
         <source>%n track(s) on the release you do not have</source>
         <translation>
             <numerusform>%n Titel der Veröffentlichung hast du nicht</numerusform>
@@ -2943,17 +2953,17 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="377"/>
+        <location filename="../qml/MusicMatch.qml" line="390"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="378"/>
+        <location filename="../qml/MusicMatch.qml" line="391"/>
         <source>Use this match</source>
         <translation>Diese Zuordnung verwenden</translation>
     </message>
     <message>
-        <location filename="../qml/MusicMatch.qml" line="381"/>
+        <location filename="../qml/MusicMatch.qml" line="394"/>
         <source>↓ to the results · Enter shows the comparison, Enter again chooses · Back closes</source>
         <translation>↓ zu den Ergebnissen · Enter zeigt den Vergleich, nochmals Enter wählt · Zurück schließt</translation>
     </message>
@@ -4573,72 +4583,72 @@
 <context>
     <name>SettingsPage</name>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="203"/>
+        <location filename="../qml/SettingsPage.qml" line="228"/>
         <source>Settings</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="206"/>
+        <location filename="../qml/SettingsPage.qml" line="142"/>
         <source>Metadata</source>
         <translation>Metadaten</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="227"/>
+        <location filename="../qml/SettingsPage.qml" line="271"/>
         <source>Posters, descriptions and episode titles come from The Movie Database (TMDB). TMDB needs a free personal API key: create an account at themoviedb.org, open Settings → API, request a key for personal use, and paste the “API Key” or the “API Read Access Token” here. Without a key the app still plays everything and shows titles from the file names.</source>
         <translation>Poster, Beschreibungen und Folgentitel kommen von The Movie Database (TMDB). TMDB braucht einen kostenlosen persönlichen API-Schlüssel: Lege ein Konto auf themoviedb.org an, öffne Einstellungen → API, beantrage einen Schlüssel für die private Nutzung und füge hier den „API Key“ oder das „API Read Access Token“ ein. Ohne Schlüssel spielt die App trotzdem alles ab und zeigt die Titel aus den Dateinamen.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="242"/>
+        <location filename="../qml/SettingsPage.qml" line="286"/>
         <source>TMDB API key or read access token</source>
         <translation>TMDB-API-Schlüssel oder Read Access Token</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="246"/>
+        <location filename="../qml/SettingsPage.qml" line="290"/>
         <source>TMDB API key</source>
         <translation>TMDB-API-Schlüssel</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="262"/>
+        <location filename="../qml/SettingsPage.qml" line="306"/>
         <source>Checking…</source>
         <translation>Wird geprüft …</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="262"/>
+        <location filename="../qml/SettingsPage.qml" line="306"/>
         <source>Check and save</source>
         <translation>Prüfen und speichern</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="162"/>
+        <location filename="../qml/SettingsPage.qml" line="187"/>
         <source>TMDB accepted the key.</source>
         <translation>TMDB hat den Schlüssel akzeptiert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="226"/>
+        <location filename="../qml/SettingsPage.qml" line="270"/>
         <source>Enter the new key. The stored key stays until TMDB accepts the new one.</source>
         <translation>Gib den neuen Schlüssel ein. Der gespeicherte bleibt, bis TMDB den neuen akzeptiert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="274"/>
+        <location filename="../qml/SettingsPage.qml" line="318"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="362"/>
+        <location filename="../qml/SettingsPage.qml" line="412"/>
         <source>Review matches</source>
         <translation>Zuordnungen prüfen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="369"/>
+        <location filename="../qml/SettingsPage.qml" line="419"/>
         <source>%1 tasks queued</source>
         <translation>%1 Aufgaben in der Warteschlange</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="374"/>
+        <location filename="../qml/SettingsPage.qml" line="424"/>
         <source>%1 failed (see the log)</source>
         <translation>%1 fehlgeschlagen (siehe Protokoll)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="292"/>
+        <location filename="../qml/SettingsPage.qml" line="336"/>
         <source>Music and book information online: on</source>
         <translation>Musik- und Buchinformationen online: an</translation>
     </message>
@@ -4663,316 +4673,324 @@
         <translation>Hörbücher</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="292"/>
+        <location filename="../qml/SettingsPage.qml" line="336"/>
         <source>Music and book information online: off</source>
         <translation>Musik- und Buchinformationen online: aus</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="306"/>
+        <location filename="../qml/SettingsPage.qml" line="350"/>
         <source>Album and artist names from your music are sent to MusicBrainz to find release types, dates and ids, and covers come from the Cover Art Archive. Titles, authors and ISBNs of your audiobooks are sent to Open Library for descriptions, years and covers. Your own metadata is never replaced. No account or key is needed.</source>
         <translation>Album- und Künstlernamen deiner Musik werden an MusicBrainz geschickt, um Veröffentlichungsart, Datum und IDs zu finden; Cover kommen aus dem Cover Art Archive. Titel, Autoren und ISBNs deiner Hörbücher werden an Open Library geschickt, für Beschreibungen, Jahre und Cover. Deine eigenen Metadaten werden nie ersetzt. Ein Konto oder Schlüssel ist nicht nötig.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="307"/>
+        <location filename="../qml/SettingsPage.qml" line="351"/>
         <source>Music and book information comes from your files, their tags and metadata files only; nothing is sent.</source>
         <translation>Musik- und Buchinformationen kommen nur aus deinen Dateien, ihren Tags und Metadatendateien; nichts wird gesendet.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="318"/>
+        <location filename="../qml/SettingsPage.qml" line="362"/>
         <source>Optional: with your own key, artist images, backgrounds, logos and biographies, and covers for albums without one, come from TheAudioDB and Fanart.tv. Artist and album ids from MusicBrainz are sent to them. Keys stay in the system keystore.</source>
         <translation>Optional: Mit deinem eigenen Schlüssel kommen Künstlerbilder, Hintergründe, Logos und Biografien sowie Cover für Alben ohne Cover von TheAudioDB und Fanart.tv. Dabei werden Künstler- und Album-IDs von MusicBrainz an sie gesendet. Schlüssel bleiben im Schlüsselspeicher des Systems.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="327"/>
+        <location filename="../qml/SettingsPage.qml" line="371"/>
         <source>TheAudioDB gives an API key to supporters on their profile page.</source>
         <translation>TheAudioDB gibt Unterstützern einen API-Schlüssel auf ihrer Profilseite.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="341"/>
+        <location filename="../qml/SettingsPage.qml" line="385"/>
         <source>Create an account at fanart.tv and request an API key on your profile.</source>
         <translation>Lege ein Konto bei fanart.tv an und fordere in deinem Profil einen API-Schlüssel an.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="350"/>
+        <location filename="../qml/SettingsPage.qml" line="142"/>
         <source>Matching</source>
         <translation>Zuordnung</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="355"/>
+        <location filename="../qml/SettingsPage.qml" line="405"/>
         <source>Look up a whole library again, for example after a provider fixed its data or after you renamed many files. Your own metadata from tags, NFO and OPF files is never replaced. Items with several possible matches wait under Review matches.</source>
         <translation>Schlage eine ganze Bibliothek neu nach, etwa wenn ein Anbieter seine Daten korrigiert hat oder du viele Dateien umbenannt hast. Deine eigenen Metadaten aus Tags, NFO- und OPF-Dateien werden nie ersetzt. Einträge mit mehreren möglichen Zuordnungen warten unter „Zuordnungen prüfen“.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="362"/>
+        <location filename="../qml/SettingsPage.qml" line="412"/>
         <source>Review matches (%1)</source>
         <translation>Zuordnungen prüfen (%1)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="401"/>
+        <location filename="../qml/SettingsPage.qml" line="451"/>
         <source>One library at a time; the others wait in line. Playing and browsing go on while it runs, and it continues after a restart.</source>
         <translation>Immer eine Bibliothek; die anderen warten. Abspielen und Stöbern gehen währenddessen weiter, und nach einem Neustart geht es weiter.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="405"/>
+        <location filename="../qml/SettingsPage.qml" line="143"/>
         <source>Appearance</source>
         <translation>Darstellung</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="408"/>
+        <location filename="../qml/SettingsPage.qml" line="465"/>
         <source>Cover size in window</source>
         <translation>Covergröße im Fenster</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="416"/>
+        <location filename="../qml/SettingsPage.qml" line="473"/>
         <source>Cover size in fullscreen</source>
         <translation>Covergröße im Vollbild</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="424"/>
+        <location filename="../qml/SettingsPage.qml" line="143"/>
         <source>Playback</source>
         <translation>Wiedergabe</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="427"/>
+        <location filename="../qml/SettingsPage.qml" line="490"/>
         <source>Preferred version</source>
         <translation>Bevorzugte Version</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="428"/>
+        <location filename="../qml/SettingsPage.qml" line="491"/>
         <source>Highest quality</source>
         <translation>Höchste Qualität</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="428"/>
+        <location filename="../qml/SettingsPage.qml" line="491"/>
         <source>Smallest file</source>
         <translation>Kleinste Datei</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="429"/>
+        <location filename="../qml/SettingsPage.qml" line="492"/>
         <source>Lossless only</source>
         <translation>Nur verlustfrei</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="440"/>
+        <location filename="../qml/SettingsPage.qml" line="503"/>
         <source>When a movie or an album exists in several versions and none was played yet. “Smallest file” helps on slow networks. For music, “Highest quality” prefers lossless, then bit depth, then sample rate; “Lossless only” never picks a lossy copy when a lossless one can play (for films it means the highest quality).</source>
         <translation>Wenn ein Film oder ein Album in mehreren Versionen vorliegt und noch keine abgespielt wurde. „Kleinste Datei“ hilft bei langsamen Netzwerken. Bei Musik bevorzugt „Höchste Qualität“ verlustfreie Dateien, dann die Bittiefe, dann die Abtastrate; „Nur verlustfrei“ wählt nie eine verlustbehaftete Kopie, wenn eine verlustfreie spielbar ist (bei Filmen bedeutet es höchste Qualität).</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="445"/>
+        <location filename="../qml/SettingsPage.qml" line="508"/>
         <source>ReplayGain</source>
         <translation>ReplayGain</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="446"/>
+        <location filename="../qml/SettingsPage.qml" line="509"/>
         <source>Off</source>
         <translation>Aus</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="446"/>
+        <location filename="../qml/SettingsPage.qml" line="509"/>
         <source>Track</source>
         <translation>Titel</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="446"/>
+        <location filename="../qml/SettingsPage.qml" line="509"/>
         <source>Album</source>
         <translation>Album</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="457"/>
+        <location filename="../qml/SettingsPage.qml" line="520"/>
         <source>Evens out the loudness of music from the ReplayGain tags in the files: per track, or per album so an album keeps its own dynamics.</source>
         <translation>Gleicht die Lautstärke von Musik mit den ReplayGain-Angaben in den Dateien an: pro Titel, oder pro Album, damit ein Album seine eigene Dynamik behält.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="462"/>
+        <location filename="../qml/SettingsPage.qml" line="525"/>
         <source>Audiobook speed</source>
         <translation>Hörbuch-Tempo</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="471"/>
+        <location filename="../qml/SettingsPage.qml" line="534"/>
         <source>Skip back</source>
         <translation>Zurückspringen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="472"/>
-        <location filename="../qml/SettingsPage.qml" line="481"/>
+        <location filename="../qml/SettingsPage.qml" line="535"/>
+        <location filename="../qml/SettingsPage.qml" line="544"/>
         <source>%1 s</source>
         <translation>%1 s</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="480"/>
+        <location filename="../qml/SettingsPage.qml" line="543"/>
         <source>Skip forward</source>
         <translation>Vorspringen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="492"/>
+        <location filename="../qml/SettingsPage.qml" line="554"/>
         <source>Books you set a speed for keep their own. The pitch stays the same at every speed.</source>
         <translation>Bücher, für die du ein Tempo gewählt hast, behalten ihres. Die Tonhöhe bleibt bei jedem Tempo gleich.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="496"/>
+        <location filename="../qml/SettingsPage.qml" line="144"/>
         <source>Audio</source>
         <translation>Audio</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="503"/>
+        <location filename="../qml/SettingsPage.qml" line="572"/>
         <source>Bit-perfect music: on</source>
         <translation>Bit-perfekte Musik: an</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="503"/>
+        <location filename="../qml/SettingsPage.qml" line="572"/>
         <source>Bit-perfect music: off</source>
         <translation>Bit-perfekte Musik: aus</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="516"/>
+        <location filename="../qml/SettingsPage.qml" line="585"/>
         <source>Music goes to the device as it is in the file: no resampling by the app, no ReplayGain, volume fixed at 100 %, and exclusive access where the device allows it (an ALSA hardware device). Through PipeWire the system mixer has the last word; Now Playing shows what happens.</source>
         <translation>Musik geht so zum Gerät, wie sie in der Datei steht: keine Umrechnung durch die App, kein ReplayGain, Lautstärke fest auf 100 % und exklusiver Zugriff, wo das Gerät ihn erlaubt (ein ALSA-Hardwaregerät). Über PipeWire hat der Mixer des Systems das letzte Wort; „Läuft gerade“ zeigt, was passiert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="525"/>
+        <location filename="../qml/SettingsPage.qml" line="594"/>
         <source>Music output: %1</source>
         <translation>Musikausgabe: %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="525"/>
+        <location filename="../qml/SettingsPage.qml" line="594"/>
         <source>system default</source>
         <translation>Standard des Systems</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="532"/>
+        <location filename="../qml/SettingsPage.qml" line="600"/>
         <source>System default</source>
         <translation>Standard des Systems</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="533"/>
+        <location filename="../qml/SettingsPage.qml" line="601"/>
         <source>direct</source>
         <translation>direkt</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="541"/>
+        <location filename="../qml/SettingsPage.qml" line="609"/>
         <source>Devices marked “direct” are the hardware itself; in bit-perfect mode the app uses them exclusively. Videos always use the system default.</source>
         <translation>Mit „direkt“ markierte Geräte sind die Hardware selbst; im bit-perfekten Modus nutzt die App sie exklusiv. Videos nutzen immer den Standard des Systems.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="551"/>
+        <location filename="../qml/SettingsPage.qml" line="144"/>
         <source>Storage</source>
         <translation>Speicher</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="556"/>
+        <location filename="../qml/SettingsPage.qml" line="631"/>
         <source>Saved copies go to %1</source>
         <translation>Gespeicherte Kopien liegen in %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="562"/>
+        <location filename="../qml/SettingsPage.qml" line="637"/>
         <source>Space used by saved copies: %1</source>
         <translation>Von gespeicherten Kopien belegt: %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="568"/>
+        <location filename="../qml/SettingsPage.qml" line="643"/>
         <source>Change location…</source>
         <translation>Ort ändern …</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="569"/>
+        <location filename="../qml/SettingsPage.qml" line="644"/>
         <source>New saved copies go to the chosen folder; existing ones stay where they are.</source>
         <translation>Neue Kopien landen im gewählten Ordner; vorhandene bleiben, wo sie sind.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="578"/>
+        <location filename="../qml/SettingsPage.qml" line="653"/>
         <source>Use default</source>
         <translation>Standard verwenden</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="588"/>
-        <location filename="../qml/SettingsPage.qml" line="746"/>
+        <location filename="../qml/SettingsPage.qml" line="663"/>
+        <location filename="../qml/SettingsPage.qml" line="835"/>
         <source>Delete all saved copies</source>
         <translation>Alle gespeicherten Kopien löschen</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="604"/>
+        <location filename="../qml/SettingsPage.qml" line="145"/>
         <source>Troubleshooting</source>
         <translation>Fehlerbehebung</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="609"/>
+        <location filename="../qml/SettingsPage.qml" line="690"/>
         <source>If something does not work, export a diagnostics file and attach it to a bug report. It contains the app&apos;s log and version information. Server names, user names, addresses, keys and your home folder are removed.</source>
         <translation>Wenn etwas nicht funktioniert, exportiere eine Diagnosedatei und hänge sie an einen Fehlerbericht an. Sie enthält das Protokoll der App und Versionsangaben. Servernamen, Benutzernamen, Adressen, Schlüssel und dein Benutzerordner werden entfernt.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="615"/>
+        <location filename="../qml/SettingsPage.qml" line="696"/>
         <source>Export diagnostics</source>
         <translation>Diagnose exportieren</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="622"/>
+        <location filename="../qml/SettingsPage.qml" line="702"/>
         <source>Saved to %1</source>
         <translation>Gespeichert unter %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="623"/>
+        <location filename="../qml/SettingsPage.qml" line="703"/>
         <source>Export failed: %1</source>
         <translation>Export fehlgeschlagen: %1</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="636"/>
+        <location filename="../qml/SettingsPage.qml" line="145"/>
         <source>About</source>
         <translation>Über</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="646"/>
+        <location filename="../qml/SettingsPage.qml" line="733"/>
         <source>Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt, all used under the LGPL.</source>
         <translation>Huehuecoyotl %1 · Apache-Lizenz 2.0. Wiedergabe mit libmpv und FFmpeg, Oberfläche mit Qt, jeweils unter der LGPL.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="647"/>
+        <location filename="../qml/SettingsPage.qml" line="734"/>
         <source>%1 (development build %2)</source>
         <translation>%1 (Entwicklungsversion %2)</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="652"/>
+        <location filename="../qml/SettingsPage.qml" line="739"/>
         <source>Third-party licences</source>
         <translation>Lizenzen von Drittanbietern</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="668"/>
+        <location filename="../qml/SettingsPage.qml" line="755"/>
         <source>This product uses the TMDB API but is not endorsed or certified by TMDB.</source>
         <translation>Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="676"/>
+        <location filename="../qml/SettingsPage.qml" line="763"/>
         <source>Music information from MusicBrainz (musicbrainz.org, data under CC0). Album covers from the Cover Art Archive (coverartarchive.org), a joint project of the Internet Archive and MusicBrainz.</source>
         <translation>Musikinformationen von MusicBrainz (musicbrainz.org, Daten unter CC0). Albumcover aus dem Cover Art Archive (coverartarchive.org), einem gemeinsamen Projekt des Internet Archive und von MusicBrainz.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="683"/>
+        <location filename="../qml/SettingsPage.qml" line="770"/>
         <source>Book information and covers from Open Library (openlibrary.org), a project of the Internet Archive.</source>
         <translation>Buchinformationen und Cover von Open Library (openlibrary.org), einem Projekt des Internet Archive.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="691"/>
+        <location filename="../qml/SettingsPage.qml" line="778"/>
         <source>Artist images, biographies and album art from TheAudioDB (theaudiodb.com), contributed by its community.</source>
         <translation>Künstlerbilder, Biografien und Albumbilder von TheAudioDB (theaudiodb.com), beigetragen von dessen Community.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="698"/>
+        <location filename="../qml/SettingsPage.qml" line="785"/>
         <source>Artist images, logos and album art from Fanart.tv (fanart.tv), contributed by its community.</source>
         <translation>Künstlerbilder, Logos und Albumbilder von Fanart.tv (fanart.tv), beigetragen von dessen Community.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="705"/>
+        <location filename="../qml/SettingsPage.qml" line="794"/>
         <source>Where saved copies go</source>
         <translation>Ordner für gespeicherte Kopien</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="733"/>
+        <location filename="../qml/SettingsPage.qml" line="822"/>
         <source>Delete every saved copy from this computer (%1)? The files on your servers stay, and everything can be streamed or saved again.</source>
         <translation>Alle gespeicherten Kopien von diesem Computer löschen (%1)? Die Dateien auf deinen Servern bleiben erhalten, und alles kann weiter gestreamt oder erneut gespeichert werden.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="739"/>
+        <location filename="../qml/SettingsPage.qml" line="828"/>
         <source>Keep</source>
         <translation>Behalten</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsTabs</name>
+    <message>
+        <location filename="../qml/SettingsTabs.qml" line="22"/>
+        <source>Settings sections</source>
+        <translation>Bereiche der Einstellungen</translation>
     </message>
 </context>
 <context>

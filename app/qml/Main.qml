@@ -60,6 +60,8 @@ ApplicationWindow {
         category: "appearance"
         property string coverWindow: "medium"
         property string coverFullscreen: "large"
+        // Issue #117: the Settings tab used last.
+        property string settingsTab: "metadata"
     }
     Settings {
         id: playbackPrefs
@@ -80,6 +82,7 @@ ApplicationWindow {
     Component.onCompleted: {
         Appearance.coverWindow = prefs.coverWindow
         Appearance.coverFullscreen = prefs.coverFullscreen
+        Appearance.settingsTab = prefs.settingsTab
         Appearance.preferredVersion = playbackPrefs.preferredVersion
         Music.replayGain = playbackPrefs.replayGain
         Music.audioDevice = playbackPrefs.audioDevice
@@ -102,6 +105,7 @@ ApplicationWindow {
         target: Appearance
         function onCoverWindowChanged() { prefs.coverWindow = Appearance.coverWindow }
         function onCoverFullscreenChanged() { prefs.coverFullscreen = Appearance.coverFullscreen }
+        function onSettingsTabChanged() { prefs.settingsTab = Appearance.settingsTab }
         function onPreferredVersionChanged() { playbackPrefs.preferredVersion = Appearance.preferredVersion }
     }
     Connections {

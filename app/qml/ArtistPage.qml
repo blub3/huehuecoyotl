@@ -40,6 +40,7 @@ FocusScope {
         id: musicMatch
         backend: Core
         onNotice: (text) => (page.Window.window as Main).showError(text)
+        onSettingsRequested: (tab) => Nav.settings(tab)
         onChanged: page.request = Core.artistDetail(page.itemId)
     }
     onActiveFocusChanged: if (activeFocus && loaded) Qt.callLater(() => { if (!page.Window.activeFocusItem || page.Window.activeFocusItem === page) page.focusRow(0) })

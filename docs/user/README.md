@@ -105,7 +105,7 @@ Metadata is downloaded in the language of the app (German or English), with Engl
 fallback.
 
 When the app is not sure which film a file is (two films with the same title, a missing year),
-it puts the item on the **Review matches** list in Settings. Choose the right one there, or
+it puts the item on the **Review matches** list in **Settings → Matching**. Choose the right one there, or
 use **Fix match** on the item's page to search by any title and year, or paste a TMDB or IMDb
 link or id. Fix match shows what the item is matched to now; **Match automatically again** looks
 it up once more. Before a change is applied it says what changes. Your choice is never changed by
@@ -359,6 +359,10 @@ authors of the same name apart by which of your books are theirs.
 
 Everything works with the arrow keys, Enter and Escape (Back). The navigation rail is on the
 left: press Left on the first column of any page to reach it.
+
+**Settings** has a tab for each part (Metadata, Matching, Appearance, Playback, Audio, Storage,
+Troubleshooting, About). Left and Right move between the tabs, Down goes into the one shown, and
+Up from its top comes back to the tabs. Settings opens on the tab you used last.
 
 | Anywhere | |
 | --- | --- |

@@ -292,7 +292,7 @@ FocusScope {
             }
             if (requestId === page.splitRequest) {
                 // The version is now its own entry; this page shows the remaining versions.
-                (page.Window.window as Main).showError(qsTr("“%1” is now a separate entry. Choose its match under Settings → Review matches.").arg(detail.title))
+                (page.Window.window as Main).showError(qsTr("“%1” is now a separate entry. Choose its match under Settings → Matching → Review matches.").arg(detail.title))
                 page.selectedFileId = 0
                 page.load()
                 return
@@ -883,7 +883,7 @@ FocusScope {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
                 color: Theme.text
-                text: qsTr("Move “%1” into its own entry? It will not be merged with this movie again, and you can choose its match under Settings → Review matches.").arg(page.file ? MediaInfo.versionLabel(page.file) : "")
+                text: qsTr("Move “%1” into its own entry? It will not be merged with this movie again, and you can choose its match under Settings → Matching → Review matches.").arg(page.file ? MediaInfo.versionLabel(page.file) : "")
             }
             RowLayout {
                 spacing: 12

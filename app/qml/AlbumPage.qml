@@ -487,6 +487,7 @@ FocusScope {
         id: musicMatch
         backend: Core
         onNotice: (text) => (page.Window.window as Main).showError(text)
+        onSettingsRequested: (tab) => Nav.settings(tab)
         onChanged: (id) => {
             // A merge can keep another album: the page follows it.
             if (id !== undefined && id !== page.itemId && musicMatch.kind === "album") page.itemId = id

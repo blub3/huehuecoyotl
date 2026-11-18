@@ -17,7 +17,9 @@ set(_ui_files Theme.qml FocusButton.qml TrackMenu.qml PlayerControls.qml
   # Issues #101 to #105: matching music again.
   MusicMatch.qml
   # Issues #108 to #110: matching audiobooks and authors again.
-  BookMatch.qml)
+  BookMatch.qml
+  # Issue #117: the Settings tab bar.
+  SettingsTabs.qml)
 file(MAKE_DIRECTORY "${_ui_dir}")
 set(_qmldir "module CoyotlUi\nsingleton Theme 1.0 Theme.qml\n")
 foreach(f IN LISTS _ui_files)

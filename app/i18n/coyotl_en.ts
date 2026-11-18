@@ -42,7 +42,7 @@
 <context>
     <name>ArtistPage</name>
     <message numerus="yes">
-        <location filename="../qml/ArtistPage.qml" line="153"/>
+        <location filename="../qml/ArtistPage.qml" line="154"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n album</numerusform>
@@ -53,7 +53,7 @@
 <context>
     <name>BookListPage</name>
     <message numerus="yes">
-        <location filename="../qml/BookListPage.qml" line="74"/>
+        <location filename="../qml/BookListPage.qml" line="75"/>
         <source>%n book(s)</source>
         <translation>
             <numerusform>%n book</numerusform>
@@ -64,7 +64,7 @@
 <context>
     <name>BookMatch</name>
     <message numerus="yes">
-        <location filename="../qml/BookMatch.qml" line="98"/>
+        <location filename="../qml/BookMatch.qml" line="100"/>
         <source>%n work(s)</source>
         <translation>
             <numerusform>%n work</numerusform>
@@ -246,7 +246,7 @@
 <context>
     <name>MusicMatch</name>
     <message numerus="yes">
-        <location filename="../qml/MusicMatch.qml" line="99"/>
+        <location filename="../qml/MusicMatch.qml" line="101"/>
         <source>%n track(s)</source>
         <translation>
             <numerusform>%n track</numerusform>
@@ -254,7 +254,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicMatch.qml" line="360"/>
+        <location filename="../qml/MusicMatch.qml" line="373"/>
         <source>%n track(s) on the release you do not have</source>
         <translation>
             <numerusform>%n track on the release you do not have</numerusform>
