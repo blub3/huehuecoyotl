@@ -205,6 +205,13 @@ Right to move. The volume slider is fixed at 100 % in bit-perfect mode. **Up nex
 reorders by dragging or with Ctrl+↑/↓; Menu offers Play now, Remove and Add to playlist. Back or
 "‹ Music" returns to where you were.
 
+**Full screen** (from 2.6; or F11 on Now Playing) is made for the sofa: a large cover, the title
+in large type, the progress and big controls, with the next song in a card below. Enter plays
+or pauses, Left and Right jump 10 seconds, Up reaches Previous, Next, Shuffle and Repeat, and
+Down opens the queue. After five seconds without input the controls fade out and only the
+cover, the title and the progress stay; the first key or click brings them back without doing
+anything else. Back or F11 leaves full screen.
+
 **Now Playing** shows the cover, the format, a seek bar (Left and Right jump 10 seconds),
 shuffle, repeat (all, or the current track) and the queue: Enter plays an entry, Menu or Delete
 offers to remove it, Ctrl+Up and Ctrl+Down move it. Space plays or pauses. Tracks of the same

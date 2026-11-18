@@ -47,7 +47,11 @@ ApplicationWindow {
         function onFailed(message) { win.showError(message) }
     }
 
-    Shortcut { sequence: "F11"; onActivated: win.toggleFullscreen() }
+    // Issue #83: on Now Playing, F11 enters and leaves its full-screen view.
+    Shortcut {
+        sequence: "F11"
+        onActivated: { if (!(stack.currentItem instanceof Shell && (stack.currentItem as Shell).toggleFullView())) win.toggleFullscreen() }
+    }
 
     // UI preferences (ui.ini in the data folder).
     Settings {

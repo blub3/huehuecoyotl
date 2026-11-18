@@ -82,6 +82,13 @@ FocusScope {
         e.accepted = true
     }
 
+    // Issue #83: F11 on Now Playing toggles its full-screen view; false elsewhere.
+    function toggleFullView() {
+        const p = content.currentItem
+        if (!p || p.objectName !== "nowPlaying") return false
+        (p as NowPlayingPage).toggleFull()
+        return true
+    }
     // Issue #82: Now Playing uses the whole window; the rail steps aside.
     readonly property bool immersive: content.currentItem ? content.currentItem.objectName === "nowPlaying" : false
     NavRail {
