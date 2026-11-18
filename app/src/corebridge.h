@@ -180,6 +180,9 @@ class CoreBridge : public QObject {
     void reportProgress(quint64 ticket, qint64 positionMs, qint64 durationMs, int state);
 
     // Issue #8: the music play queue (answers with queueChanged and musicTickets).
+    // Issue #80: play what browseItems would list ("Play these" on Songs).
+    quint64 queuePlayQuery(const QString &kind, const QString &sort, const QString &filter, qint64 startItem,
+                           bool shuffle);
     quint64 queuePlay(const QList<qint64> &items, qint64 startItem, bool shuffle, qint64 version,
                       const QString &preference);
     quint64 queueInsert(const QList<qint64> &items, bool next, qint64 version, const QString &preference);

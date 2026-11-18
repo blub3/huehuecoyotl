@@ -55,7 +55,7 @@ FocusScope {
         Nav.shell = shell
         if (Bench.mode === "scroll") shell.go("movies")
         if (Bench.mode === "episodes") shell.go("shows")
-        if (Bench.mode === "music") shell.go("music")
+        if (Bench.mode === "music" || Bench.mode === "songs") shell.go("music")
         if (Bench.mode === "books") shell.go("audiobooks")
     }
     // Returning from the player: give focus back to the page.

@@ -68,7 +68,10 @@ QVariantMap summaryMap(const coyotl::core::ItemSummary &s)
             {"format", qs(s.format)},
             {"hires", s.hires},
             {"albums", qlonglong(s.albums)},
-            {"hiresAlbums", qlonglong(s.hires_albums)}};
+            {"hiresAlbums", qlonglong(s.hires_albums)},
+            {"artist", qs(s.artist)},
+            {"durationMs", qlonglong(s.duration_ms)},
+            {"plays", qlonglong(s.plays)}};
 }
 
 // Issue #4: the state of an item's saved copies.
@@ -657,6 +660,15 @@ std::vector<int64_t> ids(const QList<qint64> &items)
     return std::vector<int64_t>(items.begin(), items.end());
 }
 } // namespace
+
+quint64 CoreBridge::queuePlayQuery(const QString &kind, const QString &sort, const QString &filter,
+                                   qint64 startItem, bool shuffle)
+{
+    const quint64 id = nextId();
+    const QByteArray k = kind.toUtf8(), so = sort.toUtf8(), f = filter.toUtf8();
+    if (m_core) (*m_core)->queue_play_query(id, rs(k), rs(so), rs(f), startItem, shuffle);
+    return id;
+}
 
 quint64 CoreBridge::queuePlay(const QList<qint64> &items, qint64 startItem, bool shuffle, qint64 version,
                               const QString &preference)

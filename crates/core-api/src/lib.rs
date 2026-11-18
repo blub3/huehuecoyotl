@@ -137,6 +137,10 @@ mod ffi {
         /// Issue #79: artists: their albums and how many are Hi-Res.
         albums: i64,
         hires_albums: i64,
+        /// Issue #80: tracks: artists, length of the best file, play count.
+        artist: String,
+        duration_ms: i64,
+        plays: i64,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -441,6 +445,16 @@ mod ffi {
             version: i64,
             preference: &str,
         );
+        /// Issue #80: play what browse_items would list for these arguments ("Play these").
+        fn queue_play_query(
+            self: &Core,
+            request_id: u64,
+            kind: &str,
+            sort: &str,
+            filter: &str,
+            start_item: i64,
+            shuffle: bool,
+        );
         /// "Play next" (`next`) or "add to queue".
         fn queue_insert(
             self: &Core,
@@ -633,6 +647,9 @@ fn summary(s: core::Summary) -> ffi::ItemSummary {
         hires: s.hires,
         albums: s.albums,
         hires_albums: s.hires_albums,
+        artist: s.artist,
+        duration_ms: s.duration_ms,
+        plays: s.plays,
     }
 }
 
@@ -1320,6 +1337,20 @@ impl Core {
     fn queue_set_mode(&self, request_id: u64, shuffle: bool, repeat: &str) {
         guard("queue_set_mode", || {
             self.0.queue_set_mode(request_id, shuffle, repeat)
+        })
+    }
+    fn queue_play_query(
+        &self,
+        request_id: u64,
+        kind: &str,
+        sort: &str,
+        filter: &str,
+        start_item: i64,
+        shuffle: bool,
+    ) {
+        guard("queue_play_query", || {
+            self.0
+                .queue_play_query(request_id, kind, sort, filter, start_item, shuffle)
         })
     }
     fn queue_advanced(&self, ticket: u64) {

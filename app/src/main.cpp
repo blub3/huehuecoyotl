@@ -79,7 +79,8 @@ int main(int argc, char *argv[])
     cli.addOption(
         {"benchmark",
          QCoreApplication::translate(
-             "main", "Measure a performance budget and quit: startup, scroll, episodes, music or books."),
+             "main",
+             "Measure a performance budget and quit: startup, scroll, episodes, music, songs or books."),
          "name"});
     cli.addOption({"benchmark-out",
                    QCoreApplication::translate("main", "Also write the benchmark result to this file."),

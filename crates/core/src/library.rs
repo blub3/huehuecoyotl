@@ -153,29 +153,7 @@ impl Core {
         offset: u32,
         limit: u32,
     ) {
-        let (flags, music) = parse_filter(filter);
-        let q = Query {
-            kind: kind.to_string(),
-            parent: (parent > 0).then_some(parent),
-            sort: match sort {
-                "added" => Sort::Added,
-                "year" => Sort::Year,
-                "played" => Sort::Played,
-                "plays" => Sort::Plays,
-                _ => Sort::Title,
-            },
-            // "" (everything), "unwatched", or "saved" (issue #4).
-            unwatched_only: flags.contains(&"unwatched"),
-            saved_only: flags.contains(&"saved"),
-            // Issue #66: books by progress, persons by role.
-            book_filter: ["unread", "in_progress", "finished", "author", "narrator"]
-                .into_iter()
-                .find(|f| flags.contains(f))
-                .unwrap_or(""),
-            music,
-            offset,
-            limit: limit.clamp(1, 500),
-        };
+        let q = browse_query(kind, parent, sort, filter, offset, limit);
         self.spawn(request_id, move |inner| async move {
             let (total, items) = inner.lib.read(move |c| catalog::browse(c, &q)).await?;
             let ids: Vec<i64> = items.iter().map(|s| s.id).collect();
@@ -519,6 +497,44 @@ impl Core {
         let _rt = self.rt.enter();
         self.inner
             .set_provider(Some(p), Some(KeySource::Environment));
+    }
+}
+
+/// The query `browse_items` runs.
+pub(crate) fn browse_query(
+    kind: &str,
+    parent: i64,
+    sort: &str,
+    filter: &str,
+    offset: u32,
+    limit: u32,
+) -> Query {
+    let (flags, music) = parse_filter(filter);
+    Query {
+        kind: kind.to_string(),
+        parent: (parent > 0).then_some(parent),
+        sort: match sort {
+            "added" => Sort::Added,
+            "year" => Sort::Year,
+            "played" => Sort::Played,
+            "plays" => Sort::Plays,
+            "artist" => Sort::Artist,
+            "album" => Sort::Album,
+            "duration" => Sort::Duration,
+            "quality" => Sort::Quality,
+            _ => Sort::Title,
+        },
+        // "" (everything), "unwatched", or "saved" (issue #4).
+        unwatched_only: flags.contains(&"unwatched"),
+        saved_only: flags.contains(&"saved"),
+        // Issue #66: books by progress, persons by role.
+        book_filter: ["unread", "in_progress", "finished", "author", "narrator"]
+            .into_iter()
+            .find(|f| flags.contains(f))
+            .unwrap_or(""),
+        music,
+        offset,
+        limit: limit.clamp(1, 500),
     }
 }
 

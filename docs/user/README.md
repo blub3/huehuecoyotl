@@ -161,6 +161,12 @@ page**, the beginning of the biography and the albums. **Album artists** shows a
 albums of their own; **Everyone credited** also those who only appear on tracks; **With Hi-Res
 albums** narrows to artists with Hi-Res music. P plays all of an artist, Shift+P shuffles.
 
+**Songs** (from 2.6) lists every song with its artist, album, length, quality and how often you
+played it. Choose a column heading (or press S) to sort by it; Quality puts the best first.
+**Hi-Res**, **Lossless** and **Never played** filter the list, and **Play these** or **Shuffle**
+plays exactly the songs shown. Enter plays from a song; Menu offers Play next, Add to queue and
+Go to album.
+
 **Versions of an album** (from 2.1). When the same album is in your library more than once — as
 FLAC and as MP3, on two shares, or as a remaster next to the original — it appears once, with a
 small mark (for example "3×") on its cover. On the album page, the button under the format line

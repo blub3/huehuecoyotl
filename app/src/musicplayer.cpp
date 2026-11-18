@@ -165,6 +165,13 @@ void MusicPlayer::playItems(const QVariantList &items, qint64 startItem, bool sh
     setState(Opening);
 }
 
+void MusicPlayer::playQuery(const QString &kind, const QString &sort, const QString &filter, qint64 startItem,
+                            bool shuffle)
+{
+    track(CoreBridge::instance()->queuePlayQuery(kind, sort, filter, startItem, shuffle));
+    setState(Opening);
+}
+
 void MusicPlayer::playNext(const QVariantList &items, qint64 version)
 {
     track(CoreBridge::instance()->queueInsert(idList(items), true, version, m_preference));

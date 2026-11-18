@@ -566,37 +566,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="769"/>
+        <location filename="../src/corebridge.cpp" line="781"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="771"/>
+        <location filename="../src/corebridge.cpp" line="783"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="773"/>
+        <location filename="../src/corebridge.cpp" line="785"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="775"/>
+        <location filename="../src/corebridge.cpp" line="787"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="777"/>
+        <location filename="../src/corebridge.cpp" line="789"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="779"/>
+        <location filename="../src/corebridge.cpp" line="791"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1012"/>
+        <location filename="../src/corebridge.cpp" line="1024"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -1882,175 +1882,203 @@
 <context>
     <name>MusicPage</name>
     <message>
-        <location filename="../qml/MusicPage.qml" line="177"/>
+        <location filename="../qml/MusicPage.qml" line="197"/>
         <source>Music</source>
         <translation>Musik</translation>
     </message>
     <message>
         <location filename="../qml/MusicPage.qml" line="20"/>
-        <location filename="../qml/MusicPage.qml" line="403"/>
-        <location filename="../qml/MusicPage.qml" line="553"/>
+        <location filename="../qml/MusicPage.qml" line="487"/>
+        <location filename="../qml/MusicPage.qml" line="637"/>
         <source>Albums</source>
         <translation>Alben</translation>
     </message>
     <message>
         <location filename="../qml/MusicPage.qml" line="21"/>
-        <location filename="../qml/MusicPage.qml" line="403"/>
+        <location filename="../qml/MusicPage.qml" line="487"/>
         <source>Artists</source>
         <translation>Künstler</translation>
     </message>
     <message>
         <location filename="../qml/MusicPage.qml" line="22"/>
-        <location filename="../qml/MusicPage.qml" line="673"/>
+        <location filename="../qml/MusicPage.qml" line="810"/>
+        <source>Songs</source>
+        <translation>Songs</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="23"/>
+        <location filename="../qml/MusicPage.qml" line="892"/>
         <source>Genres</source>
         <translation>Genres</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="25"/>
+        <location filename="../qml/MusicPage.qml" line="26"/>
+        <location filename="../qml/MusicPage.qml" line="56"/>
         <source>Hi-Res</source>
         <translation>Hi-Res</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="26"/>
+        <location filename="../qml/MusicPage.qml" line="27"/>
+        <location filename="../qml/MusicPage.qml" line="57"/>
         <source>Lossless</source>
         <translation>Verlustfrei</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="27"/>
+        <location filename="../qml/MusicPage.qml" line="28"/>
         <source>Several versions</source>
         <translation>Mehrere Versionen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="28"/>
+        <location filename="../qml/MusicPage.qml" line="29"/>
         <source>Saved</source>
         <translation>Gespeichert</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="31"/>
+        <location filename="../qml/MusicPage.qml" line="32"/>
         <source>Recently added</source>
         <translation>Zuletzt hinzugefügt</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="32"/>
+        <location filename="../qml/MusicPage.qml" line="33"/>
         <source>A–Z</source>
         <translation>A–Z</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="33"/>
+        <location filename="../qml/MusicPage.qml" line="34"/>
         <source>Year</source>
         <translation>Jahr</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="34"/>
+        <location filename="../qml/MusicPage.qml" line="35"/>
         <source>Most played</source>
         <translation>Meistgespielt</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="91"/>
+        <location filename="../qml/MusicPage.qml" line="58"/>
+        <source>Never played</source>
+        <translation>Nie gespielt</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="105"/>
+        <location filename="../qml/MusicPage.qml" line="871"/>
         <source>Play next</source>
         <translation>Als Nächstes abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="92"/>
+        <location filename="../qml/MusicPage.qml" line="106"/>
+        <location filename="../qml/MusicPage.qml" line="872"/>
         <source>Add to queue</source>
         <translation>Zur Warteschlange hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="93"/>
+        <location filename="../qml/MusicPage.qml" line="107"/>
         <source>Save on this computer</source>
         <translation>Auf diesem Computer speichern</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="94"/>
+        <location filename="../qml/MusicPage.qml" line="108"/>
         <source>Open album</source>
         <translation>Album öffnen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="94"/>
+        <location filename="../qml/MusicPage.qml" line="108"/>
         <source>Open artist</source>
         <translation>Künstler öffnen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="103"/>
+        <location filename="../qml/MusicPage.qml" line="117"/>
         <source>All genres</source>
         <translation>Alle Genres</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="106"/>
+        <location filename="../qml/MusicPage.qml" line="120"/>
         <source>All decades</source>
         <translation>Alle Jahrzehnte</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="107"/>
-        <location filename="../qml/MusicPage.qml" line="289"/>
+        <location filename="../qml/MusicPage.qml" line="121"/>
+        <location filename="../qml/MusicPage.qml" line="309"/>
         <source>%1s</source>
         <translation>%1er</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="216"/>
-        <location filename="../qml/MusicPage.qml" line="217"/>
+        <location filename="../qml/MusicPage.qml" line="236"/>
+        <location filename="../qml/MusicPage.qml" line="237"/>
         <source>Search music</source>
         <translation>Musik durchsuchen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="238"/>
+        <location filename="../qml/MusicPage.qml" line="258"/>
         <source>Quality lens</source>
         <translation>Qualitätsfilter</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="247"/>
+        <location filename="../qml/MusicPage.qml" line="267"/>
         <source>All</source>
         <translation>Alle</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="278"/>
-        <location filename="../qml/MusicPage.qml" line="279"/>
+        <location filename="../qml/MusicPage.qml" line="298"/>
+        <location filename="../qml/MusicPage.qml" line="299"/>
         <source>Genre</source>
         <translation>Genre</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="289"/>
-        <location filename="../qml/MusicPage.qml" line="290"/>
+        <location filename="../qml/MusicPage.qml" line="309"/>
+        <location filename="../qml/MusicPage.qml" line="310"/>
         <source>Decade</source>
         <translation>Jahrzehnt</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="301"/>
+        <location filename="../qml/MusicPage.qml" line="321"/>
         <source>Sort</source>
         <translation>Sortieren</translation>
     </message>
+    <message numerus="yes">
+        <location filename="../qml/MusicPage.qml" line="364"/>
+        <source>%n song(s)</source>
+        <translation>
+            <numerusform>%n Song</numerusform>
+            <numerusform>%n Songs</numerusform>
+        </translation>
+    </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="322"/>
+        <location filename="../qml/MusicPage.qml" line="372"/>
+        <source>Play these</source>
+        <translation>Diese abspielen</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="406"/>
         <source>Album artists</source>
         <translation>Album-Künstler</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="334"/>
+        <location filename="../qml/MusicPage.qml" line="418"/>
         <source>Everyone credited</source>
         <translation>Alle Mitwirkenden</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="346"/>
+        <location filename="../qml/MusicPage.qml" line="430"/>
         <source>With Hi-Res albums</source>
         <translation>Mit Hi-Res-Alben</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="358"/>
+        <location filename="../qml/MusicPage.qml" line="442"/>
         <source>Enter opens · P plays all · Shift+P shuffles</source>
         <translation>Enter öffnet · P spielt alles · Umschalt+P mischt</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="366"/>
+        <location filename="../qml/MusicPage.qml" line="450"/>
         <source>%1 of %2 albums</source>
         <translation>%1 von %2 Alben</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="367"/>
+        <location filename="../qml/MusicPage.qml" line="451"/>
         <source>Filters combine; All clears the lenses.</source>
         <translation>Filter lassen sich kombinieren; „Alle“ hebt sie auf.</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="430"/>
+        <location filename="../qml/MusicPage.qml" line="514"/>
         <source>%n Hi-Res</source>
         <translation>
             <numerusform>%n Hi-Res</numerusform>
@@ -2058,27 +2086,28 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="467"/>
+        <location filename="../qml/MusicPage.qml" line="551"/>
         <source>Artist preview</source>
         <translation>Künstlervorschau</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="515"/>
+        <location filename="../qml/MusicPage.qml" line="599"/>
         <source>Play all</source>
         <translation>Alle abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="524"/>
+        <location filename="../qml/MusicPage.qml" line="383"/>
+        <location filename="../qml/MusicPage.qml" line="608"/>
         <source>Shuffle</source>
         <translation>Zufallswiedergabe</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="533"/>
+        <location filename="../qml/MusicPage.qml" line="617"/>
         <source>Open page</source>
         <translation>Seite öffnen</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="593"/>
+        <location filename="../qml/MusicPage.qml" line="677"/>
         <source>Appears on %n album(s)</source>
         <translation>
             <numerusform>Wirkt auf %n Album mit</numerusform>
@@ -2086,14 +2115,14 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="608"/>
+        <location filename="../qml/MusicPage.qml" line="692"/>
         <source>Jump to letter</source>
         <translation>Zu Buchstabe springen</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="430"/>
-        <location filename="../qml/MusicPage.qml" line="683"/>
-        <location filename="../qml/MusicPage.qml" line="693"/>
+        <location filename="../qml/MusicPage.qml" line="514"/>
+        <location filename="../qml/MusicPage.qml" line="902"/>
+        <location filename="../qml/MusicPage.qml" line="912"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n Album</numerusform>
@@ -2101,27 +2130,67 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="709"/>
+        <location filename="../qml/MusicPage.qml" line="761"/>
+        <source>Title</source>
+        <translation>Titel</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="762"/>
+        <source>Artist</source>
+        <translation>Künstler</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="763"/>
+        <source>Album</source>
+        <translation>Album</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="764"/>
+        <source>Time</source>
+        <translation>Dauer</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="765"/>
+        <source>Quality</source>
+        <translation>Qualität</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="766"/>
+        <source>Plays</source>
+        <translation>Wiedergaben</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="873"/>
+        <source>Go to album</source>
+        <translation>Zum Album</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="928"/>
         <source>No albums match these filters.</source>
         <translation>Keine Alben passen zu diesen Filtern.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="709"/>
+        <location filename="../qml/MusicPage.qml" line="928"/>
         <source>No artists match these filters.</source>
         <translation>Keine Künstler passen zu diesen Filtern.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="710"/>
+        <location filename="../qml/MusicPage.qml" line="928"/>
+        <source>No songs match these filters.</source>
+        <translation>Keine Titel passen zu diesen Filtern.</translation>
+    </message>
+    <message>
+        <location filename="../qml/MusicPage.qml" line="929"/>
         <source>No music yet. Add a folder under Sources and choose “Music” for it.</source>
         <translation>Noch keine Musik. Füge unter Quellen einen Ordner hinzu und wähle dafür „Musik“.</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="716"/>
+        <location filename="../qml/MusicPage.qml" line="935"/>
         <source>Clear filters</source>
         <translation>Filter aufheben</translation>
     </message>
     <message>
-        <location filename="../qml/MusicPage.qml" line="716"/>
+        <location filename="../qml/MusicPage.qml" line="935"/>
         <source>Add a folder</source>
         <translation>Ordner hinzufügen</translation>
     </message>
@@ -2129,7 +2198,7 @@
 <context>
     <name>MusicPlayer</name>
     <message>
-        <location filename="../src/musicplayer.cpp" line="554"/>
+        <location filename="../src/musicplayer.cpp" line="561"/>
         <source>Cannot play “%1”: %2</source>
         <translation>„%1“ kann nicht abgespielt werden: %2</translation>
     </message>
@@ -3538,8 +3607,8 @@
     </message>
     <message>
         <location filename="../src/main.cpp" line="81"/>
-        <source>Measure a performance budget and quit: startup, scroll, episodes, music or books.</source>
-        <translation>Ein Leistungsbudget messen und beenden: startup, scroll, episodes, music oder books.</translation>
+        <source>Measure a performance budget and quit: startup, scroll, episodes, music, songs or books.</source>
+        <translation>Ein Leistungsbudget messen und beenden: startup, scroll, episodes, music, songs oder books.</translation>
     </message>
     <message>
         <location filename="../src/main.cpp" line="85"/>
