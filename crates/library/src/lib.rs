@@ -5,6 +5,7 @@ pub mod books;
 pub mod catalog;
 pub mod copies;
 pub mod jobs;
+pub mod kinds;
 pub mod matching;
 pub mod merge;
 mod migrations;

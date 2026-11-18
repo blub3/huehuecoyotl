@@ -623,37 +623,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="916"/>
+        <location filename="../src/corebridge.cpp" line="924"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="918"/>
+        <location filename="../src/corebridge.cpp" line="926"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="920"/>
+        <location filename="../src/corebridge.cpp" line="928"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="922"/>
+        <location filename="../src/corebridge.cpp" line="930"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="924"/>
+        <location filename="../src/corebridge.cpp" line="932"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="926"/>
+        <location filename="../src/corebridge.cpp" line="934"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1180"/>
+        <location filename="../src/corebridge.cpp" line="1188"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -1217,31 +1217,262 @@
 <context>
     <name>FixMatchDialog</name>
     <message>
-        <location filename="../qml/FixMatchDialog.qml" line="54"/>
+        <location filename="../qml/FixMatchDialog.qml" line="87"/>
+        <location filename="../qml/FixMatchDialog.qml" line="90"/>
+        <source>Change the match?</source>
+        <translation>Zuordnung ändern?</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="88"/>
+        <source>Make this a TV show?</source>
+        <translation>Zur Serie machen?</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="89"/>
+        <source>Make this a movie?</source>
+        <translation>Zum Film machen?</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="92"/>
+        <location filename="../qml/FixMatchDialog.qml" line="230"/>
+        <location filename="../qml/FixMatchDialog.qml" line="380"/>
+        <source>TV show</source>
+        <translation>Serie</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="92"/>
+        <location filename="../qml/FixMatchDialog.qml" line="217"/>
+        <location filename="../qml/FixMatchDialog.qml" line="380"/>
+        <source>Movie</source>
+        <translation>Film</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="96"/>
+        <source>The files become episodes of the show, by the season and episode numbers in their names. Other movies in the same folders are offered too; untick the ones that are not this show.</source>
+        <translation>Die Dateien werden Folgen der Serie, nach den Staffel- und Folgennummern in ihren Namen. Andere Filme in denselben Ordnern werden mit angeboten; entferne den Haken bei denen, die nicht zu dieser Serie gehören.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="99"/>
+        <source>The file leaves the show and becomes a movie. The show&apos;s other files in the same folder go with it as versions; untick the ones that belong to the show.</source>
+        <translation>Die Datei verlässt die Serie und wird ein Film. Die anderen Dateien der Serie im selben Ordner kommen als Versionen mit; entferne den Haken bei denen, die zur Serie gehören.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="100"/>
+        <source>The ticked files leave the show and become one movie, as its versions. A show left without files goes.</source>
+        <translation>Die angehakten Dateien verlassen die Serie und werden ein Film, als seine Versionen. Eine Serie ohne Dateien verschwindet.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="102"/>
+        <source>Poster, description and episode titles are replaced by the new match; episodes are assigned by their numbers and keep their watched state. Your own NFO data stays.</source>
+        <translation>Poster, Beschreibung und Folgentitel kommen von der neuen Zuordnung; die Folgen werden nach ihren Nummern zugeordnet und behalten ihren Gesehen-Status. Deine eigenen NFO-Daten bleiben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="103"/>
+        <source>Poster, description and cast are replaced by the new match. Watched state and versions stay. Your own NFO data stays.</source>
+        <translation>Poster, Beschreibung und Besetzung kommen von der neuen Zuordnung. Gesehen-Status und Versionen bleiben. Deine eigenen NFO-Daten bleiben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="134"/>
+        <source>Now: %1.</source>
+        <translation>Jetzt: %1.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="136"/>
+        <source>Matched again: no change.</source>
+        <translation>Neu zugeordnet: keine Änderung.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="137"/>
+        <source>Matched again.</source>
+        <translation>Neu zugeordnet.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="138"/>
+        <source>Several matches fit. Choose one below.</source>
+        <translation>Mehrere Zuordnungen passen. Wähle unten eine aus.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="139"/>
+        <source>Nothing sure was found; the match stays.</source>
+        <translation>Nichts Sicheres gefunden; die Zuordnung bleibt.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="166"/>
         <source>Fix match</source>
         <translation>Zuordnung korrigieren</translation>
     </message>
     <message>
-        <location filename="../qml/FixMatchDialog.qml" line="60"/>
-        <location filename="../qml/FixMatchDialog.qml" line="62"/>
+        <location filename="../qml/FixMatchDialog.qml" line="170"/>
+        <source>Match automatically again</source>
+        <translation>Automatisch neu zuordnen</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="193"/>
+        <source>Matched now: %1</source>
+        <translation>Jetzt zugeordnet: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="194"/>
+        <source>not sure yet</source>
+        <translation>noch unsicher</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="195"/>
+        <source>chosen by you</source>
+        <translation>von dir gewählt</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="195"/>
+        <source>chosen automatically</source>
+        <translation>automatisch gewählt</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="245"/>
+        <source>Title, or a TMDB or IMDb id or link</source>
+        <translation>Titel oder eine TMDB- oder IMDb-ID bzw. ein Link</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="247"/>
         <source>Title</source>
         <translation>Titel</translation>
     </message>
     <message>
-        <location filename="../qml/FixMatchDialog.qml" line="70"/>
-        <location filename="../qml/FixMatchDialog.qml" line="73"/>
+        <location filename="../qml/FixMatchDialog.qml" line="256"/>
+        <location filename="../qml/FixMatchDialog.qml" line="259"/>
         <source>Year</source>
         <translation>Jahr</translation>
     </message>
     <message>
-        <location filename="../qml/FixMatchDialog.qml" line="78"/>
+        <location filename="../qml/FixMatchDialog.qml" line="265"/>
         <source>Search</source>
         <translation>Suchen</translation>
     </message>
     <message>
-        <location filename="../qml/FixMatchDialog.qml" line="84"/>
+        <location filename="../qml/FixMatchDialog.qml" line="274"/>
+        <source>Searching movies: is this episode really a film?</source>
+        <translation>Suche nach Filmen: Ist diese Folge eigentlich ein Film?</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="274"/>
+        <source>Searching movies. Is it a series? Switch to TV show.</source>
+        <translation>Suche nach Filmen. Ist es eine Serie? Wechsle zu „Serie“.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="275"/>
+        <source>Searching TV shows. Is it a single film? Switch to Movie.</source>
+        <translation>Suche nach Serien. Ist es ein einzelner Film? Wechsle zu „Film“.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="276"/>
+        <source>Or paste a TMDB or IMDb id or link.</source>
+        <translation>Oder füge eine TMDB- oder IMDb-ID bzw. einen Link ein.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="282"/>
         <source>No results. Try another title or remove the year.</source>
         <translation>Keine Treffer. Versuche einen anderen Titel oder entferne das Jahr.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="295"/>
+        <source>Matches</source>
+        <translation>Zuordnungen</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="306"/>
+        <location filename="../qml/FixMatchDialog.qml" line="338"/>
+        <source>matched now</source>
+        <translation>jetzt zugeordnet</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="349"/>
+        <source>%1 % sure</source>
+        <translation>%1 % sicher</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="356"/>
+        <source>← → switches Movie / TV show · ↓ to the results · Enter chooses · Back closes</source>
+        <translation>← → wechselt Film / Serie · ↓ zu den Ergebnissen · Enter wählt · Zurück schließt</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="378"/>
+        <source>Now</source>
+        <translation>Jetzt</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="380"/>
+        <location filename="../qml/FixMatchDialog.qml" line="476"/>
+        <source>Episode</source>
+        <translation>Folge</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="394"/>
+        <source>Becomes</source>
+        <translation>Wird zu</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="409"/>
+        <source>“%1” is in your library already with this match: they become one.</source>
+        <translation>„%1“ ist mit dieser Zuordnung schon in deiner Bibliothek: Beide werden eins.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="415"/>
+        <source>Not in this show at TMDB: %1. They stay as unmatched episodes.</source>
+        <translation>Bei TMDB nicht in dieser Serie: %1. Sie bleiben als nicht zugeordnete Folgen.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="420"/>
+        <source>Files that move into the show</source>
+        <translation>Dateien, die in die Serie wandern</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="420"/>
+        <source>Files that become the movie</source>
+        <translation>Dateien, die zum Film werden</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="463"/>
+        <source>Season</source>
+        <translation>Staffel</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="471"/>
+        <source>Season of %1</source>
+        <translation>Staffel von %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="484"/>
+        <source>Episode of %1</source>
+        <translation>Folge von %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="495"/>
+        <source>Give every ticked file a season and an episode number.</source>
+        <translation>Gib jeder angehakten Datei eine Staffel- und eine Folgennummer.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="500"/>
+        <source>Watched state and resume points stay with the files. The new match is locked: rescans keep it.</source>
+        <translation>Gesehen-Status und Fortsetzungspunkte bleiben bei den Dateien. Die neue Zuordnung ist fest: Neue Scans behalten sie.</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="509"/>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="519"/>
+        <source>Use this match</source>
+        <translation>Diese Zuordnung verwenden</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="520"/>
+        <source>Make it a TV show</source>
+        <translation>Zur Serie machen</translation>
+    </message>
+    <message>
+        <location filename="../qml/FixMatchDialog.qml" line="520"/>
+        <source>Make it a movie</source>
+        <translation>Zum Film machen</translation>
     </message>
 </context>
 <context>
@@ -1586,12 +1817,12 @@
         <translation>Neue Zuordnung von %1 anhalten; was bisher zugeordnet wurde, bleibt.</translation>
     </message>
     <message>
-        <location filename="../qml/MatchingLibraryRow.qml" line="164"/>
+        <location filename="../qml/MatchingLibraryRow.qml" line="165"/>
         <source>Match again…</source>
         <translation>Neu zuordnen …</translation>
     </message>
     <message>
-        <location filename="../qml/MatchingLibraryRow.qml" line="165"/>
+        <location filename="../qml/MatchingLibraryRow.qml" line="166"/>
         <source>Match %1 again</source>
         <translation>%1 neu zuordnen</translation>
     </message>
@@ -3597,7 +3828,7 @@
         <translation>Nur nicht oder unsicher zugeordnete</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="82"/>
+        <location filename="../qml/RematchDialog.qml" line="84"/>
         <source>The %n item(s) without a sure match. Matched items stay as they are.</source>
         <translation>
             <numerusform>Der %n Eintrag ohne sichere Zuordnung. Zugeordnete bleiben, wie sie sind.</numerusform>
@@ -3605,12 +3836,12 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="88"/>
+        <location filename="../qml/RematchDialog.qml" line="90"/>
         <source>Everything</source>
         <translation>Alles</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="104"/>
+        <location filename="../qml/RematchDialog.qml" line="108"/>
         <source>All %n item(s), as if they were new. A match is only replaced by a sure one.</source>
         <translation>
             <numerusform>Der %n Eintrag, als wäre er neu. Eine Zuordnung wird nur durch eine sichere ersetzt.</numerusform>
@@ -3618,22 +3849,22 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="110"/>
+        <location filename="../qml/RematchDialog.qml" line="114"/>
         <source>Keep the matches you chose yourself (%1)</source>
         <translation>Selbst gewählte Zuordnungen behalten (%1)</translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="111"/>
+        <location filename="../qml/RematchDialog.qml" line="115"/>
         <source>Off: they are looked up again too and may change.</source>
         <translation>Aus: Auch sie werden neu nachgeschlagen und können sich ändern.</translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="133"/>
+        <location filename="../qml/RematchDialog.qml" line="139"/>
         <source>Nothing to do: every item has a sure match.</source>
         <translation>Nichts zu tun: Jeder Eintrag ist sicher zugeordnet.</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="135"/>
+        <location filename="../qml/RematchDialog.qml" line="141"/>
         <source>%n item(s). One request a second is allowed: about %1 min.</source>
         <translation>
             <numerusform>%n Eintrag. Erlaubt ist eine Anfrage pro Sekunde: etwa %1 Min.</numerusform>
@@ -3641,7 +3872,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/RematchDialog.qml" line="136"/>
+        <location filename="../qml/RematchDialog.qml" line="142"/>
         <source>%n item(s): about %1 min.</source>
         <translation>
             <numerusform>%n Eintrag: etwa %1 Min.</numerusform>
@@ -3649,17 +3880,17 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="145"/>
+        <location filename="../qml/RematchDialog.qml" line="151"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="155"/>
+        <location filename="../qml/RematchDialog.qml" line="161"/>
         <source>Start</source>
         <translation>Starten</translation>
     </message>
     <message>
-        <location filename="../qml/RematchDialog.qml" line="165"/>
+        <location filename="../qml/RematchDialog.qml" line="171"/>
         <source>↑/↓ chooses · Space ticks · Enter starts · Back cancels</source>
         <translation>↑/↓ wählt · Leertaste hakt an · Enter startet · Zurück bricht ab</translation>
     </message>

@@ -651,6 +651,14 @@ quint64 CoreBridge::matchChoose(qint64 itemId, const QVariantMap &choice)
     return rid;
 }
 
+quint64 CoreBridge::matchPreview(qint64 itemId, const QVariantMap &choice)
+{
+    const quint64 rid = nextId();
+    const QByteArray c = QJsonDocument(QJsonObject::fromVariantMap(choice)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->match_preview(rid, itemId, rs(c));
+    return rid;
+}
+
 quint64 CoreBridge::rematchLibrary(const QString &library, bool all, bool includeLocked)
 {
     const quint64 rid = nextId();

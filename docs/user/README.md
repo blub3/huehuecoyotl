@@ -106,8 +106,16 @@ fallback.
 
 When the app is not sure which film a file is (two films with the same title, a missing year),
 it puts the item on the **Review matches** list in Settings. Choose the right one there, or
-use **Fix match** on the item's page to search by any title and year. Your choice is never
-changed by later scans.
+use **Fix match** on the item's page to search by any title and year, or paste a TMDB or IMDb
+link or id. Fix match shows what the item is matched to now; **Match automatically again** looks
+it up once more. Before a change is applied it says what changes. Your choice is never changed by
+later scans.
+
+**A film matched as a series, or the reverse.** In Fix match, switch between **Movie** and **TV
+show** and search. Choosing a show for a movie turns its file into an episode, using the season
+and episode numbers in the file name (you can correct them); other films in the same folder are
+offered too. Choosing a movie for a show or an episode turns the files into one film, with
+several files as its versions. Watched state and resume points go with the files.
 
 **Match a whole library again.** **Settings → Matching** lists your movies, TV shows, music and
 audiobooks with how many are matched, need a choice, were not found or were chosen by you.

@@ -137,6 +137,8 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 matchAgain(qint64 itemId, bool unlock = false);
     Q_INVOKABLE quint64 matchSearch(qint64 itemId, const QVariantMap &query);
     Q_INVOKABLE quint64 matchChoose(qint64 itemId, const QVariantMap &choice);
+    // Issues #97 to #100: what a choice would do ("matchPreview": change, merge, missing, files).
+    Q_INVOKABLE quint64 matchPreview(qint64 itemId, const QVariantMap &choice);
     Q_INVOKABLE quint64 rematchLibrary(const QString &library, bool all, bool includeLocked);
     Q_INVOKABLE quint64 rematchStop(const QString &library);
     Q_INVOKABLE quint64 matchingStatus();
