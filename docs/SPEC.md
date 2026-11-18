@@ -2,7 +2,7 @@
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
 
-**Changes in v1.12:** Audiobooks for 2.5 (issue #64): scope, formats and non-goals (section 2), the audiobook data model and migration 10, the scan pipeline, book providers and privacy (7), the content type (6), audiobook playback (5.8), bridge additions (8), the Audiobooks section (9), the bundle (10), the 2.5 plan (11) and the maintainer's decisions: Open Library without a contact address at 1 request per second, books share the music switch for online lookups, a third audio handle for books, no Audible-based provider (12).
+**Changes in v1.12:** 2.5 is released for Linux on Nov 18, 2026. Audiobooks for 2.5 (issues #64 to #67): scope, formats and non-goals (section 2), the audiobook data model and migration 10, the scan pipeline, book providers and privacy (7), the content type (6), audiobook playback (5.8), bridge additions (8), the Audiobooks section (9), the bundle (10), the 2.5 plan (11) and the maintainer's decisions: Open Library without a contact address at 1 request per second, books share the music switch for online lookups, a third audio handle for books, no Audible-based provider (12).
 
 **Changes in v1.11:** 2.1 is released for Linux on Nov 16, 2026 (issue #63): album versions and editions, migration 9 and how a version is chosen (section 7, *Album versions and editions*; section 9).
 
@@ -66,7 +66,7 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | Windows (no version yet) | The Windows build; MSIX and winget packages; code signing; Windows media keys (SMTC) |
 | 2.0 (Linux, released) | Music: a music library from tags (FLAC, ALAC, WAV, AIFF, MP3, AAC, Ogg Vorbis, Opus, WavPack), Albums and Artists, a play queue with gapless playback and a mini player, Hi-Res badges, MusicBrainz and the Cover Art Archive, optional TheAudioDB and Fanart.tv, a bit-perfect output mode (see **Music in 2.0** below) |
 | 2.1 (Linux, released) | Music: versions and editions of an album (several formats, sources or a remaster) and of a track, chosen on the album page, with the preferred version and "This is a different album" (issue #63) |
-| 2.5 (Linux, planned) | Audiobooks: books from single files or folders (M4B, M4A, MP3, Ogg Vorbis, Opus, FLAC) with chapters, authors, narrators and series; local metadata (OPF, desc.txt, reader.txt, .nfo, tags, names); Open Library and MusicBrainz; a category with Books, Authors, Series and Narrators; a player with exact resume across files, chapters, speed and a sleep timer (see **Audiobooks in 2.5** below) |
+| 2.5 (Linux, released) | Audiobooks: books from single files or folders (M4B, M4A, MP3, Ogg Vorbis, Opus, FLAC) with chapters, authors, narrators and series; local metadata (OPF, desc.txt, reader.txt, .nfo, tags, names); Open Library and MusicBrainz; a category with Books, Authors, Series and Narrators; a player with exact resume across files, chapters, speed and a sleep timer (see **Audiobooks in 2.5** below) |
 | Unscheduled | HDR passthrough on Windows through direct mode (needs a Windows PC with an HDR display for tests W1–W8) |
 | After 1.1 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
 | Non-goals | Phones, tablets and TV boxes; DRM streaming services; transcoding or acting as a media server; SMB1; cloud accounts run by the project |
@@ -689,6 +689,8 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 
 **2.5 (planned): audiobooks.** The specification (#64) first, then in this order: the audiobook library (#65), Open Library and MusicBrainz for books (#67), and the Audiobooks category and player (#66). 2.5 is released when all four are done. The Flatpak needs no new permission.
 
+**2.5 (Nov 18, 2026): released for Linux.** Audiobooks: the specification (#64), the library with migration 10 (#65), Open Library and MusicBrainz for books (#67), and the Audiobooks section and player (#66). Built and checked locally, with GitHub Actions disabled; released at the maintainer's request.
+
 **2.1 (Nov 16, 2026): released for Linux.** Versions and editions of albums and tracks (#63), with migration 9. Built and checked locally, with GitHub Actions disabled; the migration was checked on a copy of the maintainer's library.
 
 **2.0 (Nov 16, 2026): released for Linux.** Music, from the seven issues below. The manual Hi-Res checklist (`docs/testing/hires-audio.md`) was run by the maintainer with a USB DAC and passed. Built and checked locally, with GitHub Actions disabled.
@@ -747,7 +749,7 @@ The two video paths are the risk that could still change the architecture, so bo
 - [x] **Audiobooks, online lookups** (#67, v1.12): books share the music switch ("Music and book information online"), on by default as for music. Not chosen: a separate switch, off by default.
 - [x] **Audiobooks, playback** (#66, v1.12): a third audio-only mpv handle for books; the music queue is never touched by a book. Not chosen: sharing the music handle.
 - [x] **Audiobooks, Audible data** (#67, v1.12): no Audible-based provider (such as Audnexus); it can be reconsidered after a terms review. 2.5 uses local metadata, Open Library and MusicBrainz.
-- [ ] **Audiobooks, Open Library's terms**: the developer pages allow on-demand lookups by open-source apps with caching; the Internet Archive's terms of service (archive.org/about/terms.php) could not be read automatically on Nov 16, 2026. Recommendation: the maintainer reads them before 2.5 is released.
+- [ ] **Audiobooks, Open Library's terms**: the developer pages allow on-demand lookups by open-source apps with caching; the Internet Archive's terms of service (archive.org/about/terms.php) could not be read automatically on Nov 16, 2026. Recommendation: the maintainer reads them before 2.5 is released. 2.5 was released on Nov 18, 2026 at the maintainer's request; this item stays open until the maintainer confirms the terms review.
 - [ ] **Audiobooks, release**: recommendation: 2.5 is released when #64 to #67 are done, as 2.0 was.
 - [x] **Music, two mpv handles** (5.7, v1.9): an audio-only handle for music next to the video one.
 - [ ] Windows video path: direct mode for all playback (SDR and HDR) so Qt Quick stays on Direct3D 11, or embedded mode for SDR with Qt forced to OpenGL. Decided by tests W3 and W3b of the [direct mode design](spike/direct-mode-design.md).

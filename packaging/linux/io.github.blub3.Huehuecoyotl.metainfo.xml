@@ -93,6 +93,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="2.5.0" date="2026-11-18" type="stable">
+      <description>
+        <p>Audiobooks: add folders as audiobooks and browse books, authors, series and narrators. Each book resumes exactly where you stopped, with chapters, a speed from 0.5× to 3.0× without a change of pitch, and a sleep timer. Descriptions and covers your files lack come from Open Library, if you allow it.</p>
+      </description>
+    </release>
     <release version="2.1.0" date="2026-11-16" type="stable">
       <description>
         <p>An album that is in your library more than once — in two formats, on two shares, or as a remaster next to the original — now appears once. Its page lets you choose the version, and Play, the track list and the Hi-Res badge follow it. The preferred version setting gains "Lossless only", and a wrong match can be split off.</p>

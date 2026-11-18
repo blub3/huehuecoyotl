@@ -2,7 +2,9 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
-## Unreleased
+## 2.5.0 – 2026-11-18 (Linux)
+
+Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). Audiobooks: library folders can now hold audiobooks.
 
 - Audiobook library (#65, part of 2.5): library folders can hold audiobooks. Adding a folder asks for **Movies and shows**, **Music** or **Audiobooks**, and a network share's **Contains** offers audiobooks too. Each book is one file (M4B, M4A, MP3, FLAC, Ogg, Opus) or one folder of files, with `CD1`/`Disc 1` subfolders in order, on one timeline. Title, authors, narrators, series and number, publisher, year, language, ISBN and description come from `metadata.opf`, `desc.txt`/`reader.txt`, `.nfo`, the tags and the names, in that order. Chapters come from the files (M4B and MP3 chapters), else one per file. Covers from the tags or `cover.jpg`. Audible `.aax`/`.aaxc` books are listed and marked as protected. Rescans read only changed books, and only file headers. Also through `coyotl-cli library add PATH --audiobooks`, `books`, `authors`, `series` and `book ID`.
 - Book information online (#67, part of 2.5): audiobooks are looked up at Open Library, by ISBN when the book's metadata has one (one search), else by title and author, at most one request per second with the app's name in every request. Online data fills only what your files leave empty (description, year, language, subjects) and gives books without a cover one; it never replaces your own metadata. Books tagged by MusicBrainz Picard are looked up at MusicBrainz and the Cover Art Archive. Books with several possible matches wait for a choice: **Search again** on the book's page (or `coyotl-cli book search ID` and `book choose ID WORK`). The setting is now **Music and book information online**; off, nothing is sent. Attribution under Settings → About.
