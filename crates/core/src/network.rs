@@ -94,6 +94,11 @@ fn timeout_err() -> CoreError {
     CoreError::new(ErrorKind::Unreachable, "The server did not answer in time.")
 }
 
+/// Issue #118: connect with these settings (the password included).
+pub(crate) async fn connect_config(cfg: RemoteConfig) -> CResult<Arc<dyn RemoteSource>> {
+    connect(cfg).await
+}
+
 async fn connect(cfg: RemoteConfig) -> CResult<Arc<dyn RemoteSource>> {
     let attempt = async move {
         match cfg.protocol {
@@ -120,6 +125,18 @@ impl Inner {
             .read(move |c| catalog::source(c, id))
             .await?
             .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("source {id}")))?;
+        // Issue #118: the folders of a share use one connection.
+        if let Some(share) = row.share_id {
+            let siblings = self
+                .lib
+                .read(move |c| huehuecoyotl_library::shares::folder_ids(c, share))
+                .await?;
+            if let Some(s) = self.share_connection(&siblings) {
+                self.set_online(id, true);
+                self.remotes.lock().unwrap().insert(id, s.clone());
+                return Ok(s);
+            }
+        }
         let mut cfg: RemoteConfig = serde_json::from_str(&row.config_json).map_err(|e| {
             CoreError::new(ErrorKind::Internal, format!("source {id} settings: {e}"))
         })?;
@@ -150,6 +167,12 @@ impl Inner {
         }
         self.set_online(id, true);
         self.remotes.lock().unwrap().insert(id, src.clone());
+        // Issue #118: the share's own password worked: its folders' old entries can go.
+        if let Some(share) = row.share_id
+            && !cfg.password.is_empty()
+        {
+            self.share_connected(share).await;
+        }
         Ok(src)
     }
 
@@ -487,13 +510,19 @@ impl Core {
             };
             let (kind, root_s) = (cfg.protocol.as_str().to_string(), spec.path.clone());
             let content = crate::library::content_type(&spec.content);
-            let id = inner
+            // Issue #118: the folder joins the share of these settings (created when new).
+            let (share, id) = inner
                 .lib
                 .write(move |c| {
-                    catalog::add_network_library(c, &kind, &name, &json, &root_s, content)
+                    let (share, _) = huehuecoyotl_library::shares::find_or_create(c, &kind, &json)?;
+                    let (id, _) = huehuecoyotl_library::shares::add_folder(
+                        c, share, &root_s, content, &name,
+                    )?;
+                    Ok((share, id))
                 })
                 .await?;
-            let reference = format!("source:{id}");
+            // The password that just worked is the share's.
+            let reference = huehuecoyotl_library::shares::credential_ref(share);
             let warning =
                 tokio::task::spawn_blocking(move || secrets::store_password(&reference, &password))
                     .await

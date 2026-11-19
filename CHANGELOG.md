@@ -2,6 +2,10 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased (2.8)
+
+- Network shares hold several folders (#118, part of 2.8). A share (server, share, user, password) is kept once, and any number of library folders belong to it; they use one connection. Existing folders on the same server, share and user are grouped on first start (schema 13; a copy of the database is kept as `library.db.before-13`), and their passwords move to the share's keystore entry. `coyotl-cli share list|add-folders|remove-folder|remove`.
+
 ## 2.7.1 – 2026-11-18 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). Settings with tabs, and matching the music library again matches artists too.

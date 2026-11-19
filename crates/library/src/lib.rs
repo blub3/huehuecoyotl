@@ -13,6 +13,7 @@ pub mod music;
 pub mod playlists;
 pub mod queries;
 pub mod queue;
+pub mod shares;
 pub mod text;
 pub mod versions;
 
@@ -444,7 +445,15 @@ mod tests {
         drop(Library::open(&path).unwrap());
         let c = Connection::open(&path).unwrap();
         for (i, t) in tables.iter().enumerate() {
-            assert_eq!(dump(&c, t), before[i], "{t}");
+            let mut got = dump(&c, t);
+            // Migration 13 (issue #118) adds `source.share_id`, empty for local folders.
+            if *t == "source" {
+                got = got
+                    .into_iter()
+                    .map(|r| r.strip_suffix("|Null").unwrap_or(&r).to_string())
+                    .collect();
+            }
+            assert_eq!(got, before[i], "{t}");
         }
         let after = dump_indexes(&c);
         for ix in &indexes {
@@ -505,5 +514,79 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(mode, "wal");
+    }
+
+    /// Issue #118: migration 13 groups network folders by server, share and user into shares
+    /// (case of the server aside), keeps every folder, file and play state, and leaves local
+    /// folders alone. A copy is kept as `library.db.before-13`.
+    #[test]
+    fn share_migration_groups_network_folders() {
+        let d = tempfile::tempdir().unwrap();
+        let path = d.path().join("library.db");
+        {
+            let mut c = Connection::open(&path).unwrap();
+            c.pragma_update(None, "foreign_keys", "ON").unwrap();
+            for m in &MIGRATIONS[..12] {
+                let tx = c.transaction().unwrap();
+                match m {
+                    Migration::Sql(sql) => tx.execute_batch(sql).unwrap(),
+                    Migration::Rust(f) | Migration::Rebuild(f) | Migration::Merge(f) => {
+                        f(&tx).unwrap()
+                    }
+                }
+                tx.commit().unwrap();
+            }
+            c.pragma_update(None, "user_version", 12).unwrap();
+            c.execute_batch(
+                r#"INSERT INTO source(id, kind, name, root, content, config_json, credential_ref) VALUES
+                   (2, 'smb', 'Movies on NAS', '/Media/Movies', 'video', '{"protocol":"smb","host":"NAS","share":"SHARE","user":"me"}', 'source:2'),
+                   (3, 'smb', 'Music on nas', '/Media/Music', 'music', '{"protocol":"smb","host":"nas","share":"SHARE","user":"me"}', 'source:3'),
+                   (4, 'smb', 'Kids', '/Kids', 'video', '{"protocol":"smb","host":"nas","share":"SHARE","user":"kid"}', 'source:4'),
+                   (5, 'local', 'Here', '/home/v', 'video', '{}', NULL);
+                   INSERT INTO item(id, kind, title) VALUES (20, 'movie', 'Alien');
+                   INSERT INTO file(id, source_id, path, item_id) VALUES (100, 2, 'Alien.mkv', 20);
+                   INSERT INTO playstate(item_id, profile_id, position_ms, duration_ms, watched, updated_at) VALUES (20, 1, 0, 9, 1, 5);"#,
+            )
+            .unwrap();
+        }
+        drop(Library::open(&path).unwrap());
+        assert!(d.path().join("library.db.before-13").exists());
+        let c = Connection::open(&path).unwrap();
+        let shares: i64 = c
+            .query_row("SELECT count(*) FROM share", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(shares, 2, "me and kid");
+        let same: i64 = c
+            .query_row(
+                "SELECT count(DISTINCT share_id) FROM source WHERE id IN (2, 3)",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(same, 1);
+        let local: Option<i64> = c
+            .query_row("SELECT share_id FROM source WHERE id = 5", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(local, None);
+        let refs: Vec<String> = c
+            .prepare("SELECT credential_ref FROM share ORDER BY id")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<rusqlite::Result<_>>()
+            .unwrap();
+        assert!(refs.iter().all(|r| r.starts_with("share:")));
+        let watched: i64 = c
+            .query_row(
+                "SELECT watched FROM playstate WHERE item_id = 20",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(watched, 1);
+        // The folder reads its settings from its share now.
+        let row = crate::catalog::source(&c, 3).unwrap().unwrap();
+        assert!(row.credential_ref.unwrap().starts_with("share:"));
+        assert!(row.share_id.is_some());
     }
 }
