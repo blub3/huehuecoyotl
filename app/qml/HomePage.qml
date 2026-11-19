@@ -315,7 +315,7 @@ FocusScope {
 
             Label {
                 Layout.topMargin: 24
-                text: qsTr("Arrow keys to move · Enter to open · Esc to go back · F11 fullscreen")
+                text: qsTr("Arrow keys to move · Enter to open · Esc or Backspace to go back (hold Esc for more) · F11 fullscreen")
                 color: Theme.textDim
                 font.pixelSize: Theme.fontSmall
             }

@@ -594,27 +594,27 @@
     <name>BackButton</name>
     <message>
         <location filename="../qml/BackButton.qml" line="21"/>
-        <location filename="../qml/BackButton.qml" line="53"/>
+        <location filename="../qml/BackButton.qml" line="60"/>
         <source>Back</source>
         <translation>Zurück</translation>
     </message>
     <message>
-        <location filename="../qml/BackButton.qml" line="71"/>
+        <location filename="../qml/BackButton.qml" line="78"/>
         <source>Back to %1</source>
         <translation>Zurück zu %1</translation>
     </message>
     <message>
-        <location filename="../qml/BackButton.qml" line="103"/>
+        <location filename="../qml/BackButton.qml" line="110"/>
         <source>Go back to</source>
         <translation>Zurück zu</translation>
     </message>
     <message>
-        <location filename="../qml/BackButton.qml" line="138"/>
+        <location filename="../qml/BackButton.qml" line="145"/>
         <source>%1 (here)</source>
         <translation>%1 (hier)</translation>
     </message>
     <message>
-        <location filename="../qml/BackButton.qml" line="156"/>
+        <location filename="../qml/BackButton.qml" line="163"/>
         <source>here</source>
         <translation>hier</translation>
     </message>
@@ -2228,8 +2228,8 @@
     </message>
     <message>
         <location filename="../qml/HomePage.qml" line="318"/>
-        <source>Arrow keys to move · Enter to open · Esc to go back · F11 fullscreen</source>
-        <translation>Pfeiltasten zum Bewegen · Enter zum Öffnen · Esc für zurück · F11 Vollbild</translation>
+        <source>Arrow keys to move · Enter to open · Esc or Backspace to go back (hold Esc for more) · F11 fullscreen</source>
+        <translation>Pfeiltasten zum Bewegen · Enter zum Öffnen · Esc oder Rücktaste für zurück (Esc halten für mehr) · F11 Vollbild</translation>
     </message>
 </context>
 <context>

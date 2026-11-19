@@ -29,6 +29,13 @@ Button {
         if (p.pageTitle) return String(p.pageTitle)
         return p.pageKind ? String(p.pageKind) : ""
     }
+    // Issue #136: the other keys that mean Back: Backspace (never while typing in a text field)
+    // and Alt+Left. Esc and the remote's Back key are handled with their hold (the trail).
+    function isBackKey(key, modifiers, focusItem) {
+        if (key === Qt.Key_Left && (modifiers & Qt.AltModifier)) return true
+        if (key !== Qt.Key_Backspace || modifiers !== Qt.NoModifier) return false
+        return !(focusItem && focusItem.cursorPosition !== undefined)
+    }
     function kindOf(p) { return p && p.pageKind ? String(p.pageKind) : "" }
     // The way here, bottom first: "Albums › Test Artist › First Album".
     readonly property string path: {
