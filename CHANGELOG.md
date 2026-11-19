@@ -7,6 +7,7 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 - Network shares hold several folders (#118, part of 2.8). A share (server, share, user, password) is kept once, and any number of library folders belong to it; they use one connection. Existing folders on the same server, share and user are grouped on first start (schema 13; a copy of the database is kept as `library.db.before-13`), and their passwords move to the share's keystore entry. `coyotl-cli share list|add-folders|remove-folder|remove`.
 - Sources grouped by server (#119, part of 2.8). The Sources page shows a card for each network share and one for this computer, with their folders inside: what each holds, its count, Rescan and Remove…. Cards open and close with Right and Left and stay as you left them. Removing a folder asks first and says what happens.
 - Add several folders at once (#120, part of 2.8). **Add folders** on a share's card shows the share's folders with a quick look inside each and a guess of what it holds; tick several, change a type with one press, and add them together. Folders already in the library are marked. `coyotl-cli share browse SHARE [PATH]`.
+- Add a network share in three steps (#121, part of 2.8): the server (found on the network or typed), signing in (an SMB server lists its shares to choose from), and the folders. A share already added opens its Add folders instead of being added twice; leaving before adding folders keeps nothing, no password either. `coyotl-cli share sign-in|add`.
 
 ## 2.7.1 – 2026-11-18 (Linux)
 

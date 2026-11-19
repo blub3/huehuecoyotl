@@ -8,6 +8,8 @@ QtObject {
 
     function open(url, props) { if (shell) shell.openPage(url, props || {}) }
     function back() { if (shell) shell.back() }
+    // Issue #121: swap the current page for another (Back then skips the one replaced).
+    function replace(url, props) { if (shell) shell.replacePage(url, props || {}) }
     function go(section) { if (shell) shell.go(section) }
     // Issue #117: Settings on one of its tabs (metadata, matching, appearance, playback, audio,
     // storage, troubleshooting, about).

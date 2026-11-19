@@ -462,6 +462,16 @@ mod ffi {
             password: &str,
             path: &str,
         );
+        /// Issue #121: signing in to a server or share being added (MusicDetail "shareSignIn")
+        /// and adding a new share with its first folders (MusicDetail "shares").
+        fn share_sign_in(self: &Core, request_id: u64, spec_json: &str, password: &str);
+        fn share_create(
+            self: &Core,
+            request_id: u64,
+            spec_json: &str,
+            password: &str,
+            folders_json: &str,
+        );
         /// Issue #66: a book's ticket (MusicDetail "bookTicket"); `position_ms` < 0 resumes.
         fn book_play(self: &Core, request_id: u64, book: i64, position_ms: i64);
         fn book_progress(self: &Core, book: i64, position_ms: i64);
@@ -1397,6 +1407,17 @@ impl Core {
     }
     fn share_remove(&self, request_id: u64, share: i64) {
         guard("share_remove", || self.0.share_remove(request_id, share))
+    }
+    fn share_sign_in(&self, request_id: u64, spec_json: &str, password: &str) {
+        guard("share_sign_in", || {
+            self.0.share_sign_in(request_id, spec_json, password)
+        })
+    }
+    fn share_create(&self, request_id: u64, spec_json: &str, password: &str, folders_json: &str) {
+        guard("share_create", || {
+            self.0
+                .share_create(request_id, spec_json, password, folders_json)
+        })
     }
     fn share_browse(&self, request_id: u64, target_json: &str, password: &str, path: &str) {
         guard("share_browse", || {

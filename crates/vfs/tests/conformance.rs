@@ -265,3 +265,17 @@ async fn webdav_survives_dropped_connection() {
         survives_dropped_connection(Protocol::Webdav, "172.29.0.12:8080").await;
     }
 }
+
+// Issue #121: the shares an SMB server offers, without printers and hidden shares.
+#[tokio::test]
+async fn smb_lists_its_shares() {
+    if !enabled() {
+        return;
+    }
+    let mut c = cfg(Protocol::Smb);
+    c.share = String::new();
+    let shares = huehuecoyotl_vfs::smb_shares(&c).await.unwrap();
+    assert_eq!(shares, ["media"], "{shares:?}");
+    c.password = "wrong".into();
+    assert!(huehuecoyotl_vfs::smb_shares(&c).await.is_err());
+}

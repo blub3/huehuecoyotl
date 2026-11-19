@@ -26,6 +26,40 @@ pub struct SmbSource {
     files: Mutex<HashMap<String, (Arc<smb::File>, u64)>>,
 }
 
+/// Issue #121: the disk shares a server offers to this user (no printers, no hidden `NAME$`
+/// shares), sorted by name.
+pub async fn list_shares(cfg: &RemoteConfig) -> Result<Vec<String>> {
+    let mut cc = ClientConfig {
+        dfs: false,
+        ..Default::default()
+    };
+    cc.connection.port = cfg.port;
+    cc.connection.smb2_only_negotiate = true;
+    let c = Client::new(cc);
+    let user = if cfg.user.is_empty() {
+        "guest"
+    } else {
+        &cfg.user
+    };
+    c.ipc_connect(&cfg.host, user, cfg.password.clone())
+        .await
+        .map_err(err)?;
+    let pipe = c.open_pipe(&cfg.host, "srvsvc").await.map_err(err)?;
+    let found = crate::srvsvc::list(&pipe, &cfg.host).await;
+    drop(pipe);
+    c.close().await.ok();
+    let mut names: Vec<String> = found?
+        .into_iter()
+        .filter(|(n, kind)| {
+            kind & 0x0fff_ffff == 0 && kind & 0x8000_0000 == 0 && !n.is_empty() && !n.ends_with('$')
+        })
+        .map(|(n, _)| n)
+        .collect();
+    names.sort_by_key(|n| n.to_lowercase());
+    names.dedup();
+    Ok(names)
+}
+
 impl SmbSource {
     pub fn new(cfg: RemoteConfig) -> Self {
         Self {

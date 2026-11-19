@@ -39,6 +39,10 @@ FocusScope {
         content.push(url, props)
         focusContent()
     }
+    function replacePage(url, props) {
+        content.replace(url, props)
+        focusContent()
+    }
     // Back: pop a page, or from a section's first page move to the rail.
     function back() {
         if (content.depth > 1) {

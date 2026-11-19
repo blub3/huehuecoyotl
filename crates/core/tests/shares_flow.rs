@@ -177,3 +177,72 @@ fn two_folders_one_share() {
     assert!(v["shares"].as_array().unwrap().is_empty());
     assert_eq!(secrets::load_password(&format!("share:{share}")), "");
 }
+
+/// Issue #121 against the test servers: signing in to the SMB server lists its shares; a share
+/// is created with its first folders in one call; signing in again finds it; a create whose
+/// folders fail keeps neither a share nor a password.
+#[test]
+fn add_a_share_in_steps() {
+    if std::env::var_os("COYOTL_TEST_SERVERS").is_none() {
+        eprintln!("skipped: set COYOTL_TEST_SERVERS=1 with tests/servers running");
+        return;
+    }
+    let d = tempfile::tempdir().unwrap();
+    let (core, rx) = open(&d.path().join("data"));
+    let detail = |e: Event| match e {
+        Event::MusicDetail { json, .. } => serde_json::from_str::<Value>(&json).unwrap(),
+        e => panic!("{e:?}"),
+    };
+    let server = r#"{"protocol":"smb","host":"172.29.0.10","user":"coyotl"}"#;
+    core.share_sign_in(1, server, "wrong");
+    assert!(matches!(answer(&rx, 1), Event::Error { .. }));
+    core.share_sign_in(2, server, "coyotl-test");
+    let v = detail(answer(&rx, 2));
+    assert_eq!(
+        v["shares"],
+        serde_json::json!([{ "name": "media", "existing": null }])
+    );
+
+    // A failing folder keeps nothing.
+    let spec = r#"{"protocol":"smb","host":"172.29.0.10","share":"media","user":"coyotl"}"#;
+    core.share_create(
+        3,
+        spec,
+        "coyotl-test",
+        r#"[{"path":"/Nothing","content":"video"}]"#,
+    );
+    assert!(matches!(answer(&rx, 3), Event::Error { .. }));
+    assert!(
+        shares(&core, &rx, 4)["shares"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(secrets::load_password("share:1"), "");
+
+    core.share_sign_in(5, spec, "coyotl-test");
+    let v = detail(answer(&rx, 5));
+    assert_eq!(v["connected"], true);
+    assert_eq!(v["folders"], 2);
+    assert!(v["existing"].is_null());
+    core.share_create(
+        6,
+        spec,
+        "coyotl-test",
+        r#"[{"path":"/Movies","content":"video"},{"path":"/Shows","content":"video"}]"#,
+    );
+    let v = detail(answer(&rx, 6));
+    let list = v["shares"].as_array().unwrap();
+    assert_eq!(list.len(), 1, "{v}");
+    assert_eq!(list[0]["folders"].as_array().unwrap().len(), 2);
+    let id = list[0]["id"].as_i64().unwrap();
+    assert_eq!(
+        secrets::load_password(&format!("share:{id}")),
+        "coyotl-test"
+    );
+
+    core.share_sign_in(7, server, "coyotl-test");
+    assert_eq!(detail(answer(&rx, 7))["shares"][0]["existing"], id);
+    core.share_sign_in(8, spec, "coyotl-test");
+    assert_eq!(detail(answer(&rx, 8))["existing"], id);
+}

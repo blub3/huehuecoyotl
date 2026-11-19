@@ -2,6 +2,251 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="de" sourcelanguage="en">
 <context>
+    <name>AddShareFlow</name>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="99"/>
+        <source>Please enter a server name or address.</source>
+        <translation>Bitte einen Servernamen oder eine Adresse eingeben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="108"/>
+        <source>Please enter the export path.</source>
+        <translation>Bitte gib den Exportpfad ein.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="109"/>
+        <source>Please enter the name of the share.</source>
+        <translation>Bitte den Namen der Freigabe eingeben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="111"/>
+        <source>Connecting…</source>
+        <translation>Verbinde …</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="123"/>
+        <source>This server offers no shares to this user.</source>
+        <translation>Dieser Server bietet diesem Benutzer keine Freigaben an.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="163"/>
+        <source>The server did not list its shares. Enter the name of the share.</source>
+        <translation>Der Server hat seine Freigaben nicht aufgelistet. Gib den Namen der Freigabe ein.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="174"/>
+        <source>Add network share</source>
+        <translation>Netzwerkfreigabe hinzufügen</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="183"/>
+        <source>Close</source>
+        <translation>Schließen</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="183"/>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="188"/>
+        <location filename="../qml/AddShareFlow.qml" line="306"/>
+        <source>Server</source>
+        <translation>Server</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="188"/>
+        <source>Sign in</source>
+        <translation>Anmelden</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="188"/>
+        <source>Folders</source>
+        <translation>Ordner</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="234"/>
+        <source>Found on your network</source>
+        <translation>In deinem Netzwerk gefunden</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="237"/>
+        <source>Searching…</source>
+        <translation>Suche läuft…</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="244"/>
+        <source>Looking for file servers…</source>
+        <translation>Suche nach Dateiservern …</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="244"/>
+        <source>No servers announced themselves. Enter the address below.</source>
+        <translation>Kein Server hat sich gemeldet. Gib die Adresse unten ein.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="268"/>
+        <source>already added</source>
+        <translation>schon hinzugefügt</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="274"/>
+        <source>Or enter a server</source>
+        <translation>Oder gib einen Server ein</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="305"/>
+        <source>Name or address, e.g. nas.local</source>
+        <translation>Name oder Adresse, z. B. nas.local</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="316"/>
+        <location filename="../qml/AddShareFlow.qml" line="317"/>
+        <source>Port</source>
+        <translation>Port</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="329"/>
+        <source>Use HTTPS</source>
+        <translation>HTTPS verwenden</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="340"/>
+        <source>Next</source>
+        <translation>Weiter</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="360"/>
+        <location filename="../qml/AddShareFlow.qml" line="367"/>
+        <source>User name</source>
+        <translation>Benutzername</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="366"/>
+        <source>Empty for guest access</source>
+        <translation>Leer für Gastzugriff</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="366"/>
+        <source>Empty for anonymous</source>
+        <translation>Leer für anonym</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="376"/>
+        <location filename="../qml/AddShareFlow.qml" line="386"/>
+        <source>Key passphrase</source>
+        <translation>Passphrase des Schlüssels</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="376"/>
+        <location filename="../qml/AddShareFlow.qml" line="386"/>
+        <source>Password</source>
+        <translation>Passwort</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="385"/>
+        <source>Empty if the key has none</source>
+        <translation>Leer, wenn der Schlüssel keine hat</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="393"/>
+        <source>Key file (optional)</source>
+        <translation>Schlüsseldatei (optional)</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="398"/>
+        <source>Log in with a key instead of a password, e.g. ~/.ssh/id_ed25519</source>
+        <translation>Mit einem Schlüssel statt Passwort anmelden, z. B. ~/.ssh/id_ed25519</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="399"/>
+        <source>Key file</source>
+        <translation>Schlüsseldatei</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="407"/>
+        <location filename="../qml/AddShareFlow.qml" line="418"/>
+        <source>Share</source>
+        <translation>Freigabe</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="407"/>
+        <location filename="../qml/AddShareFlow.qml" line="418"/>
+        <source>Export path</source>
+        <translation>Exportpfad</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="407"/>
+        <source>Base folder (optional)</source>
+        <translation>Basisordner (optional)</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="416"/>
+        <source>e.g. media</source>
+        <translation>z. B. media</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="416"/>
+        <source>e.g. /volume1/media</source>
+        <translation>z. B. /volume1/media</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="417"/>
+        <source>e.g. /srv/media</source>
+        <translation>z. B. /srv/media</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="417"/>
+        <source>e.g. /dav</source>
+        <translation>z. B. /dav</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="418"/>
+        <source>Base folder</source>
+        <translation>Basisordner</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="433"/>
+        <source>Show shares</source>
+        <translation>Freigaben anzeigen</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="433"/>
+        <source>Connect</source>
+        <translation>Verbinden</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="452"/>
+        <source>Shares on %1</source>
+        <translation>Freigaben auf %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="475"/>
+        <source>already added: add folders</source>
+        <translation>schon hinzugefügt: Ordner hinzufügen</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="486"/>
+        <source>Server key fingerprint: %1</source>
+        <translation>Fingerabdruck des Server-Schlüssels: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="493"/>
+        <source>Compare it with the server&apos;s own fingerprint before adding (on the server: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Adding the library trusts this key; if the server later presents a different key, the connection is refused.</source>
+        <translation>Vergleiche ihn vor dem Hinzufügen mit dem Fingerabdruck auf dem Server (dort: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Mit dem Hinzufügen wird diesem Schlüssel vertraut; zeigt der Server später einen anderen, wird die Verbindung abgelehnt.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="500"/>
+        <source>Trust and continue</source>
+        <translation>Vertrauen und weiter</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddShareFlow.qml" line="510"/>
+        <source>The password is kept in your system&apos;s keyring once the first folders are added, never in the library.</source>
+        <translation>Das Passwort wird im Schlüsselbund deines Systems gespeichert, sobald die ersten Ordner hinzugefügt sind, nie in der Bibliothek.</translation>
+    </message>
+</context>
+<context>
     <name>AddToPlaylist</name>
     <message>
         <location filename="../qml/AddToPlaylist.qml" line="53"/>
@@ -902,37 +1147,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="958"/>
+        <location filename="../src/corebridge.cpp" line="980"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="960"/>
+        <location filename="../src/corebridge.cpp" line="982"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="962"/>
+        <location filename="../src/corebridge.cpp" line="984"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="964"/>
+        <location filename="../src/corebridge.cpp" line="986"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="966"/>
+        <location filename="../src/corebridge.cpp" line="988"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="968"/>
+        <location filename="../src/corebridge.cpp" line="990"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1222"/>
+        <location filename="../src/corebridge.cpp" line="1244"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -3475,248 +3720,6 @@
     </message>
 </context>
 <context>
-    <name>NetworkSharePage</name>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="39"/>
-        <source>Share</source>
-        <translation>Freigabe</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="40"/>
-        <source>Export path</source>
-        <translation>Exportpfad</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="41"/>
-        <source>Base folder (optional)</source>
-        <translation>Basisordner (optional)</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="64"/>
-        <source>Please enter a server name or address.</source>
-        <translation>Bitte einen Servernamen oder eine Adresse eingeben.</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="65"/>
-        <source>Please enter the name of the share.</source>
-        <translation>Bitte den Namen der Freigabe eingeben.</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="66"/>
-        <source>Please enter the export path.</source>
-        <translation>Bitte den Exportpfad eingeben.</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="74"/>
-        <source>Connecting…</source>
-        <translation>Verbinde …</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="80"/>
-        <source>Adding…</source>
-        <translation>Wird hinzugefügt …</translation>
-    </message>
-    <message numerus="yes">
-        <location filename="../qml/NetworkSharePage.qml" line="117"/>
-        <source>%n video(s) in this folder</source>
-        <translation>
-            <numerusform>%n Video in diesem Ordner</numerusform>
-            <numerusform>%n Videos in diesem Ordner</numerusform>
-        </translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="152"/>
-        <source>Add network share</source>
-        <translation>Netzwerkfreigabe hinzufügen</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="157"/>
-        <source>Found on your network</source>
-        <translation>In deinem Netzwerk gefunden</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="160"/>
-        <source>Searching…</source>
-        <translation>Suche läuft …</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="160"/>
-        <source>Search again</source>
-        <translation>Erneut suchen</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="169"/>
-        <source>Looking for file servers…</source>
-        <translation>Suche nach Dateiservern …</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="169"/>
-        <source>No servers announced themselves. Enter the address below.</source>
-        <translation>Kein Server hat sich gemeldet. Gib die Adresse unten ein.</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="198"/>
-        <source>Connection</source>
-        <translation>Verbindung</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="231"/>
-        <location filename="../qml/NetworkSharePage.qml" line="239"/>
-        <source>Server</source>
-        <translation>Server</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="238"/>
-        <source>Name or address, e.g. nas.local</source>
-        <translation>Name oder Adresse, z. B. nas.local</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="250"/>
-        <location filename="../qml/NetworkSharePage.qml" line="251"/>
-        <source>Port</source>
-        <translation>Port</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="266"/>
-        <source>e.g. media</source>
-        <translation>z. B. media</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="266"/>
-        <source>e.g. /volume1/media</source>
-        <translation>z. B. /volume1/media</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="267"/>
-        <source>e.g. /dav</source>
-        <translation>z. B. /dav</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="267"/>
-        <source>e.g. /srv/media</source>
-        <translation>z. B. /srv/media</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="276"/>
-        <location filename="../qml/NetworkSharePage.qml" line="282"/>
-        <source>User name</source>
-        <translation>Benutzername</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="281"/>
-        <source>Empty for guest access</source>
-        <translation>Leer für Gastzugriff</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="281"/>
-        <source>Empty for anonymous</source>
-        <translation>Leer für anonym</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="292"/>
-        <location filename="../qml/NetworkSharePage.qml" line="301"/>
-        <source>Password</source>
-        <translation>Passwort</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="292"/>
-        <location filename="../qml/NetworkSharePage.qml" line="301"/>
-        <source>Key passphrase</source>
-        <translation>Passphrase des Schlüssels</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="300"/>
-        <source>Empty if the key has none</source>
-        <translation>Leer, wenn der Schlüssel keine hat</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="309"/>
-        <source>Key file (optional)</source>
-        <translation>Schlüsseldatei (optional)</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="314"/>
-        <source>Log in with a key instead of a password, e.g. ~/.ssh/id_ed25519</source>
-        <translation>Mit einem Schlüssel statt Passwort anmelden, z. B. ~/.ssh/id_ed25519</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="315"/>
-        <source>Key file</source>
-        <translation>Schlüsseldatei</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="327"/>
-        <source>Use HTTPS</source>
-        <translation>HTTPS verwenden</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="339"/>
-        <source>Reconnect</source>
-        <translation>Neu verbinden</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="339"/>
-        <source>Connect</source>
-        <translation>Verbinden</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="354"/>
-        <source>Add the whole share</source>
-        <translation>Ganze Freigabe hinzufügen</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="354"/>
-        <source>Add this folder</source>
-        <translation>Diesen Ordner hinzufügen</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="364"/>
-        <source>Contains: music</source>
-        <translation>Enthält: Musik</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="365"/>
-        <source>Contains: video</source>
-        <translation>Enthält: Videos</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="365"/>
-        <source>Contains: audiobooks</source>
-        <translation>Enthält: Hörbücher</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="366"/>
-        <source>Video folders become Movies and Shows, music folders Music, audiobook folders Audiobooks</source>
-        <translation>Videoordner landen unter Filme und Serien, Musikordner unter Musik, Hörbuchordner unter Hörbücher</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="387"/>
-        <source>Server key fingerprint: %1</source>
-        <translation>Fingerabdruck des Server-Schlüssels: %1</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="396"/>
-        <source>Compare it with the server&apos;s own fingerprint before adding (on the server: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Adding the library trusts this key; if the server later presents a different key, the connection is refused.</source>
-        <translation>Vergleiche ihn vor dem Hinzufügen mit dem Fingerabdruck auf dem Server (dort: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub). Mit dem Hinzufügen wird diesem Schlüssel vertraut; zeigt der Server später einen anderen, wird die Verbindung abgelehnt.</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="402"/>
-        <source>Folder: %1</source>
-        <translation>Ordner: %1</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="429"/>
-        <location filename="../qml/NetworkSharePage.qml" line="444"/>
-        <source>Up one folder</source>
-        <translation>Eine Ebene höher</translation>
-    </message>
-    <message>
-        <location filename="../qml/NetworkSharePage.qml" line="450"/>
-        <source>No sub-folders here.</source>
-        <translation>Hier gibt es keine Unterordner.</translation>
-    </message>
-</context>
-<context>
     <name>NoticesPage</name>
     <message>
         <location filename="../qml/NoticesPage.qml" line="23"/>
@@ -5127,27 +5130,27 @@
 <context>
     <name>ShareFolderBrowser</name>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="34"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="39"/>
         <source>Music</source>
         <translation>Musik</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="34"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="39"/>
         <source>Audiobooks</source>
         <translation>Hörbücher</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="34"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="39"/>
         <source>Movies &amp; shows</source>
         <translation>Filme &amp; Serien</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="39"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="44"/>
         <source>in your library as %1</source>
         <translation>in deiner Bibliothek als %1</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareFolderBrowser.qml" line="41"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="46"/>
         <source>%n video(s)</source>
         <translation>
             <numerusform>%n Video</numerusform>
@@ -5155,7 +5158,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareFolderBrowser.qml" line="42"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="47"/>
         <source>%n audio file(s)</source>
         <translation>
             <numerusform>%n Audiodatei</numerusform>
@@ -5163,7 +5166,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareFolderBrowser.qml" line="43"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="48"/>
         <source>%n audiobook(s)</source>
         <translation>
             <numerusform>%n Hörbuch</numerusform>
@@ -5171,7 +5174,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareFolderBrowser.qml" line="44"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="49"/>
         <source>%n folder(s)</source>
         <translation>
             <numerusform>%n Ordner</numerusform>
@@ -5179,89 +5182,89 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="45"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="50"/>
         <source>no media found</source>
         <translation>keine Medien gefunden</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="45"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="50"/>
         <source>not looked into</source>
         <translation>nicht hineingeschaut</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="46"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="51"/>
         <source>inside “%1”, already in your library</source>
         <translation>liegt in „%1“, schon in deiner Bibliothek</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="81"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="86"/>
         <source>Looking into the folders…</source>
         <translation>Schaue in die Ordner…</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="87"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="92"/>
         <source>Adding…</source>
         <translation>Füge hinzu…</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="105"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="113"/>
         <source>No folders here.</source>
         <translation>Hier sind keine Ordner.</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="125"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="134"/>
         <source>Add folders from %1</source>
         <translation>Ordner aus %1 hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="125"/>
-        <location filename="../qml/ShareFolderBrowser.qml" line="308"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="134"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="317"/>
         <source>Add folders</source>
         <translation>Ordner hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="137"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="146"/>
         <source>Up one folder</source>
         <translation>Einen Ordner nach oben</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="203"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="212"/>
         <source>%1 is in your library</source>
         <translation>%1 ist in deiner Bibliothek</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="203"/>
-        <location filename="../qml/ShareFolderBrowser.qml" line="295"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="212"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="304"/>
         <source>Don&apos;t add %1</source>
         <translation>%1 nicht hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="203"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="212"/>
         <source>Add %1</source>
         <translation>%1 hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="225"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="234"/>
         <source>What %1 holds; press to change</source>
         <translation>Was %1 enthält; drücken zum Ändern</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="234"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="243"/>
         <source>Open %1</source>
         <translation>%1 öffnen</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="253"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="262"/>
         <source>To add</source>
         <translation>Wird hinzugefügt</translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="262"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="271"/>
         <source>Tick the folders to add. Each becomes a library folder of this share.</source>
         <translation>Hake die Ordner an, die du hinzufügen willst. Jeder wird ein Bibliotheksordner dieser Freigabe.</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareFolderBrowser.qml" line="308"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="317"/>
         <source>Add %n folder(s)</source>
         <translation>
             <numerusform>%n Ordner hinzufügen</numerusform>
@@ -5269,7 +5272,7 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/ShareFolderBrowser.qml" line="317"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="326"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>

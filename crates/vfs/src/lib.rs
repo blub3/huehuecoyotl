@@ -12,12 +12,16 @@ mod nfs;
 pub mod remote;
 #[cfg(feature = "smb")]
 mod smb;
+#[cfg(feature = "smb")]
+mod srvsvc;
 #[cfg(feature = "webdav")]
 mod webdav;
 
 pub use local::LocalSource;
 pub use media::{MediaKind, find_sidecar_subtitles, media_kind};
 pub use remote::{Protocol, RemoteConfig, RemoteSource};
+#[cfg(feature = "smb")]
+pub use smb::list_shares as smb_shares;
 
 use async_trait::async_trait;
 use bytes::Bytes;
