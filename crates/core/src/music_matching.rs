@@ -306,6 +306,7 @@ pub(crate) async fn rematch_artist(
         .map_err(db)?;
     after_artists(inner, &[artist]).await;
     let artist = kept(&reconcile_artists(inner).await, artist);
+    enqueue_artist_names(inner).await;
     inner.sink.post(Event::ItemChanged { item_id: artist });
     Ok((
         if was {
@@ -488,6 +489,7 @@ pub(crate) async fn choose(inner: &Arc<Inner>, item: i64, kind: &str, id: &str) 
             .await?;
         after_artists(inner, &[item]).await;
         let joined = kept(&reconcile_artists(inner).await, item);
+        enqueue_artist_names(inner).await;
         inner.sink.post(Event::ItemChanged { item_id: joined });
         inner.mark_changed();
         return Ok(joined);
@@ -576,4 +578,102 @@ pub(crate) async fn preview_album(inner: &Arc<Inner>, album: i64, release: &str)
         "total": local.len(),
         "extra": extra,
     }))
+}
+
+// ---- the name shown (issue #148) ---------------------------------------------------------------
+
+/// Queue the MusicBrainz artist lookups that bring matched artists' spellings (one request a
+/// second with the music limiter, like every MusicBrainz call).
+pub(crate) async fn enqueue_artist_names(inner: &Arc<Inner>) {
+    let queued = inner
+        .lib
+        .write(|c| {
+            if !music::online(c)? {
+                return Ok(0);
+            }
+            let due = huehuecoyotl_library::artists::names_due(c)?;
+            for id in &due {
+                jobs::enqueue(
+                    c,
+                    "artist_name",
+                    &json!({ "item_id": id }).to_string(),
+                    jobs::priority::BACKGROUND,
+                    Some(&format!("artist_name:{id}")),
+                )?;
+            }
+            Ok(due.len())
+        })
+        .await
+        .unwrap_or(0);
+    if queued > 0 {
+        inner.wake.notify_waiters();
+    }
+}
+
+/// One matched artist's spelling at MusicBrainz; the name shown follows it unless the user chose
+/// another.
+pub(crate) async fn fetch_artist_name(inner: &Arc<Inner>, artist: i64) -> Result<(), MetaError> {
+    let Some(mbid) = inner
+        .lib
+        .read(move |c| {
+            Ok(if music::online(c)? {
+                huehuecoyotl_library::matching::external(c, artist, "musicbrainz", "artist")?
+            } else {
+                None
+            })
+        })
+        .await
+        .map_err(db)?
+    else {
+        return Ok(());
+    };
+    let found = inner.music().artist(&mbid).await?;
+    if found.name.trim().is_empty() {
+        return Ok(());
+    }
+    let name = found.name;
+    let changed = inner
+        .lib
+        .write(move |c| huehuecoyotl_library::artists::set_mb_title(c, artist, &name))
+        .await
+        .map_err(db)?;
+    if changed {
+        inner.sink.post(Event::ItemChanged { item_id: artist });
+        inner.mark_changed();
+    }
+    Ok(())
+}
+
+impl crate::Core {
+    /// Issue #148: how an artist is named: `choice` "auto" (MusicBrainz's spelling when matched),
+    /// "files" or "own" (with `own`). Answers with the artist's page (`MusicDetail` "artist").
+    pub fn set_artist_name(&self, request_id: u64, artist: i64, choice: &str, own: &str) {
+        let (choice, own) = (choice.to_string(), own.to_string());
+        self.spawn(request_id, move |inner| async move {
+            let c = huehuecoyotl_library::artists::NameChoice::parse(&choice);
+            if c == huehuecoyotl_library::artists::NameChoice::Own && own.trim().is_empty() {
+                return Err(CoreError::new(
+                    ErrorKind::Unsupported,
+                    "Please enter a name.",
+                ));
+            }
+            inner
+                .lib
+                .write(move |db| {
+                    huehuecoyotl_library::artists::set_name_choice(db, artist, c, &own)
+                })
+                .await?;
+            inner.mark_changed();
+            let d = inner
+                .lib
+                .read(move |db| music::artist_detail(db, artist))
+                .await?
+                .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("artist {artist}")))?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "artist".into(),
+                json: serde_json::to_string(&d).unwrap_or_default(),
+            })
+        });
+    }
 }

@@ -348,6 +348,17 @@ mod tests {
                     .map(|r| r.rsplit_once('|').unwrap().0.to_string())
                     .collect();
                 assert_eq!(trimmed, before.0[i], "{t}");
+            } else if *t == "item" {
+                // Migration 15 (issue #148) adds four artist name columns, empty for videos.
+                let trimmed: Vec<String> = now
+                    .iter()
+                    .map(|r| {
+                        r.strip_suffix("|Null|Null|Null|Null")
+                            .unwrap_or(r)
+                            .to_string()
+                    })
+                    .collect();
+                assert_eq!(trimmed, before.0[i], "{t}");
             } else {
                 assert_eq!(now, before.0[i], "{t}");
             }
@@ -452,6 +463,19 @@ mod tests {
                 got = got
                     .into_iter()
                     .map(|r| r.strip_suffix("|Null").unwrap_or(&r).to_string())
+                    .collect();
+            }
+            // Migration 15 (issue #148) adds four name columns; an artist's files' name is filled.
+            if *t == "item" {
+                got = got
+                    .into_iter()
+                    .map(|r| {
+                        let r = r.strip_suffix("|Null|Null|Null").unwrap_or(&r).to_string();
+                        match r.rsplit_once('|') {
+                            Some((head, _)) => head.to_string(),
+                            None => r,
+                        }
+                    })
                     .collect();
             }
             assert_eq!(got, before[i], "{t}");

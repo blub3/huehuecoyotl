@@ -477,6 +477,60 @@
     </message>
 </context>
 <context>
+    <name>ArtistNameDialog</name>
+    <message>
+        <location filename="../qml/ArtistNameDialog.qml" line="36"/>
+        <source>Please enter a name.</source>
+        <translation>Bitte gib einen Namen ein.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistNameDialog.qml" line="90"/>
+        <source>Name of this artist</source>
+        <translation>Name dieses Künstlers</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistNameDialog.qml" line="98"/>
+        <source>Only the name in Huehuecoyotl changes; your files stay as they are.</source>
+        <translation>Nur der Name in Huehuecoyotl ändert sich; deine Dateien bleiben, wie sie sind.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistNameDialog.qml" line="109"/>
+        <source>MusicBrainz&apos;s spelling: %1</source>
+        <translation>Schreibweise von MusicBrainz: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistNameDialog.qml" line="110"/>
+        <source>Recommended. Follows MusicBrainz if it ever corrects the name.</source>
+        <translation>Empfohlen. Folgt MusicBrainz, falls der Name dort einmal korrigiert wird.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistNameDialog.qml" line="119"/>
+        <source>As in my files: %1</source>
+        <translation>Wie in meinen Dateien: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistNameDialog.qml" line="120"/>
+        <source>Kept through every scan and match.</source>
+        <translation>Bleibt bei jedem Durchsuchen und jeder Zuordnung.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistNameDialog.qml" line="130"/>
+        <location filename="../qml/ArtistNameDialog.qml" line="141"/>
+        <source>My own name</source>
+        <translation>Mein eigener Name</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistNameDialog.qml" line="158"/>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistNameDialog.qml" line="166"/>
+        <source>Save</source>
+        <translation>Speichern</translation>
+    </message>
+</context>
+<context>
     <name>ArtistPage</name>
     <message>
         <location filename="../qml/ArtistPage.qml" line="16"/>
@@ -513,8 +567,33 @@
         <source>Appears on</source>
         <translation>Mitwirkend bei</translation>
     </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="171"/>
+        <source>Your name  ·  MusicBrainz: %1</source>
+        <translation>Dein Name  ·  MusicBrainz: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="171"/>
+        <source>Your name</source>
+        <translation>Dein Name</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="172"/>
+        <source>Kept as in your files  ·  MusicBrainz: %1</source>
+        <translation>Wie in deinen Dateien  ·  MusicBrainz: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="173"/>
+        <source>Name from MusicBrainz  ·  your files: %1</source>
+        <translation>Name von MusicBrainz  ·  deine Dateien: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="173"/>
+        <source>Name from MusicBrainz</source>
+        <translation>Name von MusicBrainz</translation>
+    </message>
     <message numerus="yes">
-        <location filename="../qml/ArtistPage.qml" line="157"/>
+        <location filename="../qml/ArtistPage.qml" line="177"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n Album</numerusform>
@@ -522,39 +601,44 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="169"/>
+        <location filename="../qml/ArtistPage.qml" line="189"/>
         <source>Not matched yet: names, image and biography come from your files only.</source>
         <translation>Noch nicht zugeordnet: Namen, Bild und Biografie kommen nur aus deinen Dateien.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="170"/>
+        <location filename="../qml/ArtistPage.qml" line="190"/>
         <source>Matched through the album “%1”.</source>
         <translation>Zugeordnet über das Album „%1“.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="171"/>
+        <location filename="../qml/ArtistPage.qml" line="191"/>
         <source>Matched through the song “%1”.</source>
         <translation>Zugeordnet über den Song „%1“.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="172"/>
+        <location filename="../qml/ArtistPage.qml" line="192"/>
         <source>Matched as you chose.</source>
         <translation>Zugeordnet, wie du gewählt hast.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="179"/>
+        <location filename="../qml/ArtistPage.qml" line="199"/>
         <source>Match again</source>
         <translation>Neu zuordnen</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="188"/>
+        <location filename="../qml/ArtistPage.qml" line="208"/>
         <source>Not this artist?</source>
         <translation>Nicht dieser Künstler?</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="188"/>
+        <location filename="../qml/ArtistPage.qml" line="208"/>
         <source>Search MusicBrainz…</source>
         <translation>Bei MusicBrainz suchen …</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="218"/>
+        <source>Edit name…</source>
+        <translation>Name bearbeiten …</translation>
     </message>
 </context>
 <context>
@@ -1202,37 +1286,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="996"/>
+        <location filename="../src/corebridge.cpp" line="1004"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="998"/>
+        <location filename="../src/corebridge.cpp" line="1006"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1000"/>
+        <location filename="../src/corebridge.cpp" line="1008"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1002"/>
+        <location filename="../src/corebridge.cpp" line="1010"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1004"/>
+        <location filename="../src/corebridge.cpp" line="1012"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1006"/>
+        <location filename="../src/corebridge.cpp" line="1014"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1260"/>
+        <location filename="../src/corebridge.cpp" line="1268"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>

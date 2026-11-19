@@ -216,6 +216,17 @@ ALTER TABLE file_audio ADD COLUMN waveform BLOB;
     // when they share a MusicBrainz artist ID or a name. Rows are merged, so the database is
     // copied first.
     Migration::Merge(crate::artists::migration_14),
+    // 15 (2.9.1, issue #148): an artist's name as its files spell it, as MusicBrainz spells it,
+    // and the user's choice between them (NULL: MusicBrainz's when matched; 'files'; 'own').
+    Migration::Sql(
+        r#"
+ALTER TABLE item ADD COLUMN files_title TEXT;
+ALTER TABLE item ADD COLUMN mb_title TEXT;
+ALTER TABLE item ADD COLUMN name_choice TEXT;
+ALTER TABLE item ADD COLUMN own_title TEXT;
+UPDATE item SET files_title = title WHERE kind = 'artist';
+"#,
+    ),
 ];
 
 /// The old and new kind constraint of `item`.

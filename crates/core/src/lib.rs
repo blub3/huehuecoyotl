@@ -669,6 +669,8 @@ impl Core {
             // Issue #118: passwords of folders from before shares move to their share first.
             shares::move_passwords(&start).await;
             worker::spawn_workers(&start);
+            // Issue #148: matched artists without MusicBrainz's spelling yet.
+            music_matching::enqueue_artist_names(&start).await;
             // Issue #92: a library rematch waiting from the last session.
             matching::kick(&start).await;
             download::spawn_worker(&start);

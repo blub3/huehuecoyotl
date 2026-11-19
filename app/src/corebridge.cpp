@@ -740,6 +740,14 @@ quint64 CoreBridge::shareBrowse(const QVariantMap &target, const QString &passwo
     return rid;
 }
 
+quint64 CoreBridge::setArtistName(qint64 artist, const QString &choice, const QString &own)
+{
+    const quint64 rid = nextId();
+    const QByteArray c = choice.toUtf8(), o = own.toUtf8();
+    if (m_core) (*m_core)->set_artist_name(rid, artist, rs(c), rs(o));
+    return rid;
+}
+
 quint64 CoreBridge::shareRemove(qint64 share)
 {
     const quint64 rid = nextId();
