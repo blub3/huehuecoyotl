@@ -52,6 +52,12 @@ FocusScope {
             focusRail()
         }
     }
+    // Issue #135: back to the page at this stack index in one step.
+    function backTo(index) {
+        if (index < 0 || index >= content.depth - 1) return
+        content.pop(content.get(index))
+        focusContent()
+    }
     function focusRail() { rail.focusCurrent() }
     // Issue #133: Up from a page's first row reaches the Back button (else the page keeps focus).
     function focusBack() {
@@ -126,6 +132,25 @@ FocusScope {
         onLeftRequested: shell.focusRail()
     }
 
+    Timer {
+        id: backHold
+        interval: 500
+        onTriggered: if (backButton.visible) backButton.openTrail(true)
+    }
+    // Issue #135: the way here, next to the Back button (text only; the trail is how to jump).
+    Label {
+        objectName: "backPath"
+        z: 10
+        visible: backButton.visible && width > 80
+        x: backButton.x + backButton.width + 18
+        y: backButton.y + (backButton.height - height) / 2
+        width: Math.max(0, backStrip.width - (x - backStrip.x) - 40)
+        text: backButton.path
+        elide: Text.ElideLeft
+        color: Theme.textDim
+        font.pixelSize: Theme.fontSmall
+    }
+
     // Issue #134: above every page but a section's first, a strip that holds the Back button, so
     // it never covers the page.
     Rectangle {
@@ -145,8 +170,17 @@ FocusScope {
         pushEnter: null; pushExit: null; popEnter: null; popExit: null; replaceEnter: null; replaceExit: null
         // Pages handle Back themselves where they have something to undo (folders, menus);
         // otherwise Back leaves the page.
-        Keys.onEscapePressed: shell.back()
-        Keys.onBackPressed: shell.back()
+        // Issue #135: Esc or Back held for half a second opens the trail; a short press goes back.
+        Keys.onPressed: (e) => {
+            if (e.key !== Qt.Key_Escape && e.key !== Qt.Key_Back) return
+            if (!e.isAutoRepeat) backHold.restart()
+            e.accepted = true
+        }
+        Keys.onReleased: (e) => {
+            if (e.key !== Qt.Key_Escape && e.key !== Qt.Key_Back) return
+            if (!e.isAutoRepeat && backHold.running) { backHold.stop(); shell.back() }
+            e.accepted = true
+        }
         // Issue #134: Up that a page does not use (from its first row) goes to the Back button.
         Keys.onUpPressed: (e) => { e.accepted = shell.focusBack() }
     }
@@ -160,7 +194,7 @@ FocusScope {
         y: backStrip.y + 20
         stack: content
         onBackRequested: shell.back()
-        Keys.onDownPressed: shell.focusContent()
+        onBackToRequested: (index) => shell.backTo(index)
         Keys.onRightPressed: shell.focusContent()
         Keys.onLeftPressed: if (rail.visible) shell.focusRail()
     }

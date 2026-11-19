@@ -30,6 +30,7 @@ Item {
         x: 40; y: 28
         stack: stack
         onBackRequested: stack.pop()
+        onBackToRequested: (i) => stack.pop(stack.get(i))
     }
     Icon { id: icon; name: "pause"; size: 26 }
 
@@ -84,6 +85,48 @@ Item {
             back.forceActiveFocus()
             keyClick(Qt.Key_Escape)
             compare(stack.depth, 1)
+        }
+
+        function test_trail() {
+            stack.push(pageComp, { pageTitle: "Test Artist", pageKind: "Artist" })
+            stack.push(pageComp, { pageTitle: "First Album", pageKind: "Album" })
+            stack.push(pageComp, { pageTitle: "Now Playing" })
+            compare(back.path, "Artists  ›  Test Artist  ›  First Album  ›  Now Playing")
+            back.forceActiveFocus()
+            keyClick(Qt.Key_Down)
+            const popup = findChild(back, "trail")
+            tryVerify(() => popup.opened)
+            compare(back.trail.length, 4)
+            compare(back.trail[0].here, true)
+            compare(JSON.stringify(back.trail.map(r => r.title)), JSON.stringify(["Now Playing", "First Album", "Test Artist", "Artists"]))
+            compare(back.trail[1].kind, "Album")
+            // The nearest page is chosen first; two steps down is Artists.
+            keyClick(Qt.Key_Down)
+            keyClick(Qt.Key_Down)
+            keyClick(Qt.Key_Return)
+            tryVerify(() => !popup.visible)
+            compare(stack.depth, 1, "three pages closed in one step")
+            compare(stack.currentItem.pageTitle, "Artists")
+        }
+
+        function test_trailClosesWithoutGoing() {
+            stack.push(pageComp, { pageTitle: "Test Artist" })
+            stack.push(pageComp, { pageTitle: "First Album" })
+            back.openTrail()
+            const popup = findChild(back, "trail")
+            tryVerify(() => popup.opened)
+            keyClick(Qt.Key_Escape)
+            tryVerify(() => !popup.visible)
+            compare(stack.depth, 3)
+            verify(back.activeFocus, "focus returns to the button")
+        }
+
+        function test_rightClickOpensTrail() {
+            stack.push(pageComp, { pageTitle: "Test Artist" })
+            mouseClick(back, 10, 10, Qt.RightButton)
+            const popup = findChild(back, "trail")
+            tryVerify(() => popup.opened)
+            popup.close()
         }
 
         function test_iconsKeepTheirSize() {

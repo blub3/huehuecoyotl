@@ -1,5 +1,7 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Layouts
 
 // Issue #133: the one Back button of every stacked page. The shell places it at the top left of
 // the content; it names the page it goes back to (that page's `pageTitle`, else its `pageKind`)
@@ -19,6 +21,46 @@ Button {
         return k ? String(k) : qsTr("Back")
     }
     signal backRequested()
+    // Issue #135: back to the page at this stack index in one step (the pages above it close).
+    signal backToRequested(int index)
+
+    function titleOf(p) {
+        if (!p) return ""
+        if (p.pageTitle) return String(p.pageTitle)
+        return p.pageKind ? String(p.pageKind) : ""
+    }
+    function kindOf(p) { return p && p.pageKind ? String(p.pageKind) : "" }
+    // The way here, bottom first: "Albums › Test Artist › First Album".
+    readonly property string path: {
+        if (!stack || stack.depth < 2) return ""
+        const parts = []
+        for (let i = 0; i < stack.depth; ++i) {
+            const t = titleOf(stack.get(i, StackView.DontLoad))
+            if (t !== "") parts.push(t)
+        }
+        return parts.join("  ›  ")
+    }
+    // The trail: this page (dimmed), then the pages below it, nearest first.
+    property var trail: []
+    // Opened by holding Esc or Back: that key's release (and its repeats) must not close it.
+    property bool keyHeld: false
+    function openTrail(byHold) {
+        keyHeld = byHold === true
+        if (!stack || stack.depth < 2) return
+        const rows = []
+        for (let i = stack.depth - 1; i >= 0; --i) {
+            const p = stack.get(i, StackView.DontLoad)
+            rows.push({ index: i, title: titleOf(p) || qsTr("Back"), kind: kindOf(p), here: i === stack.depth - 1 })
+        }
+        trail = rows
+        trailPopup.open()
+        trailList.currentIndex = rows.length > 1 ? 1 : 0
+        trailList.forceActiveFocus()
+    }
+    function choose(row) {
+        trailPopup.close()
+        if (row && !row.here) backToRequested(row.index)
+    }
 
     visible: below !== null
     focusPolicy: Qt.StrongFocus
@@ -29,8 +71,97 @@ Button {
     Accessible.name: qsTr("Back to %1").arg(target)
     Keys.onReturnPressed: clicked()
     Keys.onEnterPressed: clicked()
-    Keys.onEscapePressed: backRequested()
+    Keys.onEscapePressed: (e) => { if (!e.isAutoRepeat) backRequested() }
+    Keys.onDownPressed: openTrail()
     onClicked: backRequested()
+    onPressAndHold: openTrail()
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onTapped: button.openTrail()
+    }
+
+    Popup {
+        id: trailPopup
+        objectName: "trail"
+        y: button.height + 8
+        width: 340
+        padding: 8
+        modal: false
+        focus: true
+        // Esc closes it on release (see the list), so a held Esc that opened it does not.
+        closePolicy: Popup.CloseOnPressOutside
+        onClosed: if (button.visible) button.forceActiveFocus()
+        background: Rectangle {
+            radius: 14
+            color: "#1b2029"
+            border.width: 1
+            border.color: "#2c3442"
+        }
+        contentItem: ColumnLayout {
+            spacing: 2
+            Label {
+                text: qsTr("Go back to")
+                color: Theme.textDim
+                font.pixelSize: Theme.fontSmall
+                font.capitalization: Font.AllUppercase
+                leftPadding: 12
+                topPadding: 6
+                bottomPadding: 4
+            }
+            ListView {
+                id: trailList
+                objectName: "trailList"
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.min(contentHeight, 6 * 46)
+                clip: true
+                model: button.trail
+                keyNavigationEnabled: true
+                Keys.onReturnPressed: button.choose(button.trail[currentIndex])
+                Keys.onEnterPressed: button.choose(button.trail[currentIndex])
+                Keys.onLeftPressed: trailPopup.close()
+                Keys.onPressed: (e) => { if (e.key === Qt.Key_Escape || e.key === Qt.Key_Back) e.accepted = true }
+                Keys.onReleased: (e) => {
+                    if (e.key !== Qt.Key_Escape && e.key !== Qt.Key_Back) return
+                    e.accepted = true
+                    if (e.isAutoRepeat) return
+                    if (button.keyHeld) button.keyHeld = false
+                    else trailPopup.close()
+                }
+                delegate: ItemDelegate {
+                    id: trailRow
+                    required property var modelData
+                    required property int index
+                    objectName: "trailRow" + index
+                    width: ListView.view.width
+                    height: 44
+                    enabled: !modelData.here
+                    Accessible.name: modelData.here ? qsTr("%1 (here)").arg(modelData.title) : modelData.title
+                    onClicked: button.choose(trailRow.modelData)
+                    background: Rectangle {
+                        radius: 9
+                        color: trailRow.ListView.isCurrentItem && !trailRow.modelData.here ? "#2a3140" : "transparent"
+                        border.width: trailRow.ListView.isCurrentItem && trailList.activeFocus && !trailRow.modelData.here ? 2 : 0
+                        border.color: Theme.focus
+                    }
+                    contentItem: RowLayout {
+                        spacing: 10
+                        Label {
+                            Layout.fillWidth: true
+                            text: trailRow.modelData.title
+                            elide: Text.ElideRight
+                            color: trailRow.modelData.here ? Theme.textDim : Theme.text
+                            font.pixelSize: Theme.fontBody
+                        }
+                        Label {
+                            text: trailRow.modelData.here ? qsTr("here") : trailRow.modelData.kind
+                            color: Theme.textDim
+                            font.pixelSize: Theme.fontSmall
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     contentItem: Row {
         id: row
