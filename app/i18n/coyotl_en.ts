@@ -442,4 +442,47 @@
         </translation>
     </message>
 </context>
+<context>
+    <name>ShareFolderBrowser</name>
+    <message numerus="yes">
+        <location filename="../qml/ShareFolderBrowser.qml" line="41"/>
+        <source>%n video(s)</source>
+        <translation>
+            <numerusform>%n video</numerusform>
+            <numerusform>%n videos</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareFolderBrowser.qml" line="42"/>
+        <source>%n audio file(s)</source>
+        <translation>
+            <numerusform>%n audio file</numerusform>
+            <numerusform>%n audio files</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareFolderBrowser.qml" line="43"/>
+        <source>%n audiobook(s)</source>
+        <translation>
+            <numerusform>%n audiobook</numerusform>
+            <numerusform>%n audiobooks</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareFolderBrowser.qml" line="44"/>
+        <source>%n folder(s)</source>
+        <translation>
+            <numerusform>%n folder</numerusform>
+            <numerusform>%n folders</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareFolderBrowser.qml" line="308"/>
+        <source>Add %n folder(s)</source>
+        <translation>
+            <numerusform>Add %n folder</numerusform>
+            <numerusform>Add %n folders</numerusform>
+        </translation>
+    </message>
+</context>
 </TS>

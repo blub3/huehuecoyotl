@@ -55,6 +55,13 @@ folders inside. A folder shows what it holds and how many files it has, with **R
 **Remove…**; removing asks first, and deletes the folder's saved copies on this computer (the
 files on the server stay). Right opens a card, Left closes it; closed cards stay closed.
 
+**Add folders** on a share's card adds more folders of that share at once, without signing in
+again. Each folder shows what is inside (for example "12 videos · 4 folders") and a guess of
+what it holds. Tick the folders you want; press a folder's type (**Movies & shows**, **Music**,
+**Audiobooks**) to change it. › opens a folder, ↑ goes back up; your ticks stay. The list on
+the right shows what will be added; **Add N folders** adds them and starts their scans.
+Folders already in your library are marked.
+
 ## Add a network share
 
 Open **Sources** and choose **Add network share**.

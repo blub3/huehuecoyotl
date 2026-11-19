@@ -191,33 +191,14 @@ pub(crate) async fn add_folders(
     share: i64,
     folders: Vec<(String, String, String)>,
 ) -> CResult<Vec<i64>> {
-    let (any, config_json) = inner
+    let config_json = inner
         .lib
-        .read(move |c| {
-            let s = shares::get(c, share)?;
-            Ok((
-                s.as_ref()
-                    .and_then(|s| s.folders.first().map(|f| f.source_id)),
-                s.map(|s| s.config_json),
-            ))
-        })
-        .await?;
-    let config_json =
-        config_json.ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("share {share}")))?;
+        .read(move |c| Ok(shares::get(c, share)?.map(|s| s.config_json)))
+        .await?
+        .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("share {share}")))?;
     let cfg: RemoteConfig = serde_json::from_str(&config_json)
         .map_err(|e| CoreError::new(ErrorKind::Internal, format!("share {share} settings: {e}")))?;
-    // A connection to check the folders: a folder's, else a new one with the share's password.
-    let src = match any {
-        Some(id) => inner.remote_source(id).await?,
-        None => {
-            let mut c = cfg.clone();
-            let reference = shares::credential_ref(share);
-            c.password = tokio::task::spawn_blocking(move || secrets::load_password(&reference))
-                .await
-                .unwrap_or_default();
-            crate::network::connect_config(c).await?
-        }
-    };
+    let src = share_connection(inner, share).await?;
     let mut added = Vec::new();
     for (path, content, name) in folders {
         let root = {
@@ -288,6 +269,237 @@ pub(crate) async fn remove_share(inner: &Arc<Inner>, share: i64) -> CResult<()> 
     Ok(())
 }
 
+/// A connection to a share: one of its folders', else a new one with the share's password.
+pub(crate) async fn share_connection(
+    inner: &Arc<Inner>,
+    share: i64,
+) -> CResult<Arc<dyn huehuecoyotl_vfs::RemoteSource>> {
+    let found = inner
+        .lib
+        .read(move |c| shares::get(c, share))
+        .await?
+        .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("share {share}")))?;
+    if let Some(f) = found.folders.first() {
+        return inner.remote_source(f.source_id).await;
+    }
+    let mut c: RemoteConfig = serde_json::from_str(&found.config_json)
+        .map_err(|e| CoreError::new(ErrorKind::Internal, format!("share {share} settings: {e}")))?;
+    let reference = shares::credential_ref(share);
+    c.password = tokio::task::spawn_blocking(move || secrets::load_password(&reference))
+        .await
+        .unwrap_or_default();
+    crate::network::connect_config(c).await
+}
+
+// ---- browsing a share (issue #120) -------------------------------------------------------------
+
+/// What a quick look into a folder found: video files, audio files, audiobook files (M4B, AAX)
+/// and sub-folders, within two levels.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) struct Look {
+    pub videos: u32,
+    pub audio: u32,
+    pub books: u32,
+    pub folders: u32,
+}
+
+/// At most this many sub-folders of a folder are looked into (the second level).
+const LOOK_SUBFOLDERS: usize = 12;
+/// A browse spends at most this long looking into folders; the rest show no guess.
+const LOOK_BUDGET: std::time::Duration = std::time::Duration::from_secs(4);
+
+fn count(look: &mut Look, entries: &[huehuecoyotl_vfs::Entry]) {
+    for e in entries {
+        if e.is_dir {
+            continue;
+        }
+        let lower = e.name.to_lowercase();
+        if lower.ends_with(".m4b") || lower.ends_with(".aax") || lower.ends_with(".aaxc") {
+            look.books += 1;
+        } else {
+            match huehuecoyotl_vfs::media_kind(&e.name) {
+                huehuecoyotl_vfs::MediaKind::Video => look.videos += 1,
+                huehuecoyotl_vfs::MediaKind::Audio => look.audio += 1,
+                _ => {}
+            }
+        }
+    }
+}
+
+async fn look_into(src: &dyn huehuecoyotl_vfs::RemoteSource, dir: &VPath) -> Look {
+    let mut look = Look::default();
+    let Ok(first) = src.list(dir).await else {
+        return look;
+    };
+    count(&mut look, &first);
+    let subs: Vec<_> = first.iter().filter(|e| e.is_dir).collect();
+    look.folders = subs.len() as u32;
+    for d in subs.iter().take(LOOK_SUBFOLDERS) {
+        if let Ok(second) = src.list(&d.path).await {
+            count(&mut look, &second);
+        }
+    }
+    look
+}
+
+/// What a folder probably holds: by its name first ("Filme", "Music", "Hörbücher"), else by
+/// what the quick look found. `None` when nothing suggests media.
+pub(crate) fn guess(name: &str, look: Option<Look>) -> Option<&'static str> {
+    let n = name.to_lowercase();
+    let has = |words: &[&str]| words.iter().any(|w| n.contains(w));
+    if has(&[
+        "hörbuch",
+        "hörbücher",
+        "hörspiel",
+        "audiobook",
+        "audio book",
+        "audible",
+    ]) {
+        return Some("audiobooks");
+    }
+    // "Concerts" can be either: what the look saw decides.
+    if n.contains("concert") && look.is_some_and(|l| l.videos > l.audio) {
+        return Some("video");
+    }
+    if has(&[
+        "music", "musik", "musique", "mp3", "flac", "hi-res", "hires", "concert",
+    ]) && !has(&["video"])
+    {
+        return Some("music");
+    }
+    if has(&[
+        "movie", "film", "kino", "tv", "show", "serie", "series", "episode", "video", "kids",
+    ]) {
+        return Some("video");
+    }
+    let l = look?;
+    if l.books > 0 {
+        Some("audiobooks")
+    } else if l.videos > 0 && l.videos >= l.audio / 4 {
+        Some("video")
+    } else if l.audio > 0 {
+        Some("music")
+    } else {
+        None
+    }
+}
+
+/// Where to browse: a share that exists, or a new one being added (its settings and password).
+pub(crate) enum Target {
+    Share(i64),
+    New(Box<crate::network::NetworkSpec>, String),
+}
+
+/// The folders in `path` of a share, with a quick look into each, what is already in the
+/// library, and folders inside one already added (`MusicDetail` of kind "shareFolders": `path`,
+/// `parent`, `folders: [{name, path, guess, videos, audio, books, folders, looked, inLibrary:
+/// [content], inside}]`).
+pub(crate) async fn browse(inner: &Arc<Inner>, target: Target, path: &str) -> CResult<Value> {
+    let (src, share) = match target {
+        Target::Share(id) => (share_connection(inner, id).await?, Some(id)),
+        Target::New(spec, password) => {
+            let src = inner.probe(&spec, &password).await?;
+            let (kind, json) = (spec.cfg.protocol.as_str().to_string(), spec.config_json());
+            let existing = inner
+                .lib
+                .read(move |c| shares::find(c, &kind, &json))
+                .await?;
+            (src, existing)
+        }
+    };
+    let added: Vec<(String, String, String)> = match share {
+        Some(id) => inner
+            .lib
+            .read(move |c| shares::get(c, id))
+            .await?
+            .map(|s| {
+                s.folders
+                    .into_iter()
+                    .map(|f| (f.root, f.content, f.name))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        None => vec![],
+    };
+    let dir = VPath::new(if path.is_empty() { "/" } else { path });
+    let listing = src.list(&dir).await?;
+    let mut subs: Vec<_> = listing
+        .into_iter()
+        .filter(|e| e.is_dir && !e.name.starts_with('.'))
+        .collect();
+    subs.sort_by_key(|e| e.name.to_lowercase());
+    let deadline = tokio::time::Instant::now() + LOOK_BUDGET;
+    let mut folders = Vec::new();
+    for e in subs {
+        let p = e.path.to_string();
+        let look = if tokio::time::Instant::now() < deadline {
+            tokio::time::timeout_at(deadline, look_into(&*src, &e.path))
+                .await
+                .ok()
+        } else {
+            None
+        };
+        let in_library: Vec<&str> = added
+            .iter()
+            .filter(|(root, _, _)| *root == p || (root.is_empty() && p == "/"))
+            .map(|(_, c, _)| c.as_str())
+            .collect();
+        let inside = added
+            .iter()
+            .find(|(root, _, _)| {
+                p.starts_with(&format!("{}/", root.trim_end_matches('/'))) && root != &p
+            })
+            .map(|(_, _, name)| name.clone());
+        let l = look.unwrap_or_default();
+        folders.push(json!({
+            "name": e.name,
+            "path": p,
+            "guess": guess(&e.name, look),
+            "looked": look.is_some(),
+            "videos": l.videos,
+            "audio": l.audio,
+            "books": l.books,
+            "folders": l.folders,
+            "inLibrary": in_library,
+            "inside": inside,
+        }));
+    }
+    let parent = match dir.parent() {
+        Some(p) if p != dir => p.to_string(),
+        _ => String::new(),
+    };
+    Ok(json!({ "share": share, "path": dir.to_string(), "parent": parent, "folders": folders }))
+}
+
+impl Core {
+    /// Issue #120: browse a share's folders with a quick look into each. `target_json`:
+    /// `{"share": id}` for a share in the library, else the settings of a new one (as for
+    /// `browse_network`, with `password`). Answers with a `MusicDetail` of kind "shareFolders".
+    pub fn share_browse(&self, request_id: u64, target_json: &str, password: &str, path: &str) {
+        let (target_json, password, path) = (
+            target_json.to_string(),
+            password.to_string(),
+            path.to_string(),
+        );
+        self.spawn(request_id, move |inner| async move {
+            let v: Value = serde_json::from_str(&target_json).unwrap_or_default();
+            let target = match v["share"].as_i64() {
+                Some(id) => Target::Share(id),
+                None => Target::New(
+                    Box::new(crate::network::NetworkSpec::parse(&target_json)?),
+                    password,
+                ),
+            };
+            let out = browse(&inner, target, &path).await?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "shareFolders".into(),
+                json: out.to_string(),
+            })
+        });
+    }
+}
+
 impl Core {
     /// Issue #118: the shares with their folders, and the folders on this computer
     /// (`MusicDetail` of kind "shares").
@@ -320,5 +532,71 @@ impl Core {
             remove_share(&inner, share).await?;
             Ok(overview_event(request_id, overview(&inner).await?))
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn look(videos: u32, audio: u32, books: u32) -> Option<Look> {
+        Some(Look {
+            videos,
+            audio,
+            books,
+            folders: 0,
+        })
+    }
+
+    #[test]
+    fn guesses_by_name_then_by_files() {
+        assert_eq!(guess("Filme", None), Some("video"));
+        assert_eq!(guess("TV Shows", None), Some("video"));
+        assert_eq!(
+            guess("Serien", look(0, 30, 0)),
+            Some("video"),
+            "the name wins"
+        );
+        assert_eq!(guess("Musik", None), Some("music"));
+        assert_eq!(guess("Hörbücher", None), Some("audiobooks"));
+        assert_eq!(guess("Music Videos", None), Some("video"));
+        assert_eq!(guess("Concerts", look(12, 0, 0)), Some("video"));
+        assert_eq!(guess("Concerts", look(0, 40, 0)), Some("music"));
+        assert_eq!(guess("Stuff", look(0, 0, 3)), Some("audiobooks"));
+        assert_eq!(guess("Stuff", look(1, 200, 0)), Some("music"));
+        assert_eq!(guess("Stuff", look(20, 3, 0)), Some("video"));
+        assert_eq!(guess("Backups", look(0, 0, 0)), None);
+        assert_eq!(guess("Backups", None), None);
+    }
+
+    #[test]
+    fn counts_files_by_kind() {
+        let e = |name: &str, is_dir: bool| huehuecoyotl_vfs::Entry {
+            path: VPath::new(format!("/x/{name}")),
+            name: name.into(),
+            is_dir,
+            size: 0,
+            mtime: 0,
+        };
+        let mut l = Look::default();
+        count(
+            &mut l,
+            &[
+                e("a.mkv", false),
+                e("b.flac", false),
+                e("c.M4B", false),
+                e("d", true),
+                e("e.txt", false),
+            ],
+        );
+        assert_eq!(
+            l,
+            Look {
+                videos: 1,
+                audio: 1,
+                books: 1,
+                folders: 0
+            }
+        );
     }
 }

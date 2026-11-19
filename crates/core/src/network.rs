@@ -209,7 +209,11 @@ impl Inner {
     }
 
     /// The connection the dialog's folder picker uses, reused while the settings stay the same.
-    async fn probe(&self, spec: &NetworkSpec, password: &str) -> CResult<Arc<dyn RemoteSource>> {
+    pub(crate) async fn probe(
+        &self,
+        spec: &NetworkSpec,
+        password: &str,
+    ) -> CResult<Arc<dyn RemoteSource>> {
         let key = format!("{}\u{0}{password}", spec.config_json());
         if let Some((k, s)) = self.probe.lock().unwrap().as_ref()
             && *k == key

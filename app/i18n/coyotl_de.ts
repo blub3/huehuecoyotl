@@ -902,37 +902,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="947"/>
+        <location filename="../src/corebridge.cpp" line="958"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="949"/>
+        <location filename="../src/corebridge.cpp" line="960"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="951"/>
+        <location filename="../src/corebridge.cpp" line="962"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="953"/>
+        <location filename="../src/corebridge.cpp" line="964"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="955"/>
+        <location filename="../src/corebridge.cpp" line="966"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="957"/>
+        <location filename="../src/corebridge.cpp" line="968"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1211"/>
+        <location filename="../src/corebridge.cpp" line="1222"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -5122,6 +5122,156 @@
         <location filename="../qml/ShareCard.qml" line="211"/>
         <source>Remove…</source>
         <translation>Entfernen …</translation>
+    </message>
+</context>
+<context>
+    <name>ShareFolderBrowser</name>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="34"/>
+        <source>Music</source>
+        <translation>Musik</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="34"/>
+        <source>Audiobooks</source>
+        <translation>Hörbücher</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="34"/>
+        <source>Movies &amp; shows</source>
+        <translation>Filme &amp; Serien</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="39"/>
+        <source>in your library as %1</source>
+        <translation>in deiner Bibliothek als %1</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareFolderBrowser.qml" line="41"/>
+        <source>%n video(s)</source>
+        <translation>
+            <numerusform>%n Video</numerusform>
+            <numerusform>%n Videos</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareFolderBrowser.qml" line="42"/>
+        <source>%n audio file(s)</source>
+        <translation>
+            <numerusform>%n Audiodatei</numerusform>
+            <numerusform>%n Audiodateien</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareFolderBrowser.qml" line="43"/>
+        <source>%n audiobook(s)</source>
+        <translation>
+            <numerusform>%n Hörbuch</numerusform>
+            <numerusform>%n Hörbücher</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareFolderBrowser.qml" line="44"/>
+        <source>%n folder(s)</source>
+        <translation>
+            <numerusform>%n Ordner</numerusform>
+            <numerusform>%n Ordner</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="45"/>
+        <source>no media found</source>
+        <translation>keine Medien gefunden</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="45"/>
+        <source>not looked into</source>
+        <translation>nicht hineingeschaut</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="46"/>
+        <source>inside “%1”, already in your library</source>
+        <translation>liegt in „%1“, schon in deiner Bibliothek</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="81"/>
+        <source>Looking into the folders…</source>
+        <translation>Schaue in die Ordner…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="87"/>
+        <source>Adding…</source>
+        <translation>Füge hinzu…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="105"/>
+        <source>No folders here.</source>
+        <translation>Hier sind keine Ordner.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="125"/>
+        <source>Add folders from %1</source>
+        <translation>Ordner aus %1 hinzufügen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="125"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="308"/>
+        <source>Add folders</source>
+        <translation>Ordner hinzufügen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="137"/>
+        <source>Up one folder</source>
+        <translation>Einen Ordner nach oben</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="203"/>
+        <source>%1 is in your library</source>
+        <translation>%1 ist in deiner Bibliothek</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="203"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="295"/>
+        <source>Don&apos;t add %1</source>
+        <translation>%1 nicht hinzufügen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="203"/>
+        <source>Add %1</source>
+        <translation>%1 hinzufügen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="225"/>
+        <source>What %1 holds; press to change</source>
+        <translation>Was %1 enthält; drücken zum Ändern</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="234"/>
+        <source>Open %1</source>
+        <translation>%1 öffnen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="253"/>
+        <source>To add</source>
+        <translation>Wird hinzugefügt</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="262"/>
+        <source>Tick the folders to add. Each becomes a library folder of this share.</source>
+        <translation>Hake die Ordner an, die du hinzufügen willst. Jeder wird ein Bibliotheksordner dieser Freigabe.</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareFolderBrowser.qml" line="308"/>
+        <source>Add %n folder(s)</source>
+        <translation>
+            <numerusform>%n Ordner hinzufügen</numerusform>
+            <numerusform>%n Ordner hinzufügen</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareFolderBrowser.qml" line="317"/>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
     </message>
 </context>
 <context>
