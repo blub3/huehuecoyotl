@@ -400,7 +400,8 @@ Up from its top comes back to the tabs. Settings opens on the tab you used last.
 | --- | --- |
 | Arrow keys | Move |
 | Enter | Open or activate |
-| Escape, Backspace, Back | Go back |
+| Escape, Backspace, Alt+←, Back, the mouse's back button | Go back (Backspace not while typing) |
+| Hold Escape or Back | Go back several pages at once |
 | F11 | Fullscreen on or off |
 
 | In a grid or episode list | |

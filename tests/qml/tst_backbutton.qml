@@ -33,6 +33,7 @@ Item {
         onBackToRequested: (i) => stack.pop(stack.get(i))
     }
     Icon { id: icon; name: "pause"; size: 26 }
+    TextField { id: field; y: 600 }
 
     TestCase {
         name: "BackButton"
@@ -127,6 +128,14 @@ Item {
             const popup = findChild(back, "trail")
             tryVerify(() => popup.opened)
             popup.close()
+        }
+
+        function test_otherBackKeys() {
+            verify(back.isBackKey(Qt.Key_Backspace, Qt.NoModifier, back))
+            verify(back.isBackKey(Qt.Key_Left, Qt.AltModifier, back))
+            verify(!back.isBackKey(Qt.Key_Left, Qt.NoModifier, back))
+            verify(!back.isBackKey(Qt.Key_Backspace, Qt.ControlModifier, back))
+            verify(!back.isBackKey(Qt.Key_Backspace, Qt.NoModifier, field), "typing is never taken for Back")
         }
 
         function test_iconsKeepTheirSize() {

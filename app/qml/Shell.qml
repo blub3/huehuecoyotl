@@ -85,6 +85,12 @@ FocusScope {
     // Media keys and Space-free shortcuts for music while the shell is in front (the player
     // page handles them itself while a video plays).
     Keys.onPressed: (e) => {
+        // Issue #136: Backspace (not while typing) and Alt+Left go back too.
+        if (!e.isAutoRepeat && backButton.isBackKey(e.key, e.modifiers, shell.Window.activeFocusItem)) {
+            shell.back()
+            e.accepted = true
+            return
+        }
         switch (e.key) {
         // Issue #66: the book when it played last; next and previous are its chapters.
         case Qt.Key_MediaPlay: if (Book.front) Book.play(); else Music.play(); break
@@ -130,6 +136,12 @@ FocusScope {
         onOpenRequested: shell.openNowPlaying()
         onUpRequested: shell.focusContent()
         onLeftRequested: shell.focusRail()
+    }
+
+    // Issue #136: the mouse's back (side) button.
+    TapHandler {
+        acceptedButtons: Qt.BackButton
+        onTapped: shell.back()
     }
 
     Timer {
