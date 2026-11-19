@@ -93,6 +93,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="2.8.0" date="2026-11-19" type="stable">
+      <description>
+        <p>Network shares, easier: a server is added once and holds any number of library folders. Sources shows one card per server with its folders inside. Add several folders at once, each with a look inside and a guess of what it holds. Adding a share takes three steps, and an SMB server lists its shares to choose from. A share's address, user or password can be changed without losing anything, a folder's type changed, and a server added twice under two names joined.</p>
+      </description>
+    </release>
     <release version="2.7.1" date="2026-11-18" type="stable">
       <description>
         <p>Settings with tabs: Metadata, Matching, Appearance, Playback, Audio, Storage, Troubleshooting and About each have a tab, easy to reach with a remote, and Settings opens on the tab you used last. Matching the music library again now matches artists too.</p>
