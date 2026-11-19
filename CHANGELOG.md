@@ -9,6 +9,7 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 - The trail (#135, part of 2.9): hold Esc or Back, press Down on the Back button, or right-click it, to see the pages you came through and go back several at once. The way here is shown next to the button.
 - More Back keys (#136, part of 2.9): Backspace (not while typing), Alt+Left and the mouse's back button go back too, like Escape and a remote's Back key.
 - The mini player gets the Now Playing controls (#137, part of 2.9): Shuffle, Previous, a round Play/Pause, Next and Repeat in fixed sizes, centred, with the times, plus Volume and Now Playing. Nothing moves any more when Play turns into Pause.
+- The mini player for audiobooks (#138, part of 2.9): skip back and ahead by your skip times in the places of Shuffle and Repeat, chapter times, and a speed button; **Player** opens the audiobook player.
 
 ## 2.8.0 – 2026-11-19 (Linux)
 

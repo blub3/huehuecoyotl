@@ -25,6 +25,11 @@ FocusScope {
     readonly property var player: book ? bookPlayer : music
     readonly property real position: player ? player.position : 0
     readonly property real duration: player ? player.duration : 0
+    // Issue #138: for a book, the times are the chapter's.
+    readonly property var chapterInfo: book && bookPlayer.chapters ? (bookPlayer.chapters[bookPlayer.chapter] || null) : null
+    readonly property real shownAt: chapterInfo ? Math.max(0, position - chapterInfo.startMs / 1000) : position
+    readonly property real shownLength: chapterInfo ? Math.max(0, (chapterInfo.endMs - chapterInfo.startMs) / 1000) : duration
+    function speedLabel(s) { return Number(s).toLocaleString(Qt.locale(), "f", 2).replace(/0$/, "") + "×" }
     readonly property bool playing: !!player && player.playing
     readonly property var current: music && music.current ? music.current : ({})
     readonly property bool showTimes: width >= 1000
@@ -53,6 +58,8 @@ FocusScope {
         property bool on: false
         property bool round: false
         property string tip: ""
+        // Issue #138: the seconds a skip button skips, inside its arrow.
+        property int seconds: 0
         focusPolicy: Qt.StrongFocus
         implicitWidth: box
         implicitHeight: box
@@ -67,8 +74,18 @@ FocusScope {
             Icon {
                 anchors.centerIn: parent
                 name: control.iconName
-                size: control.round ? 26 : control.box >= 48 ? 22 : 20
+                size: control.seconds > 0 ? 30 : control.round ? 26 : control.box >= 48 ? 22 : 20
+                lineWidth: control.seconds > 0 ? 1.6 : 2.2
                 color: control.round ? Theme.bg : control.on ? Theme.focus : (control.box >= 48 ? Theme.text : "#c5ccd6")
+            }
+            Text {
+                visible: control.seconds > 0
+                anchors.centerIn: parent
+                anchors.verticalCenterOffset: 1
+                text: control.seconds
+                color: "#c5ccd6"
+                font.pixelSize: 10
+                font.bold: true
             }
         }
         background: Rectangle {
@@ -151,7 +168,7 @@ FocusScope {
             visible: mini.showTimes
             Layout.preferredWidth: 48
             horizontalAlignment: Text.AlignRight
-            text: mini.clock(mini.position)
+            text: mini.clock(mini.shownAt)
             color: Theme.textDim
             font.pixelSize: 12
             font.features: { "tnum": 1 }
@@ -160,14 +177,14 @@ FocusScope {
             id: shuffle
             objectName: "shuffle"
             box: 44
-            iconName: "shuffle"
-            opacity: mini.book ? 0 : 1
-            enabled: !mini.book
-            on: !!mini.music && mini.music.shuffle
-            tip: on ? qsTr("Shuffle: on") : qsTr("Shuffle: off")
+            // Issue #138: for a book, back by the skip time of Settings → Playback.
+            iconName: mini.book ? "skipBack" : "shuffle"
+            seconds: mini.book ? mini.bookPlayer.skipBack : 0
+            on: !mini.book && !!mini.music && mini.music.shuffle
+            tip: mini.book ? qsTr("%n second(s) back", "", seconds) : on ? qsTr("Shuffle: on") : qsTr("Shuffle: off")
             KeyNavigation.right: prev
             Keys.onLeftPressed: mini.leftRequested()
-            onClicked: mini.music.shuffle = !mini.music.shuffle
+            onClicked: mini.book ? mini.bookPlayer.skip(-1) : mini.music.shuffle = !mini.music.shuffle
         }
         Control {
             id: prev
@@ -176,7 +193,7 @@ FocusScope {
             iconName: "previous"
             tip: mini.book ? qsTr("Previous chapter") : qsTr("Previous")
             KeyNavigation.right: play
-            Keys.onLeftPressed: shuffle.enabled ? shuffle.forceActiveFocus() : mini.leftRequested()
+            KeyNavigation.left: shuffle
             onClicked: mini.book ? mini.bookPlayer.previousChapter() : mini.music.previous()
         }
         Control {
@@ -198,25 +215,26 @@ FocusScope {
             iconName: "next"
             tip: mini.book ? qsTr("Next chapter") : qsTr("Next")
             KeyNavigation.left: play
-            Keys.onRightPressed: (repeat.enabled ? repeat : volume.visible ? volume : open).forceActiveFocus()
+            KeyNavigation.right: repeat
             onClicked: mini.book ? mini.bookPlayer.nextChapter() : mini.music.next()
         }
         Control {
             id: repeat
             objectName: "repeat"
             box: 44
-            iconName: "repeat"
-            opacity: mini.book ? 0 : 1
-            enabled: !mini.book
+            // Issue #138: for a book, ahead by the skip time of Settings → Playback.
+            iconName: mini.book ? "skipAhead" : "repeat"
+            seconds: mini.book ? mini.bookPlayer.skipForward : 0
             readonly property string mode: mini.music ? mini.music.repeat : "off"
-            on: mode !== "off"
-            tip: mode === "one" ? qsTr("Repeat: this song") : mode === "all" ? qsTr("Repeat: all") : qsTr("Repeat: off")
+            on: !mini.book && mode !== "off"
+            tip: mini.book ? qsTr("%n second(s) ahead", "", seconds)
+                           : mode === "one" ? qsTr("Repeat: this song") : mode === "all" ? qsTr("Repeat: all") : qsTr("Repeat: off")
             KeyNavigation.left: next
-            Keys.onRightPressed: (volume.visible ? volume : open).forceActiveFocus()
-            onClicked: mini.music.cycleRepeat()
+            Keys.onRightPressed: (speed.visible ? speed : volume.visible ? volume : open).forceActiveFocus()
+            onClicked: mini.book ? mini.bookPlayer.skip(1) : mini.music.cycleRepeat()
             // "This song" carries a small 1.
             Rectangle {
-                visible: repeat.mode === "one"
+                visible: !mini.book && repeat.mode === "one"
                 anchors { right: parent.right; top: parent.top; rightMargin: 4; topMargin: 4 }
                 width: 15; height: 15; radius: 8
                 color: Theme.focus
@@ -226,7 +244,7 @@ FocusScope {
         Label {
             visible: mini.showTimes
             Layout.preferredWidth: 48
-            text: mini.clock(mini.duration)
+            text: mini.clock(mini.shownLength)
             color: Theme.textDim
             font.pixelSize: 12
             font.features: { "tnum": 1 }
@@ -237,6 +255,83 @@ FocusScope {
     RowLayout {
         anchors { right: parent.right; rightMargin: 20; verticalCenter: parent.verticalCenter }
         spacing: 12
+        // Issue #138: the book's speed; its choices open above the button.
+        Button {
+            id: speed
+            objectName: "speed"
+            visible: mini.book
+            focusPolicy: Qt.StrongFocus
+            implicitHeight: 44
+            implicitWidth: Math.max(64, speedText.implicitWidth + 28)
+            text: mini.book ? mini.speedLabel(mini.bookPlayer.speed) : ""
+            Accessible.name: qsTr("Speed %1").arg(text)
+            Keys.onLeftPressed: repeat.forceActiveFocus()
+            KeyNavigation.right: open
+            Keys.onReturnPressed: clicked()
+            Keys.onEnterPressed: clicked()
+            onClicked: speedPopup.open()
+            contentItem: Text { id: speedText; text: speed.text; color: Theme.text; font.pixelSize: Theme.fontSmall + 1; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle {
+                radius: 12
+                color: speed.down ? Theme.surface : speed.hovered ? "#2c3442" : Theme.surfaceHi
+                border.width: speed.activeFocus ? Theme.focusWidth : 0
+                border.color: Theme.focus
+            }
+            Popup {
+                id: speedPopup
+                objectName: "speedPopup"
+                x: (speed.width - width) / 2
+                y: -height - 10
+                width: 96
+                height: 260
+                padding: 6
+                focus: true
+                readonly property var speeds: {
+                    const out = []
+                    for (let s = 5; s <= 30; ++s) out.push(s / 10)
+                    return out
+                }
+                onOpened: {
+                    const i = speeds.findIndex(s => Math.abs(s - mini.bookPlayer.speed) < 0.05)
+                    speedList.currentIndex = Math.max(0, i)
+                    speedList.positionViewAtIndex(speedList.currentIndex, ListView.Center)
+                    speedList.forceActiveFocus()
+                }
+                onClosed: speed.forceActiveFocus()
+                background: Rectangle { radius: 14; color: "#1b2029"; border.width: 1; border.color: "#2c3442" }
+                contentItem: ListView {
+                    id: speedList
+                    objectName: "speedList"
+                    clip: true
+                    model: speedPopup.speeds
+                    keyNavigationEnabled: true
+                    Keys.onReturnPressed: { mini.bookPlayer.setSpeed(speedPopup.speeds[currentIndex]); speedPopup.close() }
+                    Keys.onEnterPressed: { mini.bookPlayer.setSpeed(speedPopup.speeds[currentIndex]); speedPopup.close() }
+                    delegate: ItemDelegate {
+                        id: speedRow
+                        required property var modelData
+                        required property int index
+                        width: ListView.view.width
+                        height: 36
+                        text: mini.speedLabel(modelData)
+                        onClicked: { mini.bookPlayer.setSpeed(modelData); speedPopup.close() }
+                        contentItem: Text {
+                            text: speedRow.text
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            color: Math.abs(speedRow.modelData - mini.bookPlayer.speed) < 0.05 ? Theme.focus : Theme.text
+                            font.pixelSize: Theme.fontSmall + 1
+                        }
+                        background: Rectangle {
+                            radius: 8
+                            color: speedRow.ListView.isCurrentItem ? "#2a3140" : "transparent"
+                            border.width: speedRow.ListView.isCurrentItem && speedList.activeFocus ? 2 : 0
+                            border.color: Theme.focus
+                        }
+                    }
+                }
+            }
+        }
         Control {
             id: volume
             objectName: "volume"
@@ -244,7 +339,7 @@ FocusScope {
             box: 44
             iconName: "volume"
             tip: qsTr("Volume")
-            Keys.onLeftPressed: (repeat.enabled ? repeat : next).forceActiveFocus()
+            KeyNavigation.left: repeat
             KeyNavigation.right: open
             onClicked: volumePopup.open()
             Popup {
@@ -290,8 +385,9 @@ FocusScope {
             leftPadding: 16
             rightPadding: 18
             Accessible.name: text
-            text: qsTr("Now Playing")
-            Keys.onLeftPressed: (volume.visible ? volume : repeat.enabled ? repeat : next).forceActiveFocus()
+            // Issue #138: a book opens its player.
+            text: mini.book ? qsTr("Player") : qsTr("Now Playing")
+            Keys.onLeftPressed: (speed.visible ? speed : volume.visible ? volume : repeat).forceActiveFocus()
             Keys.onReturnPressed: clicked()
             Keys.onEnterPressed: clicked()
             onClicked: mini.openRequested()

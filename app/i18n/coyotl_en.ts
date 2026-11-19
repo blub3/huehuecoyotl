@@ -241,6 +241,25 @@
     </message>
 </context>
 <context>
+    <name>MiniPlayer</name>
+    <message numerus="yes">
+        <location filename="../qml/MiniPlayer.qml" line="184"/>
+        <source>%n second(s) back</source>
+        <translation>
+            <numerusform>%n second back</numerusform>
+            <numerusform>%n seconds back</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/MiniPlayer.qml" line="230"/>
+        <source>%n second(s) ahead</source>
+        <translation>
+            <numerusform>%n second ahead</numerusform>
+            <numerusform>%n seconds ahead</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>MusicFullScreen</name>
     <message numerus="yes">
         <location filename="../qml/MusicFullScreen.qml" line="345"/>
