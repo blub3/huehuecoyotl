@@ -53,6 +53,7 @@ fn usage() -> ExitCode {
          \x20      | match ID [--unlock] (match an item again) | match search ID [TEXT|ID|LINK] [--year Y] [--kind movie|show]\n\
          \x20        [--artist A] [--author A] [--isbn I] | match choose ID PROVIDER_ID [KIND] (search and choose by hand)\n\
          \x20      | library rematch movies|shows|music|books [--all] [--include-locked] | library rematch status|stop LIBRARY\n\
+         \x20      | share list | share add-folders SHARE FOLDERS_JSON | share remove-folder FOLDER | share remove SHARE\n\
          \x20      | queue | queue play|shuffle|next|add ID... | queue clear (the music play queue; tracks, albums or artists)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
          \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
@@ -60,6 +61,7 @@ fn usage() -> ExitCode {
          \x20      | download ITEM [FILE] (save offline copies and wait for them) | downloads list\n\
          \x20      | export ITEM DEST [--overwrite] (Save as…: a file, or a folder for a season or show)\n\
          \x20      | downloads delete|pause|resume ID | storage [DIR] (where saved copies go)\n\
+         FOLDERS_JSON is [{{\"path\":\"/Movies\",\"content\":\"video\"}}] (content: video, music or audiobooks);\n\
          network shares: SPEC_JSON is {{\"protocol\":\"smb\",\"host\":\"nas\",\"share\":\"media\",\"user\":\"me\",\"path\":\"/Movies\"}}\n\
          (add \"content\":\"music\" for a music folder);\n\
          the password comes from COYOTL_SHARE_PASSWORD (never from the command line)"
@@ -487,6 +489,28 @@ fn main() -> ExitCode {
                 choice["kind"] = serde_json::json!(kind);
             }
             core.match_choose(1, id, &choice.to_string());
+            wait()
+        }
+        // Issue #118: network shares and their folders.
+        ("share", [sub]) if sub == "list" => {
+            core.shares(1);
+            wait()
+        }
+        ("share", [sub, id, folders]) if sub == "add-folders" => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.share_add_folders(1, id, folders);
+            let ev = wait();
+            settle();
+            ev
+        }
+        ("share", [sub, id]) if sub == "remove-folder" => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.remove_library(1, id);
+            wait()
+        }
+        ("share", [sub, id]) if sub == "remove" => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.share_remove(1, id);
             wait()
         }
         ("library", [sub, what]) if sub == "rematch" && what == "status" => {

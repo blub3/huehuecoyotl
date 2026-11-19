@@ -111,7 +111,11 @@ impl Core {
                 .write(move |c| catalog::remove_library(c, source_id))
                 .await?;
             inner.forget_source(source_id);
-            if let Some(r) = row.and_then(|r| r.credential_ref) {
+            // Issue #118: a folder of a share leaves the share's password for its other folders.
+            if let Some(r) = row
+                .filter(|r| r.share_id.is_none())
+                .and_then(|r| r.credential_ref)
+            {
                 let _ = tokio::task::spawn_blocking(move || secrets::delete_password(&r)).await;
             }
             inner.mark_changed();

@@ -25,6 +25,7 @@ mod playlists;
 mod playqueue;
 mod probe;
 pub mod secrets;
+mod shares;
 mod worker;
 
 use std::collections::{HashMap, HashSet};
@@ -665,6 +666,8 @@ impl Core {
                     .await;
                 }
             }
+            // Issue #118: passwords of folders from before shares move to their share first.
+            shares::move_passwords(&start).await;
             worker::spawn_workers(&start);
             // Issue #92: a library rematch waiting from the last session.
             matching::kick(&start).await;

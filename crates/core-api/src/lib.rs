@@ -448,6 +448,11 @@ mod ffi {
         );
         fn rematch_stop(self: &Core, request_id: u64, library: &str);
         fn matching_status(self: &Core, request_id: u64);
+        /// Issue #118: shares with their folders (MusicDetail "shares"), adding folders
+        /// (`folders_json`: `[{path, content, name}]`) and removing a share.
+        fn shares(self: &Core, request_id: u64);
+        fn share_add_folders(self: &Core, request_id: u64, share: i64, folders_json: &str);
+        fn share_remove(self: &Core, request_id: u64, share: i64);
         /// Issue #66: a book's ticket (MusicDetail "bookTicket"); `position_ms` < 0 resumes.
         fn book_play(self: &Core, request_id: u64, book: i64, position_ms: i64);
         fn book_progress(self: &Core, book: i64, position_ms: i64);
@@ -1372,6 +1377,17 @@ impl Core {
     }
     fn matching_status(&self, request_id: u64) {
         guard("matching_status", || self.0.matching_status(request_id))
+    }
+    fn shares(&self, request_id: u64) {
+        guard("shares", || self.0.shares(request_id))
+    }
+    fn share_add_folders(&self, request_id: u64, share: i64, folders_json: &str) {
+        guard("share_add_folders", || {
+            self.0.share_add_folders(request_id, share, folders_json)
+        })
+    }
+    fn share_remove(&self, request_id: u64, share: i64) {
+        guard("share_remove", || self.0.share_remove(request_id, share))
     }
     fn book_play(&self, request_id: u64, book: i64, position_ms: i64) {
         guard("book_play", || {

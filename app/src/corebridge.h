@@ -142,6 +142,11 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 rematchLibrary(const QString &library, bool all, bool includeLocked);
     Q_INVOKABLE quint64 rematchStop(const QString &library);
     Q_INVOKABLE quint64 matchingStatus();
+    // Issue #118: network shares with their folders (musicDetailReady of kind "shares": shares,
+    // local), adding folders ([{path, content, name}]) and removing a share.
+    Q_INVOKABLE quint64 shares();
+    Q_INVOKABLE quint64 shareAddFolders(qint64 share, const QVariantList &folders);
+    Q_INVOKABLE quint64 shareRemove(qint64 share);
     Q_INVOKABLE quint64 bookPlay(qint64 book, qint64 positionMs = -1);
     void bookProgress(qint64 book, qint64 positionMs);
     Q_INVOKABLE quint64 bookMarkFinished(qint64 book, bool finished);

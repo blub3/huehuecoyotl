@@ -1,6 +1,7 @@
 #include "corebridge.h"
 #include "episodemodel.h"
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -672,6 +673,28 @@ quint64 CoreBridge::rematchStop(const QString &library)
     const quint64 rid = nextId();
     const QByteArray l = library.toUtf8();
     if (m_core) (*m_core)->rematch_stop(rid, rs(l));
+    return rid;
+}
+
+quint64 CoreBridge::shares()
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->shares(rid);
+    return rid;
+}
+
+quint64 CoreBridge::shareAddFolders(qint64 share, const QVariantList &folders)
+{
+    const quint64 rid = nextId();
+    const QByteArray f = QJsonDocument(QJsonArray::fromVariantList(folders)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->share_add_folders(rid, share, rs(f));
+    return rid;
+}
+
+quint64 CoreBridge::shareRemove(qint64 share)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->share_remove(rid, share);
     return rid;
 }
 

@@ -118,11 +118,15 @@ pub struct SourceRow {
     pub root: Option<String>,
     /// `video` or `music` (2.0).
     pub content: String,
+    /// Issue #118: the share the folder belongs to; its settings and password are the share's.
+    pub share_id: Option<i64>,
 }
 
 pub fn source(c: &Connection, id: i64) -> Result<Option<SourceRow>> {
     Ok(c.query_row(
-        "SELECT id, kind, config_json, credential_ref, root, content FROM source WHERE id = ?1",
+        "SELECT s.id, s.kind, coalesce(sh.config_json, s.config_json), coalesce(sh.credential_ref, s.credential_ref),
+                s.root, s.content, s.share_id
+         FROM source s LEFT JOIN share sh ON sh.id = s.share_id WHERE s.id = ?1",
         [id],
         |r| {
             Ok(SourceRow {
@@ -132,6 +136,7 @@ pub fn source(c: &Connection, id: i64) -> Result<Option<SourceRow>> {
                 credential_ref: r.get(3)?,
                 root: r.get(4)?,
                 content: r.get(5)?,
+                share_id: r.get(6)?,
             })
         },
     )
@@ -142,6 +147,11 @@ pub fn source(c: &Connection, id: i64) -> Result<Option<SourceRow>> {
 pub fn set_source_config(c: &Connection, id: i64, config_json: &str) -> Result<()> {
     c.execute(
         "UPDATE source SET config_json = ?2 WHERE id = ?1",
+        params![id, config_json],
+    )?;
+    // Issue #118: the settings belong to the folder's share.
+    c.execute(
+        "UPDATE share SET config_json = ?2 WHERE id = (SELECT share_id FROM source WHERE id = ?1)",
         params![id, config_json],
     )?;
     Ok(())

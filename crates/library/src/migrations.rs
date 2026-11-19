@@ -208,6 +208,10 @@ ALTER TABLE artwork ADD COLUMN color TEXT;
 ALTER TABLE file_audio ADD COLUMN waveform BLOB;
 "#,
     ),
+    // 13 (2.8, issue #118): network shares. Folders on the same server, share and user become
+    // one share with one set of settings and one keystore entry. Rows are rewritten, so the
+    // database is copied first.
+    Migration::Merge(crate::shares::migration_13),
 ];
 
 /// The old and new kind constraint of `item`.
