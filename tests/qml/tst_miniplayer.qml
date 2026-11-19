@@ -32,6 +32,22 @@ Item {
         id: book
         property bool front: false
         property bool active: false
+        property bool playing: true
+        property real position: 1300
+        property real duration: 9000
+        property var book: ({ title: "A Test Book", authors: "Test Author" })
+        property string chapterTitle: "Chapter 7"
+        property var chapters: [{ startMs: 0, endMs: 1200000 }, { startMs: 1200000, endMs: 2645000 }]
+        property int chapter: 1
+        property int skipBack: 15
+        property int skipForward: 30
+        property real speed: 1.0
+        property var calls: []
+        function skip(d) { calls = calls.concat(["skip " + d]) }
+        function setSpeed(s) { speed = s }
+        function previousChapter() { calls = calls.concat(["previous chapter"]) }
+        function nextChapter() { calls = calls.concat(["next chapter"]) }
+        function togglePause() { playing = !playing }
     }
 
     property var events: []
@@ -58,6 +74,10 @@ Item {
             music.repeat = "off"
             music.calls = []
             music.current = { title: "Mother", artists: "Pink Floyd", album: "The Wall" }
+            book.front = false
+            book.active = false
+            book.calls = []
+            book.speed = 1.0
             root.events = []
         }
 
@@ -115,6 +135,38 @@ Item {
             mini.width = 820
             verify(!part("volume").visible, "Volume goes in narrow windows")
             compare(Math.round(part("controls").mapToItem(mini, 0, 0).x + part("controls").width / 2), 410)
+        }
+
+        function test_book() {
+            const prevX = xOf("previous"), playX = xOf("play")
+            book.front = true
+            book.active = true
+            compare(xOf("previous"), prevX, "the buttons keep their places")
+            compare(xOf("play"), playX)
+            compare(part("title").text, "A Test Book")
+            compare(part("shuffle").Accessible.name, "15 second(s) back")
+            compare(part("repeat").Accessible.name, "30 second(s) ahead")
+            verify(!part("shuffle").on)
+            part("shuffle").clicked()
+            part("repeat").clicked()
+            part("previous").clicked()
+            part("next").clicked()
+            compare(JSON.stringify(book.calls), JSON.stringify(["skip -1", "skip 1", "previous chapter", "next chapter"]))
+            compare(music.shuffle, false, "Shuffle is not touched for a book")
+            // The times are the chapter's: 100 s into a 24 min 05 s chapter.
+            verify(findChild(mini, "controls").children[0].text === "1:40", findChild(mini, "controls").children[0].text)
+            verify(!part("volume").visible)
+            verify(part("speed").visible)
+            compare(part("open").text, "Player")
+            part("speed").clicked()
+            const popup = findChild(mini, "speedPopup")
+            tryVerify(() => popup.opened)
+            keyClick(Qt.Key_Down)
+            keyClick(Qt.Key_Down)
+            keyClick(Qt.Key_Return)
+            tryVerify(() => !popup.visible)
+            compare(book.speed, 1.2)
+            verify(/^1[.,]2×$/.test(part("speed").text), part("speed").text)
         }
 
         function test_volume() {

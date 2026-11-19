@@ -2830,80 +2830,106 @@
 <context>
     <name>MiniPlayer</name>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="44"/>
+        <location filename="../qml/MiniPlayer.qml" line="49"/>
         <source>Music player</source>
         <translation>Musikplayer</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="44"/>
+        <location filename="../qml/MiniPlayer.qml" line="49"/>
         <source>Audiobook player</source>
         <translation>Hörbuch-Player</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="167"/>
+        <location filename="../qml/MiniPlayer.qml" line="184"/>
         <source>Shuffle: on</source>
         <translation>Zufallswiedergabe: an</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="167"/>
+        <location filename="../qml/MiniPlayer.qml" line="184"/>
         <source>Shuffle: off</source>
         <translation>Zufallswiedergabe: aus</translation>
     </message>
+    <message numerus="yes">
+        <location filename="../qml/MiniPlayer.qml" line="184"/>
+        <source>%n second(s) back</source>
+        <translation>
+            <numerusform>%n Sekunde zurück</numerusform>
+            <numerusform>%n Sekunden zurück</numerusform>
+        </translation>
+    </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="177"/>
+        <location filename="../qml/MiniPlayer.qml" line="194"/>
         <source>Previous</source>
         <translation>Zurück</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="177"/>
+        <location filename="../qml/MiniPlayer.qml" line="194"/>
         <source>Previous chapter</source>
         <translation>Vorheriges Kapitel</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="189"/>
+        <location filename="../qml/MiniPlayer.qml" line="206"/>
         <source>Pause</source>
         <translation>Pause</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="189"/>
+        <location filename="../qml/MiniPlayer.qml" line="206"/>
         <source>Play</source>
         <translation>Abspielen</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="199"/>
+        <location filename="../qml/MiniPlayer.qml" line="216"/>
         <source>Next</source>
         <translation>Weiter</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="199"/>
+        <location filename="../qml/MiniPlayer.qml" line="216"/>
         <source>Next chapter</source>
         <translation>Nächstes Kapitel</translation>
     </message>
+    <message numerus="yes">
+        <location filename="../qml/MiniPlayer.qml" line="230"/>
+        <source>%n second(s) ahead</source>
+        <translation>
+            <numerusform>%n Sekunde vor</numerusform>
+            <numerusform>%n Sekunden vor</numerusform>
+        </translation>
+    </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="213"/>
+        <location filename="../qml/MiniPlayer.qml" line="231"/>
         <source>Repeat: this song</source>
         <translation>Wiederholen: dieser Titel</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="213"/>
+        <location filename="../qml/MiniPlayer.qml" line="231"/>
         <source>Repeat: all</source>
         <translation>Wiederholen: alle</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="213"/>
+        <location filename="../qml/MiniPlayer.qml" line="231"/>
         <source>Repeat: off</source>
         <translation>Wiederholen: aus</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="246"/>
-        <location filename="../qml/MiniPlayer.qml" line="273"/>
+        <location filename="../qml/MiniPlayer.qml" line="267"/>
+        <source>Speed %1</source>
+        <translation>Tempo %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/MiniPlayer.qml" line="341"/>
+        <location filename="../qml/MiniPlayer.qml" line="368"/>
         <source>Volume</source>
         <translation>Lautstärke</translation>
     </message>
     <message>
-        <location filename="../qml/MiniPlayer.qml" line="293"/>
+        <location filename="../qml/MiniPlayer.qml" line="389"/>
         <source>Now Playing</source>
         <translation>Läuft gerade</translation>
+    </message>
+    <message>
+        <location filename="../qml/MiniPlayer.qml" line="389"/>
+        <source>Player</source>
+        <translation>Player</translation>
     </message>
 </context>
 <context>
