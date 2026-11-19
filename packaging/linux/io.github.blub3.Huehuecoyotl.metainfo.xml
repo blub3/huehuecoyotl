@@ -93,6 +93,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="2.9.0" date="2026-11-19" type="stable">
+      <description>
+        <p>One Back button on every page: it names the page it returns to, and Back brings you to that page as you left it, from an album back to its artist or from Now Playing to where you started it. Hold Escape or right-click Back to go back several pages at once; Backspace, Alt+Left and the mouse's back button work too. The mini player has the controls of Now Playing, with shuffle, repeat and volume, and nothing moves when Play turns into Pause; for audiobooks it skips back and ahead and sets the speed.</p>
+      </description>
+    </release>
     <release version="2.8.0" date="2026-11-19" type="stable">
       <description>
         <p>Network shares, easier: a server is added once and holds any number of library folders. Sources shows one card per server with its folders inside. Add several folders at once, each with a look inside and a guess of what it holds. Adding a share takes three steps, and an SMB server lists its shares to choose from. A share's address, user or password can be changed without losing anything, a folder's type changed, and a server added twice under two names joined.</p>

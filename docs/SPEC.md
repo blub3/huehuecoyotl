@@ -2,7 +2,7 @@
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
 
-**Changes in v1.17:** 2.9, the Back button and the mini player (issues #133 to #138), in progress: one Back button on every stacked page, used by every page, with the trail and more Back keys (section 9, *Back button*); the mini player with the Now Playing controls, and for audiobooks skip and speed (section 9, *Mini player*).
+**Changes in v1.17:** 2.9 is released for Linux on Nov 19, 2026: the Back button and the mini player (issues #133 to #138): one Back button on every stacked page, used by every page, with the trail and more Back keys (section 9, *Back button*); the mini player with the Now Playing controls, and for audiobooks skip and speed (section 9, *Mini player*).
 
 **Changes in v1.16:** 2.8 is released for Linux on Nov 19, 2026: network shares (issues #118 to #122): one share holds several folders, migration 13, Sources grouped by server, adding several folders at once, adding a share in three steps, editing a share (section 6, *Shares*, *Sources grouped by server*, *Adding folders*, *Adding a share*, *Editing a share*).
 
@@ -80,6 +80,7 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | 2.6 (Linux, released) | Music redesign: a top menu (Albums, Artists, Songs, Genres, Playlists), the Quality lens (Hi-Res, Lossless, Several versions, Saved), format ribbons, a letter rail, an Artists preview panel, a Songs list with a quality column, smart and own playlists, a new Now Playing with a waveform and the signal path as a chain, and a full-screen Now Playing (issues #78 to #83) |
 | 2.7 (Linux, released) | Matching again: Settings → Matching for every library, Fix match with the current match, links and a Movie ↔ TV show switch, match again and search for albums, songs, artists, books and authors, and artists and authors that follow their albums, songs and books (issues #92 to #110) |
 | 2.7.1 (Linux, released) | Settings with a tab bar (issue #117); the music library run matches artists too (issue #124) |
+| 2.9 (Linux, released) | One Back button on every stacked page with the trail and more Back keys, and the mini player with the Now Playing controls and audiobook skip and speed (issues #133 to #138) |
 | 2.8 (Linux, released) | Network shares: one share holds several folders (migration 13), Sources grouped by server, adding several folders at once, adding a share in three steps with the SMB share list, and editing a share (issues #118 to #122) |
 | Unscheduled | HDR passthrough on Windows through direct mode (needs a Windows PC with an HDR display for tests W1–W8) |
 | After 1.1 | HDR passthrough on Linux; audio passthrough polish; Jellyfin, Emby and Plex as sources; subtitle download; multiple profiles; sync of watch state between devices; trailers; collections |
@@ -756,6 +757,8 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 **M5 status (Nov 12, 2026).** Paused: GitHub Actions has no minutes left, and the Windows build needs it (or a Windows build machine). The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). The Windows release workflow is ready in PR #31 but untested. Open: that PR, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
 
 **2.5 (planned): audiobooks.** The specification (#64) first, then in this order: the audiobook library (#65), Open Library and MusicBrainz for books (#67), and the Audiobooks category and player (#66). 2.5 is released when all four are done. The Flatpak needs no new permission.
+
+**2.9 (Nov 19, 2026): released for Linux.** The Back button (#133 to #136) and the mini player (#137, #138). No migration: the library stays at schema 13, and 2.8 opens it. Built and checked locally (GitHub Actions disabled); the test Flatpak was installed for the maintainer before the release.
 
 **2.8 (Nov 19, 2026): released for Linux.** Network shares: shares with several folders and migration 13 (#118), Sources grouped by server (#119), adding several folders at once (#120), adding a share in three steps (#121) and editing a share (#122). Migration 13 is a merge, so `library.db.before-13` is kept; 2.7.1 refuses to open a schema-13 library. Built and checked locally (GitHub Actions disabled); the test Flatpak was installed for the maintainer before the release.
 
