@@ -1147,37 +1147,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="980"/>
+        <location filename="../src/corebridge.cpp" line="996"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="982"/>
+        <location filename="../src/corebridge.cpp" line="998"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="984"/>
+        <location filename="../src/corebridge.cpp" line="1000"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="986"/>
+        <location filename="../src/corebridge.cpp" line="1002"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="988"/>
+        <location filename="../src/corebridge.cpp" line="1004"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="990"/>
+        <location filename="../src/corebridge.cpp" line="1006"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1244"/>
+        <location filename="../src/corebridge.cpp" line="1260"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -5128,6 +5128,277 @@
     </message>
 </context>
 <context>
+    <name>ShareEditor</name>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="37"/>
+        <source>Music</source>
+        <translation>Musik</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="37"/>
+        <source>Audiobooks</source>
+        <translation>Hörbücher</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="37"/>
+        <source>Movies &amp; shows</source>
+        <translation>Filme &amp; Serien</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="64"/>
+        <source>Please enter a server name or address.</source>
+        <translation>Bitte einen Servernamen oder eine Adresse eingeben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="67"/>
+        <source>Saving…</source>
+        <translation>Speichere…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="67"/>
+        <source>Testing the connection…</source>
+        <translation>Teste die Verbindung…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="74"/>
+        <source>Not found at the new place: %1. Nothing was saved.</source>
+        <translation>Am neuen Ort nicht gefunden: %1. Es wurde nichts gespeichert.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="78"/>
+        <source>“%1” is the same server: saving joins its folders into this share.</source>
+        <translation>„%1“ ist derselbe Server: Beim Speichern kommen seine Ordner in diese Freigabe.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="80"/>
+        <source>Saved. The folders of “%1” are now in this share.</source>
+        <translation>Gespeichert. Die Ordner von „%1“ sind jetzt in dieser Freigabe.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="80"/>
+        <source>Saved.</source>
+        <translation>Gespeichert.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="83"/>
+        <source>The connection works and every folder is there.</source>
+        <translation>Die Verbindung funktioniert, und alle Ordner sind da.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="121"/>
+        <source>The password or user name was not accepted. The stored password stays.</source>
+        <translation>Passwort oder Benutzername wurden nicht akzeptiert. Das gespeicherte Passwort bleibt.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="158"/>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="164"/>
+        <source>Edit %1</source>
+        <translation>%1 bearbeiten</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="164"/>
+        <source>Edit share</source>
+        <translation>Freigabe bearbeiten</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="173"/>
+        <source>Connection</source>
+        <translation>Verbindung</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="180"/>
+        <location filename="../qml/ShareEditor.qml" line="188"/>
+        <source>Server</source>
+        <translation>Server</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="197"/>
+        <location filename="../qml/ShareEditor.qml" line="198"/>
+        <source>Port</source>
+        <translation>Port</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="206"/>
+        <location filename="../qml/ShareEditor.qml" line="213"/>
+        <source>Share</source>
+        <translation>Freigabe</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="206"/>
+        <location filename="../qml/ShareEditor.qml" line="213"/>
+        <source>Export path</source>
+        <translation>Exportpfad</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="206"/>
+        <source>Base folder (optional)</source>
+        <translation>Basisordner (optional)</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="213"/>
+        <source>Base folder</source>
+        <translation>Basisordner</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="218"/>
+        <location filename="../qml/ShareEditor.qml" line="224"/>
+        <source>User name</source>
+        <translation>Benutzername</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="229"/>
+        <source>Key passphrase</source>
+        <translation>Passphrase des Schlüssels</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="229"/>
+        <source>Password</source>
+        <translation>Passwort</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="236"/>
+        <source>Stored in the keystore</source>
+        <translation>Im Schlüsselbund gespeichert</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="243"/>
+        <source>Change…</source>
+        <translation>Ändern…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="254"/>
+        <source>New password; kept only when it works</source>
+        <translation>Neues Passwort; wird nur behalten, wenn es funktioniert</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="255"/>
+        <source>New password</source>
+        <translation>Neues Passwort</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="262"/>
+        <source>Key file (optional)</source>
+        <translation>Schlüsseldatei (optional)</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="267"/>
+        <source>Key file</source>
+        <translation>Schlüsseldatei</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="276"/>
+        <source>Use HTTPS</source>
+        <translation>HTTPS verwenden</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="287"/>
+        <source>Test connection</source>
+        <translation>Verbindung testen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="298"/>
+        <source>Save connection</source>
+        <translation>Verbindung speichern</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="308"/>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="329"/>
+        <source>Folders</source>
+        <translation>Ordner</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="334"/>
+        <source>Add folders</source>
+        <translation>Ordner hinzufügen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="368"/>
+        <source>scanning…</source>
+        <translation>wird durchsucht …</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareEditor.qml" line="368"/>
+        <location filename="../qml/ShareEditor.qml" line="458"/>
+        <source>%n file(s)</source>
+        <translation>
+            <numerusform>%n Datei</numerusform>
+            <numerusform>%n Dateien</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="381"/>
+        <source>What %1 holds; press to change</source>
+        <translation>Was %1 enthält; drücken zum Ändern</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="391"/>
+        <source>Remove…</source>
+        <translation>Entfernen …</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="408"/>
+        <source>Remove “%1”? Its titles leave the library and saved copies of its files on this computer are deleted. The files on the server stay.</source>
+        <translation>„%1“ entfernen? Seine Titel verlassen die Bibliothek, und gespeicherte Kopien seiner Dateien auf diesem Computer werden gelöscht. Die Dateien auf dem Server bleiben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="409"/>
+        <source>Treat “%1” as %2? It is scanned again; its titles move there, and their play state and saved copies go.</source>
+        <translation>„%1“ als %2 behandeln? Der Ordner wird neu durchsucht; seine Titel ziehen dorthin um, ihr Wiedergabestand und gespeicherte Kopien gehen verloren.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="414"/>
+        <location filename="../qml/ShareEditor.qml" line="463"/>
+        <source>Keep</source>
+        <translation>Behalten</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="422"/>
+        <source>Remove folder</source>
+        <translation>Ordner entfernen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="422"/>
+        <source>Change to %1</source>
+        <translation>Zu %1 ändern</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="433"/>
+        <source>No folders yet.</source>
+        <translation>Noch keine Ordner.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="442"/>
+        <source>Remove share…</source>
+        <translation>Freigabe entfernen…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="455"/>
+        <source>Remove “%1”? Its %2 and %3 leave the library, saved copies on this computer are deleted, and its password leaves the keystore. The files on the server stay.</source>
+        <translation>„%1“ entfernen? Ihre %2 und %3 verlassen die Bibliothek, gespeicherte Kopien auf diesem Computer werden gelöscht, und ihr Passwort wird aus dem Schlüsselbund entfernt. Die Dateien auf dem Server bleiben.</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareEditor.qml" line="457"/>
+        <source>%n folder(s)</source>
+        <translation>
+            <numerusform>%n Ordner</numerusform>
+            <numerusform>%n Ordner</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareEditor.qml" line="471"/>
+        <source>Remove share</source>
+        <translation>Freigabe entfernen</translation>
+    </message>
+</context>
+<context>
     <name>ShareFolderBrowser</name>
     <message>
         <location filename="../qml/ShareFolderBrowser.qml" line="39"/>
@@ -5328,57 +5599,57 @@
         <translation>Füge die Ordner mit deinen Filmen, Serien, Musik und Hörbüchern hinzu, auf diesem Computer oder auf einer Netzwerkfreigabe (NAS). Jeder Server wird einmal hinzugefügt; seine Ordner liegen darin.</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="136"/>
+        <location filename="../qml/SourcesPage.qml" line="138"/>
         <source>Browse this computer</source>
         <translation>Diesen Computer durchsuchen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="201"/>
+        <location filename="../qml/SourcesPage.qml" line="203"/>
         <source>Remove “%1” from the library?</source>
         <translation>„%1“ aus der Bibliothek entfernen?</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="207"/>
+        <location filename="../qml/SourcesPage.qml" line="209"/>
         <source>Its titles leave the library, and saved copies of its files on this computer are deleted. The files on the server or disk stay. If you add the folder again, it is scanned and matched again.</source>
         <translation>Seine Titel verlassen die Bibliothek, und gespeicherte Kopien seiner Dateien auf diesem Computer werden gelöscht. Die Dateien auf dem Server oder der Festplatte bleiben. Fügst du den Ordner wieder hinzu, wird er neu durchsucht und zugeordnet.</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="211"/>
+        <location filename="../qml/SourcesPage.qml" line="213"/>
         <source>Keep it</source>
         <translation>Behalten</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="216"/>
+        <location filename="../qml/SourcesPage.qml" line="218"/>
         <source>Remove folder</source>
         <translation>Ordner entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="242"/>
+        <location filename="../qml/SourcesPage.qml" line="244"/>
         <source>What is in “%1”?</source>
         <translation>Was liegt in „%1“?</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="249"/>
+        <location filename="../qml/SourcesPage.qml" line="251"/>
         <source>Video folders become Movies and Shows, music folders Music, audiobook folders Audiobooks. A folder with more than one is added once per subfolder.</source>
         <translation>Videoordner landen unter Filme und Serien, Musikordner unter Musik, Hörbuchordner unter Hörbücher. Einen Ordner mit mehreren Arten fügst du je Unterordner einmal hinzu.</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="256"/>
+        <location filename="../qml/SourcesPage.qml" line="258"/>
         <source>Movies and shows</source>
         <translation>Filme und Serien</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="262"/>
+        <location filename="../qml/SourcesPage.qml" line="264"/>
         <source>Music</source>
         <translation>Musik</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="269"/>
+        <location filename="../qml/SourcesPage.qml" line="271"/>
         <source>Audiobooks</source>
         <translation>Hörbücher</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="276"/>
+        <location filename="../qml/SourcesPage.qml" line="278"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>

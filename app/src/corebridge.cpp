@@ -715,6 +715,22 @@ quint64 CoreBridge::shareCreate(const QVariantMap &spec, const QString &password
     return rid;
 }
 
+quint64 CoreBridge::shareEdit(qint64 share, const QVariantMap &spec, const QString &password, bool save)
+{
+    const quint64 rid = nextId();
+    const QByteArray s = shareSpecJson(spec), pw = password.toUtf8();
+    if (m_core) (*m_core)->share_edit(rid, share, rs(s), rs(pw), save);
+    return rid;
+}
+
+quint64 CoreBridge::shareFolderContent(qint64 source, const QString &content)
+{
+    const quint64 rid = nextId();
+    const QByteArray c = content.toUtf8();
+    if (m_core) (*m_core)->share_folder_content(rid, source, rs(c));
+    return rid;
+}
+
 quint64 CoreBridge::shareBrowse(const QVariantMap &target, const QString &password, const QString &path)
 {
     const quint64 rid = nextId();

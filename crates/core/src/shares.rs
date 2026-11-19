@@ -153,6 +153,9 @@ pub(crate) async fn overview(inner: &Arc<Inner>) -> CResult<Value> {
                 "host": cfg.host,
                 "share": cfg.share,
                 "user": cfg.user,
+                "port": cfg.port,
+                "tls": cfg.tls,
+                "keyFile": cfg.key_file,
                 "url": cfg.display_url(),
                 "online": !s.folders.iter().any(|f| offline.contains(&f.source_id)),
                 "folders": folders,
@@ -623,6 +626,216 @@ pub(crate) async fn create(
             }
             Err(e)
         }
+    }
+}
+
+// ---- editing a share (issue #122) --------------------------------------------------------------
+
+/// Test, and with `save` store, a share's new connection settings (`spec_json` as for adding;
+/// `password` "" keeps the stored one). Every folder must be found at the new place, else
+/// nothing is saved and `missing` names them. A new password is stored only when it works. When
+/// the new settings are those of another share (one server reached under two names), saving
+/// joins that share's folders into this one; a folder both have stays once. Answers `{ok,
+/// missing, joins: {id, name} | null, saved, hostKey}`.
+pub(crate) async fn edit(
+    inner: &Arc<Inner>,
+    share: i64,
+    spec_json: &str,
+    password: &str,
+    save: bool,
+) -> CResult<Value> {
+    let spec = crate::network::NetworkSpec::parse(spec_json)?;
+    let found = inner
+        .lib
+        .read(move |c| shares::get(c, share))
+        .await?
+        .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("share {share}")))?;
+    let old: Option<RemoteConfig> = serde_json::from_str(&found.config_json).ok();
+    let mut cfg = spec.cfg.clone();
+    // An SFTP server keeps its trusted key while its address stays; a new address is a new key.
+    cfg.host_key = old.as_ref().and_then(|o| {
+        (o.protocol == cfg.protocol && o.host.eq_ignore_ascii_case(&cfg.host) && o.port == cfg.port)
+            .then(|| o.host_key.clone())
+            .flatten()
+    });
+    let new_password = !password.is_empty();
+    cfg.password = if new_password {
+        password.to_string()
+    } else {
+        let reference = shares::credential_ref(share);
+        tokio::task::spawn_blocking(move || secrets::load_password(&reference))
+            .await
+            .unwrap_or_default()
+    };
+    let src = tokio::time::timeout(SIGN_IN_LIMIT, crate::network::connect_config(cfg.clone()))
+        .await
+        .map_err(|_| {
+            CoreError::new(ErrorKind::Unreachable, "The server did not answer in time.")
+        })??;
+    if cfg.host_key.is_none() {
+        cfg.host_key = src.host_key();
+    }
+    let mut missing = Vec::new();
+    for f in &found.folders {
+        let at = VPath::new(if f.root.is_empty() { "/" } else { &f.root });
+        if !src.stat(&at).await.map(|e| e.is_dir).unwrap_or(false) {
+            missing.push(f.name.clone());
+        }
+    }
+    let (kind, json) = (
+        cfg.protocol.as_str().to_string(),
+        serde_json::to_string(&cfg).unwrap_or_default(),
+    );
+    let (k, j) = (kind.clone(), json.clone());
+    let other = inner
+        .lib
+        .read(move |c| {
+            let key = shares::group_key(&k, &j);
+            Ok(shares::list(c)?
+                .into_iter()
+                .find(|s| s.id != share && shares::group_key(&s.kind, &s.config_json) == key))
+        })
+        .await?;
+    let joins = other
+        .as_ref()
+        .map(|o| json!({ "id": o.id, "name": o.name }));
+    let host_key = src.host_key().unwrap_or_default();
+    if !missing.is_empty() || !save {
+        return Ok(json!({
+            "ok": missing.is_empty(), "missing": missing, "joins": joins, "saved": false,
+            "hostKey": host_key,
+        }));
+    }
+
+    // Saving: the settings, then the other share's folders, then the password.
+    inner
+        .lib
+        .write(move |c| shares::update(c, share, &kind, &json))
+        .await?;
+    let mut folder_ids: Vec<i64> = found.folders.iter().map(|f| f.source_id).collect();
+    if let Some(o) = other {
+        let from = o.id;
+        let dups = inner
+            .lib
+            .read(move |c| shares::duplicates(c, share, from))
+            .await?;
+        for id in dups {
+            crate::download::delete_saved(inner, Some(id)).await?;
+            inner
+                .lib
+                .write(move |c| catalog::remove_library(c, id))
+                .await?;
+            inner.forget_source(id);
+        }
+        let (moved, reference) = inner
+            .lib
+            .write(move |c| shares::join(c, share, from))
+            .await?;
+        folder_ids.extend(moved);
+        if let Some(r) = reference {
+            tokio::task::spawn_blocking(move || secrets::delete_password(&r))
+                .await
+                .ok();
+        }
+    }
+    if new_password {
+        let (reference, password) = (shares::credential_ref(share), password.to_string());
+        let stored =
+            tokio::task::spawn_blocking(move || secrets::store_password(&reference, &password))
+                .await
+                .unwrap_or(Ok(()));
+        if let Err(w) = stored {
+            tracing::warn!("{w}");
+        }
+    }
+    for id in folder_ids {
+        inner.forget_source(id);
+        inner.remotes.lock().unwrap().insert(id, src.clone());
+        inner.set_online(id, true);
+    }
+    inner.mark_changed();
+    Ok(json!({ "ok": true, "missing": [], "joins": joins, "saved": true, "hostKey": host_key }))
+}
+
+/// Issue #122: what a folder of a share holds, changed: the folder is added again with the new
+/// type (its items, play state and saved copies of the old type go) and scanned.
+pub(crate) async fn set_folder_content(
+    inner: &Arc<Inner>,
+    source: i64,
+    content: &str,
+) -> CResult<()> {
+    let content = crate::library::content_type(content).to_string();
+    let row = inner
+        .lib
+        .read(move |c| {
+            Ok(c.query_row(
+                "SELECT share_id, root, content, name FROM source WHERE id = ?1",
+                [source],
+                |r| {
+                    Ok((
+                        r.get::<_, Option<i64>>(0)?,
+                        r.get::<_, String>(1)?,
+                        r.get::<_, String>(2)?,
+                        r.get::<_, String>(3)?,
+                    ))
+                },
+            )
+            .ok())
+        })
+        .await?;
+    let Some((Some(share), root, old, name)) = row else {
+        return Err(CoreError::new(
+            ErrorKind::NotFound,
+            format!("folder {source} of a share"),
+        ));
+    };
+    if old == content {
+        return Ok(());
+    }
+    crate::download::delete_saved(inner, Some(source)).await?;
+    inner
+        .lib
+        .write(move |c| catalog::remove_library(c, source))
+        .await?;
+    inner.forget_source(source);
+    let (id, _) = inner
+        .lib
+        .write(move |c| shares::add_folder(c, share, &root, &content, &name))
+        .await?;
+    enqueue_scan(inner, id, jobs::priority::USER).await;
+    inner.mark_changed();
+    Ok(())
+}
+
+impl Core {
+    /// Issue #122: test (`save` false) or save a share's new connection settings; answers with a
+    /// `MusicDetail` of kind "shareEdit" (see `shares::edit`).
+    pub fn share_edit(
+        &self,
+        request_id: u64,
+        share: i64,
+        spec_json: &str,
+        password: &str,
+        save: bool,
+    ) {
+        let (spec_json, password) = (spec_json.to_string(), password.to_string());
+        self.spawn(request_id, move |inner| async move {
+            let out = edit(&inner, share, &spec_json, &password, save).await?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "shareEdit".into(),
+                json: out.to_string(),
+            })
+        });
+    }
+
+    /// Issue #122: change what a folder of a share holds; answers with the shares.
+    pub fn share_folder_content(&self, request_id: u64, source: i64, content: &str) {
+        let content = content.to_string();
+        self.spawn(request_id, move |inner| async move {
+            set_folder_content(&inner, source, &content).await?;
+            Ok(overview_event(request_id, overview(&inner).await?))
+        });
     }
 }
 

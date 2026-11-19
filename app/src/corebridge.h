@@ -155,6 +155,11 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 shareSignIn(const QVariantMap &spec, const QString &password);
     Q_INVOKABLE quint64 shareCreate(const QVariantMap &spec, const QString &password,
                                     const QVariantList &folders);
+    // Issue #122: test (save false) or save a share's new connection settings; password "" keeps
+    // the stored one (musicDetailReady "shareEdit": ok, missing, joins, saved, hostKey). And what
+    // a folder of a share holds (musicDetailReady "shares").
+    Q_INVOKABLE quint64 shareEdit(qint64 share, const QVariantMap &spec, const QString &password, bool save);
+    Q_INVOKABLE quint64 shareFolderContent(qint64 source, const QString &content);
     Q_INVOKABLE quint64 shareBrowse(const QVariantMap &target, const QString &password, const QString &path);
     Q_INVOKABLE quint64 bookPlay(qint64 book, qint64 positionMs = -1);
     void bookProgress(qint64 book, qint64 positionMs);
