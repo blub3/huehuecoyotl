@@ -453,6 +453,15 @@ mod ffi {
         fn shares(self: &Core, request_id: u64);
         fn share_add_folders(self: &Core, request_id: u64, share: i64, folders_json: &str);
         fn share_remove(self: &Core, request_id: u64, share: i64);
+        /// Issue #120: a share's folders with a quick look into each (MusicDetail
+        /// "shareFolders"); `target_json` is `{"share": id}` or a new share's settings.
+        fn share_browse(
+            self: &Core,
+            request_id: u64,
+            target_json: &str,
+            password: &str,
+            path: &str,
+        );
         /// Issue #66: a book's ticket (MusicDetail "bookTicket"); `position_ms` < 0 resumes.
         fn book_play(self: &Core, request_id: u64, book: i64, position_ms: i64);
         fn book_progress(self: &Core, book: i64, position_ms: i64);
@@ -1388,6 +1397,11 @@ impl Core {
     }
     fn share_remove(&self, request_id: u64, share: i64) {
         guard("share_remove", || self.0.share_remove(request_id, share))
+    }
+    fn share_browse(&self, request_id: u64, target_json: &str, password: &str, path: &str) {
+        guard("share_browse", || {
+            self.0.share_browse(request_id, target_json, password, path)
+        })
     }
     fn book_play(&self, request_id: u64, book: i64, position_ms: i64) {
         guard("book_play", || {

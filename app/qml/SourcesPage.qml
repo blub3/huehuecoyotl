@@ -124,7 +124,7 @@ FocusScope {
                     info: modelData
                     open: page.isOpen(modelData)
                     onToggled: (on) => { page.setOpen(shareCard.modelData, on); Qt.callLater(() => shareCard.focusFirst()) }
-                    onAddFoldersRequested: Nav.open(Qt.resolvedUrl("NetworkSharePage.qml"), {})
+                    onAddFoldersRequested: Nav.open(Qt.resolvedUrl("ShareFoldersPage.qml"), { share: shareCard.modelData.id, shareName: shareCard.modelData.name })
                     onRescanRequested: (id) => Core.rescan(id)
                     onRemoveRequested: (f) => removeConfirm.ask(f, shareCard)
                     onUpRequested: shareCard.index === 0 ? addShare.forceActiveFocus() : page.focusCard(shareCard.index - 1, true)

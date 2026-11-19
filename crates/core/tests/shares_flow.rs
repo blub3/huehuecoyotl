@@ -112,6 +112,42 @@ fn two_folders_one_share() {
         "coyotl-test"
     );
 
+    // Issue #120: browsing the share shows both folders as in the library, with a guess; a new
+    // share's settings browse the same way, and a folder inside an added one says so.
+    core.share_browse(40, &format!(r#"{{"share":{share}}}"#), "", "/");
+    let b = match answer(&rx, 40) {
+        Event::MusicDetail { kind, json, .. } if kind == "shareFolders" => {
+            serde_json::from_str::<Value>(&json).unwrap()
+        }
+        e => panic!("{e:?}"),
+    };
+    let names: Vec<_> = b["folders"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, ["Movies", "Shows"], "{b}");
+    for f in b["folders"].as_array().unwrap() {
+        assert_eq!(f["guess"], "video", "{f}");
+        assert_eq!(f["inLibrary"], serde_json::json!(["video"]), "{f}");
+        assert!(f["looked"].as_bool().unwrap());
+    }
+    assert_eq!(b["folders"][0]["videos"], 1);
+    core.share_browse(41, spec, "coyotl-test", "/Shows");
+    let b = match answer(&rx, 41) {
+        Event::MusicDetail { json, .. } => serde_json::from_str::<Value>(&json).unwrap(),
+        e => panic!("{e:?}"),
+    };
+    assert_eq!(
+        b["share"], share,
+        "a new share's settings find the share in the library"
+    );
+    assert_eq!(b["parent"], "/");
+    assert_eq!(b["folders"][0]["name"], "Firefly");
+    assert_eq!(b["folders"][0]["inside"], "Shows", "{b}");
+    assert_eq!(b["folders"][0]["videos"], 2);
+
     // Adding a folder that is not there fails; adding one twice adds nothing.
     core.share_add_folders(4, share, r#"[{"path":"/Nothing","content":"video"}]"#);
     assert!(matches!(answer(&rx, 4), Event::Error { .. }));

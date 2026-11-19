@@ -691,6 +691,17 @@ quint64 CoreBridge::shareAddFolders(qint64 share, const QVariantList &folders)
     return rid;
 }
 
+quint64 CoreBridge::shareBrowse(const QVariantMap &target, const QString &password, const QString &path)
+{
+    const quint64 rid = nextId();
+    QJsonObject o = QJsonObject::fromVariantMap(target);
+    if (o.contains("port") && o.value("port").toInt() <= 0) o.remove("port");
+    const QByteArray t = QJsonDocument(o).toJson(QJsonDocument::Compact);
+    const QByteArray pw = password.toUtf8(), p = path.toUtf8();
+    if (m_core) (*m_core)->share_browse(rid, rs(t), rs(pw), rs(p));
+    return rid;
+}
+
 quint64 CoreBridge::shareRemove(qint64 share)
 {
     const quint64 rid = nextId();

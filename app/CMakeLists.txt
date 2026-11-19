@@ -68,6 +68,8 @@ qt_add_qml_module(coyotl
     qml/SearchPage.qml
     qml/SourcesPage.qml
     qml/NetworkSharePage.qml
+    qml/ShareFolderBrowser.qml
+    qml/ShareFoldersPage.qml
     qml/SettingsPage.qml
     qml/ReviewPage.qml
     qml/NoticesPage.qml

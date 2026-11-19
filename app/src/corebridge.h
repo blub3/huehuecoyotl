@@ -147,6 +147,9 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 shares();
     Q_INVOKABLE quint64 shareAddFolders(qint64 share, const QVariantList &folders);
     Q_INVOKABLE quint64 shareRemove(qint64 share);
+    // Issue #120: the folders in `path` of a share ({share: id}, or a new share's settings with
+    // `password`), each with a guess of what it holds (musicDetailReady of kind "shareFolders").
+    Q_INVOKABLE quint64 shareBrowse(const QVariantMap &target, const QString &password, const QString &path);
     Q_INVOKABLE quint64 bookPlay(qint64 book, qint64 positionMs = -1);
     void bookProgress(qint64 book, qint64 positionMs);
     Q_INVOKABLE quint64 bookMarkFinished(qint64 book, bool finished);

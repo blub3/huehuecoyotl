@@ -53,7 +53,7 @@ fn usage() -> ExitCode {
          \x20      | match ID [--unlock] (match an item again) | match search ID [TEXT|ID|LINK] [--year Y] [--kind movie|show]\n\
          \x20        [--artist A] [--author A] [--isbn I] | match choose ID PROVIDER_ID [KIND] (search and choose by hand)\n\
          \x20      | library rematch movies|shows|music|books [--all] [--include-locked] | library rematch status|stop LIBRARY\n\
-         \x20      | share list | share add-folders SHARE FOLDERS_JSON | share remove-folder FOLDER | share remove SHARE\n\
+         \x20      | share list | share browse SHARE [PATH] | share add-folders SHARE FOLDERS_JSON | share remove-folder FOLDER | share remove SHARE\n\
          \x20      | queue | queue play|shuffle|next|add ID... | queue clear (the music play queue; tracks, albums or artists)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
          \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
@@ -502,6 +502,14 @@ fn main() -> ExitCode {
             let ev = wait();
             settle();
             ev
+        }
+        ("share", [sub, id, rest @ ..]) if sub == "browse" && rest.len() <= 1 => {
+            let Ok(id) = id.parse::<i64>() else {
+                return usage();
+            };
+            let path = rest.first().map(String::as_str).unwrap_or("/");
+            core.share_browse(1, &format!(r#"{{"share":{id}}}"#), "", path);
+            wait()
         }
         ("share", [sub, id]) if sub == "remove-folder" => {
             let Ok(id) = id.parse() else { return usage() };
