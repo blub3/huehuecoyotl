@@ -156,6 +156,59 @@ pub fn list(c: &Connection) -> Result<Vec<Share>> {
     Ok(shares)
 }
 
+/// Issue #122: a share's new connection settings, for the share and its folders. A name that
+/// was the default one ("media on nas") follows the new settings.
+pub fn update(c: &Connection, id: i64, kind: &str, config_json: &str) -> Result<()> {
+    let (name, old): (String, String) = c.query_row(
+        "SELECT name, config_json FROM share WHERE id = ?1",
+        [id],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    let name = if name == default_name(&old) {
+        default_name(config_json)
+    } else {
+        name
+    };
+    c.execute(
+        "UPDATE share SET kind = ?2, name = ?3, config_json = ?4 WHERE id = ?1",
+        params![id, kind, name, config_json],
+    )?;
+    c.execute(
+        "UPDATE source SET kind = ?2, config_json = ?3 WHERE share_id = ?1",
+        params![id, kind, config_json],
+    )?;
+    Ok(())
+}
+
+/// Issue #122: the folders of share `from` that share `into` has already (same folder, same
+/// content type); they go before the shares are joined.
+pub fn duplicates(c: &Connection, into: i64, from: i64) -> Result<Vec<i64>> {
+    let mut st = c.prepare(
+        "SELECT f.id FROM source f JOIN source i ON i.share_id = ?1 AND i.root = f.root AND i.content = f.content
+         WHERE f.share_id = ?2 ORDER BY f.id",
+    )?;
+    Ok(st
+        .query_map(params![into, from], |r| r.get(0))?
+        .collect::<rusqlite::Result<_>>()?)
+}
+
+/// Issue #122: join share `from` into share `into` (the same server, reached under two names):
+/// its folders move with their files, items and play state, and `from` goes. Returns the folders
+/// moved and `from`'s keystore reference.
+pub fn join(c: &Connection, into: i64, from: i64) -> Result<(Vec<i64>, Option<String>)> {
+    let moved = folder_ids(c, from)?;
+    let (kind, config_json): (String, String) = c.query_row(
+        "SELECT kind, config_json FROM share WHERE id = ?1",
+        [into],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    c.execute(
+        "UPDATE source SET share_id = ?1, credential_ref = ?2, kind = ?3, config_json = ?4 WHERE share_id = ?5",
+        params![into, credential_ref(into), kind, config_json, from],
+    )?;
+    Ok((moved, remove(c, from)?))
+}
+
 pub fn get(c: &Connection, id: i64) -> Result<Option<Share>> {
     Ok(list(c)?.into_iter().find(|s| s.id == id))
 }
@@ -359,5 +412,58 @@ mod tests {
             Some(credential_ref(s).as_str())
         );
         assert!(super::list(&c).unwrap().is_empty());
+    }
+
+    #[test]
+    fn update_and_join() {
+        let c = db();
+        let by_name = r#"{"protocol":"smb","host":"nas","share":"media","user":"me"}"#;
+        let by_ip = r#"{"protocol":"smb","host":"192.168.1.20","share":"media","user":"me"}"#;
+        let (a, _) = find_or_create(&c, "smb", by_name).unwrap();
+        let (b, _) = find_or_create(&c, "smb", by_ip).unwrap();
+        let (movies, _) = add_folder(&c, a, "/Movies", "video", "Movies").unwrap();
+        let (dup, _) = add_folder(&c, b, "/Movies", "video", "Movies").unwrap();
+        let (music, _) = add_folder(&c, b, "/Music", "music", "Music").unwrap();
+        c.execute("UPDATE share SET name = 'My NAS' WHERE id = ?1", [b])
+            .unwrap();
+
+        // A new address: the share and its folders follow; a default name too.
+        update(&c, a, "smb", by_ip).unwrap();
+        let s = get(&c, a).unwrap().unwrap();
+        assert_eq!(s.name, "media on 192.168.1.20");
+        let folder_cfg: String = c
+            .query_row(
+                "SELECT config_json FROM source WHERE id = ?1",
+                [movies],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(folder_cfg, by_ip);
+
+        // Now both are the same share: b's copy of Movies goes, Music moves to a.
+        assert_eq!(duplicates(&c, a, b).unwrap(), [dup]);
+        c.execute("DELETE FROM source WHERE id = ?1", [dup])
+            .unwrap();
+        let (moved, reference) = join(&c, a, b).unwrap();
+        assert_eq!(moved, [music]);
+        assert_eq!(reference.as_deref(), Some(credential_ref(b).as_str()));
+        let all = list(&c).unwrap();
+        assert_eq!(all.len(), 1);
+        assert_eq!(
+            all[0]
+                .folders
+                .iter()
+                .map(|f| f.source_id)
+                .collect::<Vec<_>>(),
+            [movies, music]
+        );
+        let r: String = c
+            .query_row(
+                "SELECT credential_ref FROM source WHERE id = ?1",
+                [music],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(r, credential_ref(a));
     }
 }

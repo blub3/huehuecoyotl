@@ -432,6 +432,26 @@
     </message>
 </context>
 <context>
+    <name>ShareEditor</name>
+    <message numerus="yes">
+        <location filename="../qml/ShareEditor.qml" line="368"/>
+        <location filename="../qml/ShareEditor.qml" line="458"/>
+        <source>%n file(s)</source>
+        <translation>
+            <numerusform>%n file</numerusform>
+            <numerusform>%n files</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareEditor.qml" line="457"/>
+        <source>%n folder(s)</source>
+        <translation>
+            <numerusform>%n folder</numerusform>
+            <numerusform>%n folders</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>ShareFolderBrowser</name>
     <message numerus="yes">
         <location filename="../qml/ShareFolderBrowser.qml" line="46"/>

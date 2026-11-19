@@ -472,6 +472,17 @@ mod ffi {
             password: &str,
             folders_json: &str,
         );
+        /// Issue #122: test or save a share's new connection settings (MusicDetail "shareEdit")
+        /// and change what a folder of a share holds (MusicDetail "shares").
+        fn share_edit(
+            self: &Core,
+            request_id: u64,
+            share: i64,
+            spec_json: &str,
+            password: &str,
+            save: bool,
+        );
+        fn share_folder_content(self: &Core, request_id: u64, source: i64, content: &str);
         /// Issue #66: a book's ticket (MusicDetail "bookTicket"); `position_ms` < 0 resumes.
         fn book_play(self: &Core, request_id: u64, book: i64, position_ms: i64);
         fn book_progress(self: &Core, book: i64, position_ms: i64);
@@ -1407,6 +1418,17 @@ impl Core {
     }
     fn share_remove(&self, request_id: u64, share: i64) {
         guard("share_remove", || self.0.share_remove(request_id, share))
+    }
+    fn share_edit(&self, request_id: u64, share: i64, spec_json: &str, password: &str, save: bool) {
+        guard("share_edit", || {
+            self.0
+                .share_edit(request_id, share, spec_json, password, save)
+        })
+    }
+    fn share_folder_content(&self, request_id: u64, source: i64, content: &str) {
+        guard("share_folder_content", || {
+            self.0.share_folder_content(request_id, source, content)
+        })
     }
     fn share_sign_in(&self, request_id: u64, spec_json: &str, password: &str) {
         guard("share_sign_in", || {

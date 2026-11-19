@@ -10,6 +10,23 @@ use huehuecoyotl_core::{Core, Event, secrets};
 use huehuecoyotl_library::rusqlite::Connection;
 use serde_json::Value;
 
+/// The tests share this process's in-memory keystore, and every library numbers its shares from
+/// 1, so they run one at a time.
+static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn serial() -> std::sync::MutexGuard<'static, ()> {
+    let guard = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+    // Never the real keystore: the test's in-memory one, before anything touches it.
+    // SAFETY: set while holding the lock, before this test opens a core.
+    unsafe { std::env::set_var("COYOTL_DISABLE_KEYSTORE", "1") };
+    // What an earlier test left in the keystore.
+    for i in 1..=8 {
+        secrets::delete_password(&format!("share:{i}"));
+        secrets::delete_password(&format!("source:{i}"));
+    }
+    guard
+}
+
 fn open(data: &std::path::Path) -> (Core, Receiver<Event>) {
     // SAFETY: set before any thread of this test process reads the environment.
     unsafe { std::env::set_var("COYOTL_DISABLE_KEYSTORE", "1") };
@@ -48,6 +65,7 @@ fn shares(core: &Core, rx: &Receiver<Event>, id: u64) -> Value {
 
 #[test]
 fn passwords_move_to_the_share() {
+    let _serial = serial();
     let d = tempfile::tempdir().unwrap();
     let data = d.path().join("data");
     drop(open(&data));
@@ -88,6 +106,7 @@ fn passwords_move_to_the_share() {
 
 #[test]
 fn two_folders_one_share() {
+    let _serial = serial();
     if std::env::var_os("COYOTL_TEST_SERVERS").is_none() {
         eprintln!("skipped: set COYOTL_TEST_SERVERS=1 with tests/servers running");
         return;
@@ -183,6 +202,7 @@ fn two_folders_one_share() {
 /// folders fail keeps neither a share nor a password.
 #[test]
 fn add_a_share_in_steps() {
+    let _serial = serial();
     if std::env::var_os("COYOTL_TEST_SERVERS").is_none() {
         eprintln!("skipped: set COYOTL_TEST_SERVERS=1 with tests/servers running");
         return;
@@ -245,4 +265,146 @@ fn add_a_share_in_steps() {
     assert_eq!(detail(answer(&rx, 7))["shares"][0]["existing"], id);
     core.share_sign_in(8, spec, "coyotl-test");
     assert_eq!(detail(answer(&rx, 8))["existing"], id);
+}
+
+/// Issue #122 against the test servers: a share's address changes and its folder, items and
+/// watched state stay; a wrong password keeps the old one; folders missing at the new place are
+/// named and nothing is saved; a share changed to another's settings takes over its folders;
+/// changing a folder's type moves its items.
+#[test]
+fn edit_a_share() {
+    let _serial = serial();
+    if std::env::var_os("COYOTL_TEST_SERVERS").is_none() {
+        eprintln!("skipped: set COYOTL_TEST_SERVERS=1 with tests/servers running");
+        return;
+    }
+    let d = tempfile::tempdir().unwrap();
+    let (core, rx) = open(&d.path().join("data"));
+    let detail = |e: Event| match e {
+        Event::MusicDetail { json, .. } => serde_json::from_str::<Value>(&json).unwrap(),
+        e => panic!("{e:?}"),
+    };
+    let scanned = |source: i64| {
+        let end = Instant::now() + Duration::from_secs(60);
+        while Instant::now() < end {
+            if let Ok(Event::ScanState {
+                running: false,
+                source_id,
+                ..
+            }) = rx.recv_timeout(Duration::from_millis(200))
+                && source_id == source
+            {
+                return;
+            }
+        }
+        panic!("no scan of {source}");
+    };
+    let movies = |id: u64| {
+        core.browse_items(id, "movie", 0, "title", "", 0, 50);
+        let end = Instant::now() + Duration::from_secs(30);
+        while Instant::now() < end {
+            if let Ok(Event::Page {
+                request_id, items, ..
+            }) = rx.recv_timeout(Duration::from_millis(200))
+                && request_id == id
+            {
+                return items;
+            }
+        }
+        panic!("no page");
+    };
+
+    let plain = r#"{"protocol":"smb","host":"172.29.0.10","share":"media","user":"coyotl"}"#;
+    let port =
+        r#"{"protocol":"smb","host":"172.29.0.10","port":445,"share":"media","user":"coyotl"}"#;
+    core.add_network_library(
+        1,
+        &plain.replace('}', r#","path":"/Movies"}"#),
+        "coyotl-test",
+    );
+    let Event::Libraries { libraries, .. } = answer(&rx, 1) else {
+        panic!()
+    };
+    let folder = libraries[0].id;
+    scanned(folder);
+    let items = movies(2);
+    assert_eq!(items.len(), 1);
+    let movie = items[0].id;
+    core.set_watched(movie, true);
+    let share = shares(&core, &rx, 3)["shares"][0]["id"].as_i64().unwrap();
+    let pass = || secrets::load_password(&format!("share:{share}"));
+
+    // A wrong password: an error, the old password stays.
+    core.share_edit(4, share, port, "wrong", true);
+    assert!(matches!(answer(&rx, 4), Event::Error { .. }));
+    assert_eq!(pass(), "coyotl-test");
+
+    // Folders missing at the new place: named, nothing saved.
+    let dav = r#"{"protocol":"webdav","host":"172.29.0.12","port":8080,"share":"/Shows","user":"coyotl"}"#;
+    core.share_edit(5, share, dav, "", true);
+    let v = detail(answer(&rx, 5));
+    assert_eq!(v["ok"], false);
+    assert_eq!(v["saved"], false);
+    assert_eq!(v["missing"].as_array().unwrap().len(), 1, "{v}");
+    assert_eq!(shares(&core, &rx, 6)["shares"][0]["protocol"], "smb");
+
+    // A test, then the new address saved: the same folder, the movie still watched.
+    core.share_edit(7, share, port, "", false);
+    let v = detail(answer(&rx, 7));
+    assert_eq!(
+        (v["ok"].as_bool(), v["saved"].as_bool()),
+        (Some(true), Some(false)),
+        "{v}"
+    );
+    core.share_edit(8, share, port, "", true);
+    assert_eq!(detail(answer(&rx, 8))["saved"], true);
+    let v = shares(&core, &rx, 9);
+    assert_eq!(v["shares"][0]["port"], 445);
+    assert_eq!(v["shares"][0]["folders"][0]["sourceId"], folder);
+    let items = movies(10);
+    assert_eq!(items[0].id, movie);
+    assert!(items[0].watched);
+    assert_eq!(pass(), "coyotl-test");
+
+    // A second share of the same server without the port; changing the first back joins them.
+    core.add_network_library(
+        11,
+        &plain.replace('}', r#","path":"/Shows","name":"Shows"}"#),
+        "coyotl-test",
+    );
+    answer(&rx, 11);
+    let v = shares(&core, &rx, 12);
+    assert_eq!(v["shares"].as_array().unwrap().len(), 2, "{v}");
+    let other = v["shares"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|s| s["id"] != share)
+        .unwrap()["id"]
+        .as_i64()
+        .unwrap();
+    core.share_edit(13, share, plain, "", true);
+    let v = detail(answer(&rx, 13));
+    assert_eq!(v["joins"]["id"], other, "{v}");
+    let v = shares(&core, &rx, 14);
+    let list = v["shares"].as_array().unwrap();
+    assert_eq!(list.len(), 1, "{v}");
+    assert_eq!(list[0]["id"], share);
+    assert_eq!(list[0]["folders"].as_array().unwrap().len(), 2);
+    assert_eq!(secrets::load_password(&format!("share:{other}")), "");
+
+    // Movies holds music now: its movie goes, the folder is scanned as music.
+    core.share_folder_content(15, folder, "music");
+    let v = detail(answer(&rx, 15));
+    let f = v["shares"][0]["folders"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|f| f["root"] == "/Movies")
+        .unwrap()
+        .clone();
+    assert_eq!(f["content"], "music");
+    assert_ne!(f["sourceId"], folder);
+    scanned(f["sourceId"].as_i64().unwrap());
+    assert!(movies(16).is_empty());
 }

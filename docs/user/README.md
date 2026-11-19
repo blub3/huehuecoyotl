@@ -62,6 +62,14 @@ what it holds. Tick the folders you want; press a folder's type (**Movies & show
 the right shows what will be added; **Add N folders** adds them and starts their scans.
 Folders already in your library are marked.
 
+**Edit share** on a share's card changes how Huehuecoyotl reaches it: a new server address,
+share name, user or password. **Test connection** checks that every folder is still found;
+**Save connection** keeps all folders, what you have watched and saved copies. A new password
+is kept only when it works. If you added the same NAS twice (once by name, once by address),
+changing one to the other's address joins them. Below, change what a folder holds (it is
+scanned again as Music, Audiobooks or Movies & shows), remove a folder, add folders, or
+**Remove share…** with all its folders.
+
 ## Add a network share
 
 Open **Sources** and choose **Add network share**.

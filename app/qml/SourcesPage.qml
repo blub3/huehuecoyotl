@@ -124,6 +124,8 @@ FocusScope {
                     info: modelData
                     open: page.isOpen(modelData)
                     onToggled: (on) => { page.setOpen(shareCard.modelData, on); Qt.callLater(() => shareCard.focusFirst()) }
+                    canEdit: !shareCard.modelData.local
+                    onEditRequested: Nav.open(Qt.resolvedUrl("ShareEditPage.qml"), { share: shareCard.modelData.id })
                     onAddFoldersRequested: Nav.open(Qt.resolvedUrl("ShareFoldersPage.qml"), { share: shareCard.modelData.id, shareName: shareCard.modelData.name })
                     onRescanRequested: (id) => Core.rescan(id)
                     onRemoveRequested: (f) => removeConfirm.ask(f, shareCard)

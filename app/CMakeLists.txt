@@ -70,6 +70,8 @@ qt_add_qml_module(coyotl
     qml/NetworkSharePage.qml
     qml/ShareFolderBrowser.qml
     qml/AddShareFlow.qml
+    qml/ShareEditor.qml
+    qml/ShareEditPage.qml
     qml/ShareFoldersPage.qml
     qml/SettingsPage.qml
     qml/ReviewPage.qml
