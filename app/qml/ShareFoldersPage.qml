@@ -6,6 +6,8 @@ import Coyotl
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: shareName !== "" ? shareName : qsTr("Add folders")
     property var share: 0
     property string shareName: ""
 

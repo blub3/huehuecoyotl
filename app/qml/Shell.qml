@@ -126,9 +126,20 @@ FocusScope {
         onLeftRequested: shell.focusRail()
     }
 
+    // Issue #134: above every page but a section's first, a strip that holds the Back button, so
+    // it never covers the page.
+    Rectangle {
+        id: backStrip
+        anchors { left: rail.right; right: parent.right; top: parent.top }
+        height: content.depth > 1 ? 68 : 0
+        // A page with a background of its own (Now Playing) colours the strip too.
+        readonly property var page: content.currentItem
+        color: page && page.pageBackground !== undefined ? page.pageBackground : "transparent"
+    }
+
     StackView {
         id: content
-        anchors { left: rail.right; right: parent.right; top: parent.top; bottom: mini.top }
+        anchors { left: rail.right; right: parent.right; top: backStrip.bottom; bottom: mini.top }
         focus: true
         initialItem: homePage
         pushEnter: null; pushExit: null; popEnter: null; popExit: null; replaceEnter: null; replaceExit: null
@@ -136,6 +147,8 @@ FocusScope {
         // otherwise Back leaves the page.
         Keys.onEscapePressed: shell.back()
         Keys.onBackPressed: shell.back()
+        // Issue #134: Up that a page does not use (from its first row) goes to the Back button.
+        Keys.onUpPressed: (e) => { e.accepted = shell.focusBack() }
     }
 
     // Issue #133: one Back button for every page above a section's first, in the same place.
@@ -143,8 +156,8 @@ FocusScope {
         id: backButton
         objectName: "shellBack"
         z: 10
-        x: content.x + 40
-        y: content.y + 28
+        x: backStrip.x + 40
+        y: backStrip.y + 20
         stack: content
         onBackRequested: shell.back()
         Keys.onDownPressed: shell.focusContent()

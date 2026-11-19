@@ -17,6 +17,8 @@ FocusScope {
     id: page
     objectName: "nowPlaying"
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: qsTr("Now Playing")
     readonly property var e: Music.current
     readonly property double length: Music.duration > 0 ? Music.duration : (e.durationMs || 0) / 1000
     // Issue #9: what goes out, and what to say about it (SPEC 5.7, "Signal path").
@@ -34,6 +36,8 @@ FocusScope {
     }
     // Issue #82: the tint and the waveform of the song playing.
     property string tint: ""
+    // Issue #134: the strip with the Back button above the page takes the page's colour.
+    readonly property color pageBackground: tint !== "" ? tint : "#142029"
     property var peaks: []
     property var visualsRequest: 0
     readonly property real peakMax: Math.max(1, ...peaks)
@@ -87,7 +91,7 @@ FocusScope {
 
     Rectangle {
         anchors.fill: parent
-        color: page.tint !== "" ? page.tint : "#142029"
+        color: page.pageBackground
         Behavior on color { ColorAnimation { duration: 400 } }
     }
 
@@ -117,14 +121,6 @@ FocusScope {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 14
-                FocusButton {
-                    id: backButton
-                    text: "‹  " + qsTr("Music")
-                    font.pixelSize: Theme.fontSmall
-                    KeyNavigation.right: fromButton.visible ? fromButton : fullButton
-                    KeyNavigation.down: artistButton.visible ? artistButton : seek
-                    onClicked: Nav.back()
-                }
                 Label {
                     text: qsTr("Playing from")
                     color: "#c9d2dd"
@@ -135,7 +131,6 @@ FocusScope {
                     visible: (page.e.album || "") !== ""
                     text: page.e.album || ""
                     font.pixelSize: Theme.fontSmall
-                    KeyNavigation.left: backButton
                     KeyNavigation.right: fullButton
                     KeyNavigation.down: artistButton.visible ? artistButton : seek
                     onClicked: Nav.openItem(page.e.albumId, "album")
@@ -154,7 +149,7 @@ FocusScope {
                     text: qsTr("Full screen")
                     tip: qsTr("Full screen (F11)")
                     font.pixelSize: Theme.fontSmall
-                    KeyNavigation.left: fromButton.visible ? fromButton : backButton
+                    KeyNavigation.left: fromButton
                     KeyNavigation.down: queueList
                     onClicked: page.toggleFull()
                 }
@@ -238,7 +233,6 @@ FocusScope {
                             enabled: (page.e.artistId || 0) > 0
                             Layout.maximumWidth: songRow.width / 3
                             KeyNavigation.right: albumButton
-                            KeyNavigation.up: backButton
                             KeyNavigation.down: seek
                             onClicked: Nav.openItem(page.e.artistId, "artist")
                         }
@@ -249,7 +243,6 @@ FocusScope {
                             tip: qsTr("Open the album")
                             Layout.maximumWidth: songRow.width / 3
                             KeyNavigation.left: artistButton
-                            KeyNavigation.up: backButton
                             KeyNavigation.down: seek
                             onClicked: Nav.openItem(page.e.albumId, "album")
                         }
@@ -357,7 +350,7 @@ FocusScope {
                 Accessible.name: qsTr("Position")
                 Keys.onLeftPressed: Music.seek(-10, true)
                 Keys.onRightPressed: Music.seek(10, true)
-                KeyNavigation.up: artistButton.visible ? artistButton : backButton
+                Keys.onUpPressed: (e) => { if (artistButton.visible) artistButton.forceActiveFocus(); else e.accepted = false }
                 KeyNavigation.down: playButton
                 Rectangle {
                     anchors.fill: parent
@@ -420,7 +413,6 @@ FocusScope {
                     primary: Music.shuffle
                     KeyNavigation.right: prevButton
                     KeyNavigation.up: seek
-                    Keys.onLeftPressed: backButton.forceActiveFocus()
                     onClicked: Music.shuffle = !Music.shuffle
                 }
                 FocusButton {

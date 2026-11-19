@@ -12,6 +12,8 @@ FocusScope {
     id: page
     objectName: "nowPlaying"
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: qsTr("Now Playing")
     readonly property var b: Book.book
     readonly property var speeds: {
         const out = []

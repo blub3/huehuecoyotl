@@ -11,6 +11,8 @@ import "MediaInfo.js" as MediaInfo
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: qsTr("Downloads")
     property var items: []
     property real used: 0
     property string storageDir: ""

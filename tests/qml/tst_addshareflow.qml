@@ -137,11 +137,13 @@ Item {
             tryCompare(flow, "step", 3)
             compare(stub.signIns[0].spec.protocol, "nfs")
             compare(stub.signIns[0].spec.share, "/export/media")
-            // Back twice, then out: nothing was created.
+            // Step back twice (on step 1 the page's own Back takes over), then out: nothing created.
+            verify(part("back").visible)
             part("back").clicked()
             compare(flow.step, 2)
             part("back").clicked()
             compare(flow.step, 1)
+            verify(!part("back").visible, "step 1 has no step back: the page's Back button closes the flow")
             part("back").clicked()
             compare(JSON.stringify(root.events), JSON.stringify(["closed"]))
             compare(stub.created, null)

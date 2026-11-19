@@ -15,7 +15,7 @@
 <context>
     <name>AlbumPage</name>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="185"/>
+        <location filename="../qml/AlbumPage.qml" line="188"/>
         <source>%n track(s)</source>
         <translation>
             <numerusform>%n track</numerusform>
@@ -23,7 +23,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="186"/>
+        <location filename="../qml/AlbumPage.qml" line="189"/>
         <source>%n disc(s)</source>
         <translation>
             <numerusform>%n disc</numerusform>
@@ -31,7 +31,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="424"/>
+        <location filename="../qml/AlbumPage.qml" line="427"/>
         <source>%n version(s)</source>
         <translation>
             <numerusform>%n version</numerusform>
@@ -42,7 +42,7 @@
 <context>
     <name>ArtistPage</name>
     <message numerus="yes">
-        <location filename="../qml/ArtistPage.qml" line="154"/>
+        <location filename="../qml/ArtistPage.qml" line="157"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n album</numerusform>
@@ -53,7 +53,7 @@
 <context>
     <name>BookListPage</name>
     <message numerus="yes">
-        <location filename="../qml/BookListPage.qml" line="75"/>
+        <location filename="../qml/BookListPage.qml" line="78"/>
         <source>%n book(s)</source>
         <translation>
             <numerusform>%n book</numerusform>
@@ -75,7 +75,7 @@
 <context>
     <name>BookPage</name>
     <message numerus="yes">
-        <location filename="../qml/BookPage.qml" line="81"/>
+        <location filename="../qml/BookPage.qml" line="84"/>
         <source>%n file(s) of this book are in that folder already. Choose another folder.</source>
         <translation>
             <numerusform>%n file of this book is in that folder already. Choose another folder.</numerusform>
@@ -83,7 +83,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/BookPage.qml" line="223"/>
+        <location filename="../qml/BookPage.qml" line="226"/>
         <source>%n chapter(s)</source>
         <translation>
             <numerusform>%n chapter</numerusform>
@@ -94,7 +94,7 @@
 <context>
     <name>BookPlayerPage</name>
     <message numerus="yes">
-        <location filename="../qml/BookPlayerPage.qml" line="175"/>
+        <location filename="../qml/BookPlayerPage.qml" line="177"/>
         <source>Back %n second(s)</source>
         <translation>
             <numerusform>Back %n second</numerusform>
@@ -102,7 +102,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/BookPlayerPage.qml" line="196"/>
+        <location filename="../qml/BookPlayerPage.qml" line="198"/>
         <source>Forward %n second(s)</source>
         <translation>
             <numerusform>Forward %n second</numerusform>
@@ -113,7 +113,7 @@
 <context>
     <name>DetailPage</name>
     <message numerus="yes">
-        <location filename="../qml/DetailPage.qml" line="992"/>
+        <location filename="../qml/DetailPage.qml" line="997"/>
         <source>%n file(s) exist already in %1. Replace them?</source>
         <translation>
             <numerusform>%n file exists already in %1. Replace it?</numerusform>
@@ -273,12 +273,12 @@
 <context>
     <name>MusicPage</name>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="408"/>
-        <location filename="../qml/MusicPage.qml" line="982"/>
-        <location filename="../qml/MusicPage.qml" line="1009"/>
-        <location filename="../qml/MusicPage.qml" line="1051"/>
-        <location filename="../qml/MusicPage.qml" line="1090"/>
-        <location filename="../qml/MusicPage.qml" line="1121"/>
+        <location filename="../qml/MusicPage.qml" line="410"/>
+        <location filename="../qml/MusicPage.qml" line="984"/>
+        <location filename="../qml/MusicPage.qml" line="1011"/>
+        <location filename="../qml/MusicPage.qml" line="1053"/>
+        <location filename="../qml/MusicPage.qml" line="1092"/>
+        <location filename="../qml/MusicPage.qml" line="1123"/>
         <source>%n song(s)</source>
         <translation>
             <numerusform>%n song</numerusform>
@@ -286,9 +286,9 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="558"/>
-        <location filename="../qml/MusicPage.qml" line="1216"/>
-        <location filename="../qml/MusicPage.qml" line="1226"/>
+        <location filename="../qml/MusicPage.qml" line="560"/>
+        <location filename="../qml/MusicPage.qml" line="1218"/>
+        <location filename="../qml/MusicPage.qml" line="1228"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n album</numerusform>
@@ -296,7 +296,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="558"/>
+        <location filename="../qml/MusicPage.qml" line="560"/>
         <source>%n Hi-Res</source>
         <translation>
             <numerusform>%n Hi-Res</numerusform>
@@ -304,7 +304,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="721"/>
+        <location filename="../qml/MusicPage.qml" line="723"/>
         <source>Appears on %n album(s)</source>
         <translation>
             <numerusform>Appears on %n album</numerusform>
@@ -312,7 +312,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/MusicPage.qml" line="1273"/>
+        <location filename="../qml/MusicPage.qml" line="1275"/>
         <source>Saving %n song(s). Progress is under Downloads.</source>
         <translation>
             <numerusform>Saving %n song. Progress is under Downloads.</numerusform>
@@ -323,7 +323,7 @@
 <context>
     <name>NowPlayingPage</name>
     <message numerus="yes">
-        <location filename="../qml/NowPlayingPage.qml" line="297"/>
+        <location filename="../qml/NowPlayingPage.qml" line="290"/>
         <source>%n channel(s)</source>
         <translation>
             <numerusform>%n channel</numerusform>
@@ -331,7 +331,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/NowPlayingPage.qml" line="565"/>
+        <location filename="../qml/NowPlayingPage.qml" line="557"/>
         <source>%n track(s)</source>
         <translation>
             <numerusform>%n track</numerusform>
@@ -342,7 +342,7 @@
 <context>
     <name>PlaylistPage</name>
     <message numerus="yes">
-        <location filename="../qml/PlaylistPage.qml" line="34"/>
+        <location filename="../qml/PlaylistPage.qml" line="37"/>
         <source>Saving %n song(s). Progress is under Downloads.</source>
         <translation>
             <numerusform>Saving %n song. Progress is under Downloads.</numerusform>
@@ -350,7 +350,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/PlaylistPage.qml" line="78"/>
+        <location filename="../qml/PlaylistPage.qml" line="81"/>
         <source>%n song(s)</source>
         <translation>
             <numerusform>%n song</numerusform>
@@ -434,8 +434,8 @@
 <context>
     <name>ShareEditor</name>
     <message numerus="yes">
-        <location filename="../qml/ShareEditor.qml" line="368"/>
-        <location filename="../qml/ShareEditor.qml" line="458"/>
+        <location filename="../qml/ShareEditor.qml" line="359"/>
+        <location filename="../qml/ShareEditor.qml" line="449"/>
         <source>%n file(s)</source>
         <translation>
             <numerusform>%n file</numerusform>
@@ -443,7 +443,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareEditor.qml" line="457"/>
+        <location filename="../qml/ShareEditor.qml" line="448"/>
         <source>%n folder(s)</source>
         <translation>
             <numerusform>%n folder</numerusform>

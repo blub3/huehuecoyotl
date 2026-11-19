@@ -8,6 +8,8 @@ import Coyotl
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: qsTr("Review matches")
     property var request: 0
     property var items: []
     property bool loaded: false
@@ -15,8 +17,8 @@ FocusScope {
     function load() { request = Core.review() }
     Component.onCompleted: load()
     function focusFirst() {
-        if (!page.activeFocus || back.activeFocus || reviewList.activeFocus) return
-        (items.length > 0 ? reviewList : back).forceActiveFocus()
+        if (!page.activeFocus || reviewList.activeFocus || items.length === 0) return
+        reviewList.forceActiveFocus()
     }
     onActiveFocusChanged: if (activeFocus) Qt.callLater(focusFirst)
 
@@ -26,7 +28,7 @@ FocusScope {
             if (requestId !== page.request) return
             page.items = list
             page.loaded = true
-            list.length > 0 ? reviewList.forceActiveFocus() : back.forceActiveFocus()
+            if (list.length > 0) reviewList.forceActiveFocus()
         }
         function onLibraryChanged() { page.load() }
     }
@@ -37,7 +39,6 @@ FocusScope {
         spacing: 16
         RowLayout {
             spacing: 14
-            FocusButton { id: back; glyph: "‹"; tip: qsTr("Back"); onClicked: Nav.back(); KeyNavigation.down: reviewList; Keys.onLeftPressed: Nav.focusRail() }
             Label { text: qsTr("Review matches"); color: Theme.text; font.pixelSize: Theme.fontTitle; font.bold: true }
         }
         Label {
@@ -53,7 +54,7 @@ FocusScope {
             spacing: 18
             model: page.items
             keyNavigationEnabled: true
-            Keys.onUpPressed: (e) => { if (currentIndex === 0) back.forceActiveFocus(); else e.accepted = false }
+            Keys.onUpPressed: (e) => { e.accepted = false }
             Keys.onLeftPressed: Nav.focusRail()
             delegate: FocusScope {
                 id: entry

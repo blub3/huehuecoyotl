@@ -10,6 +10,8 @@ import Coyotl
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: query.trim() !== "" ? qsTr("Search “%1”").arg(query.trim()) : qsTr("Search")
 
     readonly property var kinds: [
         { kind: "movie", label: qsTr("Movies"), ratio: 1.5 },

@@ -12,6 +12,9 @@ import "PlaylistInfo.js" as PlaylistInfo
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: card.name || ""
+    readonly property string pageKind: qsTr("Playlist")
     // "smart:<rule>" or an own playlist's id.
     property string key: ""
     property var card: ({})

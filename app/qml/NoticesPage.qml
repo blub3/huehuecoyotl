@@ -10,9 +10,11 @@ import Coyotl
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: qsTr("Third-party licences")
     readonly property var lines: Core.thirdPartyNotices().split("\n")
 
-    onActiveFocusChanged: if (activeFocus && !back.activeFocus) Qt.callLater(() => list.forceActiveFocus())
+    onActiveFocusChanged: if (activeFocus) Qt.callLater(() => list.forceActiveFocus())
 
     ColumnLayout {
         anchors.fill: parent
@@ -20,7 +22,6 @@ FocusScope {
         spacing: 16
         RowLayout {
             spacing: 14
-            FocusButton { id: back; glyph: "‹"; tip: qsTr("Back"); onClicked: Nav.back(); KeyNavigation.down: list; Keys.onLeftPressed: Nav.focusRail() }
             Label { text: qsTr("Third-party licences"); color: Theme.text; font.pixelSize: Theme.fontTitle; font.bold: true }
         }
         Rectangle {
@@ -46,7 +47,7 @@ FocusScope {
                 function scrollBy(px) {
                     contentY = Math.max(originY, Math.min(contentY + px, originY + contentHeight - height))
                 }
-                Keys.onUpPressed: (e) => { if (atYBeginning) back.forceActiveFocus(); else scrollBy(-3 * lineHeight) }
+                Keys.onUpPressed: (e) => { if (atYBeginning) e.accepted = false; else scrollBy(-3 * lineHeight) }
                 Keys.onDownPressed: scrollBy(3 * lineHeight)
                 Keys.onPressed: (e) => {
                     if (e.key === Qt.Key_PageDown || e.key === Qt.Key_Space) { scrollBy(height - lineHeight); e.accepted = true }

@@ -385,6 +385,11 @@ authors of the same name apart by which of your books are theirs.
 Everything works with the arrow keys, Enter and Escape (Back). The navigation rail is on the
 left: press Left on the first column of any page to reach it.
 
+Every page you open from another, a movie, an album, an artist, a book or Now Playing, has a
+**Back** button at the top left that names the page it returns to, for example “‹ Pink Floyd”.
+Back returns to that page as you left it; Up from the top of a page reaches the button. A
+section you open from the rail starts over.
+
 **Settings** has a tab for each part (Metadata, Matching, Appearance, Playback, Audio, Storage,
 Troubleshooting, About). Left and Right move between the tabs, Down goes into the one shown, and
 Up from its top comes back to the tabs. Settings opens on the tab you used last.

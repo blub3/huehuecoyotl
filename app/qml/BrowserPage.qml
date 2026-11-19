@@ -8,6 +8,9 @@ import Coyotl
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: folder.path.split("/").filter(x => x !== "").pop() || ""
+    readonly property string pageKind: qsTr("Folder")
     property string startPath
     property string returnTo: ""   // path of the folder we just left, to restore focus
     // Pick mode (adding a library folder): a button picks the folder being shown.
@@ -53,9 +56,12 @@ FocusScope {
 
         RowLayout {
             spacing: 14
+            // Issue #134: up one folder; going back from the first folder is the page's Back button.
             FocusButton {
-                glyph: "‹"
-                tip: qsTr("Back")
+                objectName: "upFolder"
+                visible: !(folder.parentPath === "" || folder.path === page.startPath)
+                glyph: "↑"
+                tip: qsTr("Up one folder")
                 focusPolicy: Qt.NoFocus
                 onClicked: page.goUp()
             }

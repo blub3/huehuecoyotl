@@ -14,6 +14,8 @@ import "PlaylistInfo.js" as PlaylistInfo
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: (views.find(v => v.key === view) || { label: qsTr("Music") }).label
 
     // albums, artists or genres.
     property string view: "albums"
