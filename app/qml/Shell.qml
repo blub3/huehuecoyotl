@@ -53,6 +53,11 @@ FocusScope {
         }
     }
     function focusRail() { rail.focusCurrent() }
+    // Issue #133: Up from a page's first row reaches the Back button (else the page keeps focus).
+    function focusBack() {
+        if (backButton.visible) { backButton.forceActiveFocus(); return true }
+        return false
+    }
     function focusContent() { Qt.callLater(() => { if (content.currentItem) content.currentItem.forceActiveFocus() }) }
 
     Component.onCompleted: {
@@ -131,5 +136,19 @@ FocusScope {
         // otherwise Back leaves the page.
         Keys.onEscapePressed: shell.back()
         Keys.onBackPressed: shell.back()
+    }
+
+    // Issue #133: one Back button for every page above a section's first, in the same place.
+    BackButton {
+        id: backButton
+        objectName: "shellBack"
+        z: 10
+        x: content.x + 40
+        y: content.y + 28
+        stack: content
+        onBackRequested: shell.back()
+        Keys.onDownPressed: shell.focusContent()
+        Keys.onRightPressed: shell.focusContent()
+        Keys.onLeftPressed: if (rail.visible) shell.focusRail()
     }
 }

@@ -18,6 +18,8 @@ QtObject {
         go("settings")
     }
     function focusRail() { if (shell) shell.focusRail() }
+    // Issue #133: from a page's first row, Up goes to the Back button; false when there is none.
+    function focusBack() { return shell ? shell.focusBack() : false }
     function nowPlaying() { if (shell) shell.openNowPlaying() }
     // Music (2.0) has pages of its own: an album, an artist; a track opens its album.
     // Audiobooks (2.5): a book, a series, a person.
