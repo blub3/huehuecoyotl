@@ -12,6 +12,8 @@ QtObject {
     property string preferredVersion: "quality"
     // Issue #117: the Settings tab used last.
     property string settingsTab: "metadata"
+    // Issue #119: the Sources cards the user closed ("share:3", "local"), comma-separated.
+    property string closedSources: ""
 
     readonly property var sizes: [
         { key: "small", label: qsTr("Small"), width: 140 },

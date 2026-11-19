@@ -62,6 +62,7 @@ ApplicationWindow {
         property string coverFullscreen: "large"
         // Issue #117: the Settings tab used last.
         property string settingsTab: "metadata"
+        property string closedSources: ""
     }
     Settings {
         id: playbackPrefs
@@ -83,6 +84,7 @@ ApplicationWindow {
         Appearance.coverWindow = prefs.coverWindow
         Appearance.coverFullscreen = prefs.coverFullscreen
         Appearance.settingsTab = prefs.settingsTab
+        Appearance.closedSources = prefs.closedSources
         Appearance.preferredVersion = playbackPrefs.preferredVersion
         Music.replayGain = playbackPrefs.replayGain
         Music.audioDevice = playbackPrefs.audioDevice
@@ -106,6 +108,7 @@ ApplicationWindow {
         function onCoverWindowChanged() { prefs.coverWindow = Appearance.coverWindow }
         function onCoverFullscreenChanged() { prefs.coverFullscreen = Appearance.coverFullscreen }
         function onSettingsTabChanged() { prefs.settingsTab = Appearance.settingsTab }
+        function onClosedSourcesChanged() { prefs.closedSources = Appearance.closedSources }
         function onPreferredVersionChanged() { playbackPrefs.preferredVersion = Appearance.preferredVersion }
     }
     Connections {
