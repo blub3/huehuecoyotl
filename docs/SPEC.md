@@ -2,6 +2,8 @@
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
 
+**Changes in v1.17:** 2.9, the Back button and the mini player (issues #133 to #138), in progress: one Back button on every stacked page (section 9, *Back button*).
+
 **Changes in v1.16:** 2.8 is released for Linux on Nov 19, 2026: network shares (issues #118 to #122): one share holds several folders, migration 13, Sources grouped by server, adding several folders at once, adding a share in three steps, editing a share (section 6, *Shares*, *Sources grouped by server*, *Adding folders*, *Adding a share*, *Editing a share*).
 
 **Changes in v1.15:** 2.7.1 is released for Linux on Nov 18, 2026: Settings has a tab bar, one tab per section (issue #117, section 9); the music library run matches artists too (issue #124, section 7).
@@ -614,6 +616,8 @@ The UI is QML on top of a few C++ models and controllers: it holds no business l
 | Desktop integration (C++) | Fullscreen and cursor auto-hide; screensaver inhibit during playback; media keys through SMTC on Windows and MPRIS over D-Bus on Linux |
 | Localisation and accessibility | `qsTr` strings with Qt Linguist files and `Accessible` properties from the start; retrofitting both is expensive |
 | Tooling | `qmllint` and the QML compiler run in every build |
+
+*Back button (2.9, issue #133, as built).* Pages stack in the shell's `StackView`: a page opened from another goes on top, Back (the button, Esc, the remote's Back) takes it off and shows the one below as it was left (its scroll position and focused item stay, since the pages below stay alive). The rail starts a new stack; choosing the section you are in returns to its first page. There is no Forward. One `BackButton.qml`, placed by the shell at the top left of the content (40 px from the rail, 28 px from the top, above the page), is shown on every page above a section's first and names the page below: its `pageTitle`, else its `pageKind`, else "Back"; long names end in "…" at 300 px, and its accessible name is "Back to …". It is dark glass (so it reads over backdrops and covers), with a light edge, the amber focus ring when focused and amber while pressed. Enter or a click goes back; Down or Right return to the page, Left to the rail; pages call `Nav.focusBack()` for Up from their first row. Icons are drawn (`Icon.qml`, vector paths on a 24 px grid). The button stays in its place while the page scrolls under it, so it can always be reached (the issue asked for it to scroll with the page; noted on #133). QML test: `tests/qml/tst_backbutton.qml`.
 
 **Music section (2.0, issue #10)**
 

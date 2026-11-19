@@ -586,6 +586,19 @@
     </message>
 </context>
 <context>
+    <name>BackButton</name>
+    <message>
+        <location filename="../qml/BackButton.qml" line="19"/>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location filename="../qml/BackButton.qml" line="29"/>
+        <source>Back to %1</source>
+        <translation>Zurück zu %1</translation>
+    </message>
+</context>
+<context>
     <name>BookListPage</name>
     <message>
         <location filename="../qml/BookListPage.qml" line="59"/>

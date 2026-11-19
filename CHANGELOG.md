@@ -2,6 +2,10 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased (2.9)
+
+- One Back button (#133, part of 2.9). Every page opened from another shows a Back button at the top left that names the page it returns to (“‹ Pink Floyd”) and goes back one page, to the page as you left it. A section's first page has none; the rail starts over.
+
 ## 2.8.0 – 2026-11-19 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). Network shares: one share holds several folders, Sources grouped by server, adding several folders at once, adding a share in three steps, and editing a share. Schema 13; a copy of the database is kept as `library.db.before-13`, and 2.7.1 cannot open the new one.
