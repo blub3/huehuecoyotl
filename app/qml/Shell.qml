@@ -130,6 +130,8 @@ FocusScope {
 
     MiniPlayer {
         id: mini
+        music: Music
+        bookPlayer: Book
         anchors { left: rail.right; right: parent.right; bottom: parent.bottom }
         visible: (Music.active || Book.active) && !(content.currentItem && content.currentItem.objectName === "nowPlaying")
         height: visible ? implicitHeight : 0

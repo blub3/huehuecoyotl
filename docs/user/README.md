@@ -234,8 +234,8 @@ version and **This is a different album**: it becomes an album of its own and st
 **Playing music.** **Play** or **Shuffle** on an album starts it; Enter on a track plays the
 album from that track. **Play next** (⤵) and **Add to queue** (+) put an album after the
 current track or at the end; on a track, press Menu for the same. Music keeps playing while you
-browse. The mini player at the bottom of the screen has previous, play or pause, next and
-**Now Playing**; with the keyboard or a remote, press Down from the last entry of the menu on
+browse. The mini player at the bottom of the screen has the controls of Now Playing (shuffle,
+previous, play or pause, next, repeat, with the times), volume and **Now Playing**; with the keyboard or a remote, press Down from the last entry of the menu on
 the left to reach it.
 
 **Now Playing** (from 2.6) fills the window in the colour of the album cover. Under the song,
