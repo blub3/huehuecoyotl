@@ -48,6 +48,7 @@ qt_add_qml_module(coyotl
     qml/MusicMatch.qml
     qml/BookMatch.qml
     qml/SettingsTabs.qml
+    qml/ShareCard.qml
     qml/MiniPlayer.qml
     qml/ActionMenu.qml
     qml/MusicKeyRow.qml

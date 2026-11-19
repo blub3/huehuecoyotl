@@ -216,17 +216,17 @@
 <context>
     <name>Appearance</name>
     <message>
-        <location filename="../qml/Appearance.qml" line="17"/>
+        <location filename="../qml/Appearance.qml" line="19"/>
         <source>Small</source>
         <translation>Klein</translation>
     </message>
     <message>
-        <location filename="../qml/Appearance.qml" line="18"/>
+        <location filename="../qml/Appearance.qml" line="20"/>
         <source>Medium</source>
         <translation>Mittel</translation>
     </message>
     <message>
-        <location filename="../qml/Appearance.qml" line="19"/>
+        <location filename="../qml/Appearance.qml" line="21"/>
         <source>Large</source>
         <translation>Groß</translation>
     </message>
@@ -902,37 +902,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="924"/>
+        <location filename="../src/corebridge.cpp" line="947"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="926"/>
+        <location filename="../src/corebridge.cpp" line="949"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="928"/>
+        <location filename="../src/corebridge.cpp" line="951"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="930"/>
+        <location filename="../src/corebridge.cpp" line="953"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="932"/>
+        <location filename="../src/corebridge.cpp" line="955"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="934"/>
+        <location filename="../src/corebridge.cpp" line="957"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1188"/>
+        <location filename="../src/corebridge.cpp" line="1211"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -5007,6 +5007,124 @@
     </message>
 </context>
 <context>
+    <name>ShareCard</name>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="41"/>
+        <source>PC</source>
+        <translation>PC</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="45"/>
+        <source>Music</source>
+        <translation>Musik</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="45"/>
+        <source>Audiobooks</source>
+        <translation>Hörbücher</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="45"/>
+        <source>Movies &amp; shows</source>
+        <translation>Filme &amp; Serien</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="48"/>
+        <source>scanning…</source>
+        <translation>wird durchsucht …</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="49"/>
+        <source>offline</source>
+        <translation>offline</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareCard.qml" line="50"/>
+        <source>%n file(s)</source>
+        <translation>
+            <numerusform>%n Datei</numerusform>
+            <numerusform>%n Dateien</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareCard.qml" line="50"/>
+        <source>%n video(s)</source>
+        <translation>
+            <numerusform>%n Video</numerusform>
+            <numerusform>%n Videos</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="74"/>
+        <source>Close %1</source>
+        <translation>%1 zuklappen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="74"/>
+        <source>Open %1</source>
+        <translation>%1 aufklappen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="102"/>
+        <source>This computer</source>
+        <translation>Dieser Computer</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="110"/>
+        <source>always here</source>
+        <translation>immer da</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="110"/>
+        <source>online</source>
+        <translation>online</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="110"/>
+        <source>offline · saved copies play</source>
+        <translation>offline · gespeicherte Kopien spielen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="111"/>
+        <source>as %1</source>
+        <translation>als %1</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareCard.qml" line="112"/>
+        <source>%n folder(s)</source>
+        <translation>
+            <numerusform>%n Ordner</numerusform>
+            <numerusform>%n Ordner</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="120"/>
+        <source>Add folders</source>
+        <translation>Ordner hinzufügen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="131"/>
+        <source>Edit share</source>
+        <translation>Freigabe bearbeiten</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="141"/>
+        <location filename="../qml/ShareCard.qml" line="200"/>
+        <source>Rescan</source>
+        <translation>Neu durchsuchen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="142"/>
+        <source>Rescan every folder of %1</source>
+        <translation>Alle Ordner von %1 neu durchsuchen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ShareCard.qml" line="211"/>
+        <source>Remove…</source>
+        <translation>Entfernen …</translation>
+    </message>
+</context>
+<context>
     <name>ShowsPage</name>
     <message>
         <location filename="../qml/ShowsPage.qml" line="5"/>
@@ -5022,121 +5140,92 @@
 <context>
     <name>SourcesPage</name>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="46"/>
+        <location filename="../qml/SourcesPage.qml" line="73"/>
         <source>Sources</source>
         <translation>Quellen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="51"/>
+        <location filename="../qml/SourcesPage.qml" line="78"/>
         <source>Library folders</source>
         <translation>Bibliotheksordner</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="55"/>
-        <source>Add folder</source>
-        <translation>Ordner hinzufügen</translation>
-    </message>
-    <message>
-        <location filename="../qml/SourcesPage.qml" line="65"/>
+        <location filename="../qml/SourcesPage.qml" line="83"/>
         <source>Add network share</source>
         <translation>Netzwerkfreigabe hinzufügen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="74"/>
+        <location filename="../qml/SourcesPage.qml" line="93"/>
+        <source>Folder on this computer</source>
+        <translation>Ordner auf diesem Computer</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="102"/>
         <source>Scanning…</source>
         <translation>Wird durchsucht …</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="74"/>
+        <location filename="../qml/SourcesPage.qml" line="102"/>
         <source>Rescan all</source>
         <translation>Alle neu durchsuchen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="84"/>
-        <source>Add the folders that hold your movies and shows, on this computer or on a network share (NAS). They are scanned, matched with TMDB and shown under Movies and Shows.</source>
-        <translation>Füge die Ordner mit deinen Filmen und Serien hinzu, auf diesem Computer oder auf einer Netzwerkfreigabe (NAS). Sie werden durchsucht, mit TMDB abgeglichen und unter Filme und Serien angezeigt.</translation>
+        <location filename="../qml/SourcesPage.qml" line="112"/>
+        <source>Add the folders that hold your movies, shows, music and audiobooks, on this computer or on a network share (NAS). Each server is added once; its folders sit inside it.</source>
+        <translation>Füge die Ordner mit deinen Filmen, Serien, Musik und Hörbüchern hinzu, auf diesem Computer oder auf einer Netzwerkfreigabe (NAS). Jeder Server wird einmal hinzugefügt; seine Ordner liegen darin.</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="137"/>
-        <source>scanning…</source>
-        <translation>wird durchsucht …</translation>
-    </message>
-    <message>
-        <location filename="../qml/SourcesPage.qml" line="138"/>
-        <source>offline</source>
-        <translation>offline</translation>
-    </message>
-    <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="139"/>
-        <source>Music · %n file(s)</source>
-        <translation>
-            <numerusform>Musik · %n Datei</numerusform>
-            <numerusform>Musik · %n Dateien</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="140"/>
-        <source>Audiobooks · %n file(s)</source>
-        <translation>
-            <numerusform>Hörbücher · %n Datei</numerusform>
-            <numerusform>Hörbücher · %n Dateien</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="141"/>
-        <source>%n video(s)</source>
-        <translation>
-            <numerusform>%n Video</numerusform>
-            <numerusform>%n Videos</numerusform>
-        </translation>
-    </message>
-    <message>
-        <location filename="../qml/SourcesPage.qml" line="148"/>
-        <source>Rescan</source>
-        <translation>Neu durchsuchen</translation>
-    </message>
-    <message>
-        <location filename="../qml/SourcesPage.qml" line="155"/>
-        <source>Really remove?</source>
-        <translation>Wirklich entfernen?</translation>
-    </message>
-    <message>
-        <location filename="../qml/SourcesPage.qml" line="155"/>
-        <source>Remove</source>
-        <translation>Entfernen</translation>
-    </message>
-    <message>
-        <location filename="../qml/SourcesPage.qml" line="164"/>
+        <location filename="../qml/SourcesPage.qml" line="136"/>
         <source>Browse this computer</source>
         <translation>Diesen Computer durchsuchen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="224"/>
+        <location filename="../qml/SourcesPage.qml" line="201"/>
+        <source>Remove “%1” from the library?</source>
+        <translation>„%1“ aus der Bibliothek entfernen?</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="207"/>
+        <source>Its titles leave the library, and saved copies of its files on this computer are deleted. The files on the server or disk stay. If you add the folder again, it is scanned and matched again.</source>
+        <translation>Seine Titel verlassen die Bibliothek, und gespeicherte Kopien seiner Dateien auf diesem Computer werden gelöscht. Die Dateien auf dem Server oder der Festplatte bleiben. Fügst du den Ordner wieder hinzu, wird er neu durchsucht und zugeordnet.</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="211"/>
+        <source>Keep it</source>
+        <translation>Behalten</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="216"/>
+        <source>Remove folder</source>
+        <translation>Ordner entfernen</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="242"/>
         <source>What is in “%1”?</source>
         <translation>Was liegt in „%1“?</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="231"/>
+        <location filename="../qml/SourcesPage.qml" line="249"/>
         <source>Video folders become Movies and Shows, music folders Music, audiobook folders Audiobooks. A folder with more than one is added once per subfolder.</source>
         <translation>Videoordner landen unter Filme und Serien, Musikordner unter Musik, Hörbuchordner unter Hörbücher. Einen Ordner mit mehreren Arten fügst du je Unterordner einmal hinzu.</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="238"/>
+        <location filename="../qml/SourcesPage.qml" line="256"/>
         <source>Movies and shows</source>
         <translation>Filme und Serien</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="244"/>
+        <location filename="../qml/SourcesPage.qml" line="262"/>
         <source>Music</source>
         <translation>Musik</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="251"/>
+        <location filename="../qml/SourcesPage.qml" line="269"/>
         <source>Audiobooks</source>
         <translation>Hörbücher</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="258"/>
+        <location filename="../qml/SourcesPage.qml" line="276"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>

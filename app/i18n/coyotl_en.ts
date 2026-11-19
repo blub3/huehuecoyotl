@@ -416,29 +416,29 @@
     </message>
 </context>
 <context>
-    <name>SourcesPage</name>
+    <name>ShareCard</name>
     <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="139"/>
-        <source>Music · %n file(s)</source>
+        <location filename="../qml/ShareCard.qml" line="50"/>
+        <source>%n file(s)</source>
         <translation>
-            <numerusform>Music · %n file</numerusform>
-            <numerusform>Music · %n files</numerusform>
+            <numerusform>%n file</numerusform>
+            <numerusform>%n files</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="140"/>
-        <source>Audiobooks · %n file(s)</source>
-        <translation>
-            <numerusform>Audiobooks · %n file</numerusform>
-            <numerusform>Audiobooks · %n files</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <location filename="../qml/SourcesPage.qml" line="141"/>
+        <location filename="../qml/ShareCard.qml" line="50"/>
         <source>%n video(s)</source>
         <translation>
             <numerusform>%n video</numerusform>
             <numerusform>%n videos</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareCard.qml" line="112"/>
+        <source>%n folder(s)</source>
+        <translation>
+            <numerusform>%n folder</numerusform>
+            <numerusform>%n folders</numerusform>
         </translation>
     </message>
 </context>

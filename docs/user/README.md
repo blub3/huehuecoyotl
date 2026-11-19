@@ -39,7 +39,7 @@ The Home screen shows a short setup guide while the library is empty. You need t
 
 ## Add a folder on this computer
 
-Open **Sources** and choose **Add folder**. Pick the folder that contains your films or series
+Open **Sources** and choose **Folder on this computer**. Pick the folder that contains your films or series
 and choose **Add this folder**. Huehuecoyotl scans it straight away and again whenever you
 choose **Rescan all**. Subfolders are included.
 
@@ -49,6 +49,11 @@ one, add its subfolders separately. For a network share, **Contains** in its set
 
 A folder on a disk that is not connected (an unplugged USB drive) is shown as unreachable;
 nothing is removed from the library until the folder is back and a scan finds the files gone.
+
+**Sources** shows one card per server: each network share, and **This computer**, with their
+folders inside. A folder shows what it holds and how many files it has, with **Rescan** and
+**Remove…**; removing asks first, and deletes the folder's saved copies on this computer (the
+files on the server stay). Right opens a card, Left closes it; closed cards stay closed.
 
 ## Add a network share
 
