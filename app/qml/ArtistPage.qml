@@ -11,6 +11,9 @@ import Coyotl
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: d.title || ""
+    readonly property string pageKind: qsTr("Artist")
     property var itemId
     property var d: ({})
     property var request: 0

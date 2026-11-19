@@ -81,6 +81,11 @@ FocusScope {
         else if (step === 2) (protocol === "nfs" ? shareField : userField).forceActiveFocus()
         else folders.focusFirst()
     }
+    // Up from the top of a step: the step back button, else on to the page (its Back button).
+    function upFromTop(e) {
+        if (backButton.visible) backButton.forceActiveFocus()
+        else e.accepted = false
+    }
     function back() {
         if (step === 1) flow.closed()
         else goTo(step - 1)
@@ -180,7 +185,8 @@ FocusScope {
                 id: backButton
                 objectName: "back"
                 glyph: "←"
-                tip: flow.step === 1 ? qsTr("Close") : qsTr("Back")
+                visible: flow.step > 1
+                tip: qsTr("Previous step")
                 KeyNavigation.down: flow.step === 1 ? (flow.servers.length > 0 ? serverList : protoRow) : flow.step === 2 ? (flow.protocol === "nfs" ? shareField : userField) : folders
                 onClicked: flow.back()
             }
@@ -256,7 +262,7 @@ FocusScope {
                 spacing: 6
                 model: flow.servers
                 keyNavigationEnabled: true
-                Keys.onUpPressed: (e) => { if (currentIndex <= 0) backButton.forceActiveFocus(); else e.accepted = false }
+                Keys.onUpPressed: (e) => { if (currentIndex <= 0) flow.upFromTop(e); else e.accepted = false }
                 Keys.onDownPressed: (e) => { if (currentIndex === count - 1) protoRow.forceActiveFocus(); else e.accepted = false }
                 delegate: FocusButton {
                     id: serverButton
@@ -289,7 +295,7 @@ FocusScope {
                         Accessible.checked: primary
                         KeyNavigation.left: index > 0 ? protoRepeater.itemAt(index - 1) : null
                         KeyNavigation.right: index < flow.protocols.length - 1 ? protoRepeater.itemAt(index + 1) : null
-                        KeyNavigation.up: flow.servers.length > 0 ? serverList : backButton
+                        Keys.onUpPressed: (e) => { if (flow.servers.length > 0) serverList.forceActiveFocus(); else flow.upFromTop(e) }
                         KeyNavigation.down: hostField
                         onClicked: flow.protocol = modelData.key
                     }
@@ -366,7 +372,7 @@ FocusScope {
                     placeholderText: flow.protocol === "smb" ? qsTr("Empty for guest access") : flow.protocol === "ftp" ? qsTr("Empty for anonymous") : ""
                     Accessible.name: qsTr("User name")
                     inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
-                    KeyNavigation.up: backButton
+                    Keys.onUpPressed: (e) => flow.upFromTop(e)
                     KeyNavigation.down: passwordField
                     onTextEdited: flow.smbShares = []
                     onAccepted: passwordField.forceActiveFocus()
@@ -417,7 +423,7 @@ FocusScope {
                                    : flow.protocol === "sftp" ? qsTr("e.g. /srv/media") : qsTr("e.g. /dav")
                     Accessible.name: flow.protocol === "smb" ? qsTr("Share") : flow.protocol === "nfs" ? qsTr("Export path") : qsTr("Base folder")
                     inputMethodHints: Qt.ImhNoAutoUppercase
-                    KeyNavigation.up: flow.protocol === "nfs" ? backButton : flow.protocol === "sftp" ? keyField : passwordField
+                    Keys.onUpPressed: (e) => { if (flow.protocol === "nfs") flow.upFromTop(e); else (flow.protocol === "sftp" ? keyField : passwordField).forceActiveFocus() }
                     KeyNavigation.down: connectButton
                     onTextEdited: flow.share = text
                     onAccepted: flow.signIn()

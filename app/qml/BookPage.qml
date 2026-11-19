@@ -14,6 +14,9 @@ import "MediaInfo.js" as MediaInfo
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: d.title || ""
+    readonly property string pageKind: qsTr("Audiobook")
     property var itemId
     property var d: ({})
     property var request: 0
@@ -206,7 +209,7 @@ FocusScope {
                                     tip: modelData.narrator ? qsTr("Books read by %1").arg(modelData.name) : qsTr("Books by %1").arg(modelData.name)
                                     Keys.onLeftPressed: index === 0 ? Nav.focusRail() : people.itemAt(index - 1).forceActiveFocus()
                                     Keys.onRightPressed: if (index + 1 < people.count) people.itemAt(index + 1).forceActiveFocus()
-                                    Keys.onUpPressed: if (seriesButton.visible) seriesButton.forceActiveFocus()
+                                    Keys.onUpPressed: seriesButton.visible ? seriesButton.forceActiveFocus() : Nav.focusBack()
                                     Keys.onDownPressed: playButton.forceActiveFocus()
                                     onClicked: Nav.openItem(modelData.id, "person")
                                 }
@@ -255,7 +258,7 @@ FocusScope {
                                 text: page.current && Book.playing ? qsTr("Pause")
                                     : page.started || (page.current && Book.state === 4) ? qsTr("Resume") : qsTr("Play")
                                 Keys.onLeftPressed: Nav.focusRail()
-                                Keys.onUpPressed: people.count > 0 ? people.itemAt(0).forceActiveFocus() : (seriesButton.visible ? seriesButton.forceActiveFocus() : null)
+                                Keys.onUpPressed: people.count > 0 ? people.itemAt(0).forceActiveFocus() : (seriesButton.visible ? seriesButton.forceActiveFocus() : Nav.focusBack())
                                 KeyNavigation.right: finishButton
                                 KeyNavigation.down: chapterList.count > 0 ? chapterList : null
                                 onActiveFocusChanged: if (activeFocus) flick.reveal(this)

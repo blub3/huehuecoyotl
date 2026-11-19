@@ -16,6 +16,9 @@ import "MediaInfo.js" as MediaInfo
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: d.title || ""
+    readonly property string pageKind: kind === "show" ? qsTr("Show") : kind === "season" ? qsTr("Season") : kind === "episode" ? qsTr("Episode") : qsTr("Movie")
     property var itemId
     property var d: ({})
     property var request: 0
@@ -427,6 +430,8 @@ FocusScope {
             Keys.onPressed: (e) => {
                 if (e.key === Qt.Key_Menu && page.hasFiles && pageSave.visible) { pageSave.openMenu(content.Window.activeFocusItem); e.accepted = true }
             }
+            // Issue #134: Up from the top row goes to the Back button (before the list takes it).
+            Keys.onUpPressed: (e) => { e.accepted = Nav.focusBack() }
 
             ColumnLayout {
                 id: col
@@ -572,7 +577,7 @@ FocusScope {
                                 glyph: "▶"
                                 text: page.loaded ? page.playLabel() : qsTr("Play")
                                 enabled: !(page.hasFiles && page.file !== null && !MediaInfo.playable(page.file))
-                                KeyNavigation.up: page.manyVersions ? versionButton : null
+                                Keys.onUpPressed: page.manyVersions ? versionButton.forceActiveFocus() : Nav.focusBack()
                                 KeyNavigation.right: watchedButton
                                 KeyNavigation.down: page.belowActions()
                                 Keys.onLeftPressed: Nav.focusRail()

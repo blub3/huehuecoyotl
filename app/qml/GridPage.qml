@@ -11,6 +11,8 @@ FocusScope {
     readonly property bool isPlayer: false
     property string kind: "movie"
     property string heading
+    // Issue #134: what the Back button above the next page calls this one: the tab, else the heading.
+    readonly property string pageTitle: (tabs.find(t => t.key === tab) || { label: heading }).label
     property string emptyText
     // Music (2.0): square covers, tabs instead of one kind, no "unwatched" filter.
     property real posterRatio: 1.5

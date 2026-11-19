@@ -10,6 +10,8 @@ import Coyotl
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: qsTr("Home")
 
     ContinueWatchingModel { id: recent }
     RecentlyAddedModel { id: added }

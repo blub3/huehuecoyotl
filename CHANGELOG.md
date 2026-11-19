@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 ## Unreleased (2.9)
 
 - One Back button (#133, part of 2.9). Every page opened from another shows a Back button at the top left that names the page it returns to (“‹ Pink Floyd”) and goes back one page, to the page as you left it. A section's first page has none; the rail starts over.
+- Every page uses the Back button (#134, part of 2.9): movies, shows, albums, artists, audiobooks, playlists, search, Now Playing and the Sources and Settings pages. Artist → album → Back returns to the artist; Back from Now Playing returns to where you opened it. The pages' own back arrows are gone, and Up from a page's top row reaches the Back button.
 
 ## 2.8.0 – 2026-11-19 (Linux)
 

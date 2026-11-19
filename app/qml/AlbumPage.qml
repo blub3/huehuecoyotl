@@ -13,6 +13,9 @@ import "MediaInfo.js" as MediaInfo
 FocusScope {
     id: page
     readonly property bool isPlayer: false
+    // Issue #134: what the Back button above the next page calls this one.
+    readonly property string pageTitle: d.title || ""
+    readonly property string pageKind: qsTr("Album")
     property var itemId
     // A track to put focus on (opened from search).
     property var focusTrack: 0
@@ -221,7 +224,7 @@ FocusScope {
                                 index: page.versionIndex
                                 labels: page.versions.map(v => MediaInfo.musicVersionLabel(v))
                                 choices: page.versions.map(v => MediaInfo.musicVersionChoice(v))
-                                KeyNavigation.up: artistButton.visible ? artistButton : null
+                                Keys.onUpPressed: (e) => { const t = artistButton.visible ? artistButton : null; if (t) t.forceActiveFocus(); else e.accepted = Nav.focusBack() }
                                 KeyNavigation.down: playButton
                                 KeyNavigation.right: splitButton
                                 Keys.onLeftPressed: Nav.focusRail()
@@ -233,7 +236,7 @@ FocusScope {
                                 font.pixelSize: Theme.fontSmall
                                 KeyNavigation.left: versionPicker
                                 KeyNavigation.down: playButton
-                                KeyNavigation.up: artistButton.visible ? artistButton : null
+                                Keys.onUpPressed: (e) => { const t = artistButton.visible ? artistButton : null; if (t) t.forceActiveFocus(); else e.accepted = Nav.focusBack() }
                                 onClicked: splitConfirm.open()
                             }
                         }
@@ -263,7 +266,7 @@ FocusScope {
                                 glyph: "▶"
                                 text: qsTr("Play")
                                 enabled: page.tracks.length > 0 && page.d.playable === true
-                                KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
+                                Keys.onUpPressed: (e) => { const t = versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null; if (t) t.forceActiveFocus(); else e.accepted = Nav.focusBack() }
                                 KeyNavigation.right: shuffleButton
                                 KeyNavigation.down: trackList
                                 Keys.onLeftPressed: Nav.focusRail()
@@ -274,7 +277,7 @@ FocusScope {
                                 glyph: "⤮"
                                 text: qsTr("Shuffle")
                                 enabled: page.tracks.length > 1 && page.d.playable === true
-                                KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
+                                Keys.onUpPressed: (e) => { const t = versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null; if (t) t.forceActiveFocus(); else e.accepted = Nav.focusBack() }
                                 KeyNavigation.left: playButton
                                 KeyNavigation.right: playNextButton
                                 KeyNavigation.down: trackList
@@ -285,7 +288,7 @@ FocusScope {
                                 glyph: "⤵"
                                 tip: qsTr("Play next")
                                 enabled: page.tracks.length > 0 && page.d.playable === true
-                                KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
+                                Keys.onUpPressed: (e) => { const t = versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null; if (t) t.forceActiveFocus(); else e.accepted = Nav.focusBack() }
                                 KeyNavigation.left: shuffleButton
                                 KeyNavigation.right: queueButton
                                 KeyNavigation.down: trackList
@@ -296,7 +299,7 @@ FocusScope {
                                 glyph: "+"
                                 tip: qsTr("Add to queue")
                                 enabled: page.tracks.length > 0 && page.d.playable === true
-                                KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
+                                Keys.onUpPressed: (e) => { const t = versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null; if (t) t.forceActiveFocus(); else e.accepted = Nav.focusBack() }
                                 KeyNavigation.left: playNextButton
                                 KeyNavigation.right: playlistButton
                                 KeyNavigation.down: trackList
@@ -308,7 +311,7 @@ FocusScope {
                                 glyph: "≡+"
                                 tip: qsTr("Add to playlist")
                                 enabled: page.tracks.length > 0
-                                KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
+                                Keys.onUpPressed: (e) => { const t = versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null; if (t) t.forceActiveFocus(); else e.accepted = Nav.focusBack() }
                                 KeyNavigation.left: queueButton
                                 KeyNavigation.right: saveMenu.visible ? saveMenu : moreButton
                                 KeyNavigation.down: trackList
@@ -318,7 +321,7 @@ FocusScope {
                                 id: saveMenu
                                 sv: page.sv
                                 canExport: false
-                                KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
+                                Keys.onUpPressed: (e) => { const t = versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null; if (t) t.forceActiveFocus(); else e.accepted = Nav.focusBack() }
                                 KeyNavigation.left: playlistButton
                                 KeyNavigation.right: moreButton
                                 KeyNavigation.down: trackList
@@ -330,7 +333,7 @@ FocusScope {
                                 objectName: "albumMore"
                                 glyph: "⋯"
                                 tip: qsTr("More")
-                                KeyNavigation.up: versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null
+                                Keys.onUpPressed: (e) => { const t = versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null; if (t) t.forceActiveFocus(); else e.accepted = Nav.focusBack() }
                                 KeyNavigation.left: saveMenu.visible ? saveMenu : playlistButton
                                 KeyNavigation.down: trackList
                                 onClicked: albumMenu.show(moreButton, [{ value: "match", label: qsTr("Match again") },

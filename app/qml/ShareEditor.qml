@@ -151,14 +151,6 @@ FocusScope {
 
             RowLayout {
                 spacing: 12
-                FocusButton {
-                    id: backButton
-                    objectName: "back"
-                    glyph: "←"
-                    tip: qsTr("Back")
-                    KeyNavigation.down: hostField
-                    onClicked: editor.closed()
-                }
                 Label {
                     Layout.fillWidth: true
                     text: editor.info ? qsTr("Edit %1").arg(editor.info.name) : qsTr("Edit share")
@@ -187,7 +179,6 @@ FocusScope {
                         Layout.fillWidth: true
                         Accessible.name: qsTr("Server")
                         inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhUrlCharactersOnly
-                        KeyNavigation.up: backButton
                         KeyNavigation.right: portField
                         KeyNavigation.down: shareField
                     }
