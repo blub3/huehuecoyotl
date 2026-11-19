@@ -2,6 +2,10 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased (2.9.1)
+
+- One artist per MusicBrainz artist ID (#146, part of 2.9.1). Artists spelled differently in different albums' tags ("Rosalia", "Rosalía") become one artist when they share their MusicBrainz ID, and unmatched artists whose names differ only in case or accents are one artist too; artists with different IDs stay apart. Albums, playlists and play counts stay. Schema 14; a copy of the database is kept as `library.db.before-14`, and 2.9.0 cannot open the new one.
+
 ## 2.9.0 – 2026-11-19 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). One Back button on every page, with a trail to go back several pages at once and more Back keys; the mini player with the Now Playing controls, and skip and speed for audiobooks. No migration.

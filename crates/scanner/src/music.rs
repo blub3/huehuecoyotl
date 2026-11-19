@@ -594,22 +594,42 @@ fn artist(tx: &Transaction, name: &str, mbid: Option<&str>, now: i64) -> rusqlit
             return Ok(id);
         }
     }
-    let key = format!("artist:{}", normalize(name));
-    let id = match tx
+    // Issue #146: the name without case and accents ("Rosalia" = "Rosalía"), but never an artist
+    // that carries another artist ID; a merged-away artist's key leads to the one that stayed.
+    let key = huehuecoyotl_library::artists::key(name);
+    let mb = mbid.map(str::to_lowercase);
+    let found: Option<i64> = tx
         .query_row(
-            "SELECT id FROM item WHERE kind = 'artist' AND group_key = ?1",
-            [&key],
+            "SELECT i.id FROM item i WHERE i.kind = 'artist' AND i.group_key = ?1
+               AND NOT EXISTS (SELECT 1 FROM external_id e WHERE e.item_id = i.id AND e.provider = 'musicbrainz'
+                               AND e.kind = 'artist' AND ?2 IS NOT NULL AND e.value <> ?2)
+             ORDER BY i.id LIMIT 1",
+            params![key, mb],
             |r| r.get(0),
         )
-        .optional()?
-    {
+        .optional()?;
+    let found = match found {
+        Some(id) => Some(id),
+        None if mb.is_none() => tx
+            .query_row(
+                "SELECT a.item_id FROM group_alias a JOIN item i ON i.id = a.item_id
+                 WHERE a.kind = 'artist' AND a.key = ?1",
+                [&key],
+                |r| r.get(0),
+            )
+            .optional()?,
+        None => None,
+    };
+    let id = match found {
         Some(id) => id,
         None => insert_item(tx, "artist", name, None, None, &key, now)?,
     };
-    if let Some(mb) = mbid {
+    if let Some(mb) = mb {
         tx.execute(
-            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'musicbrainz', 'artist', ?2)",
-            params![id, mb.to_lowercase()],
+            "INSERT INTO external_id(item_id, provider, kind, value)
+             SELECT ?1, 'musicbrainz', 'artist', ?2 WHERE NOT EXISTS (
+               SELECT 1 FROM external_id WHERE item_id = ?1 AND provider = 'musicbrainz' AND kind = 'artist')",
+            params![id, mb],
         )?;
     }
     Ok(id)

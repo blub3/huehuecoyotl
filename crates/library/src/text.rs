@@ -14,6 +14,17 @@ pub fn normalize(title: &str) -> String {
         .join(" ")
 }
 
+/// Issue #146: [`normalize`] without accents, for names that must match however they are
+/// spelled: "Rosalía", "Rosalia" and "ROSALÍA" are all "rosalia".
+pub fn fold(name: &str) -> String {
+    use unicode_normalization::UnicodeNormalization;
+    let plain: String = name
+        .nfkd()
+        .filter(|c| !unicode_normalization::char::is_combining_mark(*c))
+        .collect();
+    normalize(&plain)
+}
+
 /// Sort without leading articles: "The Matrix" sorts under M.
 pub fn sort_title(title: &str) -> String {
     let l = title.trim().to_lowercase();

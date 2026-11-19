@@ -1,6 +1,7 @@
 //! The library database (SPEC 7): SQLite in WAL mode, exactly one writer thread fed by a
 //! channel, and a small pool of read-only connections for UI queries (SPEC 4, threading).
 
+pub mod artists;
 pub mod books;
 pub mod catalog;
 pub mod copies;
@@ -514,6 +515,86 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(mode, "wal");
+    }
+
+    /// Issue #146: migration 14 keys artists by their folded names and joins "Rosalia" and
+    /// "Rosalía" (one MusicBrainz artist ID), keeping albums, playlists and play counts. A copy is
+    /// kept as `library.db.before-14`.
+    #[test]
+    fn artist_migration_joins_the_same_artist() {
+        let d = tempfile::tempdir().unwrap();
+        let path = d.path().join("library.db");
+        {
+            let mut c = Connection::open(&path).unwrap();
+            c.pragma_update(None, "foreign_keys", "ON").unwrap();
+            for m in &MIGRATIONS[..13] {
+                let tx = c.transaction().unwrap();
+                match m {
+                    Migration::Sql(sql) => tx.execute_batch(sql).unwrap(),
+                    Migration::Rust(f) | Migration::Rebuild(f) | Migration::Merge(f) => {
+                        f(&tx).unwrap()
+                    }
+                }
+                tx.commit().unwrap();
+            }
+            c.pragma_update(None, "user_version", 13).unwrap();
+            c.execute_batch(
+                r#"INSERT INTO item(id, kind, title, sort_title, group_key, locked, match_state) VALUES
+                   (1, 'artist', 'Rosalía', 'rosalía', 'artist:rosalía', 0, 'unmatched'),
+                   (2, 'artist', 'Rosalia', 'rosalia', 'artist:rosalia', 1, 'matched');
+                   INSERT INTO external_id(item_id, provider, kind, value) VALUES
+                   (1, 'musicbrainz', 'artist', '25f3abd9-63b5-471a-bd25-feb9672dfa11'),
+                   (2, 'musicbrainz', 'artist', '25f3abd9-63b5-471a-bd25-feb9672dfa11');
+                   INSERT INTO item(id, kind, parent_id, title, sort_title) VALUES
+                   (10, 'album', 1, 'Lux', 'lux'), (11, 'track', 10, 'One', 'one'),
+                   (20, 'album', 2, 'LUX', 'lux'), (21, 'track', 20, 'Two', 'two');
+                   INSERT INTO credit(item_id, artist_id, role, position) VALUES (11, 1, 'artist', 0), (21, 2, 'artist', 0);
+                   INSERT INTO playstate(item_id, profile_id, position_ms, duration_ms, watched, updated_at, play_count) VALUES
+                   (11, 1, 0, 0, 0, 1, 4), (21, 1, 0, 0, 0, 1, 7);
+                   INSERT INTO playlist(id, name, created_at, updated_at) VALUES (1, 'Mine', 0, 0);
+                   INSERT INTO playlist_entry(playlist_id, position, item_id) VALUES (1, 0, 11), (1, 1, 21);"#,
+            )
+            .unwrap();
+        }
+        drop(Library::open(&path).unwrap());
+        assert!(d.path().join("library.db.before-14").exists());
+        let c = Connection::open(&path).unwrap();
+        let artists: Vec<(i64, String)> = {
+            let mut st = c
+                .prepare("SELECT id, group_key FROM item WHERE kind = 'artist'")
+                .unwrap();
+            st.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+                .unwrap()
+                .map(|r| r.unwrap())
+                .collect()
+        };
+        assert_eq!(
+            artists,
+            [(2, "artist:rosalia".to_string())],
+            "the chosen match stays"
+        );
+        let albums: i64 = c
+            .query_row(
+                "SELECT count(*) FROM item WHERE kind = 'album' AND parent_id = 2",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(albums, 2);
+        let plays: i64 = c
+            .query_row("SELECT sum(play_count) FROM playstate", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(plays, 11);
+        let entries: i64 = c
+            .query_row("SELECT count(*) FROM playlist_entry", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(entries, 2);
+        let fk: i64 = c
+            .query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(fk, 0);
     }
 
     /// Issue #118: migration 13 groups network folders by server, share and user into shares

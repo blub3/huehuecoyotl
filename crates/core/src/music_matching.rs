@@ -39,6 +39,36 @@ pub(crate) fn move_via(c: &rusqlite::Connection, from: i64, to: i64) -> Result<(
 
 /// Issues #105 and #106: matched artists are looked up at the optional providers, and their
 /// albums without a match are looked up again.
+/// Issue #146: join the artists that are the same (one MusicBrainz artist ID, or one name without
+/// case and accents). Returns each artist joined away with the one it joined.
+pub(crate) async fn reconcile_artists(inner: &Arc<Inner>) -> Vec<(i64, i64)> {
+    let pairs = inner
+        .lib
+        .write(|c| huehuecoyotl_library::artists::reconcile(c))
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!("joining artists failed: {e}");
+            Vec::new()
+        });
+    if !pairs.is_empty() {
+        for (gone, kept) in &pairs {
+            tracing::info!(gone, kept, "artist joined");
+            inner.sink.post(Event::ItemChanged { item_id: *kept });
+        }
+        inner.mark_changed();
+    }
+    pairs
+}
+
+/// The artist that stands for `artist` after joining.
+pub(crate) fn kept(pairs: &[(i64, i64)], artist: i64) -> i64 {
+    let mut a = artist;
+    while let Some((_, k)) = pairs.iter().find(|(g, _)| *g == a) {
+        a = *k;
+    }
+    a
+}
+
 pub(crate) async fn after_artists(inner: &Arc<Inner>, artists: &[i64]) {
     if artists.is_empty() {
         return;
@@ -275,6 +305,7 @@ pub(crate) async fn rematch_artist(
         .await
         .map_err(db)?;
     after_artists(inner, &[artist]).await;
+    let artist = kept(&reconcile_artists(inner).await, artist);
     inner.sink.post(Event::ItemChanged { item_id: artist });
     Ok((
         if was {
@@ -456,7 +487,10 @@ pub(crate) async fn choose(inner: &Arc<Inner>, item: i64, kind: &str, id: &str) 
             .write(move |c| music::set_artist_match(c, item, &id, true))
             .await?;
         after_artists(inner, &[item]).await;
-        inner.sink.post(Event::ItemChanged { item_id: item });
+        let joined = kept(&reconcile_artists(inner).await, item);
+        inner.sink.post(Event::ItemChanged { item_id: joined });
+        inner.mark_changed();
+        return Ok(joined);
     }
     inner.mark_changed();
     Ok(item)

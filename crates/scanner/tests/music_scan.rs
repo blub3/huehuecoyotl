@@ -278,3 +278,106 @@ async fn a_music_folder_becomes_artists_albums_and_tracks() {
         .await
     );
 }
+
+/// Issue #146: an album tagged "Rosalia" without an artist ID and one tagged "Rosalía" with
+/// Rosalía's ID become one artist; another "Nirvana" with a different ID stays apart; a rescan
+/// keeps it so.
+#[tokio::test(flavor = "multi_thread")]
+async fn artists_join_by_id_and_name() {
+    if !common::ffmpeg() {
+        eprintln!("skipped: ffmpeg is not installed");
+        return;
+    }
+    let d = tempfile::tempdir().unwrap();
+    let m = d.path().join("music");
+    let rosalia = "25f3abd9-63b5-471a-bd25-feb9672dfa11";
+    flac(
+        &m,
+        "Rosalia/LUX/01.flac",
+        &[
+            ("title", "One"),
+            ("artist", "Rosalia"),
+            ("album", "LUX"),
+            ("track", "1"),
+        ],
+    );
+    flac(
+        &m,
+        "Rosalía/Lux/01.flac",
+        &[
+            ("title", "Two"),
+            ("artist", "Rosalía"),
+            ("album", "Lux"),
+            ("track", "1"),
+            ("MUSICBRAINZ_ARTISTID", rosalia),
+        ],
+    );
+    flac(
+        &m,
+        "Nirvana A/Album/01.flac",
+        &[
+            ("title", "Three"),
+            ("artist", "Nirvana"),
+            ("album", "A"),
+            ("track", "1"),
+            (
+                "MUSICBRAINZ_ARTISTID",
+                "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+            ),
+        ],
+    );
+    flac(
+        &m,
+        "Nirvana B/Album/01.flac",
+        &[
+            ("title", "Four"),
+            ("artist", "Nirvana"),
+            ("album", "B"),
+            ("track", "1"),
+            (
+                "MUSICBRAINZ_ARTISTID",
+                "c7b7e0e5-0000-4000-8000-000000000001",
+            ),
+        ],
+    );
+    let lib = Library::open(&d.path().join("library.db")).unwrap();
+    let root_s = m.to_string_lossy().to_string();
+    lib.write(move |c| {
+        c.execute("INSERT INTO source(id, kind, name, root, content) VALUES (2, 'local', 'Music', ?1, 'music')", [root_s])?;
+        Ok(())
+    })
+    .await
+    .unwrap();
+    let root = VPath::new(m.to_string_lossy());
+    scan_music_source(&lib, &LocalSource, 2, &root)
+        .await
+        .unwrap();
+    lib.write(|c| huehuecoyotl_library::artists::reconcile(c).map(|_| ()))
+        .await
+        .unwrap();
+    let names: Vec<String> = q(
+        &lib,
+        "SELECT title FROM item WHERE kind = 'artist' ORDER BY title",
+    )
+    .await;
+    assert_eq!(
+        names.iter().filter(|n| n.starts_with("Ros")).count(),
+        1,
+        "{names:?}"
+    );
+    assert_eq!(
+        names.iter().filter(|n| *n == "Nirvana").count(),
+        2,
+        "{names:?}"
+    );
+    // A rescan finds the joined artist again.
+    scan_music_source(&lib, &LocalSource, 2, &root)
+        .await
+        .unwrap();
+    let again: Vec<String> = q(
+        &lib,
+        "SELECT title FROM item WHERE kind = 'artist' ORDER BY title",
+    )
+    .await;
+    assert_eq!(again, names);
+}
