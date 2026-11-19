@@ -321,17 +321,6 @@
     </message>
 </context>
 <context>
-    <name>NetworkSharePage</name>
-    <message numerus="yes">
-        <location filename="../qml/NetworkSharePage.qml" line="117"/>
-        <source>%n video(s) in this folder</source>
-        <translation>
-            <numerusform>%n video in this folder</numerusform>
-            <numerusform>%n videos in this folder</numerusform>
-        </translation>
-    </message>
-</context>
-<context>
     <name>NowPlayingPage</name>
     <message numerus="yes">
         <location filename="../qml/NowPlayingPage.qml" line="297"/>
@@ -445,7 +434,7 @@
 <context>
     <name>ShareFolderBrowser</name>
     <message numerus="yes">
-        <location filename="../qml/ShareFolderBrowser.qml" line="41"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="46"/>
         <source>%n video(s)</source>
         <translation>
             <numerusform>%n video</numerusform>
@@ -453,7 +442,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareFolderBrowser.qml" line="42"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="47"/>
         <source>%n audio file(s)</source>
         <translation>
             <numerusform>%n audio file</numerusform>
@@ -461,7 +450,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareFolderBrowser.qml" line="43"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="48"/>
         <source>%n audiobook(s)</source>
         <translation>
             <numerusform>%n audiobook</numerusform>
@@ -469,7 +458,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareFolderBrowser.qml" line="44"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="49"/>
         <source>%n folder(s)</source>
         <translation>
             <numerusform>%n folder</numerusform>
@@ -477,7 +466,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareFolderBrowser.qml" line="308"/>
+        <location filename="../qml/ShareFolderBrowser.qml" line="317"/>
         <source>Add %n folder(s)</source>
         <translation>
             <numerusform>Add %n folder</numerusform>

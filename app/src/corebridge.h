@@ -149,6 +149,12 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 shareRemove(qint64 share);
     // Issue #120: the folders in `path` of a share ({share: id}, or a new share's settings with
     // `password`), each with a guess of what it holds (musicDetailReady of kind "shareFolders").
+    // Issue #121: sign in to a server or share being added (musicDetailReady "shareSignIn":
+    // {shares: [{name, existing}]} for an SMB server, else {connected, folders, existing,
+    // hostKey}) and add a new share with its first folders (musicDetailReady "shares").
+    Q_INVOKABLE quint64 shareSignIn(const QVariantMap &spec, const QString &password);
+    Q_INVOKABLE quint64 shareCreate(const QVariantMap &spec, const QString &password,
+                                    const QVariantList &folders);
     Q_INVOKABLE quint64 shareBrowse(const QVariantMap &target, const QString &password, const QString &path);
     Q_INVOKABLE quint64 bookPlay(qint64 book, qint64 positionMs = -1);
     void bookProgress(qint64 book, qint64 positionMs);

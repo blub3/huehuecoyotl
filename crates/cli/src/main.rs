@@ -53,7 +53,7 @@ fn usage() -> ExitCode {
          \x20      | match ID [--unlock] (match an item again) | match search ID [TEXT|ID|LINK] [--year Y] [--kind movie|show]\n\
          \x20        [--artist A] [--author A] [--isbn I] | match choose ID PROVIDER_ID [KIND] (search and choose by hand)\n\
          \x20      | library rematch movies|shows|music|books [--all] [--include-locked] | library rematch status|stop LIBRARY\n\
-         \x20      | share list | share browse SHARE [PATH] | share add-folders SHARE FOLDERS_JSON | share remove-folder FOLDER | share remove SHARE\n\
+         \x20      | share list | share sign-in SPEC_JSON | share add SPEC_JSON FOLDERS_JSON | share browse SHARE [PATH] | share add-folders SHARE FOLDERS_JSON | share remove-folder FOLDER | share remove SHARE\n\
          \x20      | queue | queue play|shuffle|next|add ID... | queue clear (the music play queue; tracks, albums or artists)\n\
          \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
          \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
@@ -499,6 +499,16 @@ fn main() -> ExitCode {
         ("share", [sub, id, folders]) if sub == "add-folders" => {
             let Ok(id) = id.parse() else { return usage() };
             core.share_add_folders(1, id, folders);
+            let ev = wait();
+            settle();
+            ev
+        }
+        ("share", [sub, spec]) if sub == "sign-in" => {
+            core.share_sign_in(1, spec, &share_password());
+            wait()
+        }
+        ("share", [sub, spec, folders]) if sub == "add" => {
+            core.share_create(1, spec, &share_password(), folders);
             let ev = wait();
             settle();
             ev

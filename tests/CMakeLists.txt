@@ -23,7 +23,9 @@ set(_ui_files Theme.qml FocusButton.qml TrackMenu.qml PlayerControls.qml
   # Issue #119: a server's card on the Sources page.
   ShareCard.qml
   # Issue #120: adding several folders of a share.
-  ShareFolderBrowser.qml)
+  ShareFolderBrowser.qml
+  # Issue #121: adding a share in three steps.
+  AddShareFlow.qml)
 file(MAKE_DIRECTORY "${_ui_dir}")
 set(_qmldir "module CoyotlUi\nsingleton Theme 1.0 Theme.qml\n")
 foreach(f IN LISTS _ui_files)

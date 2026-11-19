@@ -9,13 +9,18 @@ import QtQuick.Layouts
 // it. Folders already in the library are marked and cannot be picked again; a folder inside one
 // already added says so. The panel on the right lists what will be added; "Add N folders" adds
 // them all (backend.shareAddFolders) and emits `added`.
-// `backend` is the core (or a test stub): shareBrowse(target, password, path) and
-// shareAddFolders(share, folders), answering with musicDetailReady or requestFailed.
+// `backend` is the core (or a test stub): shareBrowse(target, password, path),
+// shareAddFolders(share, folders) and, for a new share (issue #121), shareCreate(target,
+// password, folders), answering with musicDetailReady or requestFailed.
 FocusScope {
     id: browser
     property var backend: null
-    // {share: id} for a share in the library (a new share's settings come with #121).
+    // {share: id} for a share in the library, or a new share's settings (issue #121): its
+    // folders are added together with the share.
     property var target: ({})
+    property bool showTitle: true
+    // Browse the root when created; off where the owner starts it (AddShareFlow).
+    property bool autoBrowse: true
     property string password: ""
     property string shareName: ""
     signal added(int count)
@@ -82,17 +87,20 @@ FocusScope {
         pending.browse = backend.shareBrowse(target, password, p)
     }
     function addAll() {
-        if (!backend || chosen.length === 0 || target.share === undefined) return
+        if (!backend || chosen.length === 0) return
         busy = true
         status = qsTr("Adding…")
-        pending.add = backend.shareAddFolders(target.share, chosen.map(c => ({ path: c.path, content: c.content, name: c.name })))
+        const list = chosen.map(c => ({ path: c.path, content: c.content, name: c.name }))
+        // A new share's settings name a protocol; a share in the library is just {share: id}.
+        pending.add = target.protocol === undefined ? backend.shareAddFolders(target.share, list)
+                                                    : backend.shareCreate(target, password, list)
     }
     function focusFirst() {
         if (folderList.count > 0) folderList.forceActiveFocus()
         else upButton.forceActiveFocus()
     }
 
-    Component.onCompleted: browse("/")
+    Component.onCompleted: if (autoBrowse) browse("/")
 
     Connections {
         target: browser.backend
@@ -122,6 +130,7 @@ FocusScope {
         spacing: 16
 
         Label {
+            visible: browser.showTitle
             text: browser.shareName !== "" ? qsTr("Add folders from %1").arg(browser.shareName) : qsTr("Add folders")
             color: Theme.text
             font.pixelSize: Theme.fontTitle

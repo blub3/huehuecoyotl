@@ -66,15 +66,20 @@ Folders already in your library are marked.
 
 Open **Sources** and choose **Add network share**.
 
-1. Servers that announce themselves on your network (most NAS systems) appear at the top.
-   Choose one to fill in the form, or enter the details yourself.
-2. Choose the protocol: **SMB** (Windows shares, Samba, most NAS), **NFS**, **WebDAV**,
-   **FTP** or **SFTP** (any server you can reach with SSH). Your NAS's settings tell you which
-   ones it offers; SMB is the usual choice.
-3. Enter the server name or address, the share name (for SMB and NFS, for example `media`),
-   and your user name and password if the share needs them.
-4. Choose **Connect**. If it works, the share's folders appear. Open the folder with your
-   films or series and choose **Add this folder**, or **Add the whole share**.
+It takes three steps; **←** goes back one step.
+
+1. **Server.** Servers that announce themselves on your network (most NAS systems) appear at
+   the top; one you have added already says so. Choose one, or choose the protocol and enter
+   the server's name or address: **SMB** (Windows shares, Samba, most NAS), **NFS**,
+   **WebDAV**, **FTP** or **SFTP** (any server you can reach with SSH). Your NAS's settings
+   tell you which ones it offers; SMB is the usual choice.
+2. **Sign in.** Enter your user name and password (leave both empty for guest access). For
+   SMB, **Show shares** lists the shares the server offers you; choose one. For NFS, enter the
+   export path. A share you have added already opens its **Add folders** instead.
+3. **Folders.** Tick the folders with your films, series, music or audiobooks, check what
+   each holds, and choose **Add N folders**.
+
+Nothing is kept if you leave before adding folders.
 
 The password is kept in your system's keyring (on Linux the Secret Service, usually GNOME
 Keyring or KWallet), never in the library database.

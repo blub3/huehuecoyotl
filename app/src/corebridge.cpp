@@ -691,12 +691,34 @@ quint64 CoreBridge::shareAddFolders(qint64 share, const QVariantList &folders)
     return rid;
 }
 
+static QByteArray shareSpecJson(const QVariantMap &spec)
+{
+    QJsonObject o = QJsonObject::fromVariantMap(spec);
+    if (o.contains("port") && o.value("port").toInt() <= 0) o.remove("port");
+    return QJsonDocument(o).toJson(QJsonDocument::Compact);
+}
+
+quint64 CoreBridge::shareSignIn(const QVariantMap &spec, const QString &password)
+{
+    const quint64 rid = nextId();
+    const QByteArray s = shareSpecJson(spec), pw = password.toUtf8();
+    if (m_core) (*m_core)->share_sign_in(rid, rs(s), rs(pw));
+    return rid;
+}
+
+quint64 CoreBridge::shareCreate(const QVariantMap &spec, const QString &password, const QVariantList &folders)
+{
+    const quint64 rid = nextId();
+    const QByteArray s = shareSpecJson(spec), pw = password.toUtf8();
+    const QByteArray f = QJsonDocument(QJsonArray::fromVariantList(folders)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->share_create(rid, rs(s), rs(pw), rs(f));
+    return rid;
+}
+
 quint64 CoreBridge::shareBrowse(const QVariantMap &target, const QString &password, const QString &path)
 {
     const quint64 rid = nextId();
-    QJsonObject o = QJsonObject::fromVariantMap(target);
-    if (o.contains("port") && o.value("port").toInt() <= 0) o.remove("port");
-    const QByteArray t = QJsonDocument(o).toJson(QJsonDocument::Compact);
+    const QByteArray t = shareSpecJson(target);
     const QByteArray pw = password.toUtf8(), p = path.toUtf8();
     if (m_core) (*m_core)->share_browse(rid, rs(t), rs(pw), rs(p));
     return rid;

@@ -190,6 +190,7 @@ pub(crate) async fn add_folders(
     inner: &Arc<Inner>,
     share: i64,
     folders: Vec<(String, String, String)>,
+    open: Option<Arc<dyn huehuecoyotl_vfs::RemoteSource>>,
 ) -> CResult<Vec<i64>> {
     let config_json = inner
         .lib
@@ -198,7 +199,10 @@ pub(crate) async fn add_folders(
         .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("share {share}")))?;
     let cfg: RemoteConfig = serde_json::from_str(&config_json)
         .map_err(|e| CoreError::new(ErrorKind::Internal, format!("share {share} settings: {e}")))?;
-    let src = share_connection(inner, share).await?;
+    let src = match open {
+        Some(s) => s,
+        None => share_connection(inner, share).await?,
+    };
     let mut added = Vec::new();
     for (path, content, name) in folders {
         let root = {
@@ -471,6 +475,190 @@ pub(crate) async fn browse(inner: &Arc<Inner>, target: Target, path: &str) -> CR
     Ok(json!({ "share": share, "path": dir.to_string(), "parent": parent, "folders": folders }))
 }
 
+// ---- adding a share in three steps (issue #121) ------------------------------------------------
+
+/// How long signing in may take before the server counts as not answering.
+const SIGN_IN_LIMIT: std::time::Duration = std::time::Duration::from_secs(20);
+
+fn parse_folders(folders_json: &str) -> CResult<Vec<(String, String, String)>> {
+    let parsed: Vec<NewFolder> = serde_json::from_str(folders_json)
+        .map_err(|e| CoreError::new(ErrorKind::Unsupported, format!("invalid folders: {e}")))?;
+    Ok(parsed
+        .into_iter()
+        .map(|f| (f.path, f.content, f.name))
+        .collect())
+}
+
+/// Step 2, signing in. An SMB server without a share answers with the shares it offers to this
+/// user, each with the share in the library it already is (`{shares: [{name, existing}]}`).
+/// Otherwise the connection is tested: `{connected: true, folders: n, existing, hostKey}`, with
+/// `folders` the number of folders at the top and `existing` the share in the library with
+/// these settings (then its "Add folders" opens instead of a second share).
+pub(crate) async fn sign_in(inner: &Arc<Inner>, spec_json: &str, password: &str) -> CResult<Value> {
+    let raw: Value = serde_json::from_str(spec_json).map_err(|e| {
+        CoreError::new(
+            ErrorKind::Unsupported,
+            format!("invalid share settings: {e}"),
+        )
+    })?;
+    let smb_server = raw["protocol"].as_str() == Some("smb")
+        && raw["share"].as_str().unwrap_or("").trim().is_empty();
+    if smb_server {
+        let mut cfg: RemoteConfig = serde_json::from_value(raw).map_err(|e| {
+            CoreError::new(
+                ErrorKind::Unsupported,
+                format!("invalid share settings: {e}"),
+            )
+        })?;
+        cfg.host = cfg.host.trim().to_string();
+        cfg.user = cfg.user.trim().to_string();
+        if cfg.host.is_empty() {
+            return Err(CoreError::new(
+                ErrorKind::Unsupported,
+                "Please enter a server name or address.",
+            ));
+        }
+        cfg.password = password.to_string();
+        let names = tokio::time::timeout(SIGN_IN_LIMIT, huehuecoyotl_vfs::smb_shares(&cfg))
+            .await
+            .map_err(|_| {
+                CoreError::new(ErrorKind::Unreachable, "The server did not answer in time.")
+            })??;
+        let configs: Vec<(String, String)> = names
+            .into_iter()
+            .map(|n| {
+                let mut c = cfg.clone();
+                c.share = n.clone();
+                (n, serde_json::to_string(&c).unwrap_or_default())
+            })
+            .collect();
+        let list = inner
+            .lib
+            .read(move |c| {
+                configs
+                    .into_iter()
+                    .map(|(n, j)| Ok(json!({ "name": n, "existing": shares::find(c, "smb", &j)? })))
+                    .collect::<huehuecoyotl_library::Result<Vec<Value>>>()
+            })
+            .await?;
+        return Ok(json!({ "shares": list }));
+    }
+    let spec = crate::network::NetworkSpec::parse(spec_json)?;
+    let src = tokio::time::timeout(SIGN_IN_LIMIT, inner.probe(&spec, password))
+        .await
+        .map_err(|_| {
+            CoreError::new(ErrorKind::Unreachable, "The server did not answer in time.")
+        })??;
+    let top = match src.list(&VPath::new("/")).await {
+        Ok(l) => l,
+        Err(e) => {
+            inner.probe.lock().unwrap().take();
+            return Err(e.into());
+        }
+    };
+    let folders = top
+        .iter()
+        .filter(|e| e.is_dir && !e.name.starts_with('.'))
+        .count();
+    let (kind, json) = (spec.cfg.protocol.as_str().to_string(), spec.config_json());
+    let existing = inner
+        .lib
+        .read(move |c| shares::find(c, &kind, &json))
+        .await?;
+    Ok(json!({
+        "connected": true,
+        "folders": folders,
+        "existing": existing,
+        "hostKey": src.host_key().unwrap_or_default(),
+    }))
+}
+
+/// Step 3, adding the first folders of a new share: the share is created (or found), its
+/// password kept, and the folders added. When the folders fail, a share created here goes again
+/// with its password, so leaving or failing keeps nothing.
+pub(crate) async fn create(
+    inner: &Arc<Inner>,
+    spec_json: &str,
+    password: &str,
+    folders: Vec<(String, String, String)>,
+) -> CResult<i64> {
+    if folders.is_empty() {
+        return Err(CoreError::new(
+            ErrorKind::Unsupported,
+            "Choose at least one folder.",
+        ));
+    }
+    let spec = crate::network::NetworkSpec::parse(spec_json)?;
+    let src = inner.probe(&spec, password).await?;
+    let mut cfg = spec.cfg.clone();
+    if cfg.host_key.is_none() {
+        cfg.host_key = src.host_key();
+    }
+    let (kind, json) = (
+        cfg.protocol.as_str().to_string(),
+        serde_json::to_string(&cfg).unwrap_or_default(),
+    );
+    let (share, created) = inner
+        .lib
+        .write(move |c| shares::find_or_create(c, &kind, &json))
+        .await?;
+    if created {
+        let (reference, password) = (shares::credential_ref(share), password.to_string());
+        let stored =
+            tokio::task::spawn_blocking(move || secrets::store_password(&reference, &password))
+                .await
+                .unwrap_or(Ok(()));
+        if let Err(w) = stored {
+            tracing::warn!("{w}");
+        }
+    }
+    match add_folders(inner, share, folders, Some(src)).await {
+        Ok(_) => {
+            inner.probe.lock().unwrap().take();
+            Ok(share)
+        }
+        Err(e) => {
+            if created {
+                remove_share(inner, share).await.ok();
+            }
+            Err(e)
+        }
+    }
+}
+
+impl Core {
+    /// Issue #121: sign in to a server or share being added (`MusicDetail` "shareSignIn"; see
+    /// `shares::sign_in`).
+    pub fn share_sign_in(&self, request_id: u64, spec_json: &str, password: &str) {
+        let (spec_json, password) = (spec_json.to_string(), password.to_string());
+        self.spawn(request_id, move |inner| async move {
+            let out = sign_in(&inner, &spec_json, &password).await?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "shareSignIn".into(),
+                json: out.to_string(),
+            })
+        });
+    }
+
+    /// Issue #121: add a new share with its first folders (`[{path, content, name}]`); answers
+    /// with the shares, like `share_add_folders`.
+    pub fn share_create(
+        &self,
+        request_id: u64,
+        spec_json: &str,
+        password: &str,
+        folders_json: &str,
+    ) {
+        let (spec_json, password) = (spec_json.to_string(), password.to_string());
+        let folders = parse_folders(folders_json);
+        self.spawn(request_id, move |inner| async move {
+            create(&inner, &spec_json, &password, folders?).await?;
+            Ok(overview_event(request_id, overview(&inner).await?))
+        });
+    }
+}
+
 impl Core {
     /// Issue #120: browse a share's folders with a quick look into each. `target_json`:
     /// `{"share": id}` for a share in the library, else the settings of a new one (as for
@@ -521,7 +709,7 @@ impl Core {
                 .into_iter()
                 .map(|f| (f.path, f.content, f.name))
                 .collect();
-            add_folders(&inner, share, folders).await?;
+            add_folders(&inner, share, folders, None).await?;
             Ok(overview_event(request_id, overview(&inner).await?))
         });
     }
