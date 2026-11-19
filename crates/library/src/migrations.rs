@@ -212,6 +212,10 @@ ALTER TABLE file_audio ADD COLUMN waveform BLOB;
     // one share with one set of settings and one keystore entry. Rows are rewritten, so the
     // database is copied first.
     Migration::Merge(crate::shares::migration_13),
+    // 14 (2.9.1, issue #146): artists keyed by their names without case and accents, and joined
+    // when they share a MusicBrainz artist ID or a name. Rows are merged, so the database is
+    // copied first.
+    Migration::Merge(crate::artists::migration_14),
 ];
 
 /// The old and new kind constraint of `item`.

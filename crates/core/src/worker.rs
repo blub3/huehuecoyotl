@@ -157,6 +157,10 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
         }
         other => Err(format!("unknown job kind {other}")),
     };
+    // Issue #146: a scan or a music match may have given two artists one ID or one name.
+    if res.is_ok() && matches!(kind, "scan" | "music_match" | "rematch_music") {
+        crate::music_matching::reconcile_artists(inner).await;
+    }
     match res {
         Ok(()) => Outcome::Done,
         Err(e) => Outcome::Retry(e, None),
