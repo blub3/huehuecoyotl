@@ -453,6 +453,9 @@ mod ffi {
         fn shares(self: &Core, request_id: u64);
         fn share_add_folders(self: &Core, request_id: u64, share: i64, folders_json: &str);
         fn share_remove(self: &Core, request_id: u64, share: i64);
+        /// Issue #148: how an artist is named ("auto", "files" or "own" with `own`); answers with
+        /// the artist's page (MusicDetail "artist").
+        fn set_artist_name(self: &Core, request_id: u64, artist: i64, choice: &str, own: &str);
         /// Issue #120: a share's folders with a quick look into each (MusicDetail
         /// "shareFolders"); `target_json` is `{"share": id}` or a new share's settings.
         fn share_browse(
@@ -1414,6 +1417,11 @@ impl Core {
     fn share_add_folders(&self, request_id: u64, share: i64, folders_json: &str) {
         guard("share_add_folders", || {
             self.0.share_add_folders(request_id, share, folders_json)
+        })
+    }
+    fn set_artist_name(&self, request_id: u64, artist: i64, choice: &str, own: &str) {
+        guard("set_artist_name", || {
+            self.0.set_artist_name(request_id, artist, choice, own)
         })
     }
     fn share_remove(&self, request_id: u64, share: i64) {

@@ -31,7 +31,9 @@ set(_ui_files Theme.qml FocusButton.qml TrackMenu.qml PlayerControls.qml
   # Issues #133 and #137: drawn icons and the Back button.
   Icon.qml BackButton.qml
   # Issue #137: the mini player.
-  MiniPlayer.qml)
+  MiniPlayer.qml
+  # Issue #148: an artist's name.
+  ArtistNameDialog.qml)
 file(MAKE_DIRECTORY "${_ui_dir}")
 set(_qmldir "module CoyotlUi\nsingleton Theme 1.0 Theme.qml\n")
 foreach(f IN LISTS _ui_files)

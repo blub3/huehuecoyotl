@@ -412,9 +412,11 @@ pub fn set_artist_match(c: &Connection, artist: i64, mbid: &str, lock: bool) -> 
     )?;
     crate::matching::set_matched_via(c, artist, None)?;
     c.execute(
-        "UPDATE item SET locked = ?2, match_state = 'matched', meta_fetched_at = NULL WHERE id = ?1",
+        "UPDATE item SET locked = ?2, match_state = 'matched', meta_fetched_at = NULL, mb_title = NULL WHERE id = ?1",
         params![artist, lock as i64],
     )?;
+    // Issue #148: the old match's spelling goes; the artist lookup brings the new one.
+    crate::artists::apply_name(c, artist)?;
     Ok(())
 }
 
@@ -824,6 +826,8 @@ pub struct ArtistDetail {
     pub matched: bool,
     pub locked: bool,
     pub matched_via: Option<serde_json::Value>,
+    /// Issue #148: the names (shown, its source, the files', MusicBrainz's, the choice).
+    pub names: crate::artists::Names,
 }
 
 /// The release type an album is listed under on its artist's page.
@@ -923,6 +927,7 @@ pub fn artist_detail(c: &Connection, artist: i64) -> Result<Option<ArtistDetail>
         matched: external(c, artist, "artist")?.is_some(),
         locked: crate::matching::locked(c, artist)?,
         matched_via: matched_via(c, artist)?,
+        names: crate::artists::names(c, artist)?.unwrap_or_default(),
     }))
 }
 

@@ -78,9 +78,34 @@ pub fn merge(c: &Connection, keep: i64, drop: i64) -> Result<()> {
          WHERE id = ?1",
         params![keep, drop],
     )?;
+    // The names (migration 15; migration 14 joins before they exist).
+    let names = has_names(c)?;
+    if names {
+        c.execute(
+            "UPDATE item SET
+               files_title = coalesce(files_title, (SELECT files_title FROM item WHERE id = ?2)),
+               mb_title = coalesce(mb_title, (SELECT mb_title FROM item WHERE id = ?2)),
+               own_title = coalesce(own_title, (SELECT own_title FROM item WHERE id = ?2)),
+               name_choice = coalesce(name_choice, (SELECT name_choice FROM item WHERE id = ?2))
+             WHERE id = ?1",
+            params![keep, drop],
+        )?;
+    }
     c.execute("DELETE FROM match_candidate WHERE item_id = ?1", [drop])?;
     // Albums, artwork, the lock, aliases, queued jobs and the row itself.
-    crate::merge::merge_into(c, keep, drop)
+    crate::merge::merge_into(c, keep, drop)?;
+    if names {
+        apply_name(c, keep)?;
+    }
+    Ok(())
+}
+
+fn has_names(c: &Connection) -> Result<bool> {
+    Ok(c.query_row(
+        "SELECT count(*) > 0 FROM pragma_table_info('item') WHERE name = 'mb_title'",
+        [],
+        |r| r.get(0),
+    )?)
 }
 
 /// Join the artists that are the same: those with the same MusicBrainz artist ID, then those
@@ -155,6 +180,140 @@ pub fn reconcile(c: &Connection) -> Result<Vec<(i64, i64)>> {
         }
     }
     Ok(merged)
+}
+
+// ---- the name shown (issue #148) ---------------------------------------------------------------
+
+/// How the user chose to name an artist.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NameChoice {
+    /// MusicBrainz's spelling when matched, else the files' (the default).
+    Auto,
+    /// As the files spell it, kept through every scan and match.
+    Files,
+    /// The user's own name.
+    Own,
+}
+
+impl NameChoice {
+    pub fn parse(s: &str) -> Self {
+        match s {
+            "files" => Self::Files,
+            "own" => Self::Own,
+            _ => Self::Auto,
+        }
+    }
+    fn stored(self) -> Option<&'static str> {
+        match self {
+            Self::Auto => None,
+            Self::Files => Some("files"),
+            Self::Own => Some("own"),
+        }
+    }
+}
+
+/// An artist's names: the one shown, where it comes from ("musicbrainz", "files" or "own"), the
+/// files' and MusicBrainz's spellings, and the user's choice and own name.
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Names {
+    pub shown: String,
+    pub source: String,
+    pub files: String,
+    pub musicbrainz: String,
+    pub choice: String,
+    pub own: String,
+}
+
+/// title, files_title, mb_title, name_choice, own_title.
+type NameRow = (
+    String,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+);
+
+pub fn names(c: &Connection, artist: i64) -> Result<Option<Names>> {
+    let row: Option<NameRow> = c
+        .query_row(
+            "SELECT coalesce(title, ''), files_title, mb_title, name_choice, own_title FROM item WHERE id = ?1 AND kind = 'artist'",
+            [artist],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+        )
+        .optional()?;
+    let Some((title, files, mb, choice, own)) = row else {
+        return Ok(None);
+    };
+    let files = files.unwrap_or_else(|| title.clone());
+    let mb = mb.unwrap_or_default();
+    let own = own.unwrap_or_default();
+    let choice = NameChoice::parse(choice.as_deref().unwrap_or(""));
+    let (shown, source) = match choice {
+        NameChoice::Own if !own.trim().is_empty() => (own.trim().to_string(), "own"),
+        NameChoice::Files => (files.clone(), "files"),
+        _ if !mb.is_empty() => (mb.clone(), "musicbrainz"),
+        _ => (files.clone(), "files"),
+    };
+    Ok(Some(Names {
+        shown,
+        source: source.into(),
+        files,
+        musicbrainz: mb,
+        choice: choice.stored().unwrap_or("auto").into(),
+        own,
+    }))
+}
+
+/// Show the name the rule picks: `title`, its sort title and the search index follow it, so
+/// every list, search and credit shows it. Returns whether it changed. The files are never
+/// touched.
+pub fn apply_name(c: &Connection, artist: i64) -> Result<bool> {
+    let Some(n) = names(c, artist)? else {
+        return Ok(false);
+    };
+    let changed = c.execute(
+        "UPDATE item SET title = ?2, sort_title = ?3 WHERE id = ?1 AND title IS NOT ?2",
+        params![artist, n.shown, crate::text::sort_title(&n.shown)],
+    )? > 0;
+    if changed {
+        c.execute("DELETE FROM item_fts WHERE rowid = ?1", [artist])?;
+        c.execute(
+            "INSERT INTO item_fts(rowid, title) VALUES (?1, ?2)",
+            params![artist, n.shown],
+        )?;
+    }
+    Ok(changed)
+}
+
+/// MusicBrainz's spelling of a matched artist (from its artist lookup).
+pub fn set_mb_title(c: &Connection, artist: i64, name: &str) -> Result<bool> {
+    c.execute(
+        "UPDATE item SET mb_title = ?2 WHERE id = ?1",
+        params![artist, name.trim()],
+    )?;
+    apply_name(c, artist)
+}
+
+/// The user's choice: MusicBrainz's spelling, the files', or their own name.
+pub fn set_name_choice(c: &Connection, artist: i64, choice: NameChoice, own: &str) -> Result<bool> {
+    c.execute(
+        "UPDATE item SET name_choice = ?2, own_title = CASE WHEN ?2 = 'own' THEN ?3 ELSE own_title END WHERE id = ?1",
+        params![artist, choice.stored(), own.trim()],
+    )?;
+    apply_name(c, artist)
+}
+
+/// Matched artists whose MusicBrainz spelling is not known yet.
+pub fn names_due(c: &Connection) -> Result<Vec<i64>> {
+    let mut st = c.prepare(
+        "SELECT i.id FROM item i JOIN external_id e ON e.item_id = i.id
+         WHERE i.kind = 'artist' AND i.mb_title IS NULL AND e.provider = 'musicbrainz' AND e.kind = 'artist'
+           AND e.value <> ?1 ORDER BY i.id",
+    )?;
+    Ok(st
+        .query_map([VARIOUS_MBID], |r| r.get(0))?
+        .collect::<rusqlite::Result<_>>()?)
 }
 
 fn exists(c: &Connection, item: i64) -> Result<bool> {
@@ -342,5 +501,61 @@ mod tests {
             .unwrap();
         assert_eq!(id, 2);
         assert!(reconcile(&c).unwrap().is_empty(), "nothing left to join");
+    }
+
+    fn title(c: &Connection, id: i64) -> String {
+        c.query_row("SELECT title FROM item WHERE id = ?1", [id], |r| r.get(0))
+            .unwrap()
+    }
+
+    #[test]
+    fn the_name_shown_follows_the_rule() {
+        let c = db();
+        artist(&c, 1, "Rosalia", Some(ROSALIA), true);
+        c.execute("UPDATE item SET files_title = 'Rosalia' WHERE id = 1", [])
+            .unwrap();
+        // Matched, even with a match the user chose: MusicBrainz's spelling.
+        assert!(set_mb_title(&c, 1, "Rosalía").unwrap());
+        assert_eq!(title(&c, 1), "Rosalía");
+        let n = names(&c, 1).unwrap().unwrap();
+        assert_eq!(
+            (n.source.as_str(), n.files.as_str()),
+            ("musicbrainz", "Rosalia")
+        );
+        // The user's own name wins, also over a later MusicBrainz spelling.
+        set_name_choice(&c, 1, NameChoice::Own, "ROSALÍA").unwrap();
+        set_mb_title(&c, 1, "Rosalía Vila").unwrap();
+        assert_eq!(title(&c, 1), "ROSALÍA");
+        // Kept as in the files.
+        set_name_choice(&c, 1, NameChoice::Files, "").unwrap();
+        assert_eq!(title(&c, 1), "Rosalia");
+        // Back to automatic.
+        set_name_choice(&c, 1, NameChoice::Auto, "").unwrap();
+        assert_eq!(title(&c, 1), "Rosalía Vila");
+        let found: i64 = c
+            .query_row(
+                "SELECT rowid FROM item_fts WHERE item_fts MATCH 'vila'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(found, 1, "search follows the name");
+        // A new match forgets the old spelling until the lookup brings the new one.
+        crate::music::set_artist_match(&c, 1, "00000000-0000-4000-8000-000000000001", true)
+            .unwrap();
+        assert_eq!(title(&c, 1), "Rosalia");
+    }
+
+    #[test]
+    fn a_join_keeps_the_names() {
+        let c = db();
+        artist(&c, 1, "Rosalia", None, false);
+        artist(&c, 2, "Rosalía", Some(ROSALIA), false);
+        c.execute("UPDATE item SET files_title = title", [])
+            .unwrap();
+        set_name_choice(&c, 1, NameChoice::Own, "ROSALÍA").unwrap();
+        set_mb_title(&c, 2, "Rosalía").unwrap();
+        assert_eq!(reconcile(&c).unwrap(), [(1, 2)]);
+        assert_eq!(title(&c, 2), "ROSALÍA", "the user's name came along");
     }
 }

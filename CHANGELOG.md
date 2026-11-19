@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 ## Unreleased (2.9.1)
 
 - One artist per MusicBrainz artist ID (#146, part of 2.9.1). Artists spelled differently in different albums' tags ("Rosalia", "Rosalía") become one artist when they share their MusicBrainz ID, and unmatched artists whose names differ only in case or accents are one artist too; artists with different IDs stay apart. Albums, playlists and play counts stay. Schema 14; a copy of the database is kept as `library.db.before-14`, and 2.9.0 cannot open the new one.
+- The artist's name (#148, part of 2.9.1): a matched artist shows MusicBrainz's spelling (Rosalía), whatever its files say. **Edit name…** on the artist page keeps the spelling of your files or gives the artist a name of your own; your choice survives every scan and match. Your files are never changed.
 
 ## 2.9.0 – 2026-11-19 (Linux)
 

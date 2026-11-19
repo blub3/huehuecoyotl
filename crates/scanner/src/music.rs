@@ -622,7 +622,15 @@ fn artist(tx: &Transaction, name: &str, mbid: Option<&str>, now: i64) -> rusqlit
     };
     let id = match found {
         Some(id) => id,
-        None => insert_item(tx, "artist", name, None, None, &key, now)?,
+        None => {
+            let id = insert_item(tx, "artist", name, None, None, &key, now)?;
+            // Issue #148: the files' spelling, kept apart from the name shown.
+            tx.execute(
+                "UPDATE item SET files_title = ?2 WHERE id = ?1",
+                params![id, name],
+            )?;
+            id
+        }
     };
     if let Some(mb) = mb {
         tx.execute(

@@ -20,7 +20,12 @@ use crate::{Event, Inner};
 pub const SCAN_KINDS: &[&str] = &["scan", "tiers", "regroup"];
 pub const META_KINDS: &[&str] = &["match", "details", "artwork", "rematch_video"];
 /// Issue #11: music lookups have their own worker; MusicBrainz's pace never holds up TMDB.
-pub const MUSIC_KINDS: &[&str] = &["music_match", "music_artist", "rematch_music"];
+pub const MUSIC_KINDS: &[&str] = &[
+    "music_match",
+    "music_artist",
+    "rematch_music",
+    "artist_name",
+];
 /// Issue #67: book lookups (Open Library's pace) have their own worker too.
 pub const BOOK_KINDS: &[&str] = &["book_match", "rematch_book"];
 
@@ -113,6 +118,16 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
             }
             Err(e) => Err(e.to_string()),
         },
+        // Issue #148: a matched artist's spelling at MusicBrainz.
+        "artist_name" => {
+            match crate::music_matching::fetch_artist_name(inner, item_of(payload)).await {
+                Ok(()) | Err(MetaError::NotFound) => Ok(()),
+                Err(MetaError::RateLimited(s)) => {
+                    return Outcome::Retry("MusicBrainz is busy".into(), Some(s as i64));
+                }
+                Err(e) => Err(e.to_string()),
+            }
+        }
         // Issue #12: TheAudioDB and Fanart.tv.
         "music_artist" => match crate::extras::lookup_artist(inner, item_of(payload)).await {
             Ok(()) | Err(MetaError::NotFound) | Err(MetaError::Auth) => Ok(()),
@@ -160,6 +175,8 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
     // Issue #146: a scan or a music match may have given two artists one ID or one name.
     if res.is_ok() && matches!(kind, "scan" | "music_match" | "rematch_music") {
         crate::music_matching::reconcile_artists(inner).await;
+        // Issue #148: newly matched artists get MusicBrainz's spelling.
+        crate::music_matching::enqueue_artist_names(inner).await;
     }
     match res {
         Ok(()) => Outcome::Done,

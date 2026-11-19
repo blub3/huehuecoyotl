@@ -147,6 +147,9 @@ class CoreBridge : public QObject {
     Q_INVOKABLE quint64 shares();
     Q_INVOKABLE quint64 shareAddFolders(qint64 share, const QVariantList &folders);
     Q_INVOKABLE quint64 shareRemove(qint64 share);
+    // Issue #148: how an artist is named: "auto" (MusicBrainz's spelling when matched), "files"
+    // or "own" with `own` (musicDetailReady "artist").
+    Q_INVOKABLE quint64 setArtistName(qint64 artist, const QString &choice, const QString &own);
     // Issue #120: the folders in `path` of a share ({share: id}, or a new share's settings with
     // `password`), each with a guess of what it holds (musicDetailReady of kind "shareFolders").
     // Issue #121: sign in to a server or share being added (musicDetailReady "shareSignIn":

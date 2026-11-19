@@ -306,6 +306,12 @@ length, artists of the same name by which of your albums are theirs. An artist w
 takes the one its album or song names; its page says so, with **Not this artist?** to choose
 another. Matches you choose are kept; your tags are never changed.
 
+**One artist, one name.** Albums whose tags spell an artist differently ("Rosalia", "Rosalía")
+belong to one artist when they share the artist's MusicBrainz ID, or when the names differ
+only in capitals and accents. A matched artist shows MusicBrainz's spelling. **Edit name…** on
+the artist page keeps the spelling of your files instead, or gives the artist a name of your
+own; the choice survives every scan and match.
+
 ## Audiobooks
 
 From 2.5, a folder added as **Audiobooks** becomes a library of books, authors, narrators and

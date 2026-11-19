@@ -48,6 +48,12 @@ FocusScope {
     }
     onActiveFocusChanged: if (activeFocus && loaded) Qt.callLater(() => { if (!page.Window.activeFocusItem || page.Window.activeFocusItem === page) page.focusRow(0) })
 
+    ArtistNameDialog {
+        id: nameDialog
+        backend: Core
+        onSaved: (detail) => page.d = detail
+    }
+
     Connections {
         target: Core
         function onMusicDetailReady(requestId, kind, detail) {
@@ -153,6 +159,20 @@ FocusScope {
                         wrapMode: Text.Wrap
                         Accessible.role: Accessible.Heading
                     }
+                    // Issue #148: where the name comes from.
+                    Label {
+                        objectName: "nameSource"
+                        Layout.fillWidth: true
+                        readonly property var n: page.d.names || ({})
+                        visible: page.loaded && text !== ""
+                        wrapMode: Text.Wrap
+                        font.pixelSize: Theme.fontSmall
+                        color: Theme.textDim
+                        text: n.source === "own" ? (n.musicbrainz ? qsTr("Your name  ·  MusicBrainz: %1").arg(n.musicbrainz) : qsTr("Your name"))
+                              : n.source === "files" && n.musicbrainz && n.choice === "files" ? qsTr("Kept as in your files  ·  MusicBrainz: %1").arg(n.musicbrainz)
+                              : n.source === "musicbrainz" ? (n.files && n.files !== n.shown ? qsTr("Name from MusicBrainz  ·  your files: %1").arg(n.files) : qsTr("Name from MusicBrainz"))
+                              : ""
+                    }
                     Label {
                         text: qsTr("%n album(s)", "", (page.d.albums || []).length)
                         color: Theme.textDim
@@ -187,8 +207,18 @@ FocusScope {
                             objectName: "artistSearch"
                             text: page.d.matchedVia ? qsTr("Not this artist?") : qsTr("Search MusicBrainz…")
                             KeyNavigation.left: matchButton
+                            KeyNavigation.right: editName
                             Keys.onDownPressed: page.focusRow(0)
                             onClicked: musicMatch.search(page.itemId, "artist", page.d.title, "", searchArtist)
+                        }
+                        // Issue #148.
+                        FocusButton {
+                            id: editName
+                            objectName: "artistEditName"
+                            text: qsTr("Edit name…")
+                            KeyNavigation.left: searchArtist
+                            Keys.onDownPressed: page.focusRow(0)
+                            onClicked: nameDialog.show(page.itemId, page.d.names, editName)
                         }
                     }
                     Label {
