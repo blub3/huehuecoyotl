@@ -388,7 +388,9 @@ left: press Left on the first column of any page to reach it.
 Every page you open from another, a movie, an album, an artist, a book or Now Playing, has a
 **Back** button at the top left that names the page it returns to, for example “‹ Pink Floyd”.
 Back returns to that page as you left it; Up from the top of a page reaches the button. A
-section you open from the rail starts over.
+section you open from the rail starts over. To go back several pages at once, hold Escape (or
+Back) for half a second, press Down on the Back button, or right-click it: the list shows the
+pages you came through.
 
 **Settings** has a tab for each part (Metadata, Matching, Appearance, Playback, Audio, Storage,
 Troubleshooting, About). Left and Right move between the tabs, Down goes into the one shown, and

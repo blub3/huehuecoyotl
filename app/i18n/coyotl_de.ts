@@ -593,14 +593,30 @@
 <context>
     <name>BackButton</name>
     <message>
-        <location filename="../qml/BackButton.qml" line="19"/>
+        <location filename="../qml/BackButton.qml" line="21"/>
+        <location filename="../qml/BackButton.qml" line="53"/>
         <source>Back</source>
         <translation>Zurück</translation>
     </message>
     <message>
-        <location filename="../qml/BackButton.qml" line="29"/>
+        <location filename="../qml/BackButton.qml" line="71"/>
         <source>Back to %1</source>
         <translation>Zurück zu %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/BackButton.qml" line="103"/>
+        <source>Go back to</source>
+        <translation>Zurück zu</translation>
+    </message>
+    <message>
+        <location filename="../qml/BackButton.qml" line="138"/>
+        <source>%1 (here)</source>
+        <translation>%1 (hier)</translation>
+    </message>
+    <message>
+        <location filename="../qml/BackButton.qml" line="156"/>
+        <source>here</source>
+        <translation>hier</translation>
     </message>
 </context>
 <context>
