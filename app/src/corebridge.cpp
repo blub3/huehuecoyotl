@@ -740,6 +740,35 @@ quint64 CoreBridge::shareBrowse(const QVariantMap &target, const QString &passwo
     return rid;
 }
 
+quint64 CoreBridge::artistMergeCandidates(qint64 artist, const QString &query)
+{
+    const quint64 rid = nextId();
+    const QByteArray q = query.toUtf8();
+    if (m_core) (*m_core)->artist_merge_candidates(rid, artist, rs(q));
+    return rid;
+}
+
+quint64 CoreBridge::artistMergePreview(qint64 keep, qint64 drop)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->artist_merge_preview(rid, keep, drop);
+    return rid;
+}
+
+quint64 CoreBridge::artistMerge(qint64 keep, qint64 drop)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->artist_merge(rid, keep, drop);
+    return rid;
+}
+
+quint64 CoreBridge::artistMergeUndo()
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->artist_merge_undo(rid);
+    return rid;
+}
+
 quint64 CoreBridge::setArtistName(qint64 artist, const QString &choice, const QString &own)
 {
     const quint64 rid = nextId();

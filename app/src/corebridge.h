@@ -150,6 +150,12 @@ class CoreBridge : public QObject {
     // Issue #148: how an artist is named: "auto" (MusicBrainz's spelling when matched), "files"
     // or "own" with `own` (musicDetailReady "artist").
     Q_INVOKABLE quint64 setArtistName(qint64 artist, const QString &choice, const QString &own);
+    // Issue #149: Merge with… (musicDetailReady "mergeCandidates", "mergePreview",
+    // "artistMerged", "artistMergeUndone").
+    Q_INVOKABLE quint64 artistMergeCandidates(qint64 artist, const QString &query);
+    Q_INVOKABLE quint64 artistMergePreview(qint64 keep, qint64 drop);
+    Q_INVOKABLE quint64 artistMerge(qint64 keep, qint64 drop);
+    Q_INVOKABLE quint64 artistMergeUndo();
     // Issue #120: the folders in `path` of a share ({share: id}, or a new share's settings with
     // `password`), each with a guess of what it holds (musicDetailReady of kind "shareFolders").
     // Issue #121: sign in to a server or share being added (musicDetailReady "shareSignIn":

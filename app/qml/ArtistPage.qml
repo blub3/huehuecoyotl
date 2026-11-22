@@ -48,6 +48,24 @@ FocusScope {
     }
     onActiveFocusChanged: if (activeFocus && loaded) Qt.callLater(() => { if (!page.Window.activeFocusItem || page.Window.activeFocusItem === page) page.focusRow(0) })
 
+    // Issue #149: a merge done here or on the merged artist's page, undoable for 30 seconds.
+    property var mergedNote: null
+    property var undoRequest: 0
+    onMergedNoteChanged: if (mergedNote) undoTimer.restart()
+    Timer { id: undoTimer; interval: 30000; onTriggered: page.mergedNote = null }
+    ArtistMergeDialog {
+        id: mergeDialog
+        backend: Core
+        onMerged: (info) => {
+            if (info.keep === page.itemId) {
+                page.mergedNote = info
+                page.request = Core.artistDetail(page.itemId)
+            } else {
+                Nav.replace(Qt.resolvedUrl("ArtistPage.qml"), { itemId: info.keep, mergedNote: info })
+            }
+        }
+    }
+
     ArtistNameDialog {
         id: nameDialog
         backend: Core
@@ -57,6 +75,11 @@ FocusScope {
     Connections {
         target: Core
         function onMusicDetailReady(requestId, kind, detail) {
+            if (requestId === page.undoRequest && kind === "artistMergeUndone") {
+                page.mergedNote = null
+                page.request = Core.artistDetail(page.itemId)
+                return
+            }
             if (requestId !== page.request) return
             const first = !page.loaded
             page.d = detail
@@ -217,8 +240,36 @@ FocusScope {
                             objectName: "artistEditName"
                             text: qsTr("Edit name…")
                             KeyNavigation.left: searchArtist
+                            KeyNavigation.right: mergeWith
                             Keys.onDownPressed: page.focusRow(0)
                             onClicked: nameDialog.show(page.itemId, page.d.names, editName)
+                        }
+                        // Issue #149.
+                        FocusButton {
+                            id: mergeWith
+                            objectName: "artistMergeWith"
+                            text: qsTr("Merge with…")
+                            KeyNavigation.left: editName
+                            Keys.onDownPressed: page.focusRow(0)
+                            onClicked: mergeDialog.show(page.itemId, page.d.title || "", mergeWith)
+                        }
+                    }
+                    // Issue #149: a merge just done, with Undo for 30 seconds.
+                    RowLayout {
+                        objectName: "mergedNote"
+                        visible: page.mergedNote !== null
+                        spacing: 12
+                        Label {
+                            text: page.mergedNote ? qsTr("“%1” is now part of %2.").arg(page.mergedNote.dropName).arg(page.mergedNote.keepName) : ""
+                            color: Theme.text
+                            font.pixelSize: Theme.fontSmall
+                        }
+                        FocusButton {
+                            id: undoMerge
+                            objectName: "undoMerge"
+                            text: qsTr("Undo")
+                            Keys.onDownPressed: page.focusRow(0)
+                            onClicked: page.undoRequest = Core.artistMergeUndo()
                         }
                     }
                     Label {

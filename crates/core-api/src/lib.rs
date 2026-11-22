@@ -456,6 +456,12 @@ mod ffi {
         /// Issue #148: how an artist is named ("auto", "files" or "own" with `own`); answers with
         /// the artist's page (MusicDetail "artist").
         fn set_artist_name(self: &Core, request_id: u64, artist: i64, choice: &str, own: &str);
+        /// Issue #149: Merge with…: candidates (MusicDetail "mergeCandidates"), a preview
+        /// ("mergePreview"), the merge ("artistMerged") and its undo ("artistMergeUndone").
+        fn artist_merge_candidates(self: &Core, request_id: u64, artist: i64, query: &str);
+        fn artist_merge_preview(self: &Core, request_id: u64, keep: i64, drop: i64);
+        fn artist_merge(self: &Core, request_id: u64, keep: i64, drop: i64);
+        fn artist_merge_undo(self: &Core, request_id: u64);
         /// Issue #120: a share's folders with a quick look into each (MusicDetail
         /// "shareFolders"); `target_json` is `{"share": id}` or a new share's settings.
         fn share_browse(
@@ -1418,6 +1424,24 @@ impl Core {
         guard("share_add_folders", || {
             self.0.share_add_folders(request_id, share, folders_json)
         })
+    }
+    fn artist_merge_candidates(&self, request_id: u64, artist: i64, query: &str) {
+        guard("artist_merge_candidates", || {
+            self.0.artist_merge_candidates(request_id, artist, query)
+        })
+    }
+    fn artist_merge_preview(&self, request_id: u64, keep: i64, drop: i64) {
+        guard("artist_merge_preview", || {
+            self.0.artist_merge_preview(request_id, keep, drop)
+        })
+    }
+    fn artist_merge(&self, request_id: u64, keep: i64, drop: i64) {
+        guard("artist_merge", || {
+            self.0.artist_merge(request_id, keep, drop)
+        })
+    }
+    fn artist_merge_undo(&self, request_id: u64) {
+        guard("artist_merge_undo", || self.0.artist_merge_undo(request_id))
     }
     fn set_artist_name(&self, request_id: u64, artist: i64, choice: &str, own: &str) {
         guard("set_artist_name", || {

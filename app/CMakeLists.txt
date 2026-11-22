@@ -73,6 +73,7 @@ qt_add_qml_module(coyotl
     qml/Icon.qml
     qml/BackButton.qml
     qml/ArtistNameDialog.qml
+    qml/ArtistMergeDialog.qml
     qml/ShareEditor.qml
     qml/ShareEditPage.qml
     qml/ShareFoldersPage.qml

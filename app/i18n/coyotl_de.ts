@@ -477,6 +477,142 @@
     </message>
 </context>
 <context>
+    <name>ArtistMergeDialog</name>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="140"/>
+        <source>Same MusicBrainz ID</source>
+        <translation>Gleiche MusicBrainz-ID</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="141"/>
+        <source>Similar name</source>
+        <translation>Ähnlicher Name</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ArtistMergeDialog.qml" line="142"/>
+        <location filename="../qml/ArtistMergeDialog.qml" line="238"/>
+        <location filename="../qml/ArtistMergeDialog.qml" line="246"/>
+        <location filename="../qml/ArtistMergeDialog.qml" line="266"/>
+        <source>%n album(s)</source>
+        <translation>
+            <numerusform>%n Album</numerusform>
+            <numerusform>%n Alben</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="143"/>
+        <source>another MusicBrainz ID</source>
+        <translation>andere MusicBrainz-ID</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="143"/>
+        <location filename="../qml/ArtistMergeDialog.qml" line="246"/>
+        <source>matched</source>
+        <translation>zugeordnet</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="143"/>
+        <location filename="../qml/ArtistMergeDialog.qml" line="246"/>
+        <source>not matched</source>
+        <translation>nicht zugeordnet</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="160"/>
+        <source>Merge %1 with…</source>
+        <translation>%1 zusammenführen mit …</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="170"/>
+        <location filename="../qml/ArtistMergeDialog.qml" line="171"/>
+        <source>Search your artists</source>
+        <translation>Deine Künstler durchsuchen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="175"/>
+        <source>Likely the same</source>
+        <translation>Wahrscheinlich dieselben</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="189"/>
+        <source>Other artists</source>
+        <translation>Andere Künstler</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="205"/>
+        <source>Type part of the other artist&apos;s name.</source>
+        <translation>Gib einen Teil des Namens des anderen Künstlers ein.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="205"/>
+        <source>No artist with that name.</source>
+        <translation>Kein Künstler mit diesem Namen.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="210"/>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="221"/>
+        <source>Keep which entry?</source>
+        <translation>Welchen Eintrag behalten?</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="255"/>
+        <source>After merging</source>
+        <translation>Nach dem Zusammenführen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="266"/>
+        <source>One artist “%1” with %2</source>
+        <translation>Ein Künstler „%1“ mit %2</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ArtistMergeDialog.qml" line="267"/>
+        <source>Every song stays on its album (%n song(s))</source>
+        <translation>
+            <numerusform>Jeder Song bleibt auf seinem Album (%n Song)</numerusform>
+            <numerusform>Jeder Song bleibt auf seinem Album (%n Songs)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ArtistMergeDialog.qml" line="268"/>
+        <source>Playlists keep their entries (%n)</source>
+        <translation>
+            <numerusform>Playlists behalten ihre Einträge (%n)</numerusform>
+            <numerusform>Playlists behalten ihre Einträge (%n)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ArtistMergeDialog.qml" line="269"/>
+        <source>Play counts add up (%n play(s))</source>
+        <translation>
+            <numerusform>Wiedergaben werden zusammengezählt (%n Wiedergabe)</numerusform>
+            <numerusform>Wiedergaben werden zusammengezählt (%n Wiedergaben)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="270"/>
+        <source>Your files are not changed. The merge is remembered, so a rescan does not split them again.</source>
+        <translation>Deine Dateien werden nicht verändert. Das Zusammenführen wird gemerkt, ein erneuter Scan trennt sie nicht wieder.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="279"/>
+        <source>These are two different artists at MusicBrainz, so they cannot be merged. If one of them is matched wrongly, use Match again on it first.</source>
+        <translation>Bei MusicBrainz sind das zwei verschiedene Künstler, daher können sie nicht zusammengeführt werden. Wenn einer falsch zugeordnet ist, ordne ihn zuerst mit „Neu zuordnen“ neu zu.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="294"/>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistMergeDialog.qml" line="302"/>
+        <source>Merge</source>
+        <translation>Zusammenführen</translation>
+    </message>
+</context>
+<context>
     <name>ArtistNameDialog</name>
     <message>
         <location filename="../qml/ArtistNameDialog.qml" line="36"/>
@@ -568,32 +704,32 @@
         <translation>Mitwirkend bei</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="171"/>
+        <location filename="../qml/ArtistPage.qml" line="194"/>
         <source>Your name  ·  MusicBrainz: %1</source>
         <translation>Dein Name  ·  MusicBrainz: %1</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="171"/>
+        <location filename="../qml/ArtistPage.qml" line="194"/>
         <source>Your name</source>
         <translation>Dein Name</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="172"/>
+        <location filename="../qml/ArtistPage.qml" line="195"/>
         <source>Kept as in your files  ·  MusicBrainz: %1</source>
         <translation>Wie in deinen Dateien  ·  MusicBrainz: %1</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="173"/>
+        <location filename="../qml/ArtistPage.qml" line="196"/>
         <source>Name from MusicBrainz  ·  your files: %1</source>
         <translation>Name von MusicBrainz  ·  deine Dateien: %1</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="173"/>
+        <location filename="../qml/ArtistPage.qml" line="196"/>
         <source>Name from MusicBrainz</source>
         <translation>Name von MusicBrainz</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ArtistPage.qml" line="177"/>
+        <location filename="../qml/ArtistPage.qml" line="200"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n Album</numerusform>
@@ -601,44 +737,59 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="189"/>
+        <location filename="../qml/ArtistPage.qml" line="212"/>
         <source>Not matched yet: names, image and biography come from your files only.</source>
         <translation>Noch nicht zugeordnet: Namen, Bild und Biografie kommen nur aus deinen Dateien.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="190"/>
+        <location filename="../qml/ArtistPage.qml" line="213"/>
         <source>Matched through the album “%1”.</source>
         <translation>Zugeordnet über das Album „%1“.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="191"/>
+        <location filename="../qml/ArtistPage.qml" line="214"/>
         <source>Matched through the song “%1”.</source>
         <translation>Zugeordnet über den Song „%1“.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="192"/>
+        <location filename="../qml/ArtistPage.qml" line="215"/>
         <source>Matched as you chose.</source>
         <translation>Zugeordnet, wie du gewählt hast.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="199"/>
+        <location filename="../qml/ArtistPage.qml" line="222"/>
         <source>Match again</source>
         <translation>Neu zuordnen</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="208"/>
+        <location filename="../qml/ArtistPage.qml" line="231"/>
         <source>Not this artist?</source>
         <translation>Nicht dieser Künstler?</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="208"/>
+        <location filename="../qml/ArtistPage.qml" line="231"/>
         <source>Search MusicBrainz…</source>
         <translation>Bei MusicBrainz suchen …</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="218"/>
+        <location filename="../qml/ArtistPage.qml" line="241"/>
         <source>Edit name…</source>
         <translation>Name bearbeiten …</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="251"/>
+        <source>Merge with…</source>
+        <translation>Zusammenführen mit …</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="263"/>
+        <source>“%1” is now part of %2.</source>
+        <translation>„%1“ gehört jetzt zu %2.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="270"/>
+        <source>Undo</source>
+        <translation>Rückgängig</translation>
     </message>
 </context>
 <context>
@@ -1286,37 +1437,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="1004"/>
+        <location filename="../src/corebridge.cpp" line="1033"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1006"/>
+        <location filename="../src/corebridge.cpp" line="1035"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1008"/>
+        <location filename="../src/corebridge.cpp" line="1037"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1010"/>
+        <location filename="../src/corebridge.cpp" line="1039"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1012"/>
+        <location filename="../src/corebridge.cpp" line="1041"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1014"/>
+        <location filename="../src/corebridge.cpp" line="1043"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1268"/>
+        <location filename="../src/corebridge.cpp" line="1297"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>

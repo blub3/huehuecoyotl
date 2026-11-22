@@ -40,9 +40,47 @@
     </message>
 </context>
 <context>
+    <name>ArtistMergeDialog</name>
+    <message numerus="yes">
+        <location filename="../qml/ArtistMergeDialog.qml" line="142"/>
+        <location filename="../qml/ArtistMergeDialog.qml" line="238"/>
+        <location filename="../qml/ArtistMergeDialog.qml" line="246"/>
+        <location filename="../qml/ArtistMergeDialog.qml" line="266"/>
+        <source>%n album(s)</source>
+        <translation>
+            <numerusform>%n album</numerusform>
+            <numerusform>%n albums</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ArtistMergeDialog.qml" line="267"/>
+        <source>Every song stays on its album (%n song(s))</source>
+        <translation>
+            <numerusform>Every song stays on its album (%n song)</numerusform>
+            <numerusform>Every song stays on its album (%n songs)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ArtistMergeDialog.qml" line="268"/>
+        <source>Playlists keep their entries (%n)</source>
+        <translation>
+            <numerusform>Playlists keep their entries (%n)</numerusform>
+            <numerusform>Playlists keep their entries (%n)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ArtistMergeDialog.qml" line="269"/>
+        <source>Play counts add up (%n play(s))</source>
+        <translation>
+            <numerusform>Play counts add up (%n play)</numerusform>
+            <numerusform>Play counts add up (%n plays)</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>ArtistPage</name>
     <message numerus="yes">
-        <location filename="../qml/ArtistPage.qml" line="177"/>
+        <location filename="../qml/ArtistPage.qml" line="200"/>
         <source>%n album(s)</source>
         <translation>
             <numerusform>%n album</numerusform>

@@ -312,6 +312,12 @@ only in capitals and accents. A matched artist shows MusicBrainz's spelling. **E
 the artist page keeps the spelling of your files instead, or gives the artist a name of your
 own; the choice survives every scan and match.
 
+**Merge with…** on an artist's page joins two entries of one artist that were not joined on
+their own ("Beyonce" and "Beyoncé Knowles"). Likely duplicates come first; you choose which entry
+stays. Albums, playlists and play counts stay, your files are not changed, and later scans keep
+the two together. **Undo** reverses a merge for 30 seconds. Two artists with different
+MusicBrainz IDs cannot be merged: use Match again on the wrong one first.
+
 ## Audiobooks
 
 From 2.5, a folder added as **Audiobooks** becomes a library of books, authors, narrators and
