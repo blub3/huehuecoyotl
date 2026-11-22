@@ -363,6 +363,11 @@ FocusScope {
                         font.pixelSize: Theme.fontLarge
                     }
                     Keys.onUpPressed: (e) => { if (currentIndex > 0) e.accepted = false; else playButton.forceActiveFocus() }
+                    // Issue #147: past the last track, the other editions.
+                    Keys.onDownPressed: (e) => {
+                        if (currentIndex >= count - 1 && otherEditions.visible) otherEditions.focusFirst()
+                        else e.accepted = false
+                    }
                     Keys.onLeftPressed: Nav.focusRail()
                     onCurrentIndexChanged: if (activeFocus && currentItem) flick.reveal(currentItem)
                     onActiveFocusChanged: if (activeFocus && currentItem) flick.reveal(currentItem)
@@ -441,6 +446,18 @@ FocusScope {
                             }
                         }
                     }
+                }
+
+                // Issue #147: the other releases of this album's release group.
+                OtherEditions {
+                    id: otherEditions
+                    objectName: "otherEditions"
+                    Layout.fillWidth: true
+                    Layout.topMargin: 20
+                    editions: page.d.otherEditions || []
+                    onOpened: (id) => Nav.openItem(id, "album")
+                    onLeaveUp: trackList.forceActiveFocus()
+                    onActiveFocusChanged: if (activeFocus) flick.reveal(otherEditions)
                 }
             }
         }

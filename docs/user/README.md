@@ -306,6 +306,10 @@ length, artists of the same name by which of your albums are theirs. An artist w
 takes the one its album or song names; its page says so, with **Not this artist?** to choose
 another. Matches you choose are kept; your tags are never changed.
 
+**One album per release.** Copies of one MusicBrainz release are versions of one album. A
+standard and a deluxe edition with different release IDs are two albums, and each album's page
+lists the others under **Other editions**. Press Enter on one to open it.
+
 **One artist, one name.** Albums whose tags spell an artist differently ("Rosalia", "Rosalía")
 belong to one artist when they share the artist's MusicBrainz ID, or when the names differ
 only in capitals and accents. A matched artist shows MusicBrainz's spelling. **Edit name…** on

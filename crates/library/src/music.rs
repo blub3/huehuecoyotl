@@ -139,6 +139,15 @@ pub fn replace_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Resu
            OR (kind = 'recording' AND item_id IN (SELECT id FROM item WHERE parent_id = ?1 AND kind = 'track')))",
         [album],
     )?;
+    // Issue #147: a chosen release speaks for every copy of the album, whatever the tags say.
+    c.execute(
+        "UPDATE album_version SET release_id = ?2, release_group = ?3 WHERE album_id = ?1",
+        params![
+            album,
+            r.id.to_lowercase(),
+            r.group_id.as_ref().map(|g| g.to_lowercase())
+        ],
+    )?;
     apply_release(c, album, r)
 }
 
@@ -609,6 +618,8 @@ pub struct AlbumDetail {
     pub version_id: i64,
     pub playable: bool,
     pub all_offline: bool,
+    /// Issue #147: the other releases of this album's release group.
+    pub other_editions: Vec<crate::versions::OtherEdition>,
 }
 
 pub(crate) fn art(c: &Connection, item: i64, role: &str) -> Result<String> {
@@ -675,6 +686,7 @@ pub fn album_detail(
     d.poster = art(c, album, "poster_grid")?;
     d.poster_full = art(c, album, "poster")?;
     d.disc = art(c, album, "disc")?;
+    d.other_editions = crate::versions::other_editions(c, album)?;
     // Issue #63: the versions, and the selected one's tracks.
     let mut versions = crate::versions::versions(c, album)?;
     for v in &mut versions {

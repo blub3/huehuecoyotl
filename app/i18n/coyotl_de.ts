@@ -318,7 +318,7 @@
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="208"/>
-        <location filename="../qml/AlbumPage.qml" line="433"/>
+        <location filename="../qml/AlbumPage.qml" line="438"/>
         <source>Hi-Res</source>
         <translation>Hi-Res</translation>
     </message>
@@ -349,13 +349,13 @@
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="289"/>
-        <location filename="../qml/AlbumPage.qml" line="463"/>
+        <location filename="../qml/AlbumPage.qml" line="480"/>
         <source>Play next</source>
         <translation>Als Nächstes abspielen</translation>
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="300"/>
-        <location filename="../qml/AlbumPage.qml" line="463"/>
+        <location filename="../qml/AlbumPage.qml" line="480"/>
         <source>Add to queue</source>
         <translation>Zur Warteschlange hinzufügen</translation>
     </message>
@@ -371,13 +371,13 @@
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="339"/>
-        <location filename="../qml/AlbumPage.qml" line="469"/>
+        <location filename="../qml/AlbumPage.qml" line="486"/>
         <source>Match again</source>
         <translation>Neu zuordnen</translation>
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="340"/>
-        <location filename="../qml/AlbumPage.qml" line="469"/>
+        <location filename="../qml/AlbumPage.qml" line="486"/>
         <source>Search MusicBrainz…</source>
         <translation>Bei MusicBrainz suchen …</translation>
     </message>
@@ -392,12 +392,12 @@
         <translation>CD %1</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="376"/>
+        <location filename="../qml/AlbumPage.qml" line="381"/>
         <source>Track %1, %2</source>
         <translation>Titel %1, %2</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="427"/>
+        <location filename="../qml/AlbumPage.qml" line="432"/>
         <source>%n version(s)</source>
         <translation>
             <numerusform>%n Version</numerusform>
@@ -405,47 +405,47 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="464"/>
+        <location filename="../qml/AlbumPage.qml" line="481"/>
         <source>Add to playlist…</source>
         <translation>Zur Playlist hinzufügen …</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="467"/>
+        <location filename="../qml/AlbumPage.qml" line="484"/>
         <source>Version: %1</source>
         <translation>Version: %1</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="519"/>
+        <location filename="../qml/AlbumPage.qml" line="536"/>
         <source>Make “%1” an album of its own? It stays apart from this one, also after the next scan.</source>
         <translation>„%1“ zu einem eigenen Album machen? Es bleibt von diesem getrennt, auch nach dem nächsten Scan.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="524"/>
+        <location filename="../qml/AlbumPage.qml" line="541"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="528"/>
+        <location filename="../qml/AlbumPage.qml" line="545"/>
         <source>Make it an album</source>
         <translation>Eigenes Album machen</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="554"/>
+        <location filename="../qml/AlbumPage.qml" line="571"/>
         <source>Stop saving and remove what was copied so far? The files on the server stay.</source>
         <translation>Speichern abbrechen und das bisher Kopierte entfernen? Die Dateien auf dem Server bleiben.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="555"/>
+        <location filename="../qml/AlbumPage.qml" line="572"/>
         <source>Delete the saved copies of this album from this computer? The files on the server stay.</source>
         <translation>Die gespeicherten Kopien dieses Albums von diesem Computer löschen? Die Dateien auf dem Server bleiben.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="559"/>
+        <location filename="../qml/AlbumPage.qml" line="576"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="563"/>
+        <location filename="../qml/AlbumPage.qml" line="580"/>
         <source>Delete saved copies</source>
         <translation>Gespeicherte Kopien löschen</translation>
     </message>
@@ -4399,6 +4399,22 @@
         <location filename="../qml/NowPlayingPage.qml" line="735"/>
         <source>Add to playlist…</source>
         <translation>Zur Playlist hinzufügen …</translation>
+    </message>
+</context>
+<context>
+    <name>OtherEditions</name>
+    <message>
+        <location filename="../qml/OtherEditions.qml" line="23"/>
+        <source>Other editions</source>
+        <translation>Andere Ausgaben</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/OtherEditions.qml" line="42"/>
+        <source>%n track(s)</source>
+        <translation>
+            <numerusform>%n Titel</numerusform>
+            <numerusform>%n Titel</numerusform>
+        </translation>
     </message>
 </context>
 <context>
