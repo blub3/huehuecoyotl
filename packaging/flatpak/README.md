@@ -10,7 +10,7 @@ Keep these files from that build together on the GitHub release:
 - `packaging/flatpak/generated/THIRD_PARTY_NOTICES.txt`, the licence notices.
 
 The release workflow stages these files, the Rust SBOM, and `SHA256SUMS`. Releases before
-2.9.2 instead carry `flatpak-lgpl-sources.tar.gz` and `SHA256SUMS-lgpl`, with their own rebuild
+2.9.1 instead carry `flatpak-lgpl-sources.tar.gz` and `SHA256SUMS-lgpl`, with their own rebuild
 instructions inside the archive, and a `libmpv-BUILDINFO.txt` that describes the separate
 Docker build of libmpv rather than the Flatpak; it is no longer published.
 For a manual release, include the same assets and generate the checksums from the staged files.
@@ -24,7 +24,7 @@ covers the libraries distributed inside the app Flatpak. See the [KDE runtime bu
 
 ## Codecs
 
-From 2.9.2 the Flatpak contains no FFmpeg. mpv and the media probe use the KDE runtime's
+From 2.9.1 the Flatpak contains no FFmpeg. mpv and the media probe use the KDE runtime's
 FFmpeg 7.1:
 
 - Without `org.freedesktop.Platform.codecs-extra`: LGPL FFmpeg. AV1, VP9, MPEG-2, MPEG-4, AAC,
@@ -68,7 +68,7 @@ read the YAML used by this project. Stopping before `cxxbridge` builds all the b
 
 ## Use a rebuilt or modified library
 
-From 2.9.2 the app binary finds its libraries through `DT_RUNPATH`, so `LD_LIBRARY_PATH`
+From 2.9.1 the app binary finds its libraries through `DT_RUNPATH`, so `LD_LIBRARY_PATH`
 comes first. Run the installed app with your build of the libraries:
 
 ```sh
@@ -77,10 +77,10 @@ flatpak run --filesystem="$lib:ro" --env=LD_LIBRARY_PATH="$lib" io.github.blub3.
 ```
 
 A replacement must keep the library's soname and interface (`libmpv.so.2`, `libplacebo.so.387`
-and so on). Releases before 2.9.2 use `DT_RPATH`, which `LD_LIBRARY_PATH` cannot override; for
+and so on). Releases before 2.9.1 use `DT_RPATH`, which `LD_LIBRARY_PATH` cannot override; for
 those, rebuild the whole Flatpak from its manifest with the changed module.
 
-Checked on Nov 22, 2026 with the 2.9.2 development build (Flathub's Flatpak Builder, RTX 3080):
+Checked on Nov 22, 2026 with the 2.9.1 development build (Flathub's Flatpak Builder, RTX 3080):
 
 - `libmpv`, `libplacebo` and `libass` were rebuilt offline from the source bundle, and the
   rebuilt libraries played H.264, HEVC, VP9 and AV1.

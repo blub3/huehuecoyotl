@@ -93,6 +93,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="2.9.1" date="2026-11-22" type="stable">
+      <description>
+        <p>One entry per artist: spellings like Rosalia and Rosalía join when they are the same artist, a matched artist shows the MusicBrainz name unless you choose your own, and Merge with… joins the rest. Each MusicBrainz release is its own album, so standard and deluxe editions stay apart and link to each other under Other editions. The app now uses the codecs of its runtime: H.264, HEVC, VC-1 and E-AC-3 need Flathub's codecs-extra extension.</p>
+      </description>
+    </release>
     <release version="2.9.0" date="2026-11-19" type="stable">
       <description>
         <p>One Back button on every page: it names the page it returns to, and Back brings you to that page as you left it, from an album back to its artist or from Now Playing to where you started it. Hold Escape or right-click Back to go back several pages at once; Backspace, Alt+Left and the mouse's back button work too. The mini player has the controls of Now Playing, with shuffle, repeat and volume, and nothing moves when Play turns into Pause; for audiobooks it skips back and ahead and sets the speed.</p>
