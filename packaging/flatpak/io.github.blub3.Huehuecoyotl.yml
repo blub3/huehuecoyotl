@@ -181,6 +181,9 @@ modules:
       - -DCOYOTL_NOTICES_FILE=/run/build/coyotl/THIRD_PARTY_NOTICES.txt
       - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
       - -DFETCHCONTENT_SOURCE_DIR_CORROSION=/run/build/coyotl/corrosion
+      # Issue #161: DT_RUNPATH instead of DT_RPATH, so LD_LIBRARY_PATH can point the app at a
+      # rebuilt or modified LGPL library (all bundled libraries are in /app/lib anyway).
+      - -DCMAKE_EXE_LINKER_FLAGS=-Wl,--enable-new-dtags
     sources:
       - type: dir
         path: ../..
