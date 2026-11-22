@@ -2,17 +2,16 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
-## Planned for 2.9.2
+## 2.9.1 – 2026-11-22 (Linux)
 
-- The Linux release includes a companion Flatpak source bundle (`io.github.blub3.Huehuecoyotl.Sources.flatpak`) with the exact sources of the bundled libmpv, libplacebo and libass, and `flatpak-BUILDINFO.txt` with the runtime and SDK commits; `packaging/flatpak/README.md` explains how to rebuild them. The app now finds its libraries through `DT_RUNPATH`, so a rebuilt or modified library can be used with `LD_LIBRARY_PATH`. `libmpv-BUILDINFO.txt` (the separate Docker build) is no longer published (#161).
-- The Flatpak no longer contains FFmpeg (#161). Playback uses the KDE runtime's FFmpeg 7.1; H.264, HEVC, VC-1 and E-AC-3 come from Flathub's codecs-extra extension, whose libraries are GPL and are not part of this project's release files. Without the extension those formats do not play.
-
-## Unreleased (2.9.1)
+Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). One entry per artist and per MusicBrainz release, the artist's name, Merge with…, and linked album editions. The Flatpak now uses the KDE runtime's FFmpeg and comes with a source bundle. Schema 16; 2.9.0 cannot open a library that 2.9.1 has migrated.
 
 - One artist per MusicBrainz artist ID (#146, part of 2.9.1). Artists spelled differently in different albums' tags ("Rosalia", "Rosalía") become one artist when they share their MusicBrainz ID, and unmatched artists whose names differ only in case or accents are one artist too; artists with different IDs stay apart. Albums, playlists and play counts stay. Schema 14; a copy of the database is kept as `library.db.before-14`, and 2.9.0 cannot open the new one.
 - The artist's name (#148, part of 2.9.1): a matched artist shows MusicBrainz's spelling (Rosalía), whatever its files say. **Edit name…** on the artist page keeps the spelling of your files or gives the artist a name of your own; your choice survives every scan and match. Your files are never changed.
 - Merge with… (#149, part of 2.9.1): on an artist's page, join it with another artist the automatic joins missed ("Beyonce" and "Beyoncé Knowles"). Likely duplicates are listed first; a preview shows which entry stays and what happens; albums, playlists and play counts stay, and your files are not changed. The merge is remembered through rescans and new albums with the old name, and can be undone for 30 seconds. Artists with different MusicBrainz IDs cannot be merged.
 - One album per MusicBrainz release (#147, part of 2.9.1). Standard and deluxe editions are separate albums when their release IDs differ, and copies of one release stay versions of one album. The album page lists **Other editions** of the same release group. Migration 16 splits albums that held several releases and keeps play counts, playlists, the queue and saved copies; the database is copied to `library.db.before-16` first.
+- The Linux release includes a companion Flatpak source bundle (`io.github.blub3.Huehuecoyotl.Sources.flatpak`) with the exact sources of the bundled libmpv, libplacebo and libass, and `flatpak-BUILDINFO.txt` with the runtime and SDK commits; `packaging/flatpak/README.md` explains how to rebuild them. The app now finds its libraries through `DT_RUNPATH`, so a rebuilt or modified library can be used with `LD_LIBRARY_PATH`. `libmpv-BUILDINFO.txt` (the separate Docker build) is no longer published (#161).
+- The Flatpak no longer contains FFmpeg (#161). Playback uses the KDE runtime's FFmpeg 7.1; H.264, HEVC, VC-1 and E-AC-3 come from Flathub's codecs-extra extension, whose libraries are GPL and are not part of this project's release files. Without the extension those formats do not play.
 
 ## 2.9.0 – 2026-11-19 (Linux)
 
