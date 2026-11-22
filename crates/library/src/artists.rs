@@ -316,6 +316,347 @@ pub fn names_due(c: &Connection) -> Result<Vec<i64>> {
         .collect::<rusqlite::Result<_>>()?)
 }
 
+// ---- Merge with… (issue #149) -----------------------------------------------------------------
+
+/// Why two artists cannot be merged by hand, if they cannot.
+pub fn merge_refusal(c: &Connection, a: i64, b: i64) -> Result<Option<String>> {
+    if a == b {
+        return Ok(Some("same".into()));
+    }
+    let kinds: i64 = c.query_row(
+        "SELECT count(*) FROM item WHERE id IN (?1, ?2) AND kind = 'artist'",
+        params![a, b],
+        |r| r.get(0),
+    )?;
+    if kinds != 2 {
+        return Ok(Some("not artists".into()));
+    }
+    let (ia, ib) = (ids(c, a)?, ids(c, b)?);
+    if !ia.is_empty() && !ib.is_empty() && !ia.iter().any(|x| ib.contains(x)) {
+        return Ok(Some("different MusicBrainz IDs".into()));
+    }
+    Ok(None)
+}
+
+/// An artist in the merge dialog.
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Candidate {
+    pub id: i64,
+    pub name: String,
+    pub albums: i64,
+    pub songs: i64,
+    pub matched: bool,
+    /// Why it is likely the same ("same MusicBrainz ID", "similar name"), else "".
+    pub why: String,
+    /// Merging is refused (different MusicBrainz IDs).
+    pub blocked: bool,
+}
+
+fn candidate(c: &Connection, id: i64, why: &str, other: i64) -> Result<Candidate> {
+    let (name, albums, songs): (String, i64, i64) = c.query_row(
+        "SELECT coalesce(i.title, ''),
+                (SELECT count(*) FROM item a WHERE a.parent_id = i.id AND a.kind = 'album'),
+                (SELECT count(DISTINCT t.id) FROM item t WHERE t.kind = 'track' AND (
+                   t.parent_id IN (SELECT a.id FROM item a WHERE a.parent_id = i.id AND a.kind = 'album')
+                   OR t.id IN (SELECT cr.item_id FROM credit cr WHERE cr.artist_id = i.id)))
+         FROM item i WHERE i.id = ?1",
+        [id],
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+    )?;
+    Ok(Candidate {
+        id,
+        name,
+        albums,
+        songs,
+        matched: !ids(c, id)?.is_empty(),
+        why: why.into(),
+        blocked: merge_refusal(c, id, other)?.is_some(),
+    })
+}
+
+/// The artists to merge `artist` with: likely ones first (the same MusicBrainz ID, or a name
+/// that contains the other: "Beyoncé" and "Beyoncé Knowles"), then the artists whose names
+/// contain `query` (without case and accents), at most 50.
+pub fn candidates(
+    c: &Connection,
+    artist: i64,
+    query: &str,
+) -> Result<(Vec<Candidate>, Vec<Candidate>)> {
+    let me: String = c.query_row(
+        "SELECT coalesce(title, '') FROM item WHERE id = ?1",
+        [artist],
+        |r| r.get(0),
+    )?;
+    let me_ids = ids(c, artist)?;
+    let me_f = fold(&me);
+    let all: Vec<(i64, String)> = {
+        let mut st = c.prepare(
+            "SELECT id, coalesce(title, '') FROM item WHERE kind = 'artist' AND id <> ?1 ORDER BY sort_title, id",
+        )?;
+        st.query_map([artist], |r| Ok((r.get(0)?, r.get(1)?)))?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    let q = fold(query);
+    let (mut likely, mut others) = (Vec::new(), Vec::new());
+    for (id, name) in all {
+        let f = fold(&name);
+        let same_id = !me_ids.is_empty() && ids(c, id)?.iter().any(|x| me_ids.contains(x));
+        let similar = me_f.len() >= 3 && f.len() >= 3 && (f.contains(&me_f) || me_f.contains(&f));
+        if same_id || similar {
+            likely.push(candidate(
+                c,
+                id,
+                if same_id {
+                    "same MusicBrainz ID"
+                } else {
+                    "similar name"
+                },
+                artist,
+            )?);
+        } else if !q.is_empty() && f.contains(&q) && others.len() < 50 {
+            others.push(candidate(c, id, "", artist)?);
+        }
+    }
+    likely.truncate(10);
+    Ok((likely, others))
+}
+
+/// What a merge of `drop` into `keep` would hold.
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Preview {
+    pub keep: Candidate,
+    pub drop: Candidate,
+    pub albums: i64,
+    pub songs: i64,
+    pub playlist_entries: i64,
+    pub plays: i64,
+    pub refusal: Option<String>,
+}
+
+pub fn preview(c: &Connection, keep: i64, drop: i64) -> Result<Preview> {
+    let (k, d) = (candidate(c, keep, "", drop)?, candidate(c, drop, "", keep)?);
+    let tracks = "SELECT t.id FROM item t WHERE t.kind = 'track' AND (
+                    t.parent_id IN (SELECT a.id FROM item a WHERE a.parent_id IN (?1, ?2) AND a.kind = 'album')
+                    OR t.id IN (SELECT cr.item_id FROM credit cr WHERE cr.artist_id IN (?1, ?2)))";
+    let songs: i64 = c.query_row(
+        &format!("SELECT count(*) FROM ({tracks})"),
+        params![keep, drop],
+        |r| r.get(0),
+    )?;
+    let playlist_entries: i64 = c.query_row(
+        &format!("SELECT count(*) FROM playlist_entry WHERE item_id IN ({tracks})"),
+        params![keep, drop],
+        |r| r.get(0),
+    )?;
+    let plays: i64 = c.query_row(
+        &format!("SELECT coalesce(sum(play_count), 0) FROM playstate WHERE item_id IN ({tracks})"),
+        params![keep, drop],
+        |r| r.get(0),
+    )?;
+    Ok(Preview {
+        albums: k.albums + d.albums,
+        songs,
+        playlist_entries,
+        plays,
+        refusal: merge_refusal(c, keep, drop)?,
+        keep: k,
+        drop: d,
+    })
+}
+
+/// What a merge by hand changed, to undo it (kept in memory for a short while).
+#[derive(Clone, Debug)]
+pub struct Undo {
+    pub keep: i64,
+    pub drop: i64,
+    keep_row: Vec<(String, rusqlite::types::Value)>,
+    drop_row: Vec<(String, rusqlite::types::Value)>,
+    albums: Vec<i64>,
+    credits: Vec<(i64, String, i64)>,
+    keep_ids: Vec<(String, String, String)>,
+    drop_ids: Vec<(String, String, String)>,
+    drop_art: Vec<(i64, Vec<rusqlite::types::Value>)>,
+    drop_aliases: Vec<(String, String)>,
+}
+
+fn row(c: &Connection, id: i64) -> Result<Vec<(String, rusqlite::types::Value)>> {
+    let mut st = c.prepare("SELECT * FROM item WHERE id = ?1")?;
+    let names: Vec<String> = st.column_names().map(|s| s.to_string()).collect();
+    Ok(st.query_row([id], |r| {
+        names
+            .iter()
+            .enumerate()
+            .map(|(i, n)| Ok((n.clone(), r.get::<_, rusqlite::types::Value>(i)?)))
+            .collect::<rusqlite::Result<Vec<_>>>()
+    })?)
+}
+
+fn all_ids(c: &Connection, item: i64) -> Result<Vec<(String, String, String)>> {
+    let mut st = c.prepare("SELECT provider, kind, value FROM external_id WHERE item_id = ?1")?;
+    Ok(st
+        .query_map([item], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+        .collect::<rusqlite::Result<_>>()?)
+}
+
+/// Merge `drop` into `keep` by hand: as an automatic join, remembered through `group_alias` so
+/// a rescan does not split them; refused for artists with different MusicBrainz IDs. Returns
+/// what [`undo`] needs.
+pub fn merge_by_hand(c: &Connection, keep: i64, drop: i64) -> Result<Undo> {
+    if let Some(r) = merge_refusal(c, keep, drop)? {
+        return Err(crate::DbError::Other(format!("cannot merge: {r}")));
+    }
+    let art_cols = "role, remote_path, local_path, width, height, color";
+    let drop_art: Vec<(i64, Vec<rusqlite::types::Value>)> = {
+        let mut st = c.prepare(&format!(
+            "SELECT rowid, {art_cols} FROM artwork WHERE item_id = ?1"
+        ))?;
+        st.query_map([drop], |r| {
+            Ok((
+                r.get(0)?,
+                (1..=6)
+                    .map(|i| r.get(i))
+                    .collect::<rusqlite::Result<Vec<_>>>()?,
+            ))
+        })?
+        .collect::<rusqlite::Result<_>>()?
+    };
+    let undo = Undo {
+        keep,
+        drop,
+        keep_row: row(c, keep)?,
+        drop_row: row(c, drop)?,
+        albums: {
+            let mut st = c.prepare("SELECT id FROM item WHERE parent_id = ?1")?;
+            st.query_map([drop], |r| r.get(0))?
+                .collect::<rusqlite::Result<_>>()?
+        },
+        credits: {
+            let mut st =
+                c.prepare("SELECT item_id, role, position FROM credit WHERE artist_id = ?1")?;
+            st.query_map([drop], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+                .collect::<rusqlite::Result<_>>()?
+        },
+        keep_ids: all_ids(c, keep)?,
+        drop_ids: all_ids(c, drop)?,
+        drop_art,
+        drop_aliases: {
+            let mut st = c.prepare("SELECT kind, key FROM group_alias WHERE item_id = ?1")?;
+            st.query_map([drop], |r| Ok((r.get(0)?, r.get(1)?)))?
+                .collect::<rusqlite::Result<_>>()?
+        },
+    };
+    merge(c, keep, drop)?;
+    Ok(undo)
+}
+
+/// Undo a merge by hand: the artist comes back with its albums, credits, IDs, artwork and keys,
+/// and the kept artist is as it was.
+pub fn undo(c: &Connection, u: &Undo) -> Result<()> {
+    if exists(c, u.drop)? {
+        return Ok(());
+    }
+    let cols: Vec<&str> = u.drop_row.iter().map(|(n, _)| n.as_str()).collect();
+    let marks: Vec<String> = (1..=cols.len()).map(|i| format!("?{i}")).collect();
+    let vals: Vec<&rusqlite::types::Value> = u.drop_row.iter().map(|(_, v)| v).collect();
+    c.execute(
+        &format!(
+            "INSERT INTO item({}) VALUES ({})",
+            cols.join(", "),
+            marks.join(", ")
+        ),
+        rusqlite::params_from_iter(vals),
+    )?;
+    let title = u
+        .drop_row
+        .iter()
+        .find(|(n, _)| n == "title")
+        .and_then(|(_, v)| match v {
+            rusqlite::types::Value::Text(t) => Some(t.clone()),
+            _ => None,
+        })
+        .unwrap_or_default();
+    c.execute(
+        "INSERT INTO item_fts(rowid, title) VALUES (?1, ?2)",
+        params![u.drop, title],
+    )?;
+    for a in &u.albums {
+        c.execute(
+            "UPDATE item SET parent_id = ?1 WHERE id = ?2",
+            params![u.drop, a],
+        )?;
+    }
+    for (item, role, pos) in &u.credits {
+        c.execute(
+            "UPDATE credit SET artist_id = ?1 WHERE item_id = ?2 AND role = ?3 AND position = ?4",
+            params![u.drop, item, role, pos],
+        )?;
+    }
+    c.execute(
+        "DELETE FROM external_id WHERE item_id IN (?1, ?2)",
+        params![u.keep, u.drop],
+    )?;
+    for (item, list) in [(u.keep, &u.keep_ids), (u.drop, &u.drop_ids)] {
+        for (p, k, v) in list {
+            c.execute(
+                "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, ?2, ?3, ?4)",
+                params![item, p, k, v],
+            )?;
+        }
+    }
+    for (rowid, vals) in &u.drop_art {
+        c.execute("DELETE FROM artwork WHERE rowid = ?1", [rowid])?;
+        c.execute(
+            "INSERT INTO artwork(item_id, role, remote_path, local_path, width, height, color) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![u.drop, vals[0], vals[1], vals[2], vals[3], vals[4], vals[5]],
+        )?;
+    }
+    let drop_key = u
+        .drop_row
+        .iter()
+        .find(|(n, _)| n == "group_key")
+        .map(|(_, v)| v.clone());
+    if let Some(rusqlite::types::Value::Text(k)) = drop_key {
+        c.execute(
+            "DELETE FROM group_alias WHERE kind = 'artist' AND key = ?1 AND item_id = ?2",
+            params![k, u.keep],
+        )?;
+    }
+    for (kind, key) in &u.drop_aliases {
+        c.execute(
+            "UPDATE group_alias SET item_id = ?1 WHERE kind = ?2 AND key = ?3",
+            params![u.drop, kind, key],
+        )?;
+    }
+    // The kept artist as it was (its name, lock, match and facts).
+    let pairs: Vec<&(String, rusqlite::types::Value)> =
+        u.keep_row.iter().filter(|(n, _)| n != "id").collect();
+    let sets: Vec<String> = pairs
+        .iter()
+        .enumerate()
+        .map(|(i, (n, _))| format!("{n} = ?{}", i + 2))
+        .collect();
+    let mut vals: Vec<rusqlite::types::Value> = vec![rusqlite::types::Value::Integer(u.keep)];
+    vals.extend(pairs.iter().map(|(_, v)| v.clone()));
+    c.execute(
+        &format!("UPDATE item SET {} WHERE id = ?1", sets.join(", ")),
+        rusqlite::params_from_iter(vals),
+    )?;
+    apply_name(c, u.keep)?;
+    c.execute("DELETE FROM item_fts WHERE rowid = ?1", [u.keep])?;
+    let keep_title: String = c.query_row(
+        "SELECT coalesce(title, '') FROM item WHERE id = ?1",
+        [u.keep],
+        |r| r.get(0),
+    )?;
+    c.execute(
+        "INSERT INTO item_fts(rowid, title) VALUES (?1, ?2)",
+        params![u.keep, keep_title],
+    )?;
+    Ok(())
+}
+
 fn exists(c: &Connection, item: i64) -> Result<bool> {
     Ok(
         c.query_row("SELECT 1 FROM item WHERE id = ?1", [item], |_| Ok(()))
@@ -557,5 +898,94 @@ mod tests {
         set_mb_title(&c, 2, "Rosalía").unwrap();
         assert_eq!(reconcile(&c).unwrap(), [(1, 2)]);
         assert_eq!(title(&c, 2), "ROSALÍA", "the user's name came along");
+    }
+
+    fn snapshot(c: &Connection) -> Vec<String> {
+        let mut out = Vec::new();
+        for sql in [
+            "SELECT id || '|' || coalesce(parent_id, '') || '|' || coalesce(title, '') || '|' || locked FROM item ORDER BY id",
+            "SELECT item_id || '|' || artist_id || '|' || role || '|' || position FROM credit ORDER BY 1",
+            "SELECT item_id || '|' || kind || '|' || value FROM external_id ORDER BY 1",
+            "SELECT item_id || '|' || role || '|' || coalesce(local_path, '') FROM artwork ORDER BY 1",
+            "SELECT kind || '|' || key || '|' || item_id FROM group_alias ORDER BY 1",
+        ] {
+            let mut st = c.prepare(sql).unwrap();
+            out.extend(
+                st.query_map([], |r| r.get::<_, String>(0))
+                    .unwrap()
+                    .map(|r| r.unwrap()),
+            );
+        }
+        out
+    }
+
+    #[test]
+    fn merge_by_hand_and_undo() {
+        let c = db();
+        artist(
+            &c,
+            1,
+            "Beyoncé",
+            Some("859d0860-d480-4efd-970c-c05d5f1776b8"),
+            false,
+        );
+        artist(&c, 2, "Beyonce Knowles", None, true);
+        album(&c, 10, 1, "Lemonade", 2);
+        album(&c, 20, 2, "Dangerously in Love", 3);
+        c.execute(
+            "INSERT INTO artwork(item_id, role, local_path) VALUES (2, 'poster', '/p2.jpg'), (1, 'poster', '/p1.jpg')",
+            [],
+        )
+        .unwrap();
+        let before = snapshot(&c);
+        let (likely, _) = candidates(&c, 1, "").unwrap();
+        assert_eq!(
+            likely.iter().map(|a| a.id).collect::<Vec<_>>(),
+            [2],
+            "a name containing the other"
+        );
+        let p = preview(&c, 1, 2).unwrap();
+        assert_eq!(
+            (p.albums, p.songs, p.plays, p.refusal.clone()),
+            (2, 2, 5, None)
+        );
+        let u = merge_by_hand(&c, 1, 2).unwrap();
+        assert_eq!(artists(&c).len(), 1);
+        let alias: i64 = c
+            .query_row("SELECT item_id FROM group_alias WHERE kind = 'artist' AND key = 'artist:beyonce knowles'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(alias, 1, "a rescan of the old name finds the kept artist");
+        undo(&c, &u).unwrap();
+        assert_eq!(snapshot(&c), before, "everything as it was");
+        let fk: i64 = c
+            .query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(fk, 0);
+    }
+
+    #[test]
+    fn different_ids_cannot_be_merged() {
+        let c = db();
+        artist(
+            &c,
+            1,
+            "Beyoncé",
+            Some("859d0860-d480-4efd-970c-c05d5f1776b8"),
+            false,
+        );
+        artist(
+            &c,
+            2,
+            "Destiny's Child",
+            Some("a0b6b5a2-0000-4000-8000-000000000002"),
+            false,
+        );
+        assert!(merge_refusal(&c, 1, 2).unwrap().is_some());
+        assert!(merge_by_hand(&c, 1, 2).is_err());
+        assert_eq!(artists(&c).len(), 2);
+        let (_, others) = candidates(&c, 1, "destiny").unwrap();
+        assert!(others[0].blocked);
     }
 }

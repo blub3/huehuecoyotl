@@ -677,3 +677,125 @@ impl crate::Core {
         });
     }
 }
+
+// ---- Merge with… (issue #149) ------------------------------------------------------------------
+
+/// How long a merge by hand can be undone.
+const UNDO_FOR: std::time::Duration = std::time::Duration::from_secs(30);
+
+impl crate::Core {
+    /// Issue #149: the artists to merge `artist` with (`MusicDetail` "mergeCandidates":
+    /// `likely`, `others`, each `[{id, name, albums, songs, matched, why, blocked}]`).
+    pub fn artist_merge_candidates(&self, request_id: u64, artist: i64, query: &str) {
+        let query = query.to_string();
+        self.spawn(request_id, move |inner| async move {
+            let (likely, others) = inner
+                .lib
+                .read(move |c| huehuecoyotl_library::artists::candidates(c, artist, &query))
+                .await?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "mergeCandidates".into(),
+                json: json!({ "likely": likely, "others": others }).to_string(),
+            })
+        });
+    }
+
+    /// Issue #149: what merging `drop` into `keep` would hold (`MusicDetail` "mergePreview").
+    pub fn artist_merge_preview(&self, request_id: u64, keep: i64, drop: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let p = inner
+                .lib
+                .read(move |c| huehuecoyotl_library::artists::preview(c, keep, drop))
+                .await?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "mergePreview".into(),
+                json: serde_json::to_string(&p).unwrap_or_default(),
+            })
+        });
+    }
+
+    /// Issue #149: merge `drop` into `keep` by hand (`MusicDetail` "artistMerged": `keep`,
+    /// `drop`, `keepName`, `dropName`); [`Core::artist_merge_undo`] reverts it for 30 seconds.
+    pub fn artist_merge(&self, request_id: u64, keep: i64, drop: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let drop_name: String = inner
+                .lib
+                .read(move |c| {
+                    Ok(c.query_row(
+                        "SELECT coalesce(title, '') FROM item WHERE id = ?1",
+                        [drop],
+                        |r| r.get(0),
+                    )?)
+                })
+                .await?;
+            if let Some(why) = inner
+                .lib
+                .read(move |c| huehuecoyotl_library::artists::merge_refusal(c, keep, drop))
+                .await?
+            {
+                return Err(CoreError::new(
+                    ErrorKind::Unsupported,
+                    if why.contains("MusicBrainz") {
+                        "These are two different artists at MusicBrainz, so they cannot be merged."
+                            .to_string()
+                    } else {
+                        format!("These cannot be merged: {why}.")
+                    },
+                ));
+            }
+            let undo = inner
+                .lib
+                .write(move |c| huehuecoyotl_library::artists::merge_by_hand(c, keep, drop))
+                .await?;
+            *inner.merge_undo.lock().unwrap() = Some((undo, std::time::Instant::now()));
+            // The kept artist's name after the merge (#148 may choose another spelling).
+            let keep_name: String = inner
+                .lib
+                .read(move |c| {
+                    Ok(c.query_row(
+                        "SELECT coalesce(title, '') FROM item WHERE id = ?1",
+                        [keep],
+                        |r| r.get(0),
+                    )?)
+                })
+                .await?;
+            inner.sink.post(Event::ItemChanged { item_id: keep });
+            inner.mark_changed();
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "artistMerged".into(),
+                json:
+                    json!({ "keep": keep, "drop": drop, "keepName": keep_name, "dropName": drop_name })
+                        .to_string(),
+            })
+        });
+    }
+
+    /// Issue #149: undo the last merge by hand within 30 seconds (`MusicDetail`
+    /// "artistMergeUndone": `keep`, `drop`).
+    pub fn artist_merge_undo(&self, request_id: u64) {
+        self.spawn(request_id, move |inner| async move {
+            let last = inner.merge_undo.lock().unwrap().take();
+            let Some((undo, _)) = last.filter(|(_, at)| at.elapsed() < UNDO_FOR) else {
+                return Err(CoreError::new(
+                    ErrorKind::NotFound,
+                    "There is no merge to undo.",
+                ));
+            };
+            let (keep, drop) = (undo.keep, undo.drop);
+            inner
+                .lib
+                .write(move |c| huehuecoyotl_library::artists::undo(c, &undo))
+                .await?;
+            inner.sink.post(Event::ItemChanged { item_id: keep });
+            inner.mark_changed();
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "artistMergeUndone".into(),
+                json: json!({ "keep": keep, "drop": drop }).to_string(),
+            })
+        });
+    }
+}

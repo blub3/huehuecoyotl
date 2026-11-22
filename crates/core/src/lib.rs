@@ -384,6 +384,8 @@ struct Inner {
     offline: Mutex<HashSet<i64>>,
     /// The "add network share" dialog's connection: (settings key, source).
     probe: Mutex<Option<(String, Arc<dyn RemoteSource>)>>,
+    /// Issue #149: the last merge by hand, undoable for a short while.
+    merge_undo: Mutex<Option<(huehuecoyotl_library::artists::Undo, std::time::Instant)>>,
     /// Read priorities per source (issue #3): playback before downloads and probes.
     gates: Mutex<HashMap<i64, Arc<download::Gate>>>,
     /// Pause and cancel of the copies that are running, by `local_copy` id.
@@ -603,6 +605,7 @@ impl Core {
             remotes: Mutex::default(),
             offline: Mutex::default(),
             probe: Mutex::default(),
+            merge_undo: Mutex::default(),
             gates: Mutex::default(),
             downloads: Mutex::default(),
             queue_tx: Mutex::default(),

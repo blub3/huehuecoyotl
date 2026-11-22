@@ -33,7 +33,9 @@ set(_ui_files Theme.qml FocusButton.qml TrackMenu.qml PlayerControls.qml
   # Issue #137: the mini player.
   MiniPlayer.qml
   # Issue #148: an artist's name.
-  ArtistNameDialog.qml)
+  ArtistNameDialog.qml
+  # Issue #149: Merge with….
+  ArtistMergeDialog.qml)
 file(MAKE_DIRECTORY "${_ui_dir}")
 set(_qmldir "module CoyotlUi\nsingleton Theme 1.0 Theme.qml\n")
 foreach(f IN LISTS _ui_files)
