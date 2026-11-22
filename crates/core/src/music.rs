@@ -155,8 +155,8 @@ pub(crate) async fn match_album(inner: &Arc<Inner>, mut album: i64) -> Result<()
         if let Some(id) = id {
             let r = p.release(&id).await?;
             let f = facts(&r);
-            // Issue #63: other copies of this release or editions of its group join this album
-            // (the oldest of them remains).
+            // Issue #147: other copies of this release join this album (the oldest remains);
+            // other editions of its group stay albums of their own.
             let (kept, followed) = inner
                 .lib
                 .write(move |c| {

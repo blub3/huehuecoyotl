@@ -31,7 +31,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="427"/>
+        <location filename="../qml/AlbumPage.qml" line="432"/>
         <source>%n version(s)</source>
         <translation>
             <numerusform>%n version</numerusform>
@@ -389,6 +389,17 @@
     </message>
     <message numerus="yes">
         <location filename="../qml/NowPlayingPage.qml" line="557"/>
+        <source>%n track(s)</source>
+        <translation>
+            <numerusform>%n track</numerusform>
+            <numerusform>%n tracks</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>OtherEditions</name>
+    <message numerus="yes">
+        <location filename="../qml/OtherEditions.qml" line="42"/>
         <source>%n track(s)</source>
         <translation>
             <numerusform>%n track</numerusform>

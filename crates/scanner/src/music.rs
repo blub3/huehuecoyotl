@@ -706,18 +706,31 @@ fn place(
         )
         .optional()?;
     let (version, album) = match found {
-        Some(v) => v,
+        Some(v) => {
+            // Issue #147: tags that now name a release, for a copy without one; the reconcile
+            // after the scan acts on it. A release chosen by a match is not overwritten.
+            if let Some(r) = &tg.mb_release {
+                tx.execute(
+                    "UPDATE album_version SET release_id = ?2, release_group = coalesce(?3, release_group) WHERE id = ?1 AND release_id IS NULL",
+                    params![
+                        v.0,
+                        r.to_lowercase(),
+                        tg.mb_release_group.as_ref().map(|g| g.to_lowercase())
+                    ],
+                )?;
+            }
+            v
+        }
         None => {
-            // A new copy joins the album it is a version or edition of.
-            let identity = versions::album_identity(
-                tg.mb_release_group.as_deref(),
-                tg.mb_release.as_deref(),
-                &album_key(rel, t),
-            );
+            // A new copy joins the album of its release (by key, or a match that named it),
+            // else the album with its tags. Another release of the group is another album.
+            let identity = versions::album_identity(tg.mb_release.as_deref(), &album_key(rel, t));
             let album = match tx
                 .query_row(
-                    "SELECT id FROM item WHERE kind = 'album' AND group_key = ?1 AND locked = 0 ORDER BY id LIMIT 1",
-                    [&identity],
+                    "SELECT id FROM item WHERE kind = 'album' AND locked = 0 AND (group_key = ?1 OR id IN
+                       (SELECT item_id FROM external_id WHERE provider = 'musicbrainz' AND kind = 'release' AND value = ?2))
+                     ORDER BY id LIMIT 1",
+                    params![identity, tg.mb_release.as_ref().map(|r| r.to_lowercase())],
                     |r| r.get(0),
                 )
                 .optional()?
@@ -756,13 +769,17 @@ fn place(
     }
     if let Some(mb) = &tg.mb_release {
         tx.execute(
-            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'musicbrainz', 'release', ?2)",
+            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value)
+             SELECT ?1, 'musicbrainz', 'release', ?2
+             WHERE NOT EXISTS (SELECT 1 FROM external_id WHERE item_id = ?1 AND provider = 'musicbrainz' AND kind = 'release')",
             params![album, mb.to_lowercase()],
         )?;
     }
     if let Some(mb) = &tg.mb_release_group {
         tx.execute(
-            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'musicbrainz', 'release_group', ?2)",
+            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value)
+             SELECT ?1, 'musicbrainz', 'release_group', ?2
+             WHERE NOT EXISTS (SELECT 1 FROM external_id WHERE item_id = ?1 AND provider = 'musicbrainz' AND kind = 'release_group')",
             params![album, mb.to_lowercase()],
         )?;
     }

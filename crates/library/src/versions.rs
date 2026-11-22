@@ -2,14 +2,14 @@
 //!
 //! A **version** is one copy of an album: the files of one folder on one source, keyed exactly as
 //! 2.0 keyed an album (`v:<source>:<2.0 key>`). An **album** is what its versions have in common:
-//! the MusicBrainz release group (`rg:`; its releases are *editions*), else the release (`rel:`),
-//! else album artist, title and year (`tag:`), where copies count as versions of one album only
-//! when their track lists are the same. A **track** is one song of an album, keyed by disc and
+//! the MusicBrainz release (`rel:`, since issue #147), else album artist, title and year (`tag:`),
+//! where copies count as versions of one album only when their track lists are the same. The
+//! release group links the albums that are *editions* of one another. A **track** is one song of an album, keyed by disc and
 //! title (`t:<disc>|<title>`), with a file in every version that has it; a version can also hold
 //! two files of one track (a replaced file).
 //!
 //! The scanner places files into versions and versions into albums; this module merges what
-//! belongs together (migration 9, and after online matching found a shared release group),
+//! belongs together (migration 9, migration 16, after scans and after online matching),
 //! splits a version off ("This is a different album"), lists an album's versions and picks the
 //! one to play.
 
@@ -38,12 +38,18 @@ pub fn track_key(disc: i64, title: &str, number: Option<i64>) -> String {
     }
 }
 
-/// An album's key from its ids or its 2.0 key: the release group, else the release, else album
-/// artist, title and year.
-pub fn album_identity(group: Option<&str>, release: Option<&str>, album_key: &str) -> String {
-    if let Some(g) = group.filter(|g| !g.is_empty()) {
-        return format!("rg:{}", g.to_lowercase());
+/// An album's key as migration 9 made it (issue #63): by release group first. Migration 16
+/// re-keys these, so upgrades from before 2.1 pass through the same states as everybody else.
+fn identity_9(group: Option<&str>, release: Option<&str>, album_key: &str) -> String {
+    match group.filter(|g| !g.is_empty()) {
+        Some(g) => format!("rg:{}", g.to_lowercase()),
+        None => album_identity(release, album_key),
     }
+}
+
+/// An album's key from its release or its 2.0 key (issue #147): the release, else album artist,
+/// title and year. Editions in one release group are separate albums.
+pub fn album_identity(release: Option<&str>, album_key: &str) -> String {
     if let Some(r) = release.filter(|r| !r.is_empty()) {
         return format!("rel:{}", r.to_lowercase());
     }
@@ -125,7 +131,7 @@ pub fn migration_9(c: &Connection) -> Result<()> {
         let identity = if locked != 0 {
             format!("split:{version}")
         } else {
-            album_identity(group.as_deref(), release.as_deref(), key)
+            identity_9(group.as_deref(), release.as_deref(), key)
         };
         c.execute(
             "UPDATE item SET group_key = ?2 WHERE id = ?1",
@@ -507,30 +513,422 @@ pub fn merge_albums(c: &Connection, keep: i64, gone: i64) -> Result<()> {
     settle_title(c, keep)
 }
 
-/// After a lookup found an album's release group (or release): other albums of the same one
-/// become its editions (or versions). Albums split by hand stay apart. Returns the album that
-/// remains (the oldest).
+/// After a lookup or a scan gave an album its release: other albums of the same release become
+/// its versions, and the album is keyed by it. Editions (another release of the same group) stay
+/// apart, and so do albums split by hand. Returns the album that remains (the oldest).
 pub fn merge_same_release(c: &Connection, album: i64) -> Result<i64> {
     let mut keep = album;
-    for kind in ["release_group", "release"] {
-        let others: Vec<i64> = {
-            let mut st = c.prepare(
-                "SELECT DISTINCT o.item_id FROM external_id mine
-                 JOIN external_id o ON o.provider = 'musicbrainz' AND o.kind = mine.kind AND o.value = mine.value AND o.item_id != mine.item_id
-                 JOIN item i ON i.id = o.item_id AND i.kind = 'album' AND i.locked = 0
-                 JOIN item me ON me.id = mine.item_id AND me.locked = 0
-                 WHERE mine.item_id = ?1 AND mine.provider = 'musicbrainz' AND mine.kind = ?2",
-            )?;
-            st.query_map(params![keep, kind], |r| r.get(0))?
-                .collect::<rusqlite::Result<_>>()?
-        };
-        for o in others {
-            let (k, g) = if o < keep { (o, keep) } else { (keep, o) };
-            merge_albums(c, k, g)?;
-            keep = k;
-        }
+    let others: Vec<i64> = {
+        let mut st = c.prepare(
+            "SELECT DISTINCT o.item_id FROM external_id mine
+             JOIN external_id o ON o.provider = 'musicbrainz' AND o.kind = 'release' AND o.value = mine.value AND o.item_id != mine.item_id
+             JOIN item i ON i.id = o.item_id AND i.kind = 'album' AND i.locked = 0
+             JOIN item me ON me.id = mine.item_id AND me.locked = 0
+             WHERE mine.item_id = ?1 AND mine.provider = 'musicbrainz' AND mine.kind = 'release'",
+        )?;
+        st.query_map([keep], |r| r.get(0))?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    for o in others {
+        let (k, g) = if o < keep { (o, keep) } else { (keep, o) };
+        merge_albums(c, k, g)?;
+        keep = k;
+    }
+    if let Some(r) = external(c, keep, "release")? {
+        c.execute(
+            "UPDATE item SET group_key = ?2 WHERE id = ?1 AND locked = 0",
+            params![keep, format!("rel:{r}")],
+        )?;
+        // The match speaks for copies without an ID, so a later scan does not split them off.
+        c.execute(
+            "UPDATE album_version SET release_id = ?2 WHERE album_id = ?1 AND release_id IS NULL",
+            params![keep, r],
+        )?;
     }
     Ok(keep)
+}
+
+// ---- one album per release (issue #147, migration 16) ---------------------------------------
+
+/// The release a version's own ids name: its tag, else its 2.0 key (`mb:<release>`).
+fn version_release(key: &str, release: Option<String>) -> Option<String> {
+    release.filter(|r| !r.is_empty()).or_else(|| {
+        let rest = key.strip_prefix("v:")?.split_once(':')?.1;
+        let id = rest.strip_prefix("mb:")?.split("|fmt:").next()?;
+        (!id.is_empty()).then(|| id.to_lowercase())
+    })
+}
+
+/// The `tag:` key of a version's copy (its 2.0 key without the source and the format).
+fn version_tag_key(key: &str) -> String {
+    let rest = key
+        .strip_prefix("v:")
+        .and_then(|k| k.split_once(':'))
+        .map_or(key, |(_, k)| k);
+    let rest = rest.split("|fmt:").next().unwrap_or(rest);
+    album_identity(None, rest)
+}
+
+/// Play state, playlist entries and queue entries that name a file follow it to the track it
+/// now belongs to. Play state without a file stays where it is, so nothing is counted twice.
+fn follow_files(c: &Connection, tracks: &[i64]) -> Result<()> {
+    for &t in tracks {
+        let moved: Vec<(i64, i64)> = {
+            let mut st = c.prepare_cached(
+                "SELECT p.profile_id, f.item_id FROM playstate p JOIN file f ON f.id = p.last_file_id
+                 WHERE p.item_id = ?1 AND f.item_id IS NOT NULL AND f.item_id != ?1",
+            )?;
+            st.query_map([t], |r| Ok((r.get(0)?, r.get(1)?)))?
+                .collect::<rusqlite::Result<_>>()?
+        };
+        for (profile, to) in moved {
+            c.execute(
+                "UPDATE playstate SET
+                   play_count = play_count + (SELECT g.play_count FROM playstate g WHERE g.item_id = ?1 AND g.profile_id = ?3),
+                   last_played_at = max(coalesce(last_played_at, 0), coalesce((SELECT g.last_played_at FROM playstate g WHERE g.item_id = ?1 AND g.profile_id = ?3), 0))
+                 WHERE item_id = ?2 AND profile_id = ?3",
+                params![t, to, profile],
+            )?;
+            if c.changes() > 0 {
+                c.execute(
+                    "DELETE FROM playstate WHERE item_id = ?1 AND profile_id = ?2",
+                    params![t, profile],
+                )?;
+            } else {
+                c.execute(
+                    "UPDATE playstate SET item_id = ?2 WHERE item_id = ?1 AND profile_id = ?3",
+                    params![t, to, profile],
+                )?;
+            }
+        }
+        for table in ["playlist_entry", "play_queue"] {
+            c.execute(
+                &format!(
+                    "UPDATE {table} SET item_id = (SELECT f.item_id FROM file f WHERE f.id = {table}.file_id)
+                     WHERE item_id = ?1 AND (SELECT f.item_id FROM file f WHERE f.id = {table}.file_id) IS NOT NULL"
+                ),
+                [t],
+            )?;
+        }
+    }
+    Ok(())
+}
+
+/// Replace an album's release and release group ids.
+fn set_release(c: &Connection, album: i64, release: &str, group: Option<&str>) -> Result<()> {
+    c.execute(
+        "DELETE FROM external_id WHERE item_id = ?1 AND provider = 'musicbrainz' AND kind = 'release' AND value != ?2",
+        params![album, release],
+    )?;
+    c.execute(
+        "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'musicbrainz', 'release', ?2)",
+        params![album, release],
+    )?;
+    if let Some(g) = group {
+        c.execute(
+            "DELETE FROM external_id WHERE item_id = ?1 AND provider = 'musicbrainz' AND kind = 'release_group' AND value != ?2",
+            params![album, g],
+        )?;
+        c.execute(
+            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'musicbrainz', 'release_group', ?2)",
+            params![album, g],
+        )?;
+    }
+    c.execute(
+        "UPDATE item SET group_key = ?2 WHERE id = ?1",
+        params![album, format!("rel:{release}")],
+    )?;
+    Ok(())
+}
+
+/// Versions into one album: the first moves out under `key`, the others join it. The new album
+/// counts as added when the old one was.
+fn move_group(c: &Connection, from: i64, vs: &[i64], key: &str, now: i64) -> Result<i64> {
+    let target = move_version(c, vs[0], key, false, now)?;
+    for &v in &vs[1..] {
+        let moved = move_version(c, v, &format!("{key}#v{v}"), false, now)?;
+        merge_albums(c, target, moved)?;
+    }
+    c.execute(
+        "UPDATE item SET added_at = (SELECT added_at FROM item WHERE id = ?1)
+         WHERE id = ?2 OR (parent_id = ?2 AND kind = 'track' AND added_at = ?3)",
+        params![from, target, now],
+    )?;
+    Ok(target)
+}
+
+/// One album holding several releases becomes one album per release. The release it was matched
+/// to stays; a version without a release ID goes with the release that has its track list, else
+/// becomes an album of its own. Returns the albums made.
+pub fn split_by_release(c: &Connection, album: i64, now: i64) -> Result<Vec<i64>> {
+    let rows: Vec<(i64, String, Option<String>, Option<String>)> = {
+        let mut st = c.prepare(
+            "SELECT id, key, release_id, release_group FROM album_version WHERE album_id = ?1 ORDER BY id",
+        )?;
+        st.query_map([album], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
+        })?
+        .collect::<rusqlite::Result<_>>()?
+    };
+    if rows.is_empty() {
+        return Ok(vec![]);
+    }
+    let matched: Vec<String> = {
+        let mut st = c.prepare(
+            "SELECT value FROM external_id WHERE item_id = ?1 AND provider = 'musicbrainz' AND kind = 'release' ORDER BY value",
+        )?;
+        st.query_map([album], |r| r.get(0))?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    // Releases in the order first met, each with its versions.
+    let mut releases: Vec<(String, Vec<i64>)> = Vec::new();
+    let mut loose: Vec<i64> = Vec::new();
+    let mut groups: HashMap<String, String> = HashMap::new();
+    for (id, key, release, group) in &rows {
+        match version_release(key, release.clone()) {
+            Some(r) => {
+                if let Some(g) = group {
+                    groups.entry(r.clone()).or_insert_with(|| g.clone());
+                }
+                match releases.iter_mut().find(|(x, _)| *x == r) {
+                    Some((_, vs)) => vs.push(*id),
+                    None => releases.push((r, vec![*id])),
+                }
+            }
+            None => loose.push(*id),
+        }
+    }
+    // Several matches and no version saying which is which: no release can be named, so the
+    // album goes back to its tags and waits for a new match.
+    if releases.is_empty() && matched.len() > 1 {
+        c.execute(
+            "DELETE FROM external_id WHERE item_id = ?1 AND provider = 'musicbrainz' AND kind = 'release'",
+            [album],
+        )?;
+        c.execute(
+            "UPDATE item SET group_key = ?2, match_state = 'unmatched' WHERE id = ?1",
+            params![album, version_tag_key(&rows[0].1)],
+        )?;
+        return check_track_lists(c, album, now);
+    }
+    if releases.is_empty() {
+        // One match (or none): every copy is that release, or the album has no release at all.
+        match matched.first() {
+            Some(r) => set_release(c, album, r, None)?,
+            None => {
+                let key: String = c.query_row(
+                    "SELECT coalesce(group_key, '') FROM item WHERE id = ?1",
+                    [album],
+                    |r| r.get(0),
+                )?;
+                if key.starts_with("rg:") {
+                    c.execute(
+                        "UPDATE item SET group_key = ?2 WHERE id = ?1",
+                        params![album, version_tag_key(&rows[0].1)],
+                    )?;
+                    return check_track_lists(c, album, now);
+                }
+            }
+        }
+        return Ok(vec![]);
+    }
+    // A version without an ID goes with the release whose track list it has.
+    let mut own: Vec<i64> = Vec::new();
+    let lists: Vec<BTreeSet<String>> = releases
+        .iter()
+        .map(|(_, vs)| version_track_list(c, vs[0]))
+        .collect::<Result<_>>()?;
+    for v in loose {
+        let list = version_track_list(c, v)?;
+        // Prefer the release the album was matched to, when both have this list.
+        let hit = (0..releases.len())
+            .filter(|&i| lists[i] == list)
+            .max_by_key(|&i| matched.contains(&releases[i].0));
+        match hit {
+            Some(i) => releases[i].1.push(v),
+            None => own.push(v),
+        }
+    }
+    // The matched release stays in this album.
+    let home = releases
+        .iter()
+        .position(|(r, _)| matched.contains(r))
+        .unwrap_or(0);
+    let (home_release, home_versions) = releases.remove(home);
+    if releases.is_empty() && own.is_empty() {
+        let group = groups.get(&home_release).cloned();
+        set_release(c, album, &home_release, group.as_deref())?;
+        return Ok(vec![]);
+    }
+    let tracks: Vec<i64> = {
+        let mut st = c.prepare("SELECT id FROM item WHERE parent_id = ?1 AND kind = 'track'")?;
+        st.query_map([album], |r| r.get(0))?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    let album_group = external(c, album, "release_group")?;
+    let mut made = Vec::new();
+    for (release, vs) in &releases {
+        let new = move_group(c, album, vs, &format!("rel:{release}"), now)?;
+        let group = groups.get(release).cloned().or(album_group.clone());
+        set_release(c, new, release, group.as_deref())?;
+        made.push(new);
+    }
+    for v in own {
+        let key = rows.iter().find(|r| r.0 == v).map_or("", |r| r.1.as_str());
+        let new = move_group(
+            c,
+            album,
+            &[v],
+            &format!("{}#v{v}", version_tag_key(key)),
+            now,
+        )?;
+        // Still an edition of the same work, until a match says more.
+        if let Some(g) = &album_group {
+            c.execute(
+                "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'musicbrainz', 'release_group', ?2)",
+                params![new, g],
+            )?;
+        }
+        made.push(new);
+    }
+    let group = groups.get(&home_release).cloned().or(album_group);
+    set_release(c, album, &home_release, group.as_deref())?;
+    // The album is named after the release that stayed.
+    let (title, year): (String, Option<i64>) = c.query_row(
+        "SELECT title, year FROM album_version WHERE id = ?1",
+        [home_versions[0]],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    let current: String = c.query_row(
+        "SELECT coalesce(title, '') FROM item WHERE id = ?1",
+        [album],
+        |r| r.get(0),
+    )?;
+    let named = home_versions
+        .iter()
+        .try_fold(false, |seen, v| -> Result<bool> {
+            let t: String =
+                c.query_row("SELECT title FROM album_version WHERE id = ?1", [v], |r| {
+                    r.get(0)
+                })?;
+            Ok(seen || normalize(&t) == normalize(&current))
+        })?;
+    if !named && !title.is_empty() {
+        c.execute(
+            "UPDATE item SET title = ?2, sort_title = ?3, year = coalesce(?4, year) WHERE id = ?1",
+            params![album, title, crate::text::sort_title(&title), year],
+        )?;
+        c.execute(
+            "UPDATE item_fts SET title = ?2 WHERE rowid = ?1",
+            params![album, title],
+        )?;
+    }
+    follow_files(c, &tracks)?;
+    Ok(made)
+}
+
+/// One album per release across the library: albums holding several are split, albums of one
+/// release are joined. Albums locked by hand stay as they are. Returns each album joined away
+/// with the one it joined.
+pub fn reconcile_releases(c: &Connection, now: i64) -> Result<Vec<(i64, i64)>> {
+    let albums: Vec<i64> = {
+        let mut st =
+            c.prepare("SELECT id FROM item WHERE kind = 'album' AND locked = 0 ORDER BY id")?;
+        st.query_map([], |r| r.get(0))?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    for &a in &albums {
+        split_by_release(c, a, now)?;
+    }
+    // A locked album keeps its place but no longer carries the old key.
+    c.execute(
+        "UPDATE item SET group_key = 'rel:' || (SELECT min(e.value) FROM external_id e WHERE e.item_id = item.id AND e.provider = 'musicbrainz' AND e.kind = 'release')
+         WHERE kind = 'album' AND locked != 0 AND group_key LIKE 'rg:%'
+           AND EXISTS (SELECT 1 FROM external_id e WHERE e.item_id = item.id AND e.provider = 'musicbrainz' AND e.kind = 'release')",
+        [],
+    )?;
+    let with_release: Vec<i64> = {
+        let mut st = c.prepare(
+            "SELECT DISTINCT a.id FROM item a JOIN external_id e ON e.item_id = a.id AND e.provider = 'musicbrainz' AND e.kind = 'release'
+             WHERE a.kind = 'album' AND a.locked = 0 ORDER BY a.id",
+        )?;
+        st.query_map([], |r| r.get(0))?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    let mut joined = Vec::new();
+    for a in with_release {
+        let still: bool = c.query_row(
+            "SELECT EXISTS (SELECT 1 FROM item WHERE id = ?1)",
+            [a],
+            |r| r.get(0),
+        )?;
+        if !still {
+            continue;
+        }
+        let kept = merge_same_release(c, a)?;
+        if kept != a {
+            joined.push((a, kept));
+        }
+    }
+    Ok(joined)
+}
+
+/// Migration 16 (issue #147): albums were release groups; now each release is an album.
+pub fn migration_16(c: &rusqlite::Transaction) -> Result<()> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as i64);
+    reconcile_releases(c, now)?;
+    Ok(())
+}
+
+// ---- other editions (issue #147) ------------------------------------------------------------
+
+/// Another release of the same release group, as the album page links it.
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OtherEdition {
+    pub id: i64,
+    pub title: String,
+    pub year: Option<i64>,
+    pub poster: String,
+    pub codec: String,
+    pub sample_rate: i64,
+    pub bit_depth: i64,
+    pub tracks: i64,
+}
+
+/// The other albums in this album's release group, oldest first.
+pub fn other_editions(c: &Connection, album: i64) -> Result<Vec<OtherEdition>> {
+    let mut out: Vec<OtherEdition> = {
+        let mut st = c.prepare(
+            "SELECT DISTINCT a.id, coalesce(a.title, ''), a.year
+             FROM external_id mine
+             JOIN external_id o ON o.provider = 'musicbrainz' AND o.kind = 'release_group' AND o.value = mine.value AND o.item_id != mine.item_id
+             JOIN item a ON a.id = o.item_id AND a.kind = 'album'
+             WHERE mine.item_id = ?1 AND mine.provider = 'musicbrainz' AND mine.kind = 'release_group'
+             ORDER BY coalesce(a.year, 9999), a.sort_title, a.id",
+        )?;
+        st.query_map([album], |r| {
+            Ok(OtherEdition {
+                id: r.get(0)?,
+                title: r.get(1)?,
+                year: r.get(2)?,
+                ..Default::default()
+            })
+        })?
+        .collect::<rusqlite::Result<_>>()?
+    };
+    for e in &mut out {
+        e.poster = crate::music::art(c, e.id, "poster_grid")?;
+        if let Some(best) = versions(c, e.id)?.first() {
+            e.codec = best.codec.clone();
+            e.sample_rate = best.sample_rate;
+            e.bit_depth = best.bit_depth;
+            e.tracks = best.tracks;
+        }
+    }
+    Ok(out)
 }
 
 /// A tag-keyed album whose versions' track lists differ: versions that do not match the first
@@ -1141,11 +1539,17 @@ mod tests {
                 .collect::<rusqlite::Result<_>>()
                 .unwrap()
         };
-        // Copies: one album with three versions; the live album apart; the remaster an edition.
+        // Copies: one album with three versions; the live album apart; the remaster, another
+        // release of the group, an album of its own since migration 16 (issue #147).
         assert_eq!(
             q("SELECT a.id || ' ' || a.title || ' ' || (SELECT count(*) FROM album_version v WHERE v.album_id = a.id) || ' ' || a.added_at
                FROM item a WHERE a.kind = 'album' ORDER BY a.id"),
-            ["10 Album 3 3", "13 Album 1 1", "14 Other 2 1"]
+            [
+                "10 Album 3 3",
+                "13 Album 1 1",
+                "14 Other 1 1",
+                "152 Other (2011 Remaster) 1 1"
+            ]
         );
         // One track per song, with every copy's file; play counts added up, the latest play kept.
         assert_eq!(
@@ -1166,20 +1570,12 @@ mod tests {
             ),
             ["Song 2 10"]
         );
-        // The edition's tracks: Other 1 in both, Other 2 only in the remaster.
+        // The remaster keeps its own tracks and is linked as an edition (issue #147).
         let other: Vec<String> = q(
-            "SELECT t.title || ' ' || count(f.id) FROM item t JOIN file f ON f.item_id = t.id WHERE t.parent_id = 14 GROUP BY t.id ORDER BY t.title",
+            "SELECT t.title || ' ' || count(f.id) FROM item t JOIN file f ON f.item_id = t.id WHERE t.parent_id = 152 GROUP BY t.id ORDER BY t.title",
         );
-        assert_eq!(other, ["Other 1 2", "Other 2 1"]);
-        let editions: Vec<String> = versions(&c, 14)
-            .unwrap()
-            .into_iter()
-            .map(|v| v.edition)
-            .collect();
-        assert!(
-            editions.contains(&"2011 Remaster".to_string()),
-            "{editions:?}"
-        );
+        assert_eq!(other, ["Other 1 1", "Other 2 1"]);
+        assert_eq!(other_editions(&c, 14).unwrap()[0].id, 152);
         // Nothing points nowhere.
         let broken: i64 = c
             .query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
@@ -1189,19 +1585,218 @@ mod tests {
         assert_eq!(broken, 0);
     }
 
+    /// A library at schema 15 with one release group holding a standard and a deluxe release,
+    /// a copy of the standard one, plays, a playlist entry and a saved copy on each.
+    fn editions_at_15() -> Connection {
+        let mut c = Connection::open_in_memory().unwrap();
+        c.pragma_update(None, "foreign_keys", "ON").unwrap();
+        for m in &crate::MIGRATIONS[..15] {
+            let tx = c.transaction().unwrap();
+            match m {
+                crate::Migration::Sql(sql) => tx.execute_batch(sql).unwrap(),
+                crate::Migration::Rust(f)
+                | crate::Migration::Rebuild(f)
+                | crate::Migration::Merge(f) => f(&tx).unwrap(),
+            }
+            tx.commit().unwrap();
+        }
+        c.pragma_update(None, "user_version", 15).unwrap();
+        c.execute_batch(
+            "INSERT INTO source(id, kind, name, content) VALUES (2, 'local', 'NAS', 'music');
+             INSERT INTO item(id, kind, title, sort_title) VALUES (1, 'artist', 'Band', 'band');
+             INSERT INTO item(id, kind, title, sort_title, year, parent_id, group_key, added_at)
+               VALUES (10, 'album', 'Album', 'album', 2000, 1, 'rg:g1', 7);
+             INSERT INTO external_id(item_id, provider, kind, value) VALUES
+               (10, 'musicbrainz', 'release', 'std'), (10, 'musicbrainz', 'release', 'dlx'),
+               (10, 'musicbrainz', 'release_group', 'g1');
+             INSERT INTO album_version(id, album_id, key, source_id, title, year, release_id, release_group) VALUES
+               (100, 10, 'v:2:mb:std', 2, 'Album', 2000, 'std', 'g1'),
+               (101, 10, 'v:2:dir:Copy|band|album|2000', 2, 'Album', 2000, 'std', 'g1'),
+               (102, 10, 'v:2:mb:dlx', 2, 'Album (Deluxe)', 2001, 'dlx', 'g1');
+             INSERT INTO item(id, kind, title, sort_title, parent_id, group_key, season_no, episode_no, added_at) VALUES
+               (20, 'track', 'One', 'one', 10, 't:1|one', 1, 1, 7),
+               (21, 'track', 'Bonus', 'bonus', 10, 't:1|bonus', 1, 2, 7);
+             INSERT INTO file(id, source_id, path, item_id, version_id) VALUES
+               (200, 2, 's/1.flac', 20, 100), (201, 2, 'c/1.flac', 20, 101),
+               (202, 2, 'd/1.flac', 20, 102), (203, 2, 'd/2.flac', 21, 102);
+             INSERT INTO playstate(item_id, profile_id, updated_at, play_count, last_file_id) VALUES
+               (20, 1, 1, 5, 202), (21, 1, 1, 2, 203);
+             INSERT INTO playlist(id, name, created_at, updated_at) VALUES (1, 'P', 1, 1);
+             INSERT INTO playlist_entry(playlist_id, position, item_id, file_id) VALUES
+               (1, 0, 20, 202), (1, 1, 20, 200);
+             INSERT INTO local_copy(id, file_id, item_id, source_id, source_path, path, state, created_at)
+               VALUES (1, 202, 20, 2, 'd/1.flac', '/saved/1.flac', 'done', 1);",
+        )
+        .unwrap();
+        c
+    }
+
+    #[test]
+    fn migration_16_one_album_per_release() {
+        let mut c = editions_at_15();
+        let tx = c.transaction().unwrap();
+        migration_16(&tx).unwrap();
+        tx.commit().unwrap();
+        let album_of = |v: i64| -> i64 {
+            c.query_row(
+                "SELECT album_id FROM album_version WHERE id = ?1",
+                [v],
+                |r| r.get(0),
+            )
+            .unwrap()
+        };
+        // Two copies of the standard release: one album. The deluxe release: another.
+        assert_eq!(album_of(100), 10);
+        assert_eq!(album_of(101), 10);
+        let dlx = album_of(102);
+        assert_ne!(dlx, 10);
+        let key = |a: i64| -> String {
+            c.query_row("SELECT group_key FROM item WHERE id = ?1", [a], |r| {
+                r.get(0)
+            })
+            .unwrap()
+        };
+        assert_eq!(key(10), "rel:std");
+        assert_eq!(key(dlx), "rel:dlx");
+        // Linked as editions.
+        assert_eq!(other_editions(&c, 10).unwrap()[0].id, dlx);
+        assert_eq!(other_editions(&c, dlx).unwrap()[0].id, 10);
+        // Plays are neither lost nor doubled, and follow the file last played.
+        let total: i64 = c
+            .query_row("SELECT sum(play_count) FROM playstate", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(total, 7);
+        let track_202: i64 = c
+            .query_row("SELECT item_id FROM file WHERE id = 202", [], |r| r.get(0))
+            .unwrap();
+        assert_ne!(track_202, 20);
+        let plays: i64 = c
+            .query_row(
+                "SELECT play_count FROM playstate WHERE item_id = ?1",
+                [track_202],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(plays, 5);
+        // The playlist entry and the saved copy go with their file; the other entry stays.
+        let entry = |pos: i64| -> i64 {
+            c.query_row(
+                "SELECT item_id FROM playlist_entry WHERE position = ?1",
+                [pos],
+                |r| r.get(0),
+            )
+            .unwrap()
+        };
+        assert_eq!(entry(0), track_202);
+        assert_eq!(entry(1), 20);
+        let saved: i64 = c
+            .query_row("SELECT item_id FROM local_copy WHERE id = 1", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(saved, track_202);
+        let broken: i64 = c
+            .query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(broken, 0);
+        // Running it again changes nothing.
+        let albums = |c: &Connection| -> i64 {
+            c.query_row("SELECT count(*) FROM item WHERE kind = 'album'", [], |r| {
+                r.get(0)
+            })
+            .unwrap()
+        };
+        let before = albums(&c);
+        reconcile_releases(&c, 9).unwrap();
+        assert_eq!(albums(&c), before);
+    }
+
+    #[test]
+    fn a_new_match_is_not_undone_by_the_next_scan() {
+        let mut c = editions_at_15();
+        let tx = c.transaction().unwrap();
+        migration_16(&tx).unwrap();
+        tx.commit().unwrap();
+        // Match again: the standard album is really another release.
+        crate::music::replace_release(
+            &mut c,
+            10,
+            &crate::music::ReleaseFacts {
+                id: "other".into(),
+                group_id: Some("g2".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        merge_same_release(&c, 10).unwrap();
+        let albums = |c: &Connection| -> i64 {
+            c.query_row("SELECT count(*) FROM item WHERE kind = 'album'", [], |r| {
+                r.get(0)
+            })
+            .unwrap()
+        };
+        let before = albums(&c);
+        reconcile_releases(&c, 9).unwrap();
+        assert_eq!(albums(&c), before);
+        assert_eq!(
+            external(&c, 10, "release").unwrap().as_deref(),
+            Some("other")
+        );
+        let key: String = c
+            .query_row("SELECT group_key FROM item WHERE id = 10", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(key, "rel:other");
+    }
+
+    #[test]
+    fn locked_split_stays_and_no_id_waits_for_its_match() {
+        let c = editions_at_15();
+        c.execute_batch(
+            "UPDATE item SET locked = 1 WHERE id = 10;
+             INSERT INTO item(id, kind, title, sort_title, parent_id, group_key, added_at) VALUES
+               (30, 'album', 'LUX', 'lux', 1, 'tag:band|lux|2025', 1),
+               (31, 'album', 'Lux', 'lux', 1, 'rel:lux-r', 1);
+             INSERT INTO external_id(item_id, provider, kind, value) VALUES (31, 'musicbrainz', 'release', 'lux-r');",
+        )
+        .unwrap();
+        reconcile_releases(&c, 9).unwrap();
+        // A locked album is not split.
+        let n: i64 = c
+            .query_row(
+                "SELECT count(*) FROM album_version WHERE album_id = 10",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(n, 3);
+        // A title that differs only in case does not join.
+        let both: i64 = c
+            .query_row("SELECT count(*) FROM item WHERE id IN (30, 31)", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(both, 2);
+        // Its match does.
+        c.execute(
+            "INSERT INTO external_id(item_id, provider, kind, value) VALUES (30, 'musicbrainz', 'release', 'lux-r')",
+            [],
+        )
+        .unwrap();
+        assert_eq!(merge_same_release(&c, 31).unwrap(), 30);
+    }
+
     #[test]
     fn identities() {
-        assert_eq!(album_identity(Some("G"), Some("r"), "dir:x|a|b|1"), "rg:g");
-        assert_eq!(album_identity(None, Some("R"), "dir:x|a|b|1"), "rel:r");
-        assert_eq!(album_identity(None, None, "mb:abc"), "rel:abc");
+        assert_eq!(identity_9(Some("G"), Some("r"), "dir:x|a|b|1"), "rg:g");
+        assert_eq!(album_identity(Some("R"), "dir:x|a|b|1"), "rel:r");
+        assert_eq!(album_identity(None, "mb:abc"), "rel:abc");
         assert_eq!(
-            album_identity(None, None, "dir:Band/Album (2000)|band|album|2000"),
+            album_identity(None, "dir:Band/Album (2000)|band|album|2000"),
             "tag:band|album|2000"
         );
-        assert_eq!(
-            album_identity(None, None, "dir:|band|album|"),
-            "tag:band|album|"
-        );
+        assert_eq!(album_identity(None, "dir:|band|album|"), "tag:band|album|");
         assert_eq!(track_key(1, "Song One!", Some(1)), "t:1|song one");
         assert_eq!(track_key(2, "", Some(4)), "t:2|#4");
     }

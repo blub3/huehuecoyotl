@@ -174,6 +174,8 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
     };
     // Issue #146: a scan or a music match may have given two artists one ID or one name.
     if res.is_ok() && matches!(kind, "scan" | "music_match" | "rematch_music") {
+        // Issue #147: one album per release, also when tags or a match just named one.
+        crate::music_matching::reconcile_releases(inner).await;
         crate::music_matching::reconcile_artists(inner).await;
         // Issue #148: newly matched artists get MusicBrainz's spelling.
         crate::music_matching::enqueue_artist_names(inner).await;

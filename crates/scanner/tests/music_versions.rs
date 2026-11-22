@@ -206,7 +206,13 @@ async fn copies_become_versions() {
     assert_eq!(
         albums,
         [
-            "Album 3", "Album 1", "Deluxe 1", "Fixed 1", "Other 2", "Twin 2"
+            "Album 3",
+            "Album 1",
+            "Deluxe 1",
+            "Fixed 1",
+            "Other 1",
+            "Other (2011 Remaster) 1",
+            "Twin 2"
         ]
     );
     let deluxe = rows(
@@ -278,17 +284,31 @@ async fn copies_become_versions() {
     .await;
     assert_eq!(files_per_track, ["Song 1 3", "Song 2 3", "Song 3 3"]);
 
-    // The remaster is an edition; its extra track only in its own version.
-    let ovs = lib
-        .read(move |c| versions::versions(c, other))
+    // Issue #147: the remaster is another release, so an album of its own, linked as an edition
+    // through the release group; its extra track is only there.
+    let (remaster_album, linked) = lib
+        .read(move |c| {
+            let id: i64 = c.query_row(
+                "SELECT id FROM item WHERE kind = 'album' AND title = 'Other (2011 Remaster)'",
+                [],
+                |r| r.get(0),
+            )?;
+            Ok((id, versions::other_editions(c, other)?))
+        })
         .await
         .unwrap();
-    let mut editions: Vec<(String, i64)> =
-        ovs.iter().map(|v| (v.edition.clone(), v.tracks)).collect();
-    editions.sort();
-    assert_eq!(editions, [(String::new(), 2), ("2011 Remaster".into(), 3)]);
-    let orig = ovs.iter().find(|v| v.edition.is_empty()).unwrap().id;
-    let remaster = ovs.iter().find(|v| !v.edition.is_empty()).unwrap().id;
+    assert_eq!(linked.len(), 1);
+    assert_eq!(linked[0].id, remaster_album);
+    let orig = lib
+        .read(move |c| versions::versions(c, other))
+        .await
+        .unwrap()[0]
+        .id;
+    let remaster = lib
+        .read(move |c| versions::versions(c, remaster_album))
+        .await
+        .unwrap()[0]
+        .id;
     let tracks = |v: i64| {
         let lib = &lib;
         async move {
@@ -390,7 +410,8 @@ async fn copies_become_versions() {
             "Album 1 1",
             "Deluxe 1 0",
             "Fixed 1 0",
-            "Other 2 0",
+            "Other 1 0",
+            "Other (2011 Remaster) 1 0",
             "Twin 2 0"
         ]
     );

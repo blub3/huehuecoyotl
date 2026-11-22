@@ -227,6 +227,9 @@ ALTER TABLE item ADD COLUMN own_title TEXT;
 UPDATE item SET files_title = title WHERE kind = 'artist';
 "#,
     ),
+    // 16 (2.9.1, issue #147): one album per MusicBrainz release; the release group links its
+    // editions. Albums are split and tracks rewritten, so the database is copied first.
+    Migration::Merge(crate::versions::migration_16),
 ];
 
 /// The old and new kind constraint of `item`.

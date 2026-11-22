@@ -37,8 +37,28 @@ pub(crate) fn move_via(c: &rusqlite::Connection, from: i64, to: i64) -> Result<(
     Ok(())
 }
 
-/// Issues #105 and #106: matched artists are looked up at the optional providers, and their
-/// albums without a match are looked up again.
+/// Issue #147: one album per release after a scan or a match. Albums joined away hand over the
+/// artists that took their match from them.
+pub(crate) async fn reconcile_releases(inner: &Arc<Inner>) {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as i64);
+    let done = inner
+        .lib
+        .write(move |c| {
+            let tx = c.transaction()?;
+            for (gone, kept) in huehuecoyotl_library::versions::reconcile_releases(&tx, now)? {
+                move_via(&tx, gone, kept)?;
+            }
+            tx.commit()?;
+            Ok(())
+        })
+        .await;
+    if let Err(e) = done {
+        tracing::warn!("joining albums by release failed: {e}");
+    }
+}
+
 /// Issue #146: join the artists that are the same (one MusicBrainz artist ID, or one name without
 /// case and accents). Returns each artist joined away with the one it joined.
 pub(crate) async fn reconcile_artists(inner: &Arc<Inner>) -> Vec<(i64, i64)> {
