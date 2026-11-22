@@ -54,16 +54,16 @@ jobs:
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y --noninteractive flathub org.kde.Platform//6.11 org.kde.Sdk//6.11 \
             org.freedesktop.Sdk.Extension.rust-stable//25.08
-      - name: Flatpak bundle
-        run: packaging/flatpak/build.sh
-      - name: Third-party notices and SBOM
+      - name: Flatpak and corresponding source bundles
+        run: packaging/flatpak/build.sh --bundle-sources
+      - name: Stage release assets and checksums
         run: |
           mkdir -p dist
           cp build/io.github.blub3.Huehuecoyotl.flatpak dist/
+          cp build/io.github.blub3.Huehuecoyotl.Sources.flatpak build/flatpak-BUILDINFO.txt dist/
           cp packaging/flatpak/generated/THIRD_PARTY_NOTICES.txt dist/
           cargo cyclonedx --manifest-path crates/core-api/Cargo.toml --format json --override-filename sbom-rust
           cp crates/core-api/sbom-rust.json dist/huehuecoyotl-sbom-rust.cdx.json
-          cp third_party/mpv/out/BUILDINFO.txt dist/libmpv-BUILDINFO.txt
           (cd dist && sha256sum * > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with: { name: release-linux, path: dist }

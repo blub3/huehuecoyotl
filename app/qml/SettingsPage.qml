@@ -732,7 +732,7 @@ FocusScope {
                         color: Theme.text
                         // "1.1.0", or "1.1.0-dev+7870d67" for a development build.
                         readonly property var version: Qt.application.version.split("-dev+")
-                        text: qsTr("Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt, all used under the LGPL.")
+                        text: qsTr("Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt. Their licences, and those of any codec extension, are under Third-party licences.")
                               .arg(version.length > 1 ? qsTr("%1 (development build %2)").arg(version[0]).arg(version[1]) : version[0])
                     }
                 }

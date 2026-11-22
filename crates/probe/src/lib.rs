@@ -7,6 +7,11 @@
 
 mod ffi;
 #[rustfmt::skip]
+#[cfg(not(ffmpeg71))]
+mod ffi_types;
+// The Flatpak runtime's FFmpeg (issue #161), selected by build.rs.
+#[cfg(ffmpeg71)]
+#[path = "ffi_types_71.rs"]
 mod ffi_types;
 mod waveform;
 

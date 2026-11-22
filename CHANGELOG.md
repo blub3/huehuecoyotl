@@ -2,6 +2,11 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Planned for 2.9.2
+
+- The Linux release includes a companion Flatpak source bundle (`io.github.blub3.Huehuecoyotl.Sources.flatpak`) with the exact sources of the bundled libmpv, libplacebo and libass, and `flatpak-BUILDINFO.txt` with the runtime and SDK commits; `packaging/flatpak/README.md` explains how to rebuild them. The app now finds its libraries through `DT_RUNPATH`, so a rebuilt or modified library can be used with `LD_LIBRARY_PATH`. `libmpv-BUILDINFO.txt` (the separate Docker build) is no longer published (#161).
+- The Flatpak no longer contains FFmpeg (#161). Playback uses the KDE runtime's FFmpeg 7.1; H.264, HEVC, VC-1 and E-AC-3 come from Flathub's codecs-extra extension, whose libraries are GPL and are not part of this project's release files. Without the extension those formats do not play.
+
 ## Unreleased (2.9.1)
 
 - One artist per MusicBrainz artist ID (#146, part of 2.9.1). Artists spelled differently in different albums' tags ("Rosalia", "Rosalía") become one artist when they share their MusicBrainz ID, and unmatched artists whose names differ only in case or accents are one artist too; artists with different IDs stay apart. Albums, playlists and play counts stay. Schema 14; a copy of the database is kept as `library.db.before-14`, and 2.9.0 cannot open the new one.

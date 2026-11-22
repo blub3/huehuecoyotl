@@ -109,7 +109,7 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 1. Do not write a player. mpv does demuxing, decoding, sync, subtitles and caching.
 2. The core is headless. Every feature except video output works from a command-line harness without the Qt UI, which makes it testable.
 3. C++ only where Qt or mpv APIs are used directly; Rust everywhere else. The C++ layer holds no business logic and does no I/O.
-4. The dependency tree stays permissive. Official builds link nothing GPL, and CI enforces it.
+4. The dependency tree stays permissive. Our release files contain no GPL code, and CI enforces it. The Flatpak is the one narrow exception at run time: when the user has Flathub's codecs-extra extension, the running app loads that extension's GPL libraries (section 3, decision of Nov 22, 2026).
 5. The library is offline-first. The UI reads only from SQLite; the network never blocks a screen.
 6. Sources and metadata providers are plug-ins behind one trait each.
 
@@ -122,15 +122,17 @@ Apache 2.0 for the project's own code is workable if Qt, libmpv and FFmpeg are u
 | Project code (C++, QML and Rust) | Apache-2.0 | Permissive, with a patent grant | Keep; require DCO sign-off on contributions |
 | [Qt 6](https://doc.qt.io/qt-6/licensing.html) | LGPLv3 for most modules; some add-on modules are GPL-only in the open-source edition | Using one GPL-only module makes the binary GPL. The Qt FAQ names Qt Charts, Data Visualization and Virtual Keyboard as examples. | Use only LGPL modules: Core, Gui, OpenGL, Qml, Quick, Quick Controls, Quick Dialogs (LGPLv3, part of qtdeclarative; the native file and folder dialogs since 1.5, through the portal under Flatpak), Svg, DBus. Link dynamically. OpenGL is needed because the embedded video item's renderer returns a `QOpenGLFramebufferObject` (spike finding). |
 | [libmpv](https://github.com/mpv-player/mpv/blob/master/Copyright) | GPLv2+ by default; LGPLv2.1+ when built without the GPL-only files (`-Dgpl=false`) | LGPL mode drops the X11 video output, VDPAU and a few minor features. Linked libraries can still change the result. | Own LGPL build, shipped as a separate shared library. In mpv 0.42 the entire X11 backend is GPL-only, so the LGPL build has no X11 support at all (see 5.2). |
-| FFmpeg | LGPLv2.1+ unless configured with GPL or non-free parts | A GPL-configured FFmpeg makes the whole libmpv build GPL | Configure without GPL or non-free options; decoders only |
+| FFmpeg | LGPLv2.1+ unless configured with GPL or non-free parts | A GPL-configured FFmpeg makes the whole libmpv build GPL | Our own bundle: no GPL or non-free options, decoders only. The Flatpak ships no FFmpeg and uses the runtime's (see below) |
 | mpvqt (reference only, not linked) | LGPL-2.1 or LGPL-3 | None, as long as no code is copied | Not a dependency; the video item is written from mpv's API documentation |
 | Samba libsmbclient (`smbc` crate) | GPLv3 | mpv's own notes say Samba support makes a build GPLv3+ | Not used |
 | [`smb` crate](https://docs.rs/crate/smb/latest), [`nfs-rs`](https://docs.rs/crate/nfs-rs/latest/source/README.md), [Apache OpenDAL](https://opendal.apache.org/core), `cxx` | Permissive (nfs-rs and OpenDAL are Apache-2.0; confirm the others in the audit) | None | Used |
 | [TMDB API](https://developer.themoviedb.org/docs/faq) | API terms, not a software licence | Free for non-commercial use with attribution; charging for the app makes it commercial use | See section 7 |
 
+**FFmpeg in the Flatpak (decision of Nov 22, 2026, issue #161).** The Flatpak no longer bundles FFmpeg, so our release files contain no patented software decoders and no GPL code. mpv links the KDE 6.11 runtime's FFmpeg 7.1, which is LGPL and has no H.264, HEVC, VC-1 or E-AC-3 decoder (it does have AAC and AC-3). Flathub's separately distributed `org.freedesktop.Platform.codecs-extra` replaces it with a build that has them. That build reports "GPL version 2 or later" and links x264 and x265, so with the extension present the running app loads GPL libraries. The project stays Apache-2.0: Apache-2.0 code can be combined into a GPLv3 work, and "GPL 2 or later" allows GPLv3. This is an engineering reading, not legal advice; take legal advice before store distribution.
+
 **LGPL obligations for official builds** ([Qt's summary](https://www.qt.io/faq/3.7.-what-are-my-obligations-when-using-qt-under-the-lgpl))
 
-- Ship Qt, libmpv and FFmpeg as replaceable shared libraries, never statically linked. The media probe (section 7) uses the same FFmpeg libraries from the Rust core: it loads them at runtime (`libloading`, ISC) with bindings generated for the shipped major version, so nothing new is shipped and nothing links FFmpeg statically.
+- Ship Qt, libmpv and FFmpeg as replaceable shared libraries, never statically linked (in the Flatpak, Qt and FFmpeg come from the runtime). The media probe (section 7) uses the same FFmpeg libraries from the Rust core: it loads them at runtime (`libloading`, ISC) with bindings generated for the shipped major version, so nothing new is shipped and nothing links FFmpeg statically.
 - Include the licence texts and make the exact sources and build recipes available under the project's own control, not only as links to upstream.
 - Users must be able to run the app against their own modified build of those libraries. On desktop systems, ordinary shared libraries satisfy this.
 
@@ -143,7 +145,7 @@ Apache 2.0 for the project's own code is workable if Qt, libmpv and FFmpeg are u
 
 Distribution packagers may still link a system mpv that is a GPL build. That is allowed, since Apache-2.0 code can be combined into a GPLv3 work, but the resulting package is then GPL as a whole.
 
-Two further points sit outside copyright licensing. Other companies' product names must not appear in the project name, branding or documentation. Codec patents (for example HEVC, AC-3, DTS) are separate from software licences; prefer OS and hardware decoders and take advice before distributing through app stores.
+Two further points sit outside copyright licensing. Other companies' product names must not appear in the project name, branding or documentation. Codec patents (for example HEVC, AC-3, DTS) are separate from software licences; prefer OS and hardware decoders and take advice before distributing through app stores. The Flatpak leaves the patented decoders to the runtime's codecs-extra extension (see above).
 
 ## 4. Revised system architecture
 
@@ -720,7 +722,7 @@ Cargo.toml           Rust workspace
 
 **Logo and icons.** The logo's master is `assets/logo/huehuecoyotl.png` (raster artwork, 1254 px). `tools/make-icons.py` generates every size from it: the hicolor icons for Linux and the Flatpak (16 to 512 px; there is no scalable SVG), the Windows `.ico`, the MSIX image assets and the 512 px image the UI scales to the screen's scale factor. Nothing is resized by hand. The logo is not under the Apache License 2.0; `assets/logo/LICENSE` states its terms.
 
-**FFmpeg bindings for the probe.** `crates/probe/src/ffi_types.rs` holds the FFmpeg types the probe reads, generated once by `tools/gen-ffmpeg-bindings.sh` (bindgen) from the headers of the libmpv bundle and committed, so builds need neither libclang nor FFmpeg headers. The functions are looked up at runtime from the libraries the app already loaded with libmpv; a library with another major version is refused, and then the playback fallback fills in. Regenerate the file when FFmpeg's major version changes.
+**FFmpeg bindings for the probe.** `crates/probe/src/ffi_types.rs` holds the FFmpeg types the probe reads, generated once by `tools/gen-ffmpeg-bindings.sh` (bindgen) from the headers of the libmpv bundle and committed, so builds need neither libclang nor FFmpeg headers. The functions are looked up at runtime from the libraries the app already loaded with libmpv; a library with another major version is refused, and then the playback fallback fills in. The Flatpak uses the runtime's FFmpeg 7.1 and is built with `COYOTL_FFMPEG_ABI=7.1`, which selects `ffi_types_71.rs`. Regenerate the matching file when an FFmpeg major version changes, including with a new KDE runtime.
 
 **libmpv bundle.** The Linux recipe builds in a container on the Ubuntu 24.04 base and ships libmpv with FFmpeg, libass, libplacebo and libwayland as shared libraries with an `$ORIGIN` rpath. libwayland is bundled because mpv 0.42 needs version 1.23 or newer and Ubuntu 24.04 has 1.22. Versions are pinned by tag and recorded by commit. The spike baseline is mpv 0.42.0, FFmpeg 8.1.3, libplacebo 7.387.0, libass 0.17.5 and libwayland 1.24.0.
 
@@ -741,7 +743,25 @@ Cargo.toml           Rust workspace
 3. Integration: source conformance suite against the protocol containers.
 4. UI: Qt Quick Test for navigation and focus; scroll benchmark.
 5. Native: reproducible libmpv and FFmpeg build with the licence assertions from section 3.
-6. Release: packages, third-party notices, a software bill of materials.
+6. Release: packages, third-party notices, a software bill of materials. The standalone
+   Flatpak download ships alongside a `.Sources.flatpak` generated by Flatpak Builder in
+   the same build, with pinned source trees, patches and the manifest for the bundled
+   libraries (from 2.9.2 libmpv, libplacebo and libass; FFmpeg comes from the KDE runtime and
+   the codecs-extra extension, whose sources Flathub publishes). Build information records the app revision and KDE runtime/SDK commits.
+   See [Flatpak release and rebuild instructions](../packaging/flatpak/README.md).
+   From 2.9.2 the Linux release assets are the Flatpak, `io.github.blub3.Huehuecoyotl.Sources.flatpak`,
+   `flatpak-BUILDINFO.txt`, the third-party notices, the Rust SBOM and `SHA256SUMS`; the old
+   `libmpv-BUILDINFO.txt` (revisions of the separate Docker build of libmpv, which the Flatpak does
+   not use) is no longer published. Older releases (issue #161): every public release from
+   v0.9.0 to v2.9.0 carries `flatpak-lgpl-sources.tar.gz` and `SHA256SUMS-lgpl`, added on
+   Nov 19, 2026. The archive holds Git snapshots of FFmpeg, mpv, libplacebo, libass,
+   nv-codec-headers and their submodules, and per release the manifest embedded in that release's
+   binary with the digests of its Flatpak and bundled libraries; the playback modules are the
+   same in all fifteen releases (only the app module differs), and each release's
+   `SHA256SUMS-lgpl` names the Flatpak published with it. No Windows binary has been published.
+   The app binary links with `--enable-new-dtags` (`DT_RUNPATH`), so `LD_LIBRARY_PATH` can
+   point it at a rebuilt or modified LGPL library; checked with libraries rebuilt offline from
+   the source bundle.
 
 Updates are delivered by Flathub, winget or the Store; 1.0 ships no updater of its own. There is no telemetry by default. Logs from both languages go to one rotating file (`tracing` in Rust, Qt's logging categories in C++), with an "export diagnostics" action that redacts host names and credentials.
 
@@ -816,7 +836,7 @@ The two video paths are the risk that could still change the architecture, so bo
 | Qt version drift | Distributions ship old Qt versions, and late long-term-support patches are commercial-only | Bundle Qt in official packages; follow the newest minor release |
 | TMDB key and terms | Every user needs their own key, which adds a setup step before the library looks good | Guided first-run setup with key validation; provider trait; local `.nfo` support |
 | Scope | The commercial reference product has years of work behind it | Milestone gates; non-goals list; no mobile work |
-| Codec patents | Separate from copyright licences | Prefer hardware and OS decoders; take advice before store distribution |
+| Codec patents | Separate from copyright licences | Decided Nov 22, 2026 for the Flatpak: no bundled FFmpeg, patented decoders come from Flathub's codecs-extra (section 3). Take legal advice before store distribution |
 
 **Open decisions**
 

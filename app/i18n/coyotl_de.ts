@@ -5217,6 +5217,11 @@
         <translation>Bücher, für die du ein Tempo gewählt hast, behalten ihres. Die Tonhöhe bleibt bei jedem Tempo gleich.</translation>
     </message>
     <message>
+        <location filename="../qml/SettingsPage.qml" line="735"/>
+        <source>Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt. Their licences, and those of any codec extension, are under Third-party licences.</source>
+        <translation>Huehuecoyotl %1 · Apache-Lizenz 2.0. Wiedergabe mit libmpv und FFmpeg, Oberfläche mit Qt. Deren Lizenzen und die einer Codec-Erweiterung stehen unter „Lizenzen von Drittanbietern“.</translation>
+    </message>
+    <message>
         <location filename="../qml/SettingsPage.qml" line="146"/>
         <source>Audio</source>
         <translation>Audio</translation>
@@ -5326,11 +5331,6 @@
         <location filename="../qml/SettingsPage.qml" line="147"/>
         <source>About</source>
         <translation>Über</translation>
-    </message>
-    <message>
-        <location filename="../qml/SettingsPage.qml" line="735"/>
-        <source>Huehuecoyotl %1 · Apache License 2.0. Playback by libmpv and FFmpeg, interface by Qt, all used under the LGPL.</source>
-        <translation>Huehuecoyotl %1 · Apache-Lizenz 2.0. Wiedergabe mit libmpv und FFmpeg, Oberfläche mit Qt, jeweils unter der LGPL.</translation>
     </message>
     <message>
         <location filename="../qml/SettingsPage.qml" line="736"/>

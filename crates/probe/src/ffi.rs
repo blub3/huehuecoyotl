@@ -1,7 +1,8 @@
 //! FFmpeg's libavformat, libavcodec and libavutil, loaded at runtime. The app already ships them
 //! with libmpv (and has them loaded), so nothing links against FFmpeg at build time and no new
-//! library is shipped. The types come from `ffi_types.rs` (generated for FFmpeg 8.1); a library
-//! with a different major version is refused, since the struct layouts would not match.
+//! library is shipped. The types come from `ffi_types.rs` (generated for FFmpeg 8.1) or, in the
+//! Flatpak, `ffi_types_71.rs` (the runtime's FFmpeg 7.1); a library with a different major
+//! version is refused, since the struct layouts would not match.
 
 use core::ffi::{c_char, c_int, c_uint, c_void};
 use std::sync::OnceLock;
@@ -147,12 +148,13 @@ macro_rules! sym {
 /// dynamic loader would not find it on its own. In the app it is already loaded with libmpv.
 fn swresample() -> Option<Library> {
     let dir = std::env::var_os("COYOTL_FFMPEG_DIR")?;
+    let major = if cfg!(ffmpeg71) { 5 } else { 6 };
     let name = if cfg!(windows) {
-        "swresample-6.dll"
+        format!("swresample-{major}.dll")
     } else if cfg!(target_os = "macos") {
-        "libswresample.6.dylib"
+        format!("libswresample.{major}.dylib")
     } else {
-        "libswresample.so.6"
+        format!("libswresample.so.{major}")
     };
     // SAFETY: as in `open`.
     unsafe { Library::new(std::path::Path::new(&dir).join(name)) }.ok()
