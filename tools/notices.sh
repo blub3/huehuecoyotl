@@ -2,12 +2,15 @@
 # Third-party notices for a release (SPEC 10, step 6): the app's own licence, Qt, the LGPL
 # libmpv bundle and every Rust crate linked into the app. Needs cargo-about.
 #   tools/notices.sh OUT [LIBMPV_PREFIX]
+# COYOTL_NOTICES_FLATPAK=1: for the Flatpak, which takes FFmpeg and Wayland from the KDE runtime
+# (issue #161) and so does not ship the bundle's copies.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 out="$1"
 mpv="${2:-$root/third_party/mpv/out}"
 command -v cargo-about >/dev/null || { echo "notices.sh: cargo-about is not installed (cargo install --locked cargo-about --features cli)" >&2; exit 1; }
 tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+flatpak="${COYOTL_NOTICES_FLATPAK:-}"
 
 section() { printf '\n\n================================================================================\n%s\n================================================================================\n' "$1"; }
 file() { printf '\n----- %s -----\n\n' "$2"; cat "$1"; }
@@ -31,9 +34,22 @@ file() { printf '\n----- %s -----\n\n' "$2"; cat "$1"; }
   file "$root/packaging/licenses/LGPL-3.0-only.txt" "GNU Lesser General Public License v3"
   file "$root/packaging/licenses/GPL-3.0-only.txt" "GNU General Public License v3 (referenced by the LGPL v3)"
 
+  if [ -n "$flatpak" ]; then
+    section "FFmpeg and codecs in the Flatpak (not part of this package)"
+    echo "This package contains no FFmpeg. It uses the FFmpeg of the KDE runtime (LGPL), which has"
+    echo "no H.264, HEVC, VC-1 or E-AC-3 decoder. Flathub's separate runtime extension"
+    echo "org.freedesktop.Platform.codecs-extra adds them. That extension's FFmpeg is licensed"
+    echo "under the GPL version 2 or later and links x264 and x265 (GPL), so when it is installed"
+    echo "the running app loads GPL libraries. Flathub distributes the runtime and the extension"
+    echo "and publishes their sources: https://github.com/flathub/org.kde.Platform and"
+    echo "https://gitlab.com/freedesktop-sdk/freedesktop-sdk"
+  fi
+
   section "libmpv and its libraries (LGPL build, -Dgpl=false)"
   if [ -f "$mpv/BUILDINFO.txt" ]; then
-    echo "Exact source revisions:"; sed 's/^/  /' "$mpv/BUILDINFO.txt"
+    echo "Exact source revisions:"
+    if [ -n "$flatpak" ]; then grep -vE '^(ffmpeg|wayland|wayland-protocols) ' "$mpv/BUILDINFO.txt" | sed 's/^/  /'
+    else sed 's/^/  /' "$mpv/BUILDINFO.txt"; fi
     echo "Build recipe: third_party/mpv in the Huehuecoyotl source repository."
   fi
   lic="$mpv/share/licenses"
@@ -42,6 +58,7 @@ file() { printf '\n----- %s -----\n\n' "$2"; cat "$1"; }
     # GPL configurations do not apply to these LGPL builds and are left out.
     while IFS= read -r f; do
       rel="${f#"$lic"/}"
+      if [ -n "$flatpak" ]; then case "$rel" in ffmpeg/*|wayland/*) continue ;; esac; fi
       case "$(basename "$f")" in *LGPL*|*lgpl*) ;; *GPL*) continue ;; esac
       file "$f" "$rel"
     done < <(find "$lic" -type f | LC_ALL=C sort)

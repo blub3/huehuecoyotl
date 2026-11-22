@@ -4,7 +4,8 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Planned for 2.9.2
 
-- The Linux release includes a companion Flatpak source bundle (`io.github.blub3.Huehuecoyotl.Sources.flatpak`) with the exact sources of the bundled FFmpeg, libmpv, libplacebo and libass, and `flatpak-BUILDINFO.txt` with the runtime and SDK commits; `packaging/flatpak/README.md` explains how to rebuild them. The app now finds its libraries through `DT_RUNPATH`, so a rebuilt or modified library can be used with `LD_LIBRARY_PATH`. `libmpv-BUILDINFO.txt` (the separate Docker build) is no longer published (#161).
+- The Linux release includes a companion Flatpak source bundle (`io.github.blub3.Huehuecoyotl.Sources.flatpak`) with the exact sources of the bundled libmpv, libplacebo and libass, and `flatpak-BUILDINFO.txt` with the runtime and SDK commits; `packaging/flatpak/README.md` explains how to rebuild them. The app now finds its libraries through `DT_RUNPATH`, so a rebuilt or modified library can be used with `LD_LIBRARY_PATH`. `libmpv-BUILDINFO.txt` (the separate Docker build) is no longer published (#161).
+- The Flatpak no longer contains FFmpeg (#161). Playback uses the KDE runtime's FFmpeg 7.1; H.264, HEVC, VC-1 and E-AC-3 come from Flathub's codecs-extra extension, whose libraries are GPL and are not part of this project's release files. Without the extension those formats do not play.
 
 ## Unreleased (2.9.1)
 

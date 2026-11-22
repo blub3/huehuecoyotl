@@ -27,7 +27,7 @@ grep -q vendored-sources "$gen/cargo-config.toml" || { echo "build.sh: cargo ven
 # Cargo resolves this relative to the parent of the folder holding config.toml, i.e. the
 # module root, where each module puts its vendor copy.
 sed -i 's|directory = ".*"|directory = "vendor"|' "$gen/cargo-config.toml"
-"$root/tools/notices.sh" "$gen/THIRD_PARTY_NOTICES.txt"
+COYOTL_NOTICES_FLATPAK=1 "$root/tools/notices.sh" "$gen/THIRD_PARTY_NOTICES.txt"
 
 if command -v flatpak-builder >/dev/null; then fb=(flatpak-builder)
 # The sandboxed builder forwards its own XDG_DATA_HOME to host commands, which hides per-user

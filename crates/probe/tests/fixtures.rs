@@ -7,13 +7,16 @@ use std::process::Command;
 use huehuecoyotl_probe::{FileReader, ProbeInfo, ReadAt, probe, probe_with_budget, waveform};
 
 fn setup() -> Option<tempfile::TempDir> {
-    // SAFETY: set before the probe loads FFmpeg; tests in this file all set the same value.
-    unsafe {
-        std::env::set_var(
-            "COYOTL_FFMPEG_DIR",
-            concat!(env!("CARGO_MANIFEST_DIR"), "/../../third_party/mpv/out/lib"),
-        )
-    };
+    // A directory set from outside wins: the FFmpeg 7.1 build is tested on the runtime's libraries.
+    if std::env::var_os("COYOTL_FFMPEG_DIR").is_none() {
+        // SAFETY: set before the probe loads FFmpeg; tests in this file all set the same value.
+        unsafe {
+            std::env::set_var(
+                "COYOTL_FFMPEG_DIR",
+                concat!(env!("CARGO_MANIFEST_DIR"), "/../../third_party/mpv/out/lib"),
+            )
+        };
+    }
     if huehuecoyotl_probe::ffmpeg().is_err()
         || Command::new("ffmpeg").arg("-version").output().is_err()
     {

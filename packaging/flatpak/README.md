@@ -16,11 +16,32 @@ Docker build of libmpv rather than the Flatpak; it is no longer published.
 For a manual release, include the same assets and generate the checksums from the staged files.
 Run `sha256sum -c SHA256SUMS` in the download directory to verify the pair.
 
-The source bundle contains the build manifest and source snapshots for FFmpeg, libmpv and
-libplacebo, including Git submodules, plus the other modules' sources held by Flatpak Builder.
+The source bundle contains the build manifest and source snapshots for libmpv, libplacebo and
+libass, including Git submodules, plus the other modules' sources held by Flatpak Builder.
 The Huehuecoyotl application source is available from the Git tag for the release.
-KDE Platform supplies Qt and other runtime libraries through Flathub. The source bundle covers
-the libraries distributed inside the app Flatpak. See the [KDE runtime build repository](https://github.com/flathub/org.kde.Platform) for runtime sources.
+KDE Platform supplies Qt, FFmpeg and other runtime libraries through Flathub. The source bundle
+covers the libraries distributed inside the app Flatpak. See the [KDE runtime build repository](https://github.com/flathub/org.kde.Platform) for runtime sources.
+
+## Codecs
+
+From 2.9.2 the Flatpak contains no FFmpeg. mpv and the media probe use the KDE runtime's
+FFmpeg 7.1:
+
+- Without `org.freedesktop.Platform.codecs-extra`: LGPL FFmpeg. AV1, VP9, MPEG-2, MPEG-4, AAC,
+  AC-3, FLAC, Opus and MP3 work; H.264, HEVC, VC-1 and E-AC-3 have no decoder.
+- With it: all of those decode. That FFmpeg is GPL 2 or later and links x264 and x265, so the
+  running app then loads GPL libraries. Flathub distributes the extension, not this project.
+
+The runtime's metadata lists the extension without `no-autodownload`, so Flatpak normally
+installs it with the runtime. To add it by hand:
+
+```sh
+flatpak install --user flathub org.freedesktop.Platform.codecs-extra//25.08-extra
+```
+
+The probe's struct layouts must match FFmpeg's major version. The manifest sets
+`COYOTL_FFMPEG_ABI=7.1`; a runtime with another FFmpeg needs new bindings from
+`tools/gen-ffmpeg-bindings.sh`.
 
 ## Rebuild the bundled playback libraries
 
@@ -55,10 +76,14 @@ lib="$PWD/build-dir/files/lib"
 flatpak run --filesystem="$lib:ro" --env=LD_LIBRARY_PATH="$lib" io.github.blub3.Huehuecoyotl
 ```
 
-A replacement must keep the library's soname and interface (`libmpv.so.2`, `libavcodec.so.62`
+A replacement must keep the library's soname and interface (`libmpv.so.2`, `libplacebo.so.387`
 and so on). Releases before 2.9.2 use `DT_RPATH`, which `LD_LIBRARY_PATH` cannot override; for
 those, rebuild the whole Flatpak from its manifest with the changed module.
 
-Checked on Nov 22, 2026 with the 2.9.2 development build: the libraries were rebuilt offline
-from the source bundle with the steps above (Flathub's Flatpak Builder), and the app ran on all
-four rebuilt libraries (`libmpv`, `libavcodec`, `libplacebo`, `libass`, seen in its memory maps).
+Checked on Nov 22, 2026 with the 2.9.2 development build (Flathub's Flatpak Builder, RTX 3080):
+
+- `libmpv`, `libplacebo` and `libass` were rebuilt offline from the source bundle, and the
+  rebuilt libraries played H.264, HEVC, VP9 and AV1.
+- With codecs-extra all of those formats played, and NVDEC ran through OpenGL.
+- Without it, H.264 and HEVC had no decoder, while VP9, AV1, AAC, AC-3, FLAC and Opus played.
+- VA-API on Intel or AMD graphics has not been tested.

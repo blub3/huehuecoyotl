@@ -11,6 +11,10 @@ also shown in the app under Settings → About):
   - FFmpeg, LGPL configuration (LGPLv2.1+)      https://ffmpeg.org
   - libass (ISC), libplacebo (LGPLv2.1+), libwayland (MIT)
 
+The Flatpak contains no FFmpeg: it uses the KDE runtime's. With Flathub's separate codecs-extra
+extension installed, the running app also loads that extension's GPL-licensed FFmpeg, x264 and
+x265. They are not part of this product's release files.
+
 The Huehuecoyotl logo (assets/logo and the icons generated from it) is not covered by the
 Apache License 2.0; see assets/logo/LICENSE.
 
