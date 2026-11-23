@@ -14,7 +14,7 @@ Item {
         signal requestFailed(var requestId, int kind, string message)
         property int next: 0
         property var calls: []
-        property var status: ({ configured: true, where: "local", path: "/lib", copies: 3, size: 1000, free: 5000, moving: false,
+        property var status: ({ examples: { movies: "Movies/A (2000)/A (2000).mkv", music: "Music/B/C (2001)/01 - D.flac" }, configured: true, where: "local", path: "/lib", copies: 3, size: 1000, free: 5000, moving: false,
             shares: [{ id: 1, name: "media on nas", state: "online" }, { id: 2, name: "films", state: "offline" }],
             types: { movies: { enabled: true, "import": "manual", writeTags: true }, shows: { enabled: true, "import": "manual", writeTags: true },
                      music: { enabled: true, "import": "manual", writeTags: true }, audiobooks: { enabled: true, "import": "manual", writeTags: true } } })

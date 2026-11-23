@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use bytes::Bytes;
-use huehuecoyotl_library::{jobs, managed, shares as share_db};
+use huehuecoyotl_library::{jobs, managed, naming, shares as share_db};
 use huehuecoyotl_vfs::write::check_writable;
 use huehuecoyotl_vfs::{Expected, LocalSource, Source, VPath, VfsError, safe_write};
 use serde_json::{Value, json};
@@ -243,6 +243,12 @@ async fn status(inner: &Arc<Inner>) -> CResult<Value> {
         "moveError": error,
         "types": types,
         "shares": shares,
+        "examples": {
+            "movies": naming::example("movies"),
+            "shows": naming::example("shows"),
+            "music": naming::example("music"),
+            "audiobooks": naming::example("audiobooks"),
+        },
     }))
 }
 

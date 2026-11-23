@@ -50,12 +50,8 @@ ColumnLayout {
     function setType(changes) {
         pending.set = backend.libraryCall("setType", { type: kind, changes: changes })
     }
-    function example(k) {
-        return ({ movies: "Movies/Alien (1979) {imdb-tt0078748}/Alien (1979) {imdb-tt0078748} - 1080p.mkv",
-                  shows: "TV Shows/Firefly (2002)/Season 01/Firefly (2002) - S01E01 - Serenity.mkv",
-                  music: "Music/Rosalía/MOTOMAMI (2022)/01 - SAOKO.flac",
-                  audiobooks: "Audiobooks/Jane Austen/Pride and Prejudice (1813)/Pride and Prejudice.m4b" })[k]
-    }
+    // Issue #152: built by the core with the real naming rules.
+    function example(k) { return status.examples ? (status.examples[k] || "") : "" }
     function shareState(s) {
         return s.state === "offline" ? qsTr("Offline") : qsTr("Reachable")
     }

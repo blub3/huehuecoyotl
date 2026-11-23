@@ -162,7 +162,7 @@
 <context>
     <name>LibrarySettings</name>
     <message numerus="yes">
-        <location filename="../qml/LibrarySettings.qml" line="167"/>
+        <location filename="../qml/LibrarySettings.qml" line="163"/>
         <source>%n copies</source>
         <translation>
             <numerusform>%n copy</numerusform>
@@ -170,7 +170,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/LibrarySettings.qml" line="179"/>
+        <location filename="../qml/LibrarySettings.qml" line="175"/>
         <source>Moving your library: %n copies to go. They keep playing.</source>
         <translation>
             <numerusform>Moving your library: %n copy to go. It keeps playing.</numerusform>
@@ -178,7 +178,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/LibrarySettings.qml" line="425"/>
+        <location filename="../qml/LibrarySettings.qml" line="421"/>
         <source>Your library has %n copies (%1) in %2</source>
         <translation>
             <numerusform>Your library has %n copy (%1) in %2</numerusform>
