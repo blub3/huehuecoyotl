@@ -18,6 +18,9 @@ x265. They are not part of this product's release files.
 The Huehuecoyotl logo (assets/logo and the icons generated from it) is not covered by the
 Apache License 2.0; see assets/logo/LICENSE.
 
+The media probe's generated FFmpeg types (crates/probe/src/ffi_types*.rs) derive from FFmpeg's
+headers and are licensed under the LGPL 2.1 or later; see docs/PROVENANCE.md.
+
 This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 Music information (2.0) comes from MusicBrainz (https://musicbrainz.org). Only its core data
