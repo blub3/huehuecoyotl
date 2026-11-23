@@ -463,7 +463,7 @@
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="208"/>
-        <location filename="../qml/AlbumPage.qml" line="441"/>
+        <location filename="../qml/AlbumPage.qml" line="442"/>
         <source>Hi-Res</source>
         <translation>Hi-Res</translation>
     </message>
@@ -494,13 +494,13 @@
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="291"/>
-        <location filename="../qml/AlbumPage.qml" line="483"/>
+        <location filename="../qml/AlbumPage.qml" line="484"/>
         <source>Play next</source>
         <translation>Als Nächstes abspielen</translation>
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="302"/>
-        <location filename="../qml/AlbumPage.qml" line="483"/>
+        <location filename="../qml/AlbumPage.qml" line="484"/>
         <source>Add to queue</source>
         <translation>Zur Warteschlange hinzufügen</translation>
     </message>
@@ -516,39 +516,45 @@
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="341"/>
-        <location filename="../qml/AlbumPage.qml" line="485"/>
+        <location filename="../qml/AlbumPage.qml" line="486"/>
         <source>Add to Library…</source>
         <translation>Zur Bibliothek hinzufügen…</translation>
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="342"/>
-        <location filename="../qml/AlbumPage.qml" line="490"/>
+        <location filename="../qml/AlbumPage.qml" line="487"/>
+        <source>Edit tags…</source>
+        <translation>Tags bearbeiten…</translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="343"/>
+        <location filename="../qml/AlbumPage.qml" line="492"/>
         <source>Match again</source>
         <translation>Neu zuordnen</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="343"/>
-        <location filename="../qml/AlbumPage.qml" line="490"/>
+        <location filename="../qml/AlbumPage.qml" line="344"/>
+        <location filename="../qml/AlbumPage.qml" line="492"/>
         <source>Search MusicBrainz…</source>
         <translation>Bei MusicBrainz suchen …</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="358"/>
+        <location filename="../qml/AlbumPage.qml" line="359"/>
         <source>Tracks</source>
         <translation>Titel</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="364"/>
+        <location filename="../qml/AlbumPage.qml" line="365"/>
         <source>Disc %1</source>
         <translation>CD %1</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="384"/>
+        <location filename="../qml/AlbumPage.qml" line="385"/>
         <source>Track %1, %2</source>
         <translation>Titel %1, %2</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="435"/>
+        <location filename="../qml/AlbumPage.qml" line="436"/>
         <source>%n version(s)</source>
         <translation>
             <numerusform>%n Version</numerusform>
@@ -556,47 +562,47 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="484"/>
+        <location filename="../qml/AlbumPage.qml" line="485"/>
         <source>Add to playlist…</source>
         <translation>Zur Playlist hinzufügen …</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="488"/>
+        <location filename="../qml/AlbumPage.qml" line="490"/>
         <source>Version: %1</source>
         <translation>Version: %1</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="542"/>
+        <location filename="../qml/AlbumPage.qml" line="546"/>
         <source>Make “%1” an album of its own? It stays apart from this one, also after the next scan.</source>
         <translation>„%1“ zu einem eigenen Album machen? Es bleibt von diesem getrennt, auch nach dem nächsten Scan.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="547"/>
+        <location filename="../qml/AlbumPage.qml" line="551"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="551"/>
+        <location filename="../qml/AlbumPage.qml" line="555"/>
         <source>Make it an album</source>
         <translation>Eigenes Album machen</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="577"/>
+        <location filename="../qml/AlbumPage.qml" line="581"/>
         <source>Stop saving and remove what was copied so far? The files on the server stay.</source>
         <translation>Speichern abbrechen und das bisher Kopierte entfernen? Die Dateien auf dem Server bleiben.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="578"/>
+        <location filename="../qml/AlbumPage.qml" line="582"/>
         <source>Delete the saved copies of this album from this computer? The files on the server stay.</source>
         <translation>Die gespeicherten Kopien dieses Albums von diesem Computer löschen? Die Dateien auf dem Server bleiben.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="582"/>
+        <location filename="../qml/AlbumPage.qml" line="586"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="586"/>
+        <location filename="../qml/AlbumPage.qml" line="590"/>
         <source>Delete saved copies</source>
         <translation>Gespeicherte Kopien löschen</translation>
     </message>
@@ -938,12 +944,17 @@
         <translation>Zusammenführen mit …</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="273"/>
+        <location filename="../qml/ArtistPage.qml" line="271"/>
+        <source>Edit tags of all their music…</source>
+        <translation>Tags ihrer gesamten Musik bearbeiten…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="283"/>
         <source>“%1” is now part of %2.</source>
         <translation>„%1“ gehört jetzt zu %2.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="280"/>
+        <location filename="../qml/ArtistPage.qml" line="290"/>
         <source>Undo</source>
         <translation>Rückgängig</translation>
     </message>
@@ -3242,9 +3253,14 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="134"/>
+        <location filename="../qml/Main.qml" line="137"/>
         <source>Added to your imports. See Downloads → Imports.</source>
         <translation>Zu deinen Importen hinzugefügt. Siehe Downloads → Importe.</translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="152"/>
+        <source>Allow writing to this folder</source>
+        <translation>Schreiben in diesen Ordner erlauben</translation>
     </message>
 </context>
 <context>
@@ -7029,6 +7045,268 @@
         <location filename="../qml/SourcesPage.qml" line="416"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
+    </message>
+</context>
+<context>
+    <name>TagEditor</name>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="34"/>
+        <source>Album artist</source>
+        <translation>Albumkünstler</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="34"/>
+        <source>Artist</source>
+        <translation>Künstler</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="34"/>
+        <source>Album</source>
+        <translation>Album</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="34"/>
+        <source>Year</source>
+        <translation>Jahr</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="35"/>
+        <source>Genre</source>
+        <translation>Genre</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="35"/>
+        <source>Disc</source>
+        <translation>CD</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="35"/>
+        <source>Title</source>
+        <translation>Titel</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="91"/>
+        <source>the file changed while it was written, so it was left as it was</source>
+        <translation>die Datei hat sich beim Schreiben geändert und blieb daher, wie sie war</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="92"/>
+        <source>the file is gone</source>
+        <translation>die Datei ist nicht mehr da</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="157"/>
+        <source>Preview</source>
+        <translation>Vorschau</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="158"/>
+        <source>%1 of %2 files updated</source>
+        <translation>%1 von %2 Dateien aktualisiert</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="159"/>
+        <source>Edit tags</source>
+        <translation>Tags bearbeiten</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="178"/>
+        <source>This song: %1</source>
+        <translation>Dieser Song: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="185"/>
+        <source>This album: %1 (%2)</source>
+        <translation>Dieses Album: %1 (%2)</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/TagEditor.qml" line="192"/>
+        <source>All of %1 (%n album(s))</source>
+        <translation>
+            <numerusform>Alles von %1 (%n Album)</numerusform>
+            <numerusform>Alles von %1 (%n Alben)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="201"/>
+        <source>Reading the tags…</source>
+        <translation>Tags werden gelesen…</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/TagEditor.qml" line="202"/>
+        <source>%n file(s)</source>
+        <translation>
+            <numerusform>%n Datei</numerusform>
+            <numerusform>%n Dateien</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/TagEditor.qml" line="202"/>
+        <source>%n not reachable</source>
+        <translation>
+            <numerusform>%n nicht erreichbar</numerusform>
+            <numerusform>%n nicht erreichbar</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="218"/>
+        <source>Change %1</source>
+        <translation>%1 ändern</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="229"/>
+        <source>Several values: %1</source>
+        <translation>Mehrere Werte: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="240"/>
+        <source>Also write the MusicBrainz IDs, ISRCs and barcode</source>
+        <translation>Auch die MusicBrainz-IDs, ISRCs und den Barcode schreiben</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="248"/>
+        <source>Only ticked fields change; the rest stay as each file has them. Files are never renamed or moved.</source>
+        <translation>Nur angehakte Felder ändern sich; der Rest bleibt, wie er in jeder Datei steht. Dateien werden nie umbenannt oder verschoben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="249"/>
+        <source>Only ticked fields change. Album fields are edited for the whole album. Files are never renamed or moved.</source>
+        <translation>Nur angehakte Felder ändern sich. Albumfelder bearbeitest du für das ganze Album. Dateien werden nie umbenannt oder verschoben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="266"/>
+        <source>%1 files: %2 will change</source>
+        <translation>%1 Dateien: %2 werden geändert</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="276"/>
+        <source>%1 read-only: %2</source>
+        <translation>%1 schreibgeschützt: %2</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="277"/>
+        <source>%1 not reachable: %2</source>
+        <translation>%1 nicht erreichbar: %2</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="282"/>
+        <source>File</source>
+        <translation>Datei</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="283"/>
+        <source>Field</source>
+        <translation>Feld</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="284"/>
+        <source>Before</source>
+        <translation>Vorher</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="285"/>
+        <source>After</source>
+        <translation>Nachher</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/TagEditor.qml" line="314"/>
+        <source>✓  %n updated</source>
+        <translation>
+            <numerusform>✓  %n aktualisiert</numerusform>
+            <numerusform>✓  %n aktualisiert</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="316"/>
+        <source>Their new tags are in the library now; nothing was renamed or moved.</source>
+        <translation>Die neuen Tags sind jetzt in der Bibliothek; nichts wurde umbenannt oder verschoben.</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/TagEditor.qml" line="321"/>
+        <source>!  %n failed</source>
+        <translation>
+            <numerusform>!  %n fehlgeschlagen</numerusform>
+            <numerusform>!  %n fehlgeschlagen</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/TagEditor.qml" line="328"/>
+        <source>–  %n skipped: read-only</source>
+        <translation>
+            <numerusform>–  %n übersprungen: schreibgeschützt</numerusform>
+            <numerusform>–  %n übersprungen: schreibgeschützt</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="330"/>
+        <source>%1 does not allow changes. Change that on the server, or use Add to Library for a copy you can tag.</source>
+        <translation>%1 erlaubt keine Änderungen. Ändere das auf dem Server, oder lege mit „Zur Bibliothek hinzufügen“ eine Kopie an, die du taggen kannst.</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="336"/>
+        <source>Allow writing to this folder…</source>
+        <translation>Schreiben in diesen Ordner erlauben…</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/TagEditor.qml" line="343"/>
+        <source>–  %n skipped: not reachable</source>
+        <translation>
+            <numerusform>–  %n übersprungen: nicht erreichbar</numerusform>
+            <numerusform>–  %n übersprungen: nicht erreichbar</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="345"/>
+        <source>%1 is not connected. Its files keep their tags until you run this again.</source>
+        <translation>%1 ist nicht verbunden. Seine Dateien behalten ihre Tags, bis du das erneut ausführst.</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="365"/>
+        <source>Fill from MusicBrainz</source>
+        <translation>Von MusicBrainz übernehmen</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="374"/>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="384"/>
+        <source>Reading…</source>
+        <translation>Wird gelesen…</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="384"/>
+        <source>Preview changes</source>
+        <translation>Änderungen ansehen</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="392"/>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="403"/>
+        <source>Writing…</source>
+        <translation>Wird geschrieben…</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/TagEditor.qml" line="403"/>
+        <source>Write %n file(s)</source>
+        <translation>
+            <numerusform>%n Datei schreiben</numerusform>
+            <numerusform>%n Dateien schreiben</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="411"/>
+        <source>Retry the failed ones</source>
+        <translation>Fehlgeschlagene erneut versuchen</translation>
+    </message>
+    <message>
+        <location filename="../qml/TagEditor.qml" line="420"/>
+        <source>Done</source>
+        <translation>Fertig</translation>
     </message>
 </context>
 <context>

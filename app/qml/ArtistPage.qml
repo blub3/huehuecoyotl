@@ -260,8 +260,18 @@ FocusScope {
                             objectName: "artistMergeWith"
                             text: qsTr("Merge with…")
                             KeyNavigation.left: editName
+                            KeyNavigation.right: editArtistTags
                             Keys.onDownPressed: page.focusRow(0)
                             onClicked: mergeDialog.show(page.itemId, page.d.title || "", mergeWith)
+                        }
+                        // Issue #157.
+                        FocusButton {
+                            id: editArtistTags
+                            objectName: "artistEditTags"
+                            text: qsTr("Edit tags of all their music…")
+                            KeyNavigation.left: mergeWith
+                            Keys.onDownPressed: page.focusRow(0)
+                            onClicked: (page.Window.window as Main).editTags(page.itemId, editArtistTags)
                         }
                     }
                     // Issue #149: a merge just done, with Undo for 30 seconds.

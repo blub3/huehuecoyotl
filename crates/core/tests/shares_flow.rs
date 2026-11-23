@@ -222,7 +222,8 @@ fn add_a_share_in_steps() {
         v["shares"],
         serde_json::json!([
             { "name": "media", "existing": null },
-            { "name": "write", "existing": null }
+            { "name": "write", "existing": null },
+            { "name": "write-ro", "existing": null }
         ])
     );
 
