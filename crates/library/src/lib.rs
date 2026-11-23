@@ -12,6 +12,7 @@ pub mod matching;
 pub mod merge;
 mod migrations;
 pub mod music;
+pub mod naming;
 pub mod playlists;
 pub mod queries;
 pub mod queue;
