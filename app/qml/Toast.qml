@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls.Basic
 
 // Short message at the bottom of the window.
 Rectangle {
@@ -7,6 +6,8 @@ Rectangle {
     function show(message) {
         label.text = message
         opacity = 1
+        // Issue #171: a message with a command to copy stays long enough to do it.
+        hideTimer.interval = message.indexOf("\n") >= 0 ? 30000 : 5000
         hideTimer.restart()
     }
     anchors.horizontalCenter: parent.horizontalCenter
@@ -24,12 +25,16 @@ Rectangle {
     Accessible.role: Accessible.AlertMessage
     Accessible.name: label.text
 
-    Label {
+    TextEdit {
         id: label
         anchors.centerIn: parent
         width: Math.min(implicitWidth, toast.parent.width - 104)
-        wrapMode: Text.Wrap
+        readOnly: true
+        selectByMouse: true
+        activeFocusOnPress: false
+        wrapMode: TextEdit.Wrap
         color: Theme.text
+        selectionColor: Theme.accent
         font.pixelSize: Theme.fontBody
     }
     Timer { id: hideTimer; interval: 5000; onTriggered: toast.opacity = 0 }

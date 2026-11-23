@@ -34,6 +34,7 @@ pub(crate) async fn library_list(inner: &Arc<Inner>) -> Result<Vec<LibraryInfo>,
             name: l.name,
             files: l.files,
             last_scan_ms: l.last_scan.unwrap_or(0),
+            content: l.content,
         })
         .collect())
 }
@@ -65,9 +66,10 @@ impl Core {
         });
     }
 
-    /// Add a folder to the library and scan it.
-    pub fn add_library(&self, request_id: u64, path: &str) {
+    /// Add a folder to the library and scan it. `content`: `video` or `music` (SPEC 6).
+    pub fn add_library(&self, request_id: u64, path: &str, content: &str) {
         let root = huehuecoyotl_vfs::VPath::new(path.trim_end_matches(['/', '\\'])).to_string();
+        let content = content_type(content);
         self.spawn(request_id, move |inner| async move {
             let meta = tokio::fs::metadata(&root)
                 .await
@@ -86,7 +88,7 @@ impl Core {
             let r = root.clone();
             let id = inner
                 .lib
-                .write(move |c| catalog::add_library(c, &name, &r))
+                .write(move |c| catalog::add_library(c, &name, &r, content))
                 .await?;
             enqueue_scan(&inner, id, jobs::priority::USER).await;
             Ok(Event::Libraries {
@@ -98,16 +100,33 @@ impl Core {
 
     pub fn remove_library(&self, request_id: u64, source_id: i64) {
         self.spawn(request_id, move |inner| async move {
+            // Issue #150: only Settings → Library changes the library's own folders.
+            if inner
+                .lib
+                .read(move |c| huehuecoyotl_library::managed::is_library_source(c, source_id))
+                .await?
+            {
+                return Err(CoreError::new(
+                    ErrorKind::Unsupported,
+                    "this is your library; change it under Settings → Library",
+                ));
+            }
             let row = inner
                 .lib
                 .read(move |c| catalog::source(c, source_id))
                 .await?;
+            // Saved copies of its files go with it (issue #3).
+            crate::download::delete_saved(&inner, Some(source_id)).await?;
             inner
                 .lib
                 .write(move |c| catalog::remove_library(c, source_id))
                 .await?;
             inner.forget_source(source_id);
-            if let Some(r) = row.and_then(|r| r.credential_ref) {
+            // Issue #118: a folder of a share leaves the share's password for its other folders.
+            if let Some(r) = row
+                .filter(|r| r.share_id.is_none())
+                .and_then(|r| r.credential_ref)
+            {
                 let _ = tokio::task::spawn_blocking(move || secrets::delete_password(&r)).await;
             }
             inner.mark_changed();
@@ -145,27 +164,18 @@ impl Core {
         kind: &str,
         parent: i64,
         sort: &str,
-        unwatched_only: bool,
+        filter: &str,
         offset: u32,
         limit: u32,
     ) {
-        let q = Query {
-            kind: kind.to_string(),
-            parent: (parent > 0).then_some(parent),
-            sort: match sort {
-                "added" => Sort::Added,
-                "year" => Sort::Year,
-                _ => Sort::Title,
-            },
-            unwatched_only,
-            offset,
-            limit: limit.clamp(1, 500),
-        };
+        let q = browse_query(kind, parent, sort, filter, offset, limit);
         self.spawn(request_id, move |inner| async move {
             let (total, items) = inner.lib.read(move |c| catalog::browse(c, &q)).await?;
             let ids: Vec<i64> = items.iter().map(|s| s.id).collect();
             // Items on screen are processed first (SPEC 7).
-            let _ = inner.lib.write(move |c| jobs::bump_items(c, &ids)).await;
+            // Queued, not awaited: the writer may be busy with the job queue, and the answer must
+            // not wait for it.
+            drop(inner.lib.submit(move |c| jobs::bump_items(c, &ids)));
             Ok(Event::Page {
                 request_id,
                 total,
@@ -190,12 +200,13 @@ impl Core {
         });
     }
 
-    pub fn search(&self, request_id: u64, text: &str) {
-        let text = text.to_string();
+    /// `kind`: movie, show, artist, album or track; "" for all.
+    pub fn search(&self, request_id: u64, text: &str, kind: &str) {
+        let (text, kind) = (text.to_string(), kind.to_string());
         self.spawn(request_id, move |inner| async move {
             let items = inner
                 .lib
-                .read(move |c| catalog::search(c, &text, 60))
+                .read(move |c| catalog::search(c, &text, &kind, 60))
                 .await?;
             Ok(Event::Page {
                 request_id,
@@ -206,20 +217,120 @@ impl Core {
         });
     }
 
-    pub fn item_detail(&self, request_id: u64, item_id: i64) {
+    /// "This is a different movie" (issue #34): the version becomes its own item, locked against
+    /// regrouping and sent to the review list. Answers with the new item's detail.
+    pub fn split_file(&self, request_id: u64, file_id: i64) {
         self.spawn(request_id, move |inner| async move {
-            let d = inner.lib.read(move |c| catalog::detail(c, item_id)).await?;
-            let d = d.ok_or_else(|| CoreError {
-                kind: ErrorKind::NotFound,
-                message: format!("item {item_id}"),
-            })?;
-            let _ = inner
+            let (new, old) = inner
                 .lib
-                .write(move |c| jobs::bump_items(c, &[item_id]))
-                .await;
+                .write(move |c| {
+                    let (path, old): (String, i64) = c.query_row(
+                        "SELECT path, item_id FROM file WHERE id = ?1",
+                        [file_id],
+                        |r| Ok((r.get(0)?, r.get(1)?)),
+                    )?;
+                    let p = huehuecoyotl_scanner::parse::parse(&path);
+                    let title = if p.title.is_empty() {
+                        path.clone()
+                    } else {
+                        p.title.clone()
+                    };
+                    let new = catalog::split_file(c, file_id, &title, p.year)?;
+                    jobs::enqueue(
+                        c,
+                        "match",
+                        &serde_json::json!({ "item_id": new }).to_string(),
+                        jobs::priority::USER,
+                        Some(&format!("match:{new}")),
+                    )?;
+                    Ok((new, old))
+                })
+                .await?;
+            inner.wake.notify_waiters();
+            inner.sink.post(Event::ItemChanged { item_id: old });
+            inner.mark_changed();
+            let d = inner
+                .lib
+                .read(move |c| catalog::detail(c, new))
+                .await?
+                .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("item {new}")))?;
             Ok(Event::Detail {
                 request_id,
                 detail: Box::new(d),
+            })
+        });
+    }
+
+    /// "Analyse now" (issue #33): probe this file before the others.
+    pub fn probe_now(&self, file_id: i64) {
+        let inner = self.inner.clone();
+        self.rt
+            .spawn(async move { crate::probe::probe_now(&inner, file_id).await });
+    }
+
+    pub fn item_detail(&self, request_id: u64, item_id: i64) {
+        self.spawn(request_id, move |inner| async move {
+            let d = inner.lib.read(move |c| catalog::detail(c, item_id)).await?;
+            let mut d = d.ok_or_else(|| CoreError {
+                kind: ErrorKind::NotFound,
+                message: format!("item {item_id}"),
+            })?;
+            let offline = inner.offline.lock().unwrap().clone();
+            decorate(&mut d.files, &offline);
+            drop(inner.lib.submit(move |c| jobs::bump_items(c, &[item_id])));
+            Ok(Event::Detail {
+                request_id,
+                detail: Box::new(d),
+            })
+        });
+    }
+
+    /// Issue #48: one page of a season's episodes with their versions (probe data trimmed to
+    /// labels and the summary line) and saved-copy state. The full probe of an episode comes with
+    /// `item_detail`, when its details panel is opened.
+    pub fn season_episodes(&self, request_id: u64, season_id: i64, offset: u32, limit: u32) {
+        let limit = limit.clamp(1, 500);
+        self.spawn(request_id, move |inner| async move {
+            let (total, mut items) = inner
+                .lib
+                .read(move |c| catalog::episodes(c, season_id, offset, limit))
+                .await?;
+            let offline = inner.offline.lock().unwrap().clone();
+            for e in &mut items {
+                decorate(&mut e.files, &offline);
+                for f in &mut e.files {
+                    f.probe_json = compact_probe(&f.probe_json);
+                }
+            }
+            let ids: Vec<i64> = items.iter().map(|e| e.item.id).collect();
+            // Episodes on screen are matched and probed first (SPEC 7).
+            // Queued, not awaited: the writer may be busy with the job queue, and the answer must
+            // not wait for it.
+            drop(inner.lib.submit(move |c| jobs::bump_items(c, &ids)));
+            Ok(Event::Episodes {
+                request_id,
+                total,
+                offset,
+                items,
+            })
+        });
+    }
+
+    /// Issue #78: the counts and choices of the music filters for a kind ("album", "track"),
+    /// as a `MusicDetail` of kind "facets".
+    pub fn music_facets(&self, request_id: u64, kind: &str, filter: &str) {
+        let kind = kind.to_string();
+        let (flags, music) = parse_filter(filter);
+        let saved = flags.contains(&"saved");
+        self.spawn(request_id, move |inner| async move {
+            let f = inner
+                .lib
+                .read(move |c| catalog::facets(c, &kind, &music, saved))
+                .await?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "facets".into(),
+                json: serde_json::to_string(&f).unwrap_or_default(),
             })
         });
     }
@@ -290,26 +401,35 @@ impl Core {
     pub fn choose_match(&self, item_id: i64, provider_id: i64) {
         let inner = self.inner.clone();
         self.rt.spawn(async move {
-            if let Err(e) = inner
+            let item_id = match inner
                 .lib
                 .write(move |c| catalog::lock(c, item_id, Some(provider_id)))
                 .await
             {
-                tracing::error!("locking match failed: {e}");
-                return;
-            }
+                Ok(id) => id,
+                Err(e) => {
+                    tracing::error!("locking match failed: {e}");
+                    return;
+                }
+            };
             worker::enqueue_details(&inner, item_id, provider_id, jobs::priority::USER).await;
             inner.mark_changed();
         });
     }
 
+    /// The TMDB key's state (issue #52). Answers once the start-up has looked for the key, so a
+    /// stored key is never reported missing because the keystore answered late.
     pub fn key_status(&self, request_id: u64) {
         self.spawn(request_id, move |inner| async move {
+            let mut loaded = inner.key_loaded.subscribe();
+            let _ = loaded.wait_for(|done| *done).await;
             Ok(inner.key_status_event(request_id, String::new()))
         });
     }
 
     /// Validate a TMDB key with a test request, store it in the OS keystore and start fetching.
+    /// Without a keystore the key works until the app closes and the UI says why; it is never
+    /// kept anywhere else.
     pub fn set_tmdb_key(&self, request_id: u64, key: &str) {
         let key = key.trim().to_string();
         self.spawn(request_id, move |inner| async move {
@@ -330,18 +450,60 @@ impl Core {
             let stored = tokio::task::spawn_blocking(move || secrets::store_tmdb_key(&key))
                 .await
                 .map_err(internal)?;
-            inner.set_provider(Some(Arc::new(tmdb)), Some(KeySource::Keystore));
+            let source = match &stored {
+                Ok(()) => {
+                    *inner.keystore.lock().unwrap() = Ok(());
+                    KeySource::Keystore
+                }
+                Err(why) => {
+                    tracing::warn!("the TMDB key could not be stored in the keystore");
+                    *inner.keystore.lock().unwrap() = Err(why.clone());
+                    KeySource::Session
+                }
+            };
+            inner.set_provider(Some(Arc::new(tmdb)), Some(source));
+            inner.set_key_validated(now_s()).await;
             Ok(inner.key_status_event(request_id, stored.err().unwrap_or_default()))
         });
     }
 
+    /// "Test key" (issue #52): ask TMDB whether the key in use is accepted.
+    pub fn test_tmdb_key(&self, request_id: u64) {
+        self.spawn(request_id, move |inner| async move {
+            let Some(p) = inner.provider() else {
+                return Ok(inner.key_status_event(request_id, "No key is set.".into()));
+            };
+            let message = match p.validate().await {
+                Ok(()) => {
+                    tracing::info!("TMDB key tested: accepted");
+                    inner.set_key_validated(now_s()).await;
+                    String::new()
+                }
+                Err(MetaError::Auth) => {
+                    tracing::info!("TMDB key tested: rejected");
+                    "TMDB rejected this key. Replace it with a new one.".into()
+                }
+                Err(e) => {
+                    tracing::info!("TMDB key tested: TMDB not reached ({e})");
+                    format!("TMDB could not be reached: {e}")
+                }
+            };
+            Ok(inner.key_status_event(request_id, message))
+        });
+    }
+
+    /// "Remove key": the keystore entry goes too, so no key is found after a restart.
     pub fn clear_tmdb_key(&self, request_id: u64) {
         self.spawn(request_id, move |inner| async move {
-            tokio::task::spawn_blocking(secrets::clear_tmdb_key)
+            let removed = tokio::task::spawn_blocking(secrets::clear_tmdb_key)
                 .await
                 .map_err(internal)?;
-            inner.set_provider(None, None);
-            Ok(inner.key_status_event(request_id, String::new()))
+            let from_env = *inner.key_source.lock().unwrap() == Some(KeySource::Environment);
+            if !from_env {
+                inner.set_provider(None, None);
+                inner.set_key_validated(0).await;
+            }
+            Ok(inner.key_status_event(request_id, removed.err().unwrap_or_default()))
         });
     }
 
@@ -351,6 +513,163 @@ impl Core {
         self.inner
             .set_provider(Some(p), Some(KeySource::Environment));
     }
+}
+
+/// The query `browse_items` runs.
+pub(crate) fn browse_query(
+    kind: &str,
+    parent: i64,
+    sort: &str,
+    filter: &str,
+    offset: u32,
+    limit: u32,
+) -> Query {
+    let (flags, music) = parse_filter(filter);
+    Query {
+        kind: kind.to_string(),
+        parent: (parent > 0).then_some(parent),
+        sort: match sort {
+            "added" => Sort::Added,
+            "year" => Sort::Year,
+            "played" => Sort::Played,
+            "plays" => Sort::Plays,
+            "artist" => Sort::Artist,
+            "album" => Sort::Album,
+            "duration" => Sort::Duration,
+            "quality" => Sort::Quality,
+            _ => Sort::Title,
+        },
+        // "" (everything), "unwatched", or "saved" (issue #4).
+        unwatched_only: flags.contains(&"unwatched"),
+        saved_only: flags.contains(&"saved"),
+        // Issue #66: books by progress, persons by role.
+        book_filter: ["unread", "in_progress", "finished", "author", "narrator"]
+            .into_iter()
+            .find(|f| flags.contains(f))
+            .unwrap_or(""),
+        music,
+        offset,
+        limit: limit.clamp(1, 500),
+    }
+}
+
+/// Issue #78: a browse filter is a list of tokens, one per line: flags ("saved", "unwatched",
+/// "hires", "lossless", "multi", "unplayed", the book filters) and values ("genre=Jazz",
+/// "decade=1990"). One token alone is the filter of earlier versions.
+pub(crate) fn parse_filter(filter: &str) -> (Vec<&'static str>, catalog::MusicFilter) {
+    const FLAGS: [&str; 12] = [
+        "saved",
+        "unwatched",
+        "hires",
+        "lossless",
+        "multi",
+        "unplayed",
+        "unread",
+        "in_progress",
+        "finished",
+        "author",
+        "narrator",
+        "",
+    ];
+    let mut flags = Vec::new();
+    let mut m = catalog::MusicFilter::default();
+    for t in filter.split('\n').map(str::trim).filter(|t| !t.is_empty()) {
+        if let Some(g) = t.strip_prefix("genre=") {
+            m.genre = Some(g.to_string());
+        } else if let Some(d) = t.strip_prefix("decade=") {
+            m.decade = d.parse().ok();
+        } else if let Some(f) = FLAGS.iter().find(|f| **f == t) {
+            flags.push(*f);
+        }
+    }
+    m.hires = flags.contains(&"hires");
+    m.lossless = flags.contains(&"lossless");
+    m.multi = flags.contains(&"multi");
+    m.unplayed = flags.contains(&"unplayed");
+    m.credited = flags.contains(&"credited");
+    (flags, m)
+}
+
+/// A library folder's content type: `music`, `audiobooks`, anything else is `video`.
+pub(crate) fn content_type(s: &str) -> &'static str {
+    if s.eq_ignore_ascii_case("music") {
+        "music"
+    } else if s.eq_ignore_ascii_case("audiobooks") {
+        "audiobooks"
+    } else {
+        "video"
+    }
+}
+
+fn now_s() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as i64)
+}
+
+/// Whether each file's source can be reached, and its edition from the file name (issue #34).
+fn decorate(files: &mut [catalog::FileInfo], offline: &std::collections::HashSet<i64>) {
+    for f in files {
+        f.online = !offline.contains(&f.source_id);
+        let name = f.path.rsplit('/').next().unwrap_or(&f.path);
+        f.edition = huehuecoyotl_scanner::parse::edition(name).unwrap_or_default();
+    }
+}
+
+/// Issue #48: the part of a probe that version labels, badges and the summary line use (the first
+/// video track; codec, profile, layout and default flag of each audio track; the subtitle
+/// languages; duration and overall bit rate). "" stays "".
+pub(crate) fn compact_probe(json: &str) -> String {
+    use serde_json::{Map, Value};
+    let Ok(Value::Object(full)) = serde_json::from_str::<Value>(json) else {
+        return String::new();
+    };
+    let pick = |v: &Value, keys: &[&str]| -> Value {
+        let mut m = Map::new();
+        for k in keys {
+            if let Some(x) = v.get(*k)
+                && !x.is_null()
+            {
+                m.insert((*k).to_string(), x.clone());
+            }
+        }
+        Value::Object(m)
+    };
+    let list = |key: &str, keys: &[&str], first_only: bool| -> Value {
+        let items = full
+            .get(key)
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        let n = if first_only {
+            items.len().min(1)
+        } else {
+            items.len()
+        };
+        Value::Array(items[..n].iter().map(|v| pick(v, keys)).collect())
+    };
+    let mut out = match pick(
+        &Value::Object(full.clone()),
+        &["schema", "error", "duration_ms", "bitrate"],
+    ) {
+        Value::Object(m) => m,
+        _ => Map::new(),
+    };
+    out.insert(
+        "video".into(),
+        list(
+            "video",
+            &["codec", "width", "height", "hdr", "dv_profile", "bit_depth"],
+            true,
+        ),
+    );
+    out.insert(
+        "audio".into(),
+        list("audio", &["codec", "profile", "layout", "default"], false),
+    );
+    out.insert("subtitles".into(), list("subtitles", &["language"], false));
+    out.insert("compact".into(), Value::Bool(true));
+    Value::Object(out).to_string()
 }
 
 fn meta_err(e: MetaError) -> CoreError {
@@ -363,5 +682,79 @@ fn meta_err(e: MetaError) -> CoreError {
     CoreError {
         kind,
         message: e.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compact_probe_keeps_what_labels_need() {
+        let full = r#"{"schema":3,"source":"ffmpeg","container":"matroska","duration_ms":1200000,"size":5,
+            "bitrate":{"bps":8000000,"estimated":false},"chapters":12,
+            "video":[{"codec":"hevc","profile":"Main 10","width":3840,"height":2160,"bit_depth":10,"hdr":"Dolby Vision",
+                      "dv_profile":"8.1","primaries":"bt2020","fps":23.976},{"codec":"mjpeg","width":1,"height":1}],
+            "audio":[{"codec":"truehd","profile":"Dolby TrueHD + Dolby Atmos","layout":"7.1","channels":8,"default":true,
+                      "language":"eng","sample_rate":48000},{"codec":"ac3","layout":"5.1","default":false}],
+            "subtitles":[{"language":"eng","format":"subrip","forced":false},{"language":"ger","format":"pgs"}]}"#;
+        let v: serde_json::Value = serde_json::from_str(&compact_probe(full)).unwrap();
+        assert_eq!(v["duration_ms"], 1200000);
+        assert_eq!(v["bitrate"]["bps"], 8000000);
+        assert_eq!(v["video"].as_array().unwrap().len(), 1);
+        assert_eq!(v["video"][0]["dv_profile"], "8.1");
+        assert!(v["video"][0].get("primaries").is_none());
+        assert_eq!(v["audio"][0]["profile"], "Dolby TrueHD + Dolby Atmos");
+        assert!(v["audio"][0].get("sample_rate").is_none());
+        assert_eq!(v["audio"].as_array().unwrap().len(), 2);
+        assert_eq!(v["subtitles"].as_array().unwrap().len(), 2);
+        assert!(v["subtitles"][0].get("format").is_none());
+        assert!(v.get("chapters").is_none());
+        assert_eq!(v["compact"], true);
+        // Not analysed, or unreadable JSON: nothing.
+        assert_eq!(compact_probe(""), "");
+        let err: serde_json::Value =
+            serde_json::from_str(&compact_probe(r#"{"schema":3,"error":"bad file"}"#)).unwrap();
+        assert_eq!(err["error"], "bad file");
+    }
+
+    #[test]
+    fn decorate_marks_offline_sources_and_editions() {
+        let mut files = vec![
+            catalog::FileInfo {
+                source_id: 3,
+                path: "/share/Alien (1979) Director's Cut.mkv".into(),
+                ..Default::default()
+            },
+            catalog::FileInfo {
+                source_id: 2,
+                path: "/m/Alien.mkv".into(),
+                ..Default::default()
+            },
+        ];
+        decorate(&mut files, &[3].into_iter().collect());
+        assert!(!files[0].online && files[1].online);
+        assert_eq!(files[0].edition, "Director's Cut");
+    }
+}
+
+#[cfg(test)]
+mod filter_tests {
+    use super::*;
+
+    #[test]
+    fn filters_are_lists_of_tokens() {
+        let (flags, m) = parse_filter("hires\nsaved\ngenre=Rock; Pop\ndecade=1990\nbogus");
+        assert_eq!(flags, ["hires", "saved"]);
+        assert!(m.hires && !m.lossless);
+        assert_eq!(
+            (m.genre.as_deref(), m.decade),
+            (Some("Rock; Pop"), Some(1990))
+        );
+        // One token alone, as before 2.6.
+        let (flags, m) = parse_filter("unwatched");
+        assert_eq!(flags, ["unwatched"]);
+        assert!(m.is_empty());
+        assert!(parse_filter("").0.is_empty());
     }
 }

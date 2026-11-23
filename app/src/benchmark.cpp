@@ -110,7 +110,7 @@ void Benchmark::endFrames(int items, double pixels)
     for (double d : v)
         total += d;
     auto r1 = [](double x) { return qRound(x * 100) / 100.0; };
-    finish(QJsonObject{{"benchmark", "scroll"},
+    finish(QJsonObject{{"benchmark", m_mode},
                        {"items", items},
                        {"pixels", qRound(pixels)},
                        {"seconds", r1(total / 1000)},

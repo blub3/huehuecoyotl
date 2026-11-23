@@ -4,11 +4,13 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Coyotl
 
-// Persistent navigation (SPEC 9): Home, Movies, Shows, Search, Sources, Settings.
+// Persistent navigation (SPEC 9): Home, Movies, Shows, Search, Downloads, Sources, Settings.
 FocusScope {
     id: rail
     property string current: "home"
     signal chosen(string section)
+    // Down from the last entry (issue #8: to the mini player).
+    signal downFromLast()
 
     // Move keyboard focus to the rail, starting on the current section.
     function focusCurrent() {
@@ -21,10 +23,26 @@ FocusScope {
         { key: "home", glyph: "⌂", label: qsTr("Home") },
         { key: "movies", glyph: "▶", label: qsTr("Movies") },
         { key: "shows", glyph: "▦", label: qsTr("Shows") },
+        { key: "music", glyph: "♫", label: qsTr("Music") },
+        { key: "audiobooks", glyph: "❞", label: qsTr("Audiobooks") },
         { key: "search", glyph: "⌕", label: qsTr("Search") },
+        { key: "downloads", glyph: "⤓", label: qsTr("Downloads") },
         { key: "sources", glyph: "▤", label: qsTr("Sources") },
         { key: "settings", glyph: "⚙", label: qsTr("Settings") }
     ]
+
+    // Issue #154: how many imports wait for the user.
+    property int importsWaiting: 0
+    property var importsRequest: 0
+    function loadImports() { importsRequest = Core.libraryCall("imports", {}) }
+    Component.onCompleted: loadImports()
+    Connections {
+        target: Core
+        function onMusicDetailReady(requestId, kind, detail) {
+            if (kind === "imports") rail.importsWaiting = Number(detail.waiting || 0)
+        }
+        function onLibraryChanged() { rail.loadImports() }
+    }
 
     Rectangle { anchors.fill: parent; color: Theme.surface }
 
@@ -53,6 +71,7 @@ FocusScope {
             spacing: 4
             focus: true
             keyNavigationEnabled: true
+            Keys.onDownPressed: (e) => { if (currentIndex === count - 1) rail.downFromLast(); else e.accepted = false }
             model: rail.sections
             Accessible.role: Accessible.List
             Accessible.name: qsTr("Navigation")
@@ -99,6 +118,17 @@ FocusScope {
                         text: entry.modelData.label
                         color: entry.selected || entry.activeFocus ? Theme.text : Theme.textDim
                         font.pixelSize: Theme.fontBody
+                    }
+                    Rectangle {
+                        objectName: "importsBadge"
+                        visible: entry.modelData.key === "downloads" && rail.importsWaiting > 0
+                        Layout.rightMargin: 18
+                        implicitWidth: Math.max(22, badgeText.implicitWidth + 10)
+                        implicitHeight: 22
+                        radius: 11
+                        color: Theme.accent
+                        Accessible.name: qsTr("%n import(s) wait for you", "", rail.importsWaiting)
+                        Label { id: badgeText; anchors.centerIn: parent; text: rail.importsWaiting; color: Theme.bg; font.pixelSize: 12; font.bold: true }
                     }
                 }
             }

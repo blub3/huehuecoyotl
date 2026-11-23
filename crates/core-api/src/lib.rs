@@ -22,13 +22,29 @@ mod ffi {
         Error,
         Page,
         Detail,
+        /// Issue #48: a page of a season's episodes (`episodes`).
+        Episodes,
         Libraries,
         Review,
         Candidates,
         ScanState,
         LibraryChanged,
         KeyStatus,
+        /// Issue #11: online music information on or off (`flag`).
+        MusicOnline,
+        /// Issue #10: an album's or artist's page: `path` says which, `message` holds the JSON.
+        MusicDetail,
+        /// Issue #8: the play queue changed; `message` holds its JSON (core `playqueue`).
+        QueueChanged,
+        /// Issue #12: which optional music providers have a key; `message` holds the JSON.
+        MusicKeys,
+        /// Issue #8: what the music player loads; `message` holds the tickets' JSON.
+        MusicTickets,
         Discovered,
+        Downloads,
+        DownloadProgress,
+        SaveState,
+        ExportConflict,
     }
 
     #[derive(Debug)]
@@ -39,6 +55,8 @@ mod ffi {
         NotFound,
         Unsupported,
         Internal,
+        /// Issue #3: not enough free space for a copy.
+        NoSpace,
     }
 
     #[derive(Clone, Debug)]
@@ -100,12 +118,58 @@ mod ffi {
         watched: bool,
         unwatched: i64,
         overview: String,
+        /// Episodes and seasons: in the library (false: only TMDB knows it; not playable).
+        on_disk: bool,
+        /// 0 when unknown.
+        runtime_min: i32,
+        /// Issue #4: a saved copy is on this computer (the cover mark).
+        saved: bool,
+        /// Music (2.0): an album's artist, a track's album; "" otherwise. 0: no parent.
+        subtitle: String,
+        parent_id: i64,
+        /// Issue #63: an album's number of versions (0 otherwise).
+        versions: i64,
+        /// Issue #66: a book cover's height / width (0 when unknown or not a book).
+        ratio: f64,
+        /// Issue #78: albums and tracks: the best version's format ("FLAC 24/96").
+        format: String,
+        hires: bool,
+        /// Issue #79: artists: their albums and how many are Hi-Res.
+        albums: i64,
+        hires_albums: i64,
+        /// Issue #80: tracks: artists, length of the best file, play count.
+        artist: String,
+        duration_ms: i64,
+        plays: i64,
     }
 
     #[derive(Clone, Debug, Default)]
     struct FileRef {
+        id: i64,
         path: String,
         size: i64,
+        source_name: String,
+        source_kind: String,
+        /// The media probe's JSON (issue #33), "" until analysed.
+        probe_json: String,
+        online: bool,
+        /// Issue #34: the edition from the file name, and this version's own resume position.
+        edition: String,
+        position_ms: u64,
+        /// Issue #48: a complete saved copy of this file is on this computer (plays offline).
+        saved: bool,
+    }
+
+    /// Issue #48: one episode tile on the show page.
+    #[derive(Clone, Debug, Default)]
+    struct EpisodeEntry {
+        item: ItemSummary,
+        /// The versions; `probe_json` trimmed to labels and the summary line.
+        files: Vec<FileRef>,
+        last_file_id: i64,
+        duration_ms: u64,
+        position_ms: u64,
+        save: SaveInfo,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -127,6 +191,10 @@ mod ffi {
         children: Vec<ItemSummary>,
         /// Zero or one entry: the episode "Play" starts for shows and seasons.
         next_up: Vec<ItemSummary>,
+        /// Issue #34: the item's duration as last played, and the version played last (0: none).
+        duration_ms: u64,
+        last_file_id: i64,
+        save: SaveInfo,
     }
 
     #[derive(Clone, Debug, Default)]
@@ -141,6 +209,8 @@ mod ffi {
         last_scan_ms: i64,
         scanning: bool,
         online: bool,
+        /// video | music (2.0)
+        content: String,
     }
 
     /// A file server found on the local network.
@@ -168,6 +238,43 @@ mod ffi {
     struct ReviewEntry {
         item: ItemSummary,
         candidates: Vec<MatchCandidate>,
+    }
+
+    /// Issue #3: a saved copy or an export (a main file, with its subtitles and parts summed).
+    #[derive(Clone, Debug, Default)]
+    struct DownloadEntry {
+        id: i64,
+        /// The row the Downloads screen shows (progress events of subtitles and parts).
+        main_id: i64,
+        /// saved | export
+        kind: String,
+        item_id: i64,
+        file_id: i64,
+        title: String,
+        path: String,
+        /// queued, running, paused, done, failed, outdated; `removed` in a progress event.
+        state: String,
+        bytes_done: u64,
+        size: u64,
+        /// auth, unreachable, not_found, unsupported, internal, no_space
+        error_kind: String,
+        error: String,
+        completed_at: i64,
+    }
+
+    /// Issue #4: the state of an item's saved copies.
+    #[derive(Clone, Debug, Default)]
+    struct SaveInfo {
+        /// none, queued, running, paused, done, failed, outdated
+        state: String,
+        copy_id: i64,
+        bytes_done: u64,
+        size: u64,
+        error: String,
+        error_kind: String,
+        /// Episodes (or the movie) saved, and those that can be saved (on a network source).
+        saved: i64,
+        saveable: i64,
     }
 
     /// One event type for everything; `kind` says which fields are meaningful.
@@ -201,6 +308,20 @@ mod ffi {
         failed: i64,
         // M3
         servers: Vec<DiscoveredServer>,
+        // 1.5: Downloads (the list; `path` is the storage folder) and DownloadProgress.
+        downloads: Vec<DownloadEntry>,
+        download: DownloadEntry,
+        used_bytes: u64,
+        /// SaveState (with `item_id`).
+        save: SaveInfo,
+        /// ExportConflict: the files that exist already.
+        paths: Vec<String>,
+        /// Episodes (issue #48), with `total` and `offset`.
+        episodes: Vec<EpisodeEntry>,
+        /// KeyStatus (issue #52): keystore, environment, session, none or unavailable, and when
+        /// TMDB last accepted the key (Unix seconds, 0: never).
+        key_state: String,
+        validated_at: i64,
     }
 
     extern "Rust" {
@@ -211,13 +332,26 @@ mod ffi {
             sink: UniquePtr<EventSink>,
         ) -> Result<Box<Core>>;
         fn core_version() -> String;
+        /// Issue #66: chapter navigation on a book's timeline (pure, synchronous): where
+        /// "previous chapter" goes (the chapter's start, or the one before within 3 s of it),
+        /// where "next chapter" goes (-1 in the last chapter), and where the sleep timer's "end
+        /// of chapter" stops. `starts` are the chapters' start times in ms.
+        fn book_previous_chapter(starts: &[i64], position: i64) -> i64;
+        fn book_next_chapter(starts: &[i64], position: i64) -> i64;
+        fn book_end_of_chapter(starts: &[i64], duration: i64, position: i64) -> i64;
         /// Qt's log messages into the core's log file. level: 0 debug … 3 critical.
         fn log_message(level: u8, category: &str, message: &str);
 
         fn browse(self: &Core, request_id: u64, path: &str);
         fn open_path(self: &Core, request_id: u64, path: &str);
         fn open_item(self: &Core, request_id: u64, item_id: i64);
+        /// Issue #34: play one version (file) of a movie or episode.
+        fn open_item_file(self: &Core, request_id: u64, item_id: i64, file_id: i64);
+        /// Issue #34: "This is a different movie"; answers with the new item's detail.
+        fn split_file(self: &Core, request_id: u64, file_id: i64);
         fn report_progress(self: &Core, ticket: u64, position_ms: u64, duration_ms: u64, state: u8);
+        /// Issue #33: mpv's view of the playing file (JSON), the fallback for technical details.
+        fn report_media_info(self: &Core, ticket: u64, mpv_json: &str);
         fn set_track_pref(
             self: &Core,
             ticket: u64,
@@ -231,7 +365,8 @@ mod ffi {
 
         // M2: library
         fn libraries(self: &Core, request_id: u64);
-        fn add_library(self: &Core, request_id: u64, path: &str);
+        /// `content`: video or music (2.0).
+        fn add_library(self: &Core, request_id: u64, path: &str, content: &str);
         fn remove_library(self: &Core, request_id: u64, source_id: i64);
         fn rescan(self: &Core, source_id: i64);
         fn browse_items(
@@ -240,19 +375,191 @@ mod ffi {
             kind: &str,
             parent: i64,
             sort: &str,
-            unwatched_only: bool,
+            /// "" (everything), "unwatched" or "saved"
+            filter: &str,
             offset: u32,
             limit: u32,
         );
         fn recently_added(self: &Core, request_id: u64, limit: u32);
-        fn search(self: &Core, request_id: u64, text: &str);
+        /// `kind`: movie, show, artist, album or track; "" for all.
+        fn search(self: &Core, request_id: u64, text: &str, kind: &str);
         fn item_detail(self: &Core, request_id: u64, item_id: i64);
+        /// Issue #48: one page of a season's episodes with versions and saved-copy state.
+        fn season_episodes(self: &Core, request_id: u64, season_id: i64, offset: u32, limit: u32);
+        /// Issue #33: analyse this file before the others.
+        fn probe_now(self: &Core, file_id: i64);
         fn review(self: &Core, request_id: u64);
         fn find_matches(self: &Core, request_id: u64, item_id: i64, title: &str, year: u16);
         fn choose_match(self: &Core, item_id: i64, provider_id: i64);
         fn key_status(self: &Core, request_id: u64);
         fn set_tmdb_key(self: &Core, request_id: u64, key: &str);
         fn clear_tmdb_key(self: &Core, request_id: u64);
+        /// Issue #52: "Test key", ask TMDB whether the key in use is accepted.
+        fn test_tmdb_key(self: &Core, request_id: u64);
+        /// Issue #11: online music information (MusicBrainz, Cover Art Archive).
+        fn music_online(self: &Core, request_id: u64);
+        fn set_music_online(self: &Core, request_id: u64, on: bool);
+        /// Issue #165: the choice before the first lookup.
+        fn prepare_online_choice(self: &Core, request_id: u64);
+        fn online_choice(self: &Core, request_id: u64);
+        /// Issue #150: Settings → Library (status, check, apply, setType, removePreview, gone,
+        /// itemOrigin), answered with MusicDetail.
+        fn library_call(self: &Core, request_id: u64, action: &str, args_json: &str);
+        /// Issue #10: an album's or an artist's page (answers with MusicDetail).
+        /// Issue #63: `version` 0 picks the one played last, else by `preference` (quality,
+        /// smallest or lossless).
+        fn album_detail(self: &Core, request_id: u64, album: i64, version: i64, preference: &str);
+        /// Issue #63: "This is a different album" (answers with the new album's MusicDetail).
+        fn split_album_version(self: &Core, request_id: u64, version: i64);
+        /// Issue #63: play this file of a track (one of its files in a version) from now on.
+        fn set_track_file(self: &Core, track: i64, file: i64);
+        fn artist_detail(self: &Core, request_id: u64, artist: i64);
+        /// Issue #65/#66: a book's, a series' or a person's page (MusicDetail of kind "book",
+        /// "series" or "person").
+        fn book_detail(self: &Core, request_id: u64, id: i64);
+        /// Issue #81: playlists (MusicDetail "playlists", "playlist", "playlistSaved"). `key` is
+        /// "smart:<rule>" or an own playlist's id; `to` < 0 removes the song at `index`.
+        /// Issue #82: Now Playing's tint and waveform for a song (MusicDetail "visuals").
+        fn track_visuals(self: &Core, request_id: u64, track: i64, file: i64);
+        fn playlists(self: &Core, request_id: u64);
+        fn playlist_detail(self: &Core, request_id: u64, key: &str, limit: u32);
+        fn playlist_create(self: &Core, request_id: u64, name: &str, items: &[i64], version: i64);
+        fn playlist_add(self: &Core, request_id: u64, id: i64, items: &[i64], version: i64);
+        fn playlist_rename(self: &Core, request_id: u64, id: i64, name: &str);
+        fn playlist_delete(self: &Core, request_id: u64, id: i64);
+        fn playlist_move(self: &Core, request_id: u64, id: i64, index: u32, to: i32);
+        fn queue_play_playlist(self: &Core, request_id: u64, key: &str, start: u32, shuffle: bool);
+        fn playlist_save(self: &Core, request_id: u64, key: &str);
+        /// Issue #78: counts and choices of the music filters (MusicDetail "facets"); `filter`
+        /// as for browse_items.
+        fn music_facets(self: &Core, request_id: u64, kind: &str, filter: &str);
+        /// Issue #67: "Search again" (MusicDetail "bookCandidates") and the user's choice
+        /// (MusicDetail "book").
+        fn search_book(self: &Core, request_id: u64, id: i64, title: &str, author: &str);
+        fn choose_book_match(self: &Core, request_id: u64, id: i64, work: &str);
+        /// Issue #92: match again (MusicDetail "matchAgain"), search by hand ("matchCandidates";
+        /// `query_json`: text, year, kind, artist, author, isbn), choose ("matchChosen";
+        /// `choice_json`: one candidate), library rematches and their status ("matching").
+        fn match_again(self: &Core, request_id: u64, item: i64, unlock: bool);
+        fn match_search(self: &Core, request_id: u64, item: i64, query_json: &str);
+        fn match_choose(self: &Core, request_id: u64, item: i64, choice_json: &str);
+        /// Issues #97 to #100: what a choice would do (MusicDetail "matchPreview").
+        fn match_preview(self: &Core, request_id: u64, item: i64, choice_json: &str);
+        fn rematch_library(
+            self: &Core,
+            request_id: u64,
+            library: &str,
+            all: bool,
+            include_locked: bool,
+        );
+        fn rematch_stop(self: &Core, request_id: u64, library: &str);
+        fn matching_status(self: &Core, request_id: u64);
+        /// Issue #118: shares with their folders (MusicDetail "shares"), adding folders
+        /// (`folders_json`: `[{path, content, name}]`) and removing a share.
+        fn shares(self: &Core, request_id: u64);
+        fn share_add_folders(self: &Core, request_id: u64, share: i64, folders_json: &str);
+        fn share_remove(self: &Core, request_id: u64, share: i64);
+        /// Issue #148: how an artist is named ("auto", "files" or "own" with `own`); answers with
+        /// the artist's page (MusicDetail "artist").
+        fn set_artist_name(self: &Core, request_id: u64, artist: i64, choice: &str, own: &str);
+        /// Issue #149: Merge with…: candidates (MusicDetail "mergeCandidates"), a preview
+        /// ("mergePreview"), the merge ("artistMerged") and its undo ("artistMergeUndone").
+        fn artist_merge_candidates(self: &Core, request_id: u64, artist: i64, query: &str);
+        fn artist_merge_preview(self: &Core, request_id: u64, keep: i64, drop: i64);
+        fn artist_merge(self: &Core, request_id: u64, keep: i64, drop: i64);
+        fn artist_merge_undo(self: &Core, request_id: u64);
+        /// Issue #120: a share's folders with a quick look into each (MusicDetail
+        /// "shareFolders"); `target_json` is `{"share": id}` or a new share's settings.
+        fn share_browse(
+            self: &Core,
+            request_id: u64,
+            target_json: &str,
+            password: &str,
+            path: &str,
+        );
+        /// Issue #121: signing in to a server or share being added (MusicDetail "shareSignIn")
+        /// and adding a new share with its first folders (MusicDetail "shares").
+        fn share_sign_in(self: &Core, request_id: u64, spec_json: &str, password: &str);
+        fn share_create(
+            self: &Core,
+            request_id: u64,
+            spec_json: &str,
+            password: &str,
+            folders_json: &str,
+        );
+        /// Issue #122: test or save a share's new connection settings (MusicDetail "shareEdit")
+        /// and change what a folder of a share holds (MusicDetail "shares").
+        fn share_edit(
+            self: &Core,
+            request_id: u64,
+            share: i64,
+            spec_json: &str,
+            password: &str,
+            save: bool,
+        );
+        fn share_folder_content(self: &Core, request_id: u64, source: i64, content: &str);
+        /// Issue #66: a book's ticket (MusicDetail "bookTicket"); `position_ms` < 0 resumes.
+        fn book_play(self: &Core, request_id: u64, book: i64, position_ms: i64);
+        fn book_progress(self: &Core, book: i64, position_ms: i64);
+        fn book_mark_finished(self: &Core, request_id: u64, book: i64, finished: bool);
+        /// `speed` <= 0: the default again.
+        fn book_set_speed(self: &Core, book: i64, speed: f64);
+        /// MusicDetail "continueSeries" with the book to play (0: all finished).
+        fn continue_series(self: &Core, request_id: u64, series: i64);
+
+        /// Issue #12: TheAudioDB and Fanart.tv keys (answers with MusicKeys; never the key).
+        fn music_keys(self: &Core, request_id: u64);
+        /// `provider`: "theaudiodb" or "fanarttv"; an empty key removes it.
+        fn set_music_key(self: &Core, request_id: u64, provider: &str, key: &str);
+
+        // Issue #8: the music play queue (answers with QueueChanged and MusicTickets).
+        /// Play items (tracks, albums, artists) from `start_item` (0: the first, or a random
+        /// one with shuffle).
+        /// Issue #63: albums play `version` (0: the one played last, else by `preference`).
+        fn queue_play(
+            self: &Core,
+            request_id: u64,
+            items: &[i64],
+            start_item: i64,
+            shuffle: bool,
+            version: i64,
+            preference: &str,
+        );
+        /// Issue #80: play what browse_items would list for these arguments ("Play these").
+        fn queue_play_query(
+            self: &Core,
+            request_id: u64,
+            kind: &str,
+            sort: &str,
+            filter: &str,
+            start_item: i64,
+            shuffle: bool,
+        );
+        /// "Play next" (`next`) or "add to queue".
+        fn queue_insert(
+            self: &Core,
+            request_id: u64,
+            items: &[i64],
+            next: bool,
+            version: i64,
+            preference: &str,
+        );
+        /// Next (1) or previous (-1) as the user asks; previous restarts after 3 s.
+        fn queue_step(self: &Core, request_id: u64, delta: i32, position_ms: u64);
+        fn queue_jump(self: &Core, request_id: u64, position: u32);
+        fn queue_remove(self: &Core, request_id: u64, position: u32);
+        fn queue_move(self: &Core, request_id: u64, from: u32, to: u32);
+        /// Repeat: "off", "one" or "all".
+        fn queue_set_mode(self: &Core, request_id: u64, shuffle: bool, repeat: &str);
+        /// mpv went on to the following entry by itself.
+        fn queue_advanced(self: &Core, ticket: u64);
+        /// Load the current entry where it was left (after a restart); after the end of the
+        /// queue (`after_end`), what was added since, or the queue from its start.
+        fn queue_resume(self: &Core, request_id: u64, after_end: bool);
+        fn queue_state(self: &Core, request_id: u64);
+        fn queue_clear(self: &Core, request_id: u64);
+        /// Position of a queue ticket: kept for a restart, and counts plays.
+        fn music_progress(self: &Core, ticket: u64, position_ms: u64, duration_ms: u64);
 
         // M3: network sources. `spec_json`: {protocol, host, port, share, user, tls, key_file,
         // path, name}; for SFTP with a key file, `password` is the key's passphrase.
@@ -271,6 +578,35 @@ mod ffi {
         // M4
         /// Write a redacted diagnostics file; returns its size in bytes.
         fn export_diagnostics(self: &Core, dest: &str, app_info: &str) -> Result<u64>;
+
+        // 1.5: offline copies (issues #3, #4, #5). Answers are Downloads events.
+        /// Save a movie or episode (`file_id` picks a version, 0 = the largest network file),
+        /// or every episode of a season or show.
+        fn save_item(self: &Core, request_id: u64, item_id: i64, file_id: i64);
+        /// Save as…: a movie or episode to the file `dest` (`file_id` picks a version), or a
+        /// season or show into the folder `dest`. Without `overwrite`, existing files answer
+        /// with ExportConflict and nothing starts.
+        fn export_item(
+            self: &Core,
+            request_id: u64,
+            item_id: i64,
+            file_id: i64,
+            dest: &str,
+            overwrite: bool,
+        );
+        fn pause_download(self: &Core, id: i64);
+        fn resume_download(self: &Core, id: i64);
+        /// Cancel or delete a copy (local files only; the source file stays).
+        fn delete_download(self: &Core, request_id: u64, id: i64);
+        fn delete_saved_item(self: &Core, request_id: u64, item_id: i64);
+        fn pause_saved_item(self: &Core, item_id: i64);
+        fn resume_saved_item(self: &Core, item_id: i64);
+        /// Answers with a SaveState event.
+        fn save_state(self: &Core, request_id: u64, item_id: i64);
+        fn delete_all_saved(self: &Core, request_id: u64);
+        fn downloads(self: &Core, request_id: u64);
+        /// Where new saved copies go ("" = the default folder in the data directory).
+        fn set_storage_dir(self: &Core, request_id: u64, path: &str);
     }
 
     unsafe extern "C++" {
@@ -324,6 +660,45 @@ fn event(kind: ffi::EventKind, request_id: u64) -> ffi::CoreEvent {
         queued: 0,
         failed: 0,
         servers: Vec::new(),
+        downloads: Vec::new(),
+        download: ffi::DownloadEntry::default(),
+        used_bytes: 0,
+        save: ffi::SaveInfo::default(),
+        paths: Vec::new(),
+        episodes: Vec::new(),
+        key_state: String::new(),
+        validated_at: 0,
+    }
+}
+
+fn save_info(i: core::SaveInfo) -> ffi::SaveInfo {
+    ffi::SaveInfo {
+        state: i.state,
+        copy_id: i.copy_id,
+        bytes_done: i.bytes_done,
+        size: i.size,
+        error: i.error,
+        error_kind: i.error_kind,
+        saved: i.saved,
+        saveable: i.saveable,
+    }
+}
+
+fn download_entry(d: core::DownloadInfo) -> ffi::DownloadEntry {
+    ffi::DownloadEntry {
+        id: d.id,
+        main_id: d.id,
+        kind: d.kind,
+        item_id: d.item_id,
+        file_id: d.file_id,
+        title: d.title,
+        path: d.path,
+        state: d.state,
+        bytes_done: d.bytes_done,
+        size: d.size,
+        error_kind: d.error_kind,
+        error: d.error,
+        completed_at: d.completed_at,
     }
 }
 
@@ -341,7 +716,31 @@ fn summary(s: core::Summary) -> ffi::ItemSummary {
         watched: s.watched,
         unwatched: s.unwatched,
         overview: s.overview,
+        on_disk: s.on_disk,
+        runtime_min: s.runtime_min.unwrap_or(0) as i32,
+        saved: s.saved,
+        subtitle: s.subtitle,
+        parent_id: s.parent_id.unwrap_or(0),
+        versions: s.versions,
+        ratio: s.ratio,
+        format: s.format,
+        hires: s.hires,
+        albums: s.albums,
+        hires_albums: s.hires_albums,
+        artist: s.artist,
+        duration_ms: s.duration_ms,
+        plays: s.plays,
     }
+}
+
+fn book_previous_chapter(starts: &[i64], position: i64) -> i64 {
+    core::booktime::previous_chapter(starts, position)
+}
+fn book_next_chapter(starts: &[i64], position: i64) -> i64 {
+    core::booktime::next_chapter(starts, position).unwrap_or(-1)
+}
+fn book_end_of_chapter(starts: &[i64], duration: i64, position: i64) -> i64 {
+    core::booktime::end_of_chapter(starts, duration, position)
 }
 
 fn candidate(c: core::CandidateRow) -> ffi::MatchCandidate {
@@ -369,6 +768,32 @@ fn strings(v: &serde_json::Value, key: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
+fn file_ref(f: core::FileInfo) -> ffi::FileRef {
+    ffi::FileRef {
+        id: f.id,
+        path: f.path,
+        size: f.size,
+        source_name: f.source_name,
+        source_kind: f.source_kind,
+        probe_json: f.probe_json,
+        online: f.online,
+        edition: f.edition,
+        position_ms: f.position_ms,
+        saved: f.saved,
+    }
+}
+
+fn episode(e: core::EpisodeRow) -> ffi::EpisodeEntry {
+    ffi::EpisodeEntry {
+        item: summary(e.item),
+        files: e.files.into_iter().map(file_ref).collect(),
+        last_file_id: e.last_file_id,
+        duration_ms: e.duration_ms,
+        position_ms: e.position_ms,
+        save: save_info(e.save),
+    }
+}
+
 fn detail(d: core::Detail) -> ffi::ItemDetail {
     let meta: serde_json::Value = serde_json::from_str(&d.meta_json).unwrap_or_default();
     ffi::ItemDetail {
@@ -383,17 +808,13 @@ fn detail(d: core::Detail) -> ffi::ItemDetail {
         match_state: d.match_state,
         tmdb_id: d.tmdb_id.unwrap_or(0),
         parent_title: d.parent_title,
-        files: d
-            .files
-            .into_iter()
-            .map(|f| ffi::FileRef {
-                path: f.path,
-                size: f.size,
-            })
-            .collect(),
+        files: d.files.into_iter().map(file_ref).collect(),
         position_ms: d.position_ms,
+        duration_ms: d.duration_ms,
+        last_file_id: d.last_file_id,
         children: d.children.into_iter().map(summary).collect(),
         next_up: d.next_up.into_iter().map(summary).collect(),
+        save: save_info(d.save),
     }
 }
 
@@ -477,6 +898,7 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                 core::ErrorKind::NotFound => ffi::ErrorKind::NotFound,
                 core::ErrorKind::Unsupported => ffi::ErrorKind::Unsupported,
                 core::ErrorKind::Internal => ffi::ErrorKind::Internal,
+                core::ErrorKind::NoSpace => ffi::ErrorKind::NoSpace,
             },
             message,
             ..event(K::Error, request_id)
@@ -491,6 +913,17 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
             offset,
             items: items.into_iter().map(summary).collect(),
             ..event(K::Page, request_id)
+        },
+        core::Event::Episodes {
+            request_id,
+            total,
+            offset,
+            items,
+        } => ffi::CoreEvent {
+            total,
+            offset,
+            episodes: items.into_iter().map(episode).collect(),
+            ..event(K::Episodes, request_id)
         },
         core::Event::Detail {
             request_id,
@@ -515,6 +948,7 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                     last_scan_ms: l.last_scan_ms,
                     scanning: l.scanning,
                     online: l.online,
+                    content: l.content,
                 })
                 .collect(),
             ..event(K::Libraries, request_id)
@@ -553,12 +987,41 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
             failed,
             ..event(K::LibraryChanged, 0)
         },
+        core::Event::MusicDetail {
+            request_id,
+            kind,
+            json,
+        } => ffi::CoreEvent {
+            path: kind,
+            message: json,
+            ..event(K::MusicDetail, request_id)
+        },
+        core::Event::QueueChanged { request_id, json } => ffi::CoreEvent {
+            message: json,
+            ..event(K::QueueChanged, request_id)
+        },
+        core::Event::MusicKeys { request_id, json } => ffi::CoreEvent {
+            message: json,
+            ..event(K::MusicKeys, request_id)
+        },
+        core::Event::MusicTickets { json } => ffi::CoreEvent {
+            message: json,
+            ..event(K::MusicTickets, 0)
+        },
+        core::Event::MusicOnline { request_id, online } => ffi::CoreEvent {
+            flag: online,
+            ..event(K::MusicOnline, request_id)
+        },
         core::Event::KeyStatus {
             request_id,
             has_key,
             from_env,
             message,
+            state,
+            validated_at,
         } => ffi::CoreEvent {
+            key_state: state,
+            validated_at,
             flag: has_key,
             flag2: from_env,
             message,
@@ -579,6 +1042,56 @@ fn convert(e: core::Event) -> ffi::CoreEvent {
                 })
                 .collect(),
             ..event(K::Discovered, request_id)
+        },
+        core::Event::ExportConflict { request_id, paths } => ffi::CoreEvent {
+            paths,
+            ..event(K::ExportConflict, request_id)
+        },
+        core::Event::SaveState {
+            request_id,
+            item_id,
+            info,
+        } => ffi::CoreEvent {
+            item_id,
+            save: save_info(info),
+            ..event(K::SaveState, request_id)
+        },
+        core::Event::Downloads {
+            request_id,
+            items,
+            used_bytes,
+            storage_dir,
+        } => ffi::CoreEvent {
+            downloads: items.into_iter().map(download_entry).collect(),
+            used_bytes,
+            path: storage_dir,
+            ..event(K::Downloads, request_id)
+        },
+        core::Event::DownloadProgress {
+            id,
+            main_id,
+            item_id,
+            kind,
+            state,
+            bytes_done,
+            size,
+            error_kind,
+            error,
+        } => ffi::CoreEvent {
+            item_id,
+            download: ffi::DownloadEntry {
+                id,
+                main_id,
+                item_id,
+                kind,
+                state,
+                bytes_done,
+                size,
+                error_kind,
+                error,
+                ..Default::default()
+            },
+            ..event(K::DownloadProgress, 0)
         },
     }
 }
@@ -621,6 +1134,58 @@ fn log_message(level: u8, category: &str, message: &str) {
 }
 
 impl Core {
+    fn save_item(&self, request_id: u64, item_id: i64, file_id: i64) {
+        guard("save_item", || {
+            self.0.save_item(request_id, item_id, file_id)
+        })
+    }
+    fn export_item(
+        &self,
+        request_id: u64,
+        item_id: i64,
+        file_id: i64,
+        dest: &str,
+        overwrite: bool,
+    ) {
+        guard("export_item", || {
+            self.0
+                .export_item(request_id, item_id, file_id, dest, overwrite)
+        })
+    }
+    fn pause_download(&self, id: i64) {
+        guard("pause_download", || self.0.pause_download(id))
+    }
+    fn resume_download(&self, id: i64) {
+        guard("resume_download", || self.0.resume_download(id))
+    }
+    fn delete_download(&self, request_id: u64, id: i64) {
+        guard("delete_download", || self.0.delete_download(request_id, id))
+    }
+    fn delete_saved_item(&self, request_id: u64, item_id: i64) {
+        guard("delete_saved_item", || {
+            self.0.delete_saved_item(request_id, item_id)
+        })
+    }
+    fn pause_saved_item(&self, item_id: i64) {
+        guard("pause_saved_item", || self.0.pause_saved_item(item_id))
+    }
+    fn resume_saved_item(&self, item_id: i64) {
+        guard("resume_saved_item", || self.0.resume_saved_item(item_id))
+    }
+    fn save_state(&self, request_id: u64, item_id: i64) {
+        guard("save_state", || self.0.save_state(request_id, item_id))
+    }
+    fn delete_all_saved(&self, request_id: u64) {
+        guard("delete_all_saved", || self.0.delete_all_saved(request_id))
+    }
+    fn downloads(&self, request_id: u64) {
+        guard("downloads", || self.0.downloads(request_id))
+    }
+    fn set_storage_dir(&self, request_id: u64, path: &str) {
+        guard("set_storage_dir", || {
+            self.0.set_storage_dir(request_id, path)
+        })
+    }
     fn browse(&self, request_id: u64, path: &str) {
         guard("browse", || self.0.browse(request_id, path))
     }
@@ -629,6 +1194,19 @@ impl Core {
     }
     fn open_item(&self, request_id: u64, item_id: i64) {
         guard("open_item", || self.0.open_item(request_id, item_id))
+    }
+    fn open_item_file(&self, request_id: u64, item_id: i64, file_id: i64) {
+        guard("open_item_file", || {
+            self.0.open_item_file(request_id, item_id, file_id)
+        })
+    }
+    fn split_file(&self, request_id: u64, file_id: i64) {
+        guard("split_file", || self.0.split_file(request_id, file_id))
+    }
+    fn report_media_info(&self, ticket: u64, mpv_json: &str) {
+        guard("report_media_info", || {
+            self.0.report_media_info(ticket, mpv_json)
+        })
     }
     fn report_progress(&self, ticket: u64, position_ms: u64, duration_ms: u64, state: u8) {
         guard("report_progress", || {
@@ -666,8 +1244,10 @@ impl Core {
     fn libraries(&self, request_id: u64) {
         guard("libraries", || self.0.libraries(request_id))
     }
-    fn add_library(&self, request_id: u64, path: &str) {
-        guard("add_library", || self.0.add_library(request_id, path))
+    fn add_library(&self, request_id: u64, path: &str, content: &str) {
+        guard("add_library", || {
+            self.0.add_library(request_id, path, content)
+        })
     }
     fn remove_library(&self, request_id: u64, source_id: i64) {
         guard("remove_library", || {
@@ -684,20 +1264,13 @@ impl Core {
         kind: &str,
         parent: i64,
         sort: &str,
-        unwatched_only: bool,
+        filter: &str,
         offset: u32,
         limit: u32,
     ) {
         guard("browse_items", || {
-            self.0.browse_items(
-                request_id,
-                kind,
-                parent,
-                sort,
-                unwatched_only,
-                offset,
-                limit,
-            )
+            self.0
+                .browse_items(request_id, kind, parent, sort, filter, offset, limit)
         })
     }
     fn recently_added(&self, request_id: u64, limit: u32) {
@@ -705,11 +1278,19 @@ impl Core {
             self.0.recently_added(request_id, limit)
         })
     }
-    fn search(&self, request_id: u64, text: &str) {
-        guard("search", || self.0.search(request_id, text))
+    fn search(&self, request_id: u64, text: &str, kind: &str) {
+        guard("search", || self.0.search(request_id, text, kind))
+    }
+    fn probe_now(&self, file_id: i64) {
+        guard("probe_now", || self.0.probe_now(file_id))
     }
     fn item_detail(&self, request_id: u64, item_id: i64) {
         guard("item_detail", || self.0.item_detail(request_id, item_id))
+    }
+    fn season_episodes(&self, request_id: u64, season_id: i64, offset: u32, limit: u32) {
+        guard("season_episodes", || {
+            self.0.season_episodes(request_id, season_id, offset, limit)
+        })
     }
     fn review(&self, request_id: u64) {
         guard("review", || self.0.review(request_id))
@@ -730,6 +1311,316 @@ impl Core {
     }
     fn clear_tmdb_key(&self, request_id: u64) {
         guard("clear_tmdb_key", || self.0.clear_tmdb_key(request_id))
+    }
+    fn album_detail(&self, request_id: u64, album: i64, version: i64, preference: &str) {
+        guard("album_detail", || {
+            self.0.album_detail(request_id, album, version, preference)
+        })
+    }
+    fn split_album_version(&self, request_id: u64, version: i64) {
+        guard("split_album_version", || {
+            self.0.split_album_version(request_id, version)
+        })
+    }
+    fn set_track_file(&self, track: i64, file: i64) {
+        guard("set_track_file", || self.0.set_track_file(track, file))
+    }
+    fn artist_detail(&self, request_id: u64, artist: i64) {
+        guard("artist_detail", || self.0.artist_detail(request_id, artist))
+    }
+    fn track_visuals(&self, request_id: u64, track: i64, file: i64) {
+        guard("track_visuals", || {
+            self.0.track_visuals(request_id, track, file)
+        })
+    }
+    fn playlists(&self, request_id: u64) {
+        guard("playlists", || self.0.playlists(request_id))
+    }
+    fn playlist_detail(&self, request_id: u64, key: &str, limit: u32) {
+        guard("playlist_detail", || {
+            self.0.playlist_detail(request_id, key, limit)
+        })
+    }
+    fn playlist_create(&self, request_id: u64, name: &str, items: &[i64], version: i64) {
+        guard("playlist_create", || {
+            self.0
+                .playlist_create(request_id, name, items.to_vec(), version)
+        })
+    }
+    fn playlist_add(&self, request_id: u64, id: i64, items: &[i64], version: i64) {
+        guard("playlist_add", || {
+            self.0.playlist_add(request_id, id, items.to_vec(), version)
+        })
+    }
+    fn playlist_rename(&self, request_id: u64, id: i64, name: &str) {
+        guard("playlist_rename", || {
+            self.0.playlist_rename(request_id, id, name)
+        })
+    }
+    fn playlist_delete(&self, request_id: u64, id: i64) {
+        guard("playlist_delete", || self.0.playlist_delete(request_id, id))
+    }
+    fn playlist_move(&self, request_id: u64, id: i64, index: u32, to: i32) {
+        guard("playlist_move", || {
+            self.0.playlist_move(request_id, id, index, to)
+        })
+    }
+    fn queue_play_playlist(&self, request_id: u64, key: &str, start: u32, shuffle: bool) {
+        guard("queue_play_playlist", || {
+            self.0.queue_play_playlist(request_id, key, start, shuffle)
+        })
+    }
+    fn playlist_save(&self, request_id: u64, key: &str) {
+        guard("playlist_save", || self.0.playlist_save(request_id, key))
+    }
+    fn music_facets(&self, request_id: u64, kind: &str, filter: &str) {
+        guard("music_facets", || {
+            self.0.music_facets(request_id, kind, filter)
+        })
+    }
+    fn book_detail(&self, request_id: u64, id: i64) {
+        guard("book_detail", || self.0.book_detail(request_id, id))
+    }
+    fn search_book(&self, request_id: u64, id: i64, title: &str, author: &str) {
+        guard("search_book", || {
+            self.0.search_book(request_id, id, title, author)
+        })
+    }
+    fn choose_book_match(&self, request_id: u64, id: i64, work: &str) {
+        guard("choose_book_match", || {
+            self.0.choose_book_match(request_id, id, work)
+        })
+    }
+    fn match_again(&self, request_id: u64, item: i64, unlock: bool) {
+        guard("match_again", || {
+            self.0.match_again(request_id, item, unlock)
+        })
+    }
+    fn match_search(&self, request_id: u64, item: i64, query_json: &str) {
+        guard("match_search", || {
+            self.0.match_search(request_id, item, query_json)
+        })
+    }
+    fn match_choose(&self, request_id: u64, item: i64, choice_json: &str) {
+        guard("match_choose", || {
+            self.0.match_choose(request_id, item, choice_json)
+        })
+    }
+    fn match_preview(&self, request_id: u64, item: i64, choice_json: &str) {
+        guard("match_preview", || {
+            self.0.match_preview(request_id, item, choice_json)
+        })
+    }
+    fn rematch_library(&self, request_id: u64, library: &str, all: bool, include_locked: bool) {
+        guard("rematch_library", || {
+            self.0
+                .rematch_library(request_id, library, all, include_locked)
+        })
+    }
+    fn rematch_stop(&self, request_id: u64, library: &str) {
+        guard("rematch_stop", || self.0.rematch_stop(request_id, library))
+    }
+    fn matching_status(&self, request_id: u64) {
+        guard("matching_status", || self.0.matching_status(request_id))
+    }
+    fn shares(&self, request_id: u64) {
+        guard("shares", || self.0.shares(request_id))
+    }
+    fn share_add_folders(&self, request_id: u64, share: i64, folders_json: &str) {
+        guard("share_add_folders", || {
+            self.0.share_add_folders(request_id, share, folders_json)
+        })
+    }
+    fn artist_merge_candidates(&self, request_id: u64, artist: i64, query: &str) {
+        guard("artist_merge_candidates", || {
+            self.0.artist_merge_candidates(request_id, artist, query)
+        })
+    }
+    fn artist_merge_preview(&self, request_id: u64, keep: i64, drop: i64) {
+        guard("artist_merge_preview", || {
+            self.0.artist_merge_preview(request_id, keep, drop)
+        })
+    }
+    fn artist_merge(&self, request_id: u64, keep: i64, drop: i64) {
+        guard("artist_merge", || {
+            self.0.artist_merge(request_id, keep, drop)
+        })
+    }
+    fn artist_merge_undo(&self, request_id: u64) {
+        guard("artist_merge_undo", || self.0.artist_merge_undo(request_id))
+    }
+    fn set_artist_name(&self, request_id: u64, artist: i64, choice: &str, own: &str) {
+        guard("set_artist_name", || {
+            self.0.set_artist_name(request_id, artist, choice, own)
+        })
+    }
+    fn share_remove(&self, request_id: u64, share: i64) {
+        guard("share_remove", || self.0.share_remove(request_id, share))
+    }
+    fn share_edit(&self, request_id: u64, share: i64, spec_json: &str, password: &str, save: bool) {
+        guard("share_edit", || {
+            self.0
+                .share_edit(request_id, share, spec_json, password, save)
+        })
+    }
+    fn share_folder_content(&self, request_id: u64, source: i64, content: &str) {
+        guard("share_folder_content", || {
+            self.0.share_folder_content(request_id, source, content)
+        })
+    }
+    fn share_sign_in(&self, request_id: u64, spec_json: &str, password: &str) {
+        guard("share_sign_in", || {
+            self.0.share_sign_in(request_id, spec_json, password)
+        })
+    }
+    fn share_create(&self, request_id: u64, spec_json: &str, password: &str, folders_json: &str) {
+        guard("share_create", || {
+            self.0
+                .share_create(request_id, spec_json, password, folders_json)
+        })
+    }
+    fn share_browse(&self, request_id: u64, target_json: &str, password: &str, path: &str) {
+        guard("share_browse", || {
+            self.0.share_browse(request_id, target_json, password, path)
+        })
+    }
+    fn book_play(&self, request_id: u64, book: i64, position_ms: i64) {
+        guard("book_play", || {
+            self.0.book_play(request_id, book, position_ms)
+        })
+    }
+    fn book_progress(&self, book: i64, position_ms: i64) {
+        guard("book_progress", || self.0.book_progress(book, position_ms))
+    }
+    fn book_mark_finished(&self, request_id: u64, book: i64, finished: bool) {
+        guard("book_mark_finished", || {
+            self.0.book_mark_finished(request_id, book, finished)
+        })
+    }
+    fn book_set_speed(&self, book: i64, speed: f64) {
+        guard("book_set_speed", || self.0.book_set_speed(book, speed))
+    }
+    fn continue_series(&self, request_id: u64, series: i64) {
+        guard("continue_series", || {
+            self.0.continue_series(request_id, series)
+        })
+    }
+    fn queue_play(
+        &self,
+        request_id: u64,
+        items: &[i64],
+        start_item: i64,
+        shuffle: bool,
+        version: i64,
+        preference: &str,
+    ) {
+        guard("queue_play", || {
+            self.0.queue_play(
+                request_id,
+                items.to_vec(),
+                start_item,
+                shuffle,
+                version,
+                preference,
+            )
+        })
+    }
+    fn queue_insert(
+        &self,
+        request_id: u64,
+        items: &[i64],
+        next: bool,
+        version: i64,
+        preference: &str,
+    ) {
+        guard("queue_insert", || {
+            self.0
+                .queue_insert(request_id, items.to_vec(), next, version, preference)
+        })
+    }
+    fn queue_step(&self, request_id: u64, delta: i32, position_ms: u64) {
+        guard("queue_step", || {
+            self.0.queue_step(request_id, delta, position_ms)
+        })
+    }
+    fn queue_jump(&self, request_id: u64, position: u32) {
+        guard("queue_jump", || self.0.queue_jump(request_id, position))
+    }
+    fn queue_remove(&self, request_id: u64, position: u32) {
+        guard("queue_remove", || self.0.queue_remove(request_id, position))
+    }
+    fn queue_move(&self, request_id: u64, from: u32, to: u32) {
+        guard("queue_move", || self.0.queue_move(request_id, from, to))
+    }
+    fn queue_set_mode(&self, request_id: u64, shuffle: bool, repeat: &str) {
+        guard("queue_set_mode", || {
+            self.0.queue_set_mode(request_id, shuffle, repeat)
+        })
+    }
+    fn queue_play_query(
+        &self,
+        request_id: u64,
+        kind: &str,
+        sort: &str,
+        filter: &str,
+        start_item: i64,
+        shuffle: bool,
+    ) {
+        guard("queue_play_query", || {
+            self.0
+                .queue_play_query(request_id, kind, sort, filter, start_item, shuffle)
+        })
+    }
+    fn queue_advanced(&self, ticket: u64) {
+        guard("queue_advanced", || self.0.queue_advanced(ticket))
+    }
+    fn queue_resume(&self, request_id: u64, after_end: bool) {
+        guard("queue_resume", || {
+            self.0.queue_resume(request_id, after_end)
+        })
+    }
+    fn queue_state(&self, request_id: u64) {
+        guard("queue_state", || self.0.queue_state(request_id))
+    }
+    fn queue_clear(&self, request_id: u64) {
+        guard("queue_clear", || self.0.queue_clear(request_id))
+    }
+    fn music_progress(&self, ticket: u64, position_ms: u64, duration_ms: u64) {
+        guard("music_progress", || {
+            self.0.music_progress(ticket, position_ms, duration_ms)
+        })
+    }
+    fn music_keys(&self, request_id: u64) {
+        guard("music_keys", || self.0.music_keys(request_id))
+    }
+    fn set_music_key(&self, request_id: u64, provider: &str, key: &str) {
+        guard("set_music_key", || {
+            self.0.set_music_key(request_id, provider, key)
+        })
+    }
+    fn music_online(&self, request_id: u64) {
+        guard("music_online", || self.0.music_online(request_id))
+    }
+    fn set_music_online(&self, request_id: u64, on: bool) {
+        guard("set_music_online", || {
+            self.0.set_music_online(request_id, on)
+        })
+    }
+    fn prepare_online_choice(&self, request_id: u64) {
+        guard("prepare_online_choice", || {
+            self.0.prepare_online_choice(request_id)
+        })
+    }
+    fn library_call(&self, request_id: u64, action: &str, args_json: &str) {
+        guard("library_call", || {
+            self.0.library_call(request_id, action, args_json)
+        })
+    }
+    fn online_choice(&self, request_id: u64) {
+        guard("online_choice", || self.0.online_choice(request_id))
+    }
+    fn test_tmdb_key(&self, request_id: u64) {
+        guard("test_tmdb_key", || self.0.test_tmdb_key(request_id))
     }
     fn browse_network(&self, request_id: u64, spec_json: &str, password: &str, path: &str) {
         guard("browse_network", || {

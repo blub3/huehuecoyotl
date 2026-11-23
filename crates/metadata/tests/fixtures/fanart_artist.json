@@ -1,0 +1,8 @@
+{"name":"Example Band","mbid_id":"cc197bad-dc9c-440d-a5b5-d52ba2e14234",
+ "artistbackground":[{"id":"1","url":"{BASE}/img/fa/bg-less.jpg","likes":"1"},{"id":"2","url":"{BASE}/img/fa/bg-best.jpg","likes":"5"}],
+ "artistthumb":[{"id":"3","url":"{BASE}/img/fa/thumb-best.jpg","likes":"4"},{"id":"4","url":"{BASE}/img/fa/thumb-less.jpg","likes":"2"}],
+ "musiclogo":[{"id":"5","url":"{BASE}/img/fa/logo-sd.png","likes":"9"}],
+ "hdmusiclogo":[{"id":"6","url":"{BASE}/img/fa/logo-fr.png","lang":"fr","likes":"9"},{"id":"7","url":"{BASE}/img/fa/logo-de.png","lang":"de","likes":"1"},{"id":"8","url":"{BASE}/img/fa/logo-en.png","lang":"en","likes":"3"}],
+ "albums":{"1dc4c347-a1db-32aa-b14f-bc9cc507b843":{"albumcover":[{"id":"9","url":"{BASE}/img/fa/cover.jpg","likes":"2"}],"cdart":[{"id":"10","url":"{BASE}/img/fa/cdart.png","likes":"1","disc":"1","size":"1000"}]},
+           "2222aaaa-0000-0000-0000-000000000000":{"cdart":[{"id":"11","url":"{BASE}/img/fa/other-cdart.png","likes":"0"}]}},
+ "musicbanner":[{"id":"12","url":"{BASE}/img/fa/banner.jpg","likes":"0"}]}

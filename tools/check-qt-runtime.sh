@@ -3,7 +3,7 @@
 # Usage: tools/check-qt-runtime.sh build/app/coyotl
 set -euo pipefail
 bin=${1:?binary}
-allowed='^libQt6(Core|Gui|OpenGL|Qml|QmlModels|QmlMeta|QmlWorkerScript|Quick|QuickControls2|QuickControls2Impl|QuickControls2Basic|QuickControls2BasicStyleImpl|QuickTemplates2|QuickLayouts|QuickEffects|QuickShapes|Svg|DBus|Network|WaylandClient|XcbQpa|EglFSDeviceIntegration|WlShellIntegration)\.so'
+allowed='^libQt6(Core|Gui|OpenGL|Qml|QmlModels|QmlMeta|QmlWorkerScript|Quick|QuickControls2|QuickControls2Impl|QuickControls2Basic|QuickControls2BasicStyleImpl|QuickTemplates2|QuickLayouts|QuickEffects|QuickShapes|QuickDialogs2|QuickDialogs2QuickImpl|QuickDialogs2Utils|Svg|DBus|Network|WaylandClient|XcbQpa|EglFSDeviceIntegration|WlShellIntegration)\.so'
 fail=0
 while read -r lib; do
   if [[ ! $lib =~ $allowed ]]; then echo "NOT ALLOWED: $lib"; fail=1; else echo "ok: $lib"; fi

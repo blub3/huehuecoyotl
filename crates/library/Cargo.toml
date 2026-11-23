@@ -9,9 +9,13 @@ rust-version.workspace = true
 [dependencies]
 crossbeam-channel.workspace = true
 rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+# Issue #146: names compared without accents ("Rosalia" = "Rosalía"). MIT or Apache-2.0.
+unicode-normalization = "=0.1.24"
 
 [dev-dependencies]
 tempfile.workspace = true

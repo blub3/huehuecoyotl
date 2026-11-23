@@ -10,8 +10,12 @@
 /third_party/mpv/out/
 /tests/servers/fixtures/
 /tests/servers/keys/
+/tests/servers/writable/
+/BUILD_ID
 /packaging/flatpak/generated/
 /packaging/flatpak/.flatpak-builder/
 /packaging/flatpak/build-dir/
 /packaging/flatpak/repo/
 /third_party/mpv/out-win/
+/third_party/mpv/out-win-src/
+/dist/

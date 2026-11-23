@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Dialogs
 import QtCore
 import Coyotl
 
@@ -23,6 +24,10 @@ ApplicationWindow {
         visibility = visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen
     }
     function showError(message) { toast.show(message) }
+    // Issue #154: the sheet of every Add to Library.
+    function addToLibrary(item, from) { addSheet.show(item, from) }
+    // Issue #157: Edit tags… of a song, an album or an artist.
+    function editTags(item, from) { tagEditor.show(item, from) }
 
     StackView {
         id: stack
@@ -42,8 +47,16 @@ ApplicationWindow {
         }
         function onFailed(message) { win.showError(message) }
     }
+    Connections {
+        target: Music
+        function onFailed(message) { win.showError(message) }
+    }
 
-    Shortcut { sequence: "F11"; onActivated: win.toggleFullscreen() }
+    // Issue #83: on Now Playing, F11 enters and leaves its full-screen view.
+    Shortcut {
+        sequence: "F11"
+        onActivated: { if (!(stack.currentItem instanceof Shell && (stack.currentItem as Shell).toggleFullView())) win.toggleFullscreen() }
+    }
 
     // UI preferences (ui.ini in the data folder).
     Settings {
@@ -52,17 +65,106 @@ ApplicationWindow {
         category: "appearance"
         property string coverWindow: "medium"
         property string coverFullscreen: "large"
+        // Issue #117: the Settings tab used last.
+        property string settingsTab: "metadata"
+        property string closedSources: ""
+    }
+    Settings {
+        id: playbackPrefs
+        location: win.settingsFile
+        category: "playback"
+        property string preferredVersion: "quality"
+        // Issue #8: off, track or album.
+        property string replayGain: "off"
+        // Issue #9: bit-perfect mode and the music output device ("auto": the system's).
+        property bool bitPerfect: false
+        property string audioDevice: "auto"
+        property int musicVolume: 100
+        // Issue #66: audiobooks.
+        property real bookSpeed: 1.0
+        property int skipBack: 15
+        property int skipForward: 30
     }
     Component.onCompleted: {
         Appearance.coverWindow = prefs.coverWindow
         Appearance.coverFullscreen = prefs.coverFullscreen
+        Appearance.settingsTab = prefs.settingsTab
+        Appearance.closedSources = prefs.closedSources
+        Appearance.preferredVersion = playbackPrefs.preferredVersion
+        Music.replayGain = playbackPrefs.replayGain
+        Music.audioDevice = playbackPrefs.audioDevice
+        Music.bitPerfect = playbackPrefs.bitPerfect
+        Music.volume = playbackPrefs.musicVolume
+        Book.defaultSpeed = playbackPrefs.bookSpeed
+        Book.skipBack = playbackPrefs.skipBack
+        Book.skipForward = playbackPrefs.skipForward
+    }
+    Connections {
+        target: Book
+        function onSettingsChanged() {
+            playbackPrefs.bookSpeed = Book.defaultSpeed
+            playbackPrefs.skipBack = Book.skipBack
+            playbackPrefs.skipForward = Book.skipForward
+        }
+        function onFailed(message) { win.showError(message) }
     }
     Connections {
         target: Appearance
         function onCoverWindowChanged() { prefs.coverWindow = Appearance.coverWindow }
         function onCoverFullscreenChanged() { prefs.coverFullscreen = Appearance.coverFullscreen }
+        function onSettingsTabChanged() { prefs.settingsTab = Appearance.settingsTab }
+        function onClosedSourcesChanged() { prefs.closedSources = Appearance.closedSources }
+        function onPreferredVersionChanged() { playbackPrefs.preferredVersion = Appearance.preferredVersion }
+    }
+    Connections {
+        target: Music
+        function onReplayGainChanged() { playbackPrefs.replayGain = Music.replayGain }
+        function onOutputChanged() {
+            playbackPrefs.bitPerfect = Music.bitPerfect
+            playbackPrefs.audioDevice = Music.audioDevice
+        }
+        function onVolumeChanged() { if (!Music.bitPerfect) playbackPrefs.musicVolume = Music.volume }
     }
     Binding { target: Appearance; property: "fullscreen"; value: win.visibility === Window.FullScreen }
+    // Issue #63: the preferred version also picks album versions.
+    Binding { target: Music; property: "preference"; value: Appearance.preferredVersion }
 
     Toast { id: toast }
+    AddToLibrarySheet {
+        id: addSheet
+        backend: Core
+        onSettingsRequested: Nav.settings("library")
+        onStarted: win.showError(qsTr("Added to your imports. See Downloads → Imports."))
+        onAnotherRelease: (item, title, artist) => {
+            sheetMatch.album = item
+            sheetMatch.search(item, "album", title, artist, null)
+        }
+    }
+    TagEditor {
+        id: tagEditor
+        backend: Core
+        onGrantRequested: (source, root) => {
+            grantDialog.source = source
+            grantDialog.currentFolder = "file://" + root
+            grantDialog.open()
+        }
+    }
+    // Issue #157: under Flatpak the portal grants write access to the folder of a source.
+    FolderDialog {
+        id: grantDialog
+        property var source: 0
+        title: qsTr("Allow writing to this folder")
+        onAccepted: tagEditor.grant(source, decodeURIComponent(String(selectedFolder).replace(/^file:\/\//, "")))
+    }
+    // Issue #155: after another release is chosen, the sheet shows what it now means.
+    MusicMatch {
+        id: sheetMatch
+        property var album: 0
+        backend: Core
+        onNotice: (text) => win.showError(text)
+        onSettingsRequested: (tab) => Nav.settings(tab)
+        onChanged: (id) => addSheet.show(id !== undefined ? id : album, null)
+    }
+    // Issue #165: before the first online lookup.
+    OnlineChoiceDialog { backend: Core }
 }

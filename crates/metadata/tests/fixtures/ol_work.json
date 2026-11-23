@@ -1,0 +1,44 @@
+{
+ "key": "/works/OL66554W",
+ "title": "Pride and Prejudice",
+ "authors": [
+  {
+   "author": {
+    "key": "/authors/OL21594A"
+   },
+   "type": {
+    "key": "/type/author_role"
+   }
+  }
+ ],
+ "type": {
+  "key": "/type/work"
+ },
+ "description": {
+  "type": "/type/text",
+  "value": "A novel of manners about the Bennet family. (Fixture text, not from Open Library.)"
+ },
+ "subjects": [
+  "Fiction, Romance, Historical, Regency",
+  "British and Irish fiction (fictional works by one author)",
+  "Brothers and sisters",
+  "Courtship",
+  "Drama",
+  "English fiction",
+  "English literature",
+  "Families",
+  "Family",
+  "Family life",
+  "Family relations",
+  "Fiction Classics",
+  "History",
+  "Interpersonal relations",
+  "Literary Fiction"
+ ],
+ "covers": [
+  14348537,
+  8748572,
+  10538086
+ ],
+ "first_publish_date": "1853"
+}

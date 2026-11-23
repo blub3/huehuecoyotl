@@ -1,10 +1,13 @@
 qt_add_executable(coyotl WIN32 MACOSX_BUNDLE
   src/main.cpp
   src/corebridge.h src/corebridge.cpp src/coyotl/event_sink.h
-  src/mpvplayer.h src/mpvplayer.cpp
+  src/missingcodec.h src/mpvplayer.h src/mpvplayer.cpp
   src/mpvvideoitem.h src/mpvvideoitem.cpp
   src/playbackcontroller.h src/playbackcontroller.cpp
+  src/musicplayer.h src/musicplayer.cpp src/musicoptions.h src/audiopath.h
+  src/bookplayer.h src/bookplayer.cpp src/bookoptions.h
   src/models.h src/models.cpp
+  src/episodemodel.h src/episodemodel.cpp
   src/desktopintegration.h src/desktopintegration.cpp
   src/benchmark.h src/benchmark.cpp)
 
@@ -25,6 +28,34 @@ qt_add_qml_module(coyotl
     qml/Toast.qml
     qml/AppLogo.qml
     qml/Appearance.qml
+    qml/EpisodeTile.qml
+    qml/VersionPicker.qml
+    qml/TechSummary.qml
+    qml/TechDetails.qml
+    qml/SaveMenu.qml
+    qml/TmdbKeyStatus.qml
+    qml/MusicPage.qml
+    qml/AudiobooksPage.qml
+    qml/BookPage.qml
+    qml/BookListPage.qml
+    qml/BookPlayerPage.qml
+    qml/AlbumPage.qml
+    qml/ArtistPage.qml
+    qml/NowPlayingPage.qml
+    qml/MusicFullScreen.qml
+    qml/MatchingLibraryRow.qml
+    qml/RematchDialog.qml
+    qml/MusicMatch.qml
+    qml/BookMatch.qml
+    qml/SettingsTabs.qml
+    qml/ShareCard.qml
+    qml/MiniPlayer.qml
+    qml/ActionMenu.qml
+    qml/MusicKeyRow.qml
+    qml/MediaInfo.js
+    qml/PlaylistInfo.js
+    qml/PlaylistPage.qml
+    qml/AddToPlaylist.qml
     qml/Nav.qml
     qml/NavRail.qml
     qml/Shell.qml
@@ -37,9 +68,28 @@ qt_add_qml_module(coyotl
     qml/SearchPage.qml
     qml/SourcesPage.qml
     qml/NetworkSharePage.qml
+    qml/ShareFolderBrowser.qml
+    qml/AddShareFlow.qml
+    qml/Icon.qml
+    qml/BackButton.qml
+    qml/ArtistNameDialog.qml
+    qml/ArtistMergeDialog.qml
+    qml/OtherEditions.qml
+    qml/CodecNotice.qml
+    qml/OnlineChoiceDialog.qml
+    qml/LibrarySettings.qml
+    qml/LibraryOnlyNote.qml
+    qml/AddToLibrarySheet.qml
+    qml/ImportsPanel.qml
+    qml/ImportReviewDialog.qml
+    qml/TagEditor.qml
+    qml/ShareEditor.qml
+    qml/ShareEditPage.qml
+    qml/ShareFoldersPage.qml
     qml/SettingsPage.qml
     qml/ReviewPage.qml
-    qml/NoticesPage.qml)
+    qml/NoticesPage.qml
+    qml/DownloadsPage.qml)
 
 # Third-party notices (SPEC 10, step 6), shown under Settings → About and installed as a file.
 # Release builds must have cargo-about; developer builds without it embed a short stub.
@@ -67,6 +117,9 @@ endif()
 qt_add_resources(coyotl notices PREFIX /notices BASE ${CMAKE_CURRENT_BINARY_DIR}/notices FILES ${_notices})
 install(FILES ${_notices} DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/coyotl)
 
+# Issue #162: TMDB's approved logo for Settings → About (assets/tmdb).
+qt_add_resources(coyotl tmdb_logo PREFIX /tmdb BASE ${CMAKE_SOURCE_DIR}/assets/tmdb FILES
+  ${CMAKE_SOURCE_DIR}/assets/tmdb/tmdb-blue-short.png)
 # Window icon (the taskbar and title bar on Windows and X11; Wayland uses the desktop entry) and
 # the logo in the UI (AppLogo.qml, from the 512 px size).
 qt_add_resources(coyotl icons PREFIX /icons BASE ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor FILES
@@ -83,7 +136,33 @@ qt_add_translations(coyotl TS_FILE_DIR ${CMAKE_SOURCE_DIR}/app/i18n TS_FILE_BASE
                     LUPDATE_OPTIONS -no-obsolete)
 
 target_include_directories(coyotl PRIVATE src)
-target_compile_definitions(coyotl PRIVATE COYOTL_VERSION="${PROJECT_VERSION}")
+# Version shown in the app: "1.1.0" for a build of the commit tagged v1.1.0 (a release), else
+# "1.1.0-dev+<commit>" so a development build is never mistaken for the release. Without a .git
+# folder (the Flatpak build) packaging/flatpak/build.sh writes the commit into BUILD_ID.
+set(_build "")
+if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+  find_package(Git QUIET)
+  if(GIT_FOUND)
+    execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --exact-match --match "v${PROJECT_VERSION}" HEAD
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} RESULT_VARIABLE _tagged OUTPUT_QUIET ERROR_QUIET)
+    if(NOT _tagged EQUAL 0)
+      execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short=7 HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                      OUTPUT_VARIABLE _build OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    endif()
+    # Configure again when the commit changes, so the label follows it.
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+                 "${CMAKE_SOURCE_DIR}/.git/HEAD" "${CMAKE_SOURCE_DIR}/.git/logs/HEAD")
+  endif()
+elseif(EXISTS "${CMAKE_SOURCE_DIR}/BUILD_ID")
+  file(STRINGS "${CMAKE_SOURCE_DIR}/BUILD_ID" _build LIMIT_COUNT 1)
+endif()
+if(_build)
+  set(COYOTL_APP_VERSION "${PROJECT_VERSION}-dev+${_build}")
+else()
+  set(COYOTL_APP_VERSION "${PROJECT_VERSION}")
+endif()
+message(STATUS "Huehuecoyotl version: ${COYOTL_APP_VERSION}")
+target_compile_definitions(coyotl PRIVATE COYOTL_VERSION="${COYOTL_APP_VERSION}")
 target_link_libraries(coyotl PRIVATE
   Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::Qml Qt6::Quick Qt6::QuickControls2
   coyotl_bridge libmpv)

@@ -15,7 +15,7 @@ Use test clips you own; the app's data goes to `%APPDATA%\coyotl` (delete it to 
 | # | Step | Expected | Result |
 | --- | --- | --- | --- |
 | 1 | Start `coyotl.exe` | The window opens with the Home screen | |
-| 2 | MSIX instead: `Add-AppxPackage -Path .\Huehuecoyotl-<version>-windows-x64.msix -AllowUnsigned` in PowerShell, then start it from the Start menu | Installs; Start menu entry with the logo; "Open with" lists it for video files | |
+| 2 | Windows 11 only, MSIX instead: `Add-AppxPackage -Path .\Huehuecoyotl-<version>-windows-x64.msix -AllowUnsigned` in PowerShell, then start it from the Start menu | Installs; Start menu entry with the logo; "Open with" lists it for video files | |
 | 3 | Move around with the arrow keys, Enter, Escape | Everything reachable by keyboard | |
 
 ## 2. Playback (embedded mode, OpenGL)

@@ -55,22 +55,21 @@ jobs:
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y --noninteractive flathub org.kde.Platform//6.11 org.kde.Sdk//6.11 \
             org.freedesktop.Sdk.Extension.rust-stable//25.08
-      - name: Flatpak bundle
-        run: packaging/flatpak/build.sh
-      - name: Third-party notices and SBOM
+      - name: Flatpak and corresponding source bundles
+        run: packaging/flatpak/build.sh --bundle-sources
+      - name: Stage release assets and checksums
         run: |
           mkdir -p dist
           cp build/io.github.blub3.Huehuecoyotl.flatpak dist/
+          cp build/io.github.blub3.Huehuecoyotl.Sources.flatpak build/flatpak-BUILDINFO.txt dist/
           cp packaging/flatpak/generated/THIRD_PARTY_NOTICES.txt dist/
-          cargo cyclonedx --manifest-path crates/core-api/Cargo.toml --format json --override-filename sbom-rust
-          cp crates/core-api/sbom-rust.json dist/huehuecoyotl-sbom-rust.cdx.json
-          cp third_party/mpv/out/BUILDINFO.txt dist/libmpv-BUILDINFO.txt
+          tools/sbom.sh dist/huehuecoyotl-sbom-rust.cdx.json
       - uses: actions/upload-artifact@v4
         with: { name: release-linux, path: dist }
 
   windows:
     uses: ./.github/workflows/windows.yml
-    with: { build-type: Release }
+    with: { build-type: Release, lgpl-sources: true }
 
   draft:
     needs: [linux, windows]
@@ -82,9 +81,12 @@ jobs:
         with: { name: release-linux, path: dist }
       - uses: actions/download-artifact@v4
         with: { name: release-windows, path: windows }
+      - uses: actions/download-artifact@v4
+        with: { name: libmpv-windows-sources, path: windows-sources }
       - name: Collect the Windows files and the checksums of everything
         run: |
           cp windows/*.zip windows/*.msix windows/THIRD_PARTY_NOTICES-windows.txt dist/
+          cp windows-sources/huehuecoyotl-windows-lgpl-sources.tar.xz dist/
           (cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS)
       - name: Draft release
         env: { GH_TOKEN: "${{ github.token }}" }

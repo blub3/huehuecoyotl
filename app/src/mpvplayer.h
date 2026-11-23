@@ -33,6 +33,10 @@ class MpvPlayer : public QObject {
     Q_PROPERTY(QVariantList chapters READ chapters NOTIFY mediaChanged)
     Q_PROPERTY(QString videoInfo READ videoInfo NOTIFY mediaChanged)
     // Extra bottom margin for subtitles (in mpv's 720-line units) while controls are shown.
+    // Issue #171: a track has no decoder but the other plays ("" otherwise), and the command that
+    // adds the codecs, while a track has none.
+    Q_PROPERTY(QString codecNotice READ codecNotice NOTIFY codecChanged)
+    Q_PROPERTY(QString codecCommand READ codecCommand NOTIFY codecChanged)
     Q_PROPERTY(int subtitleLift READ subtitleLift WRITE setSubtitleLift NOTIFY subtitleLiftChanged)
 
   public:
@@ -47,9 +51,14 @@ class MpvPlayer : public QObject {
     mpv_handle *handle() const { return m_mpv; }
     // mpv, FFmpeg and decoder settings for the diagnostics export.
     QString versionInfo() const;
+    // Issue #33: what mpv knows about the open file (track-list, video-params, file-format,
+    // duration, file-size) as one JSON object, for the core's technical details.
+    QString mediaInfoJson() const;
 
     State state() const { return m_state; }
     QString errorString() const { return m_error; }
+    QString codecNotice() const;
+    QString codecCommand() const;
     double position() const { return m_position; }
     double duration() const { return m_duration; }
     double cacheSeconds() const { return m_cache; }
@@ -115,6 +124,7 @@ class MpvPlayer : public QObject {
     void endOfFile();
     void fileLoaded();
     void subtitleLiftChanged();
+    void codecChanged();
 
   private:
     void drainEvents();
@@ -126,10 +136,12 @@ class MpvPlayer : public QObject {
     void command(std::initializer_list<const char *> args);
     void addExternalSubtitles();
     void applySubtitleChoice();
+    void clearMissing(bool video, bool audio);
 
     mpv_handle *m_mpv = nullptr;
     State m_state = Idle;
     QString m_error;
+    QString m_noVideo, m_noAudio; // the codec a selected track has no decoder for
     double m_position = 0, m_duration = 0, m_cache = 0, m_speed = 1;
     bool m_paused = false, m_buffering = false, m_eof = false, m_fileOpen = false;
     int m_volume = 100;

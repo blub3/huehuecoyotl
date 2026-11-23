@@ -8,6 +8,9 @@
 //!   coyotl-cli [--data-dir DIR] library add PATH | library list | rescan
 //!   coyotl-cli [--data-dir DIR] movies | shows | search TEXT | detail ID | review
 //!   coyotl-cli [--data-dir DIR] key KEY        (validates and stores the TMDB key)
+//!   coyotl-cli [--data-dir DIR] download ITEM [FILE] | downloads list | downloads delete ID
+//!   coyotl-cli [--data-dir DIR] downloads pause ID | downloads resume ID | storage [DIR]
+//!   coyotl-cli [--data-dir DIR] export ITEM DEST [--overwrite]
 //!
 //! Commands that start background work (library add, rescan) wait until the job queue is
 //! empty, so the harness can scan and match a library headless.
@@ -40,12 +43,104 @@ fn share_password() -> String {
 fn usage() -> ExitCode {
     eprintln!(
         "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent\n\
-         \x20      | library add PATH | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
-         \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | review | key KEY\n\
-         network shares: SPEC_JSON is {{\"protocol\":\"smb\",\"host\":\"nas\",\"share\":\"media\",\"user\":\"me\",\"path\":\"/Movies\"}};\n\
+         \x20      | library add PATH [--music] | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
+         \x20      | music artists | music albums | music tracks ALBUM | music album ID | music artist ID (a music folder's artists, albums, tracks)\n\
+         \x20      | managed status | managed check PATH | managed use PATH [move|empty] | managed add ITEM | managed imports (the managed library)\n\
+         \x20      | music online [on|off] (look music up at MusicBrainz and the Cover Art Archive)\n\
+         \x20      | music album ID VERSION (an album's page for one version) | music split VERSION (this is a different album)\n\
+         \x20      | music keys | music key theaudiodb|fanarttv (key from COYOTL_MUSIC_KEY; none removes it)\n\
+         \x20      | library add PATH --audiobooks | books | authors | series | book ID (audiobooks; a book with its chapters, a series' or person's books)\n\
+         \x20      | book search ID [TITLE [AUTHOR]] | book choose ID WORK (find and pick a book's Open Library work)\n\
+         \x20      | match ID [--unlock] (match an item again) | match search ID [TEXT|ID|LINK] [--year Y] [--kind movie|show]\n\
+         \x20        [--artist A] [--author A] [--isbn I] | match choose ID PROVIDER_ID [KIND] (search and choose by hand)\n\
+         \x20      | library rematch movies|shows|music|books [--all] [--include-locked] | library rematch status|stop LIBRARY\n\
+         \x20      | share list | share sign-in SPEC_JSON | share add SPEC_JSON FOLDERS_JSON | share browse SHARE [PATH] | share test|edit SHARE SPEC_JSON | share folder-content FOLDER CONTENT | share add-folders SHARE FOLDERS_JSON | share remove-folder FOLDER | share remove SHARE\n\
+         \x20      | queue | queue play|shuffle|next|add ID... | queue clear (the music play queue; tracks, albums or artists)\n\
+         \x20      | discover | diagnostics FILE | rescan | movies | shows | search TEXT | detail ID | episodes SEASON | review\n\
+         \x20      | key KEY | key status|test|remove (the TMDB key in the system keystore)\n\
+         \x20      | probe FILE (technical details as JSON; FFmpeg from COYOTL_FFMPEG_DIR or the system)\n\
+         \x20      | download ITEM [FILE] (save offline copies and wait for them) | downloads list\n\
+         \x20      | export ITEM DEST [--overwrite] (Save as…: a file, or a folder for a season or show)\n\
+         \x20      | downloads delete|pause|resume ID | storage [DIR] (where saved copies go)\n\
+         FOLDERS_JSON is [{{\"path\":\"/Movies\",\"content\":\"video\"}}] (content: video, music or audiobooks);\n\
+         network shares: SPEC_JSON is {{\"protocol\":\"smb\",\"host\":\"nas\",\"share\":\"media\",\"user\":\"me\",\"path\":\"/Movies\"}}\n\
+         (add \"content\":\"music\" for a music folder);\n\
          the password comes from COYOTL_SHARE_PASSWORD (never from the command line)"
     );
     ExitCode::from(2)
+}
+
+/// `probe FILE`: what the media probe reads from a file, as JSON, and how many bytes it took.
+fn probe(path: &Path) -> ExitCode {
+    let size = match std::fs::metadata(path) {
+        Ok(m) => m.len(),
+        Err(e) => {
+            eprintln!("{}: {e}", path.display());
+            return ExitCode::FAILURE;
+        }
+    };
+    let name = path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let mut r = match std::fs::File::open(path) {
+        Ok(f) => huehuecoyotl_probe::FileReader(f),
+        Err(e) => {
+            eprintln!("{}: {e}", path.display());
+            return ExitCode::FAILURE;
+        }
+    };
+    match huehuecoyotl_probe::probe(&mut r, size, &name) {
+        Ok(p) => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&p.info).unwrap_or_default()
+            );
+            eprintln!("read {} of {size} bytes", p.bytes_read);
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("error: {e}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// After `download`: print progress until no copy is queued or running, then the list.
+fn follow_downloads(core: &Core, rx: &crossbeam_channel::Receiver<Event>) -> Event {
+    let mut last_print = std::time::Instant::now();
+    let mut req = 100;
+    loop {
+        match rx.recv_timeout(Duration::from_millis(1000)) {
+            Ok(Event::DownloadProgress {
+                id,
+                main_id,
+                state,
+                bytes_done,
+                size,
+                ..
+            }) if id == main_id => {
+                if last_print.elapsed() >= Duration::from_secs(1) || state != "running" {
+                    last_print = std::time::Instant::now();
+                    let pct = (bytes_done * 100).checked_div(size).unwrap_or(100);
+                    eprintln!("  copy {id}: {state} {pct}% ({bytes_done} of {size} bytes)");
+                }
+                continue;
+            }
+            Ok(Event::Downloads { items, .. })
+                if items
+                    .iter()
+                    .any(|d| d.state == "queued" || d.state == "running") =>
+            {
+                std::thread::sleep(Duration::from_millis(500));
+            }
+            Ok(e @ Event::Downloads { .. }) => return e,
+            Ok(_) | Err(_) => {}
+        }
+        req += 1;
+        core.downloads(req);
+    }
 }
 
 fn main() -> ExitCode {
@@ -61,6 +156,10 @@ fn main() -> ExitCode {
     let Some(cmd) = args.first().cloned() else {
         return usage();
     };
+    // The media probe needs no library: it reads one local file.
+    if let ("probe", [file]) = (cmd.as_str(), &args[1..]) {
+        return probe(Path::new(file));
+    }
 
     let (tx, rx) = unbounded();
     let core = match Core::open(&data_dir, "en-US", move |e| {
@@ -78,7 +177,12 @@ fn main() -> ExitCode {
             .recv_timeout(Duration::from_secs(60))
             .expect("no answer from core")
         {
-            Event::ItemChanged { .. } | Event::LibraryChanged { .. } | Event::ScanState { .. } => {
+            Event::ItemChanged { .. }
+            | Event::LibraryChanged { .. }
+            | Event::ScanState { .. }
+            | Event::DownloadProgress { .. }
+            // The start-up's key lookup (issue #52), not an answer.
+            | Event::KeyStatus { request_id: 0, .. } => {
                 continue;
             }
             e => break e,
@@ -185,8 +289,16 @@ fn main() -> ExitCode {
             core.continue_watching(1, 20);
             wait()
         }
-        ("library", [sub, path]) if sub == "add" => {
-            core.add_library(1, path);
+        ("library", [sub, path, rest @ ..])
+            if sub == "add"
+                && (rest.is_empty() || rest == ["--music"] || rest == ["--audiobooks"]) =>
+        {
+            let content = match rest.first().map(String::as_str) {
+                Some("--music") => "music",
+                Some("--audiobooks") => "audiobooks",
+                _ => "video",
+            };
+            core.add_library(1, path, content);
             let ev = wait();
             settle();
             ev
@@ -228,20 +340,291 @@ fn main() -> ExitCode {
             core.libraries(1);
             wait()
         }
+        // Issue #7: what the music scan made of a music folder.
+        ("music", [what]) if what == "artists" || what == "albums" => {
+            core.browse_items(1, &what[..what.len() - 1], 0, "title", "", 0, 500);
+            wait()
+        }
+        // Issue #12: keys of TheAudioDB and Fanart.tv. The key comes from COYOTL_MUSIC_KEY, never
+        // from the command line; without it the key is removed.
+        ("music", [what]) if what == "keys" => {
+            core.music_keys(1);
+            wait()
+        }
+        ("music", [what, provider]) if what == "key" => {
+            let key = std::env::var("COYOTL_MUSIC_KEY").unwrap_or_default();
+            core.set_music_key(1, provider, &key);
+            wait()
+        }
+        // Issue #63: an album's page for one of its versions; "this is a different album".
+        ("music", [what, album, version]) if what == "album" => {
+            let (Ok(album), Ok(version)) = (album.parse(), version.parse()) else {
+                return usage();
+            };
+            core.album_detail(1, album, version, "quality");
+            wait()
+        }
+        ("music", [what, version]) if what == "split" => {
+            let Ok(version) = version.parse() else {
+                return usage();
+            };
+            core.split_album_version(1, version);
+            wait()
+        }
+        // Issue #8: the play queue (the CLI shows it; it does not play).
+        ("queue", []) => {
+            core.queue_state(1);
+            wait()
+        }
+        ("queue", [what, ids @ ..]) if !ids.is_empty() => {
+            let Ok(ids) = ids
+                .iter()
+                .map(|i| i.parse())
+                .collect::<Result<Vec<i64>, _>>()
+            else {
+                return usage();
+            };
+            match what.as_str() {
+                "play" => core.queue_play(1, ids, 0, false, 0, "quality"),
+                "shuffle" => core.queue_play(1, ids, 0, true, 0, "quality"),
+                "next" => core.queue_insert(1, ids, true, 0, "quality"),
+                "add" => core.queue_insert(1, ids, false, 0, "quality"),
+                _ => return usage(),
+            }
+            wait()
+        }
+        ("queue", [what]) if what == "clear" => {
+            core.queue_clear(1);
+            wait()
+        }
+        // Issue #150: the managed library.
+        ("managed", [what]) if what == "status" => {
+            core.library_call(1, "status", "{}");
+            wait()
+        }
+        ("managed", [what, path]) if what == "check" => {
+            core.library_call(
+                1,
+                "check",
+                &serde_json::json!({ "where": "local", "path": path }).to_string(),
+            );
+            wait()
+        }
+        ("managed", [what, path, rest @ ..]) if what == "use" && rest.len() <= 1 => {
+            let mode = match rest.first().map(String::as_str) {
+                None | Some("move") => "move",
+                Some("empty") => "empty",
+                Some(_) => return usage(),
+            };
+            core.library_call(
+                1,
+                "apply",
+                &serde_json::json!({ "where": "local", "path": path, "mode": mode }).to_string(),
+            );
+            wait()
+        }
+        // Issue #154: Add to Library and its list.
+        ("managed", [what, id]) if what == "add" => {
+            let Ok(id) = id.parse::<i64>() else {
+                return usage();
+            };
+            core.library_call(
+                1,
+                "importStart",
+                &serde_json::json!({ "item": id }).to_string(),
+            );
+            wait()
+        }
+        ("managed", [what]) if what == "imports" => {
+            core.library_call(1, "imports", "{}");
+            wait()
+        }
+        // Issue #11: online music information (MusicBrainz, Cover Art Archive) on or off.
+        ("music", [what, rest @ ..]) if what == "online" && rest.len() <= 1 => {
+            match rest.first().map(String::as_str) {
+                Some("on") => core.set_music_online(1, true),
+                Some("off") => core.set_music_online(1, false),
+                None => core.music_online(1),
+                Some(_) => return usage(),
+            }
+            wait()
+        }
+        ("music", [what, id]) if what == "album" || what == "artist" => {
+            let Ok(id) = id.parse() else { return usage() };
+            if what == "album" {
+                core.album_detail(1, id, 0, "quality");
+            } else {
+                core.artist_detail(1, id);
+            }
+            wait()
+        }
+        ("music", [what, album]) if what == "tracks" => {
+            let Ok(album) = album.parse() else {
+                return usage();
+            };
+            core.browse_items(1, "track", album, "title", "", 0, 500);
+            wait()
+        }
+        // Issue #65: audiobooks, their authors and narrators, series, and one book.
+        ("books" | "authors" | "series", []) => {
+            let kind = match cmd.as_str() {
+                "books" => "audiobook",
+                "authors" => "person",
+                _ => "book_series",
+            };
+            core.browse_items(1, kind, 0, "title", "", 0, 500);
+            wait()
+        }
+        ("book", [id]) => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.book_detail(1, id);
+            wait()
+        }
+        // Issue #67: "Search again" and choosing a work.
+        ("book", [sub, id, rest @ ..]) if sub == "search" && rest.len() <= 2 => {
+            let Ok(id) = id.parse() else { return usage() };
+            let title = rest.first().map_or("", String::as_str);
+            let author = rest.get(1).map_or("", String::as_str);
+            core.search_book(1, id, title, author);
+            wait()
+        }
+        ("book", [sub, id, work]) if sub == "choose" => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.choose_book_match(1, id, work);
+            wait()
+        }
+        // Issue #92: matching again, searching and choosing by hand, library rematches.
+        ("match", [id, rest @ ..])
+            if rest.iter().all(|a| a == "--unlock") && id != "search" && id != "choose" =>
+        {
+            let Ok(id) = id.parse() else { return usage() };
+            core.match_again(1, id, !rest.is_empty());
+            wait()
+        }
+        ("match", [sub, id, words @ ..]) if sub == "search" => {
+            let Ok(id) = id.parse() else { return usage() };
+            let mut q = serde_json::Map::new();
+            let mut text = Vec::new();
+            let mut it = words.iter();
+            while let Some(w) = it.next() {
+                match w.as_str() {
+                    "--year" | "--kind" | "--artist" | "--author" | "--isbn" => {
+                        let Some(v) = it.next() else { return usage() };
+                        let key = &w[2..];
+                        let value = if key == "year" {
+                            serde_json::json!(v.parse::<u64>().unwrap_or(0))
+                        } else {
+                            serde_json::json!(v)
+                        };
+                        q.insert(key.to_string(), value);
+                    }
+                    _ => text.push(w.as_str()),
+                }
+            }
+            q.insert("text".into(), serde_json::json!(text.join(" ")));
+            core.match_search(1, id, &serde_json::Value::Object(q).to_string());
+            wait()
+        }
+        ("match", [sub, id, provider_id, rest @ ..]) if sub == "choose" && rest.len() <= 1 => {
+            let Ok(id) = id.parse() else { return usage() };
+            let mut choice = serde_json::json!({ "id": provider_id });
+            if let Some(kind) = rest.first() {
+                choice["kind"] = serde_json::json!(kind);
+            }
+            core.match_choose(1, id, &choice.to_string());
+            wait()
+        }
+        // Issue #118: network shares and their folders.
+        ("share", [sub]) if sub == "list" => {
+            core.shares(1);
+            wait()
+        }
+        ("share", [sub, id, folders]) if sub == "add-folders" => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.share_add_folders(1, id, folders);
+            let ev = wait();
+            settle();
+            ev
+        }
+        ("share", [sub, id, spec, rest @ ..])
+            if (sub == "edit" || sub == "test") && rest.is_empty() =>
+        {
+            let Ok(id) = id.parse() else { return usage() };
+            core.share_edit(1, id, spec, &share_password(), sub == "edit");
+            wait()
+        }
+        ("share", [sub, id, content]) if sub == "folder-content" => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.share_folder_content(1, id, content);
+            let ev = wait();
+            settle();
+            ev
+        }
+        ("share", [sub, spec]) if sub == "sign-in" => {
+            core.share_sign_in(1, spec, &share_password());
+            wait()
+        }
+        ("share", [sub, spec, folders]) if sub == "add" => {
+            core.share_create(1, spec, &share_password(), folders);
+            let ev = wait();
+            settle();
+            ev
+        }
+        ("share", [sub, id, rest @ ..]) if sub == "browse" && rest.len() <= 1 => {
+            let Ok(id) = id.parse::<i64>() else {
+                return usage();
+            };
+            let path = rest.first().map(String::as_str).unwrap_or("/");
+            core.share_browse(1, &format!(r#"{{"share":{id}}}"#), "", path);
+            wait()
+        }
+        ("share", [sub, id]) if sub == "remove-folder" => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.remove_library(1, id);
+            wait()
+        }
+        ("share", [sub, id]) if sub == "remove" => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.share_remove(1, id);
+            wait()
+        }
+        ("library", [sub, what]) if sub == "rematch" && what == "status" => {
+            core.matching_status(1);
+            wait()
+        }
+        ("library", [sub, what, library]) if sub == "rematch" && what == "stop" => {
+            core.rematch_stop(1, library);
+            wait()
+        }
+        ("library", [sub, library, flags @ ..])
+            if sub == "rematch"
+                && flags
+                    .iter()
+                    .all(|f| f == "--all" || f == "--include-locked") =>
+        {
+            let all = flags.iter().any(|f| f == "--all");
+            let locked = flags.iter().any(|f| f == "--include-locked");
+            core.rematch_library(1, library, all, locked);
+            let _ = wait();
+            // Follow the run: the status once nothing is left in the queue.
+            settle();
+            core.matching_status(2);
+            wait()
+        }
         ("movies" | "shows", []) => {
             core.browse_items(
                 1,
                 if cmd == "movies" { "movie" } else { "show" },
                 0,
                 "title",
-                false,
+                "",
                 0,
                 500,
             );
             wait()
         }
         ("search", words) if !words.is_empty() => {
-            core.search(1, &words.join(" "));
+            core.search(1, &words.join(" "), "");
             wait()
         }
         ("detail", [id]) => {
@@ -249,12 +632,83 @@ fn main() -> ExitCode {
             core.item_detail(1, id);
             wait()
         }
+        ("episodes", [id]) => {
+            let Ok(id) = id.parse() else { return usage() };
+            core.season_episodes(1, id, 0, 500);
+            wait()
+        }
         ("review", []) => {
             core.review(1);
             wait()
         }
+        // Issue #52: the key's state, a check with TMDB, removing it.
+        ("key", [w]) if w == "status" => {
+            core.key_status(1);
+            wait()
+        }
+        ("key", [w]) if w == "test" => {
+            core.test_tmdb_key(1);
+            wait()
+        }
+        ("key", [w]) if w == "remove" => {
+            core.clear_tmdb_key(1);
+            wait()
+        }
         ("key", [key]) => {
             core.set_tmdb_key(1, key);
+            wait()
+        }
+        ("download", [item, rest @ ..]) if rest.len() <= 1 => {
+            let (Ok(item), Ok(file)) = (
+                item.parse(),
+                rest.first().map_or(Ok(0), |f| f.parse::<i64>()),
+            ) else {
+                return usage();
+            };
+            core.save_item(1, item, file);
+            match wait() {
+                Event::Downloads { .. } => follow_downloads(&core, &rx),
+                e => e,
+            }
+        }
+        ("export", [item, dest, rest @ ..]) if rest.len() <= 1 => {
+            let Ok(item) = item.parse() else {
+                return usage();
+            };
+            let overwrite = rest.first().is_some_and(|f| f == "--overwrite");
+            if !rest.is_empty() && !overwrite {
+                return usage();
+            }
+            core.export_item(1, item, 0, dest, overwrite);
+            match wait() {
+                Event::Downloads { .. } => follow_downloads(&core, &rx),
+                e => e,
+            }
+        }
+        ("downloads", [sub]) if sub == "list" => {
+            core.downloads(1);
+            wait()
+        }
+        ("downloads", [sub, id]) if ["delete", "pause", "resume"].contains(&sub.as_str()) => {
+            let Ok(id) = id.parse() else { return usage() };
+            match sub.as_str() {
+                "delete" => core.delete_download(1, id),
+                "pause" => {
+                    core.pause_download(id);
+                    core.downloads(1);
+                }
+                _ => {
+                    core.resume_download(id);
+                    core.downloads(1);
+                }
+            }
+            wait()
+        }
+        ("storage", rest) if rest.len() <= 1 => {
+            match rest.first() {
+                Some(d) => core.set_storage_dir(1, d),
+                None => core.downloads(1),
+            }
             wait()
         }
         _ => return usage(),
@@ -313,9 +767,10 @@ fn main() -> ExitCode {
         Event::Libraries { libraries, .. } => {
             for l in libraries {
                 println!(
-                    "  {:>3}  {}  ({} files{}{})",
+                    "  {:>3}  {}  ({}, {} files{}{})",
                     l.id,
                     l.root,
+                    l.content,
                     l.files,
                     if l.scanning { ", scanning" } else { "" },
                     if l.online { "" } else { ", offline" }
@@ -347,6 +802,60 @@ fn main() -> ExitCode {
             }
             page(&d.children);
         }
+        Event::QueueChanged { json, .. }
+        | Event::MusicTickets { json }
+        | Event::MusicKeys { json, .. } => {
+            let v: serde_json::Value = serde_json::from_str(&json).unwrap_or_default();
+            println!("{}", serde_json::to_string_pretty(&v).unwrap_or(json));
+        }
+        Event::MusicDetail { json, .. } => {
+            let v: serde_json::Value = serde_json::from_str(&json).unwrap_or_default();
+            println!("{}", serde_json::to_string_pretty(&v).unwrap_or(json));
+        }
+        Event::MusicOnline { online, .. } => println!(
+            "music information: {}",
+            if online {
+                "from file tags, MusicBrainz and the Cover Art Archive"
+            } else {
+                "from file tags only"
+            }
+        ),
+        Event::Episodes { total, items, .. } => {
+            println!("{total} episodes");
+            for e in items {
+                let i = &e.item;
+                println!(
+                    "  {:>6}  E{:<3} {}{}{}",
+                    i.id,
+                    i.episode_no.unwrap_or(0),
+                    i.title,
+                    if i.on_disk {
+                        ""
+                    } else {
+                        "  (not in the library)"
+                    },
+                    if e.save.state == "none" {
+                        String::new()
+                    } else {
+                        format!("  [saved: {}]", e.save.state)
+                    }
+                );
+                for f in &e.files {
+                    println!(
+                        "            file {} ({} MB, {}{}{})",
+                        f.id,
+                        f.size / 1_000_000,
+                        f.source_name,
+                        if f.online { "" } else { ", offline" },
+                        if f.probe_json.is_empty() {
+                            ", not analysed"
+                        } else {
+                            ""
+                        }
+                    );
+                }
+            }
+        }
         Event::Review { items, .. } => {
             for r in items {
                 println!("  {:>6}  {}", r.item.id, r.item.title);
@@ -362,11 +871,25 @@ fn main() -> ExitCode {
             }
         }
         Event::KeyStatus {
-            has_key, message, ..
+            message,
+            state,
+            validated_at,
+            ..
         } => {
             println!(
-                "TMDB key {}{}",
-                if has_key { "set" } else { "not set" },
+                "TMDB key: {}{}{}",
+                match state.as_str() {
+                    "keystore" => "stored in the system keystore",
+                    "environment" => "from COYOTL_TMDB_KEY",
+                    "session" => "set until the program ends (the keystore could not keep it)",
+                    "unavailable" => "not set; no system keystore is available",
+                    _ => "not set",
+                },
+                if validated_at > 0 {
+                    format!(" (accepted by TMDB at {validated_at}, Unix time)")
+                } else {
+                    String::new()
+                },
                 if message.is_empty() {
                     String::new()
                 } else {
@@ -388,7 +911,51 @@ fn main() -> ExitCode {
                 );
             }
         }
-        Event::Candidates { .. } | Event::LibraryChanged { .. } | Event::ScanState { .. } => {}
+        Event::Downloads {
+            items,
+            used_bytes,
+            storage_dir,
+            ..
+        } => {
+            println!(
+                "storage: {storage_dir} ({} MB used)",
+                used_bytes / 1_000_000
+            );
+            let mut failed = false;
+            for d in items {
+                let pct = (d.bytes_done * 100).checked_div(d.size).unwrap_or(100);
+                println!(
+                    "{:>5}  {:<6} {:<9} {:>3}%  {}  {}{}",
+                    d.id,
+                    d.kind,
+                    d.state,
+                    pct,
+                    d.title,
+                    d.path,
+                    if d.error.is_empty() {
+                        String::new()
+                    } else {
+                        format!("  [{}: {}]", d.error_kind, d.error)
+                    }
+                );
+                failed |= d.state == "failed";
+            }
+            if failed {
+                return ExitCode::FAILURE;
+            }
+        }
+        Event::Candidates { .. }
+        | Event::LibraryChanged { .. }
+        | Event::ScanState { .. }
+        | Event::DownloadProgress { .. }
+        | Event::SaveState { .. } => {}
+        Event::ExportConflict { paths, .. } => {
+            eprintln!("these files exist already (add --overwrite):");
+            for p in paths {
+                eprintln!("  {p}");
+            }
+            return ExitCode::FAILURE;
+        }
         Event::Error { kind, message, .. } => {
             eprintln!("error ({kind:?}): {message}");
             return ExitCode::FAILURE;

@@ -7,6 +7,13 @@ QtObject {
     property string coverWindow: "medium"
     property string coverFullscreen: "large"
     property bool fullscreen: false
+    // Issue #34, Settings → Playback: which version of a movie is preselected when none was
+    // played yet: "quality" (resolution, then HDR, then bit rate) or "smallest" (slow networks).
+    property string preferredVersion: "quality"
+    // Issue #117: the Settings tab used last.
+    property string settingsTab: "metadata"
+    // Issue #119: the Sources cards the user closed ("share:3", "local"), comma-separated.
+    property string closedSources: ""
 
     readonly property var sizes: [
         { key: "small", label: qsTr("Small"), width: 140 },
@@ -18,6 +25,6 @@ QtObject {
 
     // Title text, spacing and gaps grow and shrink with the poster.
     function textScale(posterWidth) { return Math.max(0.85, Math.min(1.35, posterWidth / 180)) }
-    // A card: the 2:3 poster plus two lines of text.
-    function cardHeight(posterWidth) { return posterWidth * 1.5 + 54 * textScale(posterWidth) }
+    // A card: the poster (2:3, or square for music) plus two lines of text.
+    function cardHeight(posterWidth, ratio) { return posterWidth * (ratio ?? 1.5) + 54 * textScale(posterWidth) }
 }

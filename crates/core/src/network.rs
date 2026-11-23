@@ -33,6 +33,9 @@ pub struct NetworkSpec {
     pub path: String,
     #[serde(default)]
     pub name: String,
+    /// `video` (default) or `music` (2.0, SPEC 6).
+    #[serde(default)]
+    pub content: String,
 }
 
 impl NetworkSpec {
@@ -91,6 +94,11 @@ fn timeout_err() -> CoreError {
     CoreError::new(ErrorKind::Unreachable, "The server did not answer in time.")
 }
 
+/// Issue #118: connect with these settings (the password included).
+pub(crate) async fn connect_config(cfg: RemoteConfig) -> CResult<Arc<dyn RemoteSource>> {
+    connect(cfg).await
+}
+
 async fn connect(cfg: RemoteConfig) -> CResult<Arc<dyn RemoteSource>> {
     let attempt = async move {
         match cfg.protocol {
@@ -117,6 +125,18 @@ impl Inner {
             .read(move |c| catalog::source(c, id))
             .await?
             .ok_or_else(|| CoreError::new(ErrorKind::NotFound, format!("source {id}")))?;
+        // Issue #118: the folders of a share use one connection.
+        if let Some(share) = row.share_id {
+            let siblings = self
+                .lib
+                .read(move |c| huehuecoyotl_library::shares::folder_ids(c, share))
+                .await?;
+            if let Some(s) = self.share_connection(&siblings) {
+                self.set_online(id, true);
+                self.remotes.lock().unwrap().insert(id, s.clone());
+                return Ok(s);
+            }
+        }
         let mut cfg: RemoteConfig = serde_json::from_str(&row.config_json).map_err(|e| {
             CoreError::new(ErrorKind::Internal, format!("source {id} settings: {e}"))
         })?;
@@ -147,6 +167,12 @@ impl Inner {
         }
         self.set_online(id, true);
         self.remotes.lock().unwrap().insert(id, src.clone());
+        // Issue #118: the share's own password worked: its folders' old entries can go.
+        if let Some(share) = row.share_id
+            && !cfg.password.is_empty()
+        {
+            self.share_connected(share).await;
+        }
         Ok(src)
     }
 
@@ -183,12 +209,16 @@ impl Inner {
     }
 
     /// The connection the dialog's folder picker uses, reused while the settings stay the same.
-    async fn probe(&self, spec: &NetworkSpec, password: &str) -> CResult<Arc<dyn RemoteSource>> {
+    pub(crate) async fn probe(
+        &self,
+        spec: &NetworkSpec,
+        password: &str,
+    ) -> CResult<Arc<dyn RemoteSource>> {
         let key = format!("{}\u{0}{password}", spec.config_json());
-        if let Some((k, s)) = self.probe.lock().unwrap().as_ref() {
-            if *k == key {
-                return Ok(s.clone());
-            }
+        if let Some((k, s)) = self.probe.lock().unwrap().as_ref()
+            && *k == key
+        {
+            return Ok(s.clone());
         }
         let mut cfg = spec.cfg.clone();
         cfg.password = password.to_string();
@@ -265,13 +295,40 @@ pub(crate) async fn prepare_remote(
         })
         .await?;
     inner.tickets.lock().unwrap().insert(ticket_id, item_id);
+    let p3 = vp.to_string();
+    if let Ok(Some(file)) = inner
+        .lib
+        .read(move |c| catalog::file_for_path(c, Some(source_id), &p3))
+        .await
+    {
+        inner.ticket_files.lock().unwrap().insert(ticket_id, file);
+    }
+    // Issue #34: a version of another cut resumes from its own position.
+    let file = inner.ticket_files.lock().unwrap().get(&ticket_id).copied();
+    let resume_ms = match file {
+        Some(f) => inner
+            .lib
+            .read(move |c| {
+                let dur = catalog::file_duration_ms(c, f)?;
+                queries::resume_for(c, item_id, f, dur)
+            })
+            .await
+            .unwrap_or(if state.watched { 0 } else { state.position_ms }),
+        None => {
+            if state.watched {
+                0
+            } else {
+                state.position_ms
+            }
+        }
+    };
     Ok(Ticket {
         ticket: ticket_id,
         item_id,
         title: title.unwrap_or_else(|| entry.name.clone()),
         url: huehuecoyotl_stream::url(source_id, &vp),
         is_network: true,
-        resume_ms: if state.watched { 0 } else { state.position_ms },
+        resume_ms,
         subtitles,
         audio_langs: lang::variants(&prefs.audio_lang),
         sub_langs: lang::variants(&prefs.sub_lang),
@@ -456,11 +513,20 @@ impl Core {
                 spec.name.trim().to_string()
             };
             let (kind, root_s) = (cfg.protocol.as_str().to_string(), spec.path.clone());
-            let id = inner
+            let content = crate::library::content_type(&spec.content);
+            // Issue #118: the folder joins the share of these settings (created when new).
+            let (share, id) = inner
                 .lib
-                .write(move |c| catalog::add_network_library(c, &kind, &name, &json, &root_s))
+                .write(move |c| {
+                    let (share, _) = huehuecoyotl_library::shares::find_or_create(c, &kind, &json)?;
+                    let (id, _) = huehuecoyotl_library::shares::add_folder(
+                        c, share, &root_s, content, &name,
+                    )?;
+                    Ok((share, id))
+                })
                 .await?;
-            let reference = format!("source:{id}");
+            // The password that just worked is the share's.
+            let reference = huehuecoyotl_library::shares::credential_ref(share);
             let warning =
                 tokio::task::spawn_blocking(move || secrets::store_password(&reference, &password))
                     .await

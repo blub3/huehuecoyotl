@@ -11,6 +11,10 @@ on:
         description: CMake build type
         type: string
         default: RelWithDebInfo
+      lgpl-sources:
+        description: Upload the libmpv bundle's corresponding source for a release
+        type: boolean
+        default: false
 
 env:
   CARGO_TERM_COLOR: always
@@ -25,8 +29,10 @@ jobs:
         id: cache
         uses: actions/cache@v4
         with:
-          path: third_party/mpv/out-win
-          key: libmpv-win-${{ hashFiles('third_party/mpv/Dockerfile.windows', 'third_party/mpv/build-windows-deps.sh') }}
+          path: |
+            third_party/mpv/out-win
+            third_party/mpv/out-win-src
+          key: libmpv-win-${{ hashFiles('third_party/mpv/Dockerfile.windows', 'third_party/mpv/build-windows-deps.sh', 'third_party/mpv/build-windows.sh') }}
       - name: Cross-build LGPL libmpv + FFmpeg for Windows
         if: steps.cache.outputs.cache-hit != 'true'
         run: third_party/mpv/build-windows.sh
@@ -42,6 +48,9 @@ jobs:
         run: tools/notices.sh third_party/mpv/out-win/THIRD_PARTY_NOTICES.txt third_party/mpv/out-win
       - uses: actions/upload-artifact@v4
         with: { name: libmpv-windows, path: third_party/mpv/out-win }
+      - uses: actions/upload-artifact@v4
+        if: inputs.lgpl-sources
+        with: { name: libmpv-windows-sources, path: third_party/mpv/out-win-src, compression-level: 0 }
 
   app-windows:
     needs: libmpv-windows

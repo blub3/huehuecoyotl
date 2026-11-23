@@ -13,14 +13,20 @@ FocusScope {
         home: homePage,
         movies: moviesPage,
         shows: showsPage,
+        music: musicPage,
+        audiobooks: audiobooksPage,
         search: searchPage,
+        downloads: downloadsPage,
         sources: sourcesPage,
         settings: settingsPage
     })
     Component { id: homePage; HomePage {} }
     Component { id: moviesPage; MoviesPage {} }
     Component { id: showsPage; ShowsPage {} }
+    Component { id: musicPage; MusicPage {} }
+    Component { id: audiobooksPage; AudiobooksPage {} }
     Component { id: searchPage; SearchPage {} }
+    Component { id: downloadsPage; DownloadsPage {} }
     Component { id: sourcesPage; SourcesPage {} }
     Component { id: settingsPage; SettingsPage {} }
 
@@ -33,6 +39,10 @@ FocusScope {
         content.push(url, props)
         focusContent()
     }
+    function replacePage(url, props) {
+        content.replace(url, props)
+        focusContent()
+    }
     // Back: pop a page, or from a section's first page move to the rail.
     function back() {
         if (content.depth > 1) {
@@ -42,21 +52,75 @@ FocusScope {
             focusRail()
         }
     }
+    // Issue #135: back to the page at this stack index in one step.
+    function backTo(index) {
+        if (index < 0 || index >= content.depth - 1) return
+        content.pop(content.get(index))
+        focusContent()
+    }
     function focusRail() { rail.focusCurrent() }
+    // Issue #133: Up from a page's first row reaches the Back button (else the page keeps focus).
+    function focusBack() {
+        if (backButton.visible) { backButton.forceActiveFocus(); return true }
+        return false
+    }
     function focusContent() { Qt.callLater(() => { if (content.currentItem) content.currentItem.forceActiveFocus() }) }
 
     Component.onCompleted: {
         Nav.shell = shell
         if (Bench.mode === "scroll") shell.go("movies")
+        if (Bench.mode === "episodes") shell.go("shows")
+        if (Bench.mode === "music" || Bench.mode === "songs") shell.go("music")
+        if (Bench.mode === "books") shell.go("audiobooks")
     }
     // Returning from the player: give focus back to the page.
     StackView.onActivated: focusContent()
 
+    // Issue #8: Now Playing opens above the current section's pages.
+    function openNowPlaying() {
+        if (content.currentItem && content.currentItem.objectName === "nowPlaying") focusContent()
+        else if (Book.front && Book.active) openPage(Qt.resolvedUrl("BookPlayerPage.qml"), {})
+        else openPage(Qt.resolvedUrl("NowPlayingPage.qml"), {})
+    }
+    // Media keys and Space-free shortcuts for music while the shell is in front (the player
+    // page handles them itself while a video plays).
+    Keys.onPressed: (e) => {
+        // Issue #136: Backspace (not while typing) and Alt+Left go back too.
+        if (!e.isAutoRepeat && backButton.isBackKey(e.key, e.modifiers, shell.Window.activeFocusItem)) {
+            shell.back()
+            e.accepted = true
+            return
+        }
+        switch (e.key) {
+        // Issue #66: the book when it played last; next and previous are its chapters.
+        case Qt.Key_MediaPlay: if (Book.front) Book.play(); else Music.play(); break
+        case Qt.Key_MediaPause: if (Book.front) Book.pause(); else Music.pause(); break
+        case Qt.Key_MediaTogglePlayPause: if (Book.front) Book.togglePause(); else Music.togglePause(); break
+        case Qt.Key_MediaNext: if (Book.front) Book.nextChapter(); else Music.next(); break
+        case Qt.Key_MediaPrevious: if (Book.front) Book.previousChapter(); else Music.previous(); break
+        default: return
+        }
+        e.accepted = true
+    }
+
+    // Issue #83: F11 on Now Playing toggles its full-screen view; false elsewhere.
+    function toggleFullView() {
+        const p = content.currentItem
+        if (!p || p.objectName !== "nowPlaying") return false
+        const nowPlaying = p as NowPlayingPage
+        nowPlaying.toggleFull()
+        return true
+    }
+    // Issue #82: Now Playing uses the whole window; the rail steps aside.
+    readonly property bool immersive: content.currentItem ? content.currentItem.objectName === "nowPlaying" : false
     NavRail {
         id: rail
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+        visible: !shell.immersive
+        width: visible ? implicitWidth : 0
         current: shell.section
         onChosen: (s) => { if (s === shell.section) { shell.content_toFirst() } else shell.go(s) }
+        onDownFromLast: if (mini.visible) mini.forceActiveFocus()
         KeyNavigation.right: content
     }
 
@@ -65,15 +129,124 @@ FocusScope {
         focusContent()
     }
 
+    MiniPlayer {
+        id: mini
+        music: Music
+        bookPlayer: Book
+        anchors { left: rail.right; right: parent.right; bottom: parent.bottom }
+        visible: (Music.active || Book.active) && !(content.currentItem && content.currentItem.objectName === "nowPlaying")
+        height: visible ? implicitHeight : 0
+        onOpenRequested: shell.openNowPlaying()
+        onUpRequested: shell.focusContent()
+        onLeftRequested: shell.focusRail()
+    }
+
+    // Issue #136: the mouse's back (side) button.
+    TapHandler {
+        acceptedButtons: Qt.BackButton
+        onTapped: shell.back()
+    }
+
+    Timer {
+        id: backHold
+        interval: 500
+        onTriggered: if (backButton.visible) backButton.openTrail(true)
+    }
+    // Issue #135: the way here, next to the Back button (text only; the trail is how to jump).
+    Label {
+        objectName: "backPath"
+        z: 10
+        visible: backButton.visible && width > 80
+        opacity: shell.backIdle ? 0 : 1
+        Behavior on opacity { NumberAnimation { duration: 600 } }
+        x: backButton.x + backButton.width + 18
+        y: backButton.y + (backButton.height - height) / 2
+        width: Math.max(0, backStrip.width - (x - backStrip.x) - 40)
+        text: backButton.path
+        elide: Text.ElideLeft
+        color: Theme.textDim
+        font.pixelSize: Theme.fontSmall
+    }
+
+    // Issue #191: the full-screen Now Playing view goes idle, and the Back bar with it. A real
+    // mouse move wakes it (Qt also sends hover events for a still pointer); using the bar keeps it.
+    readonly property var fullPage: immersive ? content.currentItem : null
+    readonly property bool backIdle: fullPage !== null && fullPage.fullIdle === true
+    HoverHandler {
+        id: pointer
+        property point last: Qt.point(-1, -1)
+        onPointChanged: {
+            const p = point.scenePosition
+            if (Math.abs(p.x - last.x) < 2 && Math.abs(p.y - last.y) < 2) return
+            last = p
+            if (shell.fullPage) shell.fullPage.wakeFull()
+        }
+    }
+    Binding {
+        when: shell.fullPage !== null
+        target: shell.fullPage
+        property: "holdAwake"
+        value: (pointer.hovered && pointer.point.position.y < backStrip.height)
+               || backButton.activeFocus || backButton.trailOpen
+    }
+    MouseArea {
+        objectName: "backWake"
+        z: 11
+        anchors.fill: backStrip
+        enabled: shell.backIdle
+        acceptedButtons: Qt.AllButtons
+        onPressed: shell.fullPage.wakeFull()
+        onWheel: shell.fullPage.wakeFull()
+    }
+
+    // Issue #134: above every page but a section's first, a strip that holds the Back button, so
+    // it never covers the page.
+    Rectangle {
+        id: backStrip
+        anchors { left: rail.right; right: parent.right; top: parent.top }
+        height: content.depth > 1 ? 68 : 0
+        // A page with a background of its own (Now Playing) colours the strip too.
+        readonly property var page: content.currentItem
+        color: page && page.pageBackground !== undefined ? page.pageBackground : "transparent"
+    }
+
     StackView {
         id: content
-        anchors { left: rail.right; right: parent.right; top: parent.top; bottom: parent.bottom }
+        anchors { left: rail.right; right: parent.right; top: backStrip.bottom; bottom: mini.top }
         focus: true
         initialItem: homePage
         pushEnter: null; pushExit: null; popEnter: null; popExit: null; replaceEnter: null; replaceExit: null
         // Pages handle Back themselves where they have something to undo (folders, menus);
         // otherwise Back leaves the page.
-        Keys.onEscapePressed: shell.back()
-        Keys.onBackPressed: shell.back()
+        // Issue #135: Esc or Back held for half a second opens the trail; a short press goes back.
+        Keys.onPressed: (e) => {
+            if (e.key !== Qt.Key_Escape && e.key !== Qt.Key_Back) return
+            if (!e.isAutoRepeat) backHold.restart()
+            e.accepted = true
+        }
+        Keys.onReleased: (e) => {
+            if (e.key !== Qt.Key_Escape && e.key !== Qt.Key_Back) return
+            if (!e.isAutoRepeat && backHold.running) { backHold.stop(); shell.back() }
+            e.accepted = true
+        }
+        // Issue #134: Up that a page does not use (from its first row) goes to the Back button.
+        Keys.onUpPressed: (e) => { e.accepted = shell.focusBack() }
+    }
+
+    // Issue #133: one Back button for every page above a section's first, in the same place.
+    BackButton {
+        id: backButton
+        objectName: "shellBack"
+        z: 10
+        x: backStrip.x + 40
+        y: backStrip.y + 20
+        stack: content
+        enabled: !shell.backIdle
+        opacity: shell.backIdle ? 0 : 1
+        Behavior on opacity { NumberAnimation { duration: 600 } }
+        onBackRequested: shell.back()
+        onBackToRequested: (index) => shell.backTo(index)
+        Keys.onRightPressed: shell.focusContent()
+        Keys.onLeftPressed: if (rail.visible) shell.focusRail()
     }
 }

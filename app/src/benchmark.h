@@ -2,6 +2,9 @@
 // Performance budgets (SPEC 9), measured, not asserted:
 //   coyotl --benchmark startup   time from process start to the first frame of a loaded Home
 //   coyotl --benchmark scroll    frame times while the Movies grid scrolls on its own
+//   coyotl --benchmark episodes  frame times while the first show's episode tiles scroll on their
+//                                own, with ten episodes saving (issue #48; use a test library)
+//   coyotl --benchmark music     frame times while the Music page's albums grid scrolls (issue #10)
 // Results go to stdout as one JSON line (and to --benchmark-out FILE), then the app quits.
 #include <QElapsedTimer>
 #include <QObject>

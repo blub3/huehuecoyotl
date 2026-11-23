@@ -1,5 +1,7 @@
 #include "corebridge.h"
+#include "episodemodel.h"
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -56,7 +58,81 @@ QVariantMap summaryMap(const coyotl::core::ItemSummary &s)
             {"progress", s.progress},
             {"watched", s.watched},
             {"unwatched", qlonglong(s.unwatched)},
-            {"overview", qs(s.overview)}};
+            {"overview", qs(s.overview)},
+            {"onDisk", s.on_disk},
+            {"runtimeMin", s.runtime_min},
+            {"saved", s.saved},
+            {"subtitle", qs(s.subtitle)},
+            {"parentId", qlonglong(s.parent_id)},
+            {"versions", qlonglong(s.versions)},
+            {"ratio", s.ratio},
+            {"format", qs(s.format)},
+            {"hires", s.hires},
+            {"albums", qlonglong(s.albums)},
+            {"hiresAlbums", qlonglong(s.hires_albums)},
+            {"artist", qs(s.artist)},
+            {"durationMs", qlonglong(s.duration_ms)},
+            {"plays", qlonglong(s.plays)}};
+}
+
+// Issue #4: the state of an item's saved copies.
+QVariantMap saveMap(const coyotl::core::SaveInfo &i)
+{
+    return {{"state", qs(i.state)},
+            {"copyId", qlonglong(i.copy_id)},
+            {"bytesDone", double(i.bytes_done)},
+            {"size", double(i.size)},
+            {"error", qs(i.error)},
+            {"errorKind", qs(i.error_kind)},
+            {"saved", qlonglong(i.saved)},
+            {"saveable", qlonglong(i.saveable)}};
+}
+
+// Issue #3: a saved copy or an export, or one file's progress.
+QVariantMap downloadMap(const coyotl::core::DownloadEntry &d)
+{
+    return {{"id", qlonglong(d.id)},
+            {"mainId", qlonglong(d.main_id)},
+            {"kind", qs(d.kind)},
+            {"itemId", qlonglong(d.item_id)},
+            {"fileId", qlonglong(d.file_id)},
+            {"title", qs(d.title)},
+            {"path", qs(d.path)},
+            {"state", qs(d.state)},
+            {"bytesDone", double(d.bytes_done)},
+            {"size", double(d.size)},
+            {"errorKind", qs(d.error_kind)},
+            {"error", qs(d.error)},
+            {"completedAt", qlonglong(d.completed_at)}};
+}
+
+// A movie's or episode's file (version), with its probe as an object for QML (null until the
+// file is analysed; trimmed for episode tiles, issue #48).
+QVariantMap fileMap(const coyotl::core::FileRef &f)
+{
+    return {{"id", qlonglong(f.id)},
+            {"path", qs(f.path)},
+            {"size", qlonglong(f.size)},
+            {"sourceName", qs(f.source_name)},
+            {"sourceKind", qs(f.source_kind)},
+            {"online", f.online},
+            {"saved", f.saved},
+            {"edition", qs(f.edition)},
+            {"positionMs", qulonglong(f.position_ms)},
+            {"probe", f.probe_json.empty()
+                          ? QVariant()
+                          : QJsonDocument::fromJson(QByteArray::fromStdString(std::string(f.probe_json)))
+                                .object()
+                                .toVariantMap()}};
+}
+
+QVariantList fileList(const rust::Vec<coyotl::core::FileRef> &v)
+{
+    QVariantList out;
+    out.reserve(qsizetype(v.size()));
+    for (const auto &f : v)
+        out.append(fileMap(f));
+    return out;
 }
 
 QVariantList summaries(const rust::Vec<coyotl::core::ItemSummary> &v)
@@ -99,7 +175,18 @@ CoreBridge::CoreBridge(const QString &dataDir, const QString &language, QObject 
     try {
         m_core.emplace(coyotl::core::core_open(rs(dir), rs(lang), std::move(sink)));
         refreshKeyStatus();
+        (*m_core)->prepare_online_choice(nextId());
         qCInfo(lcCore) << "core" << version() << "opened in" << dataDir;
+        EpisodeModel::setBackend(
+            {[this](qint64 season, int offset, int limit) { return seasonEpisodes(season, offset, limit); },
+             [this](quint64 id) { cancel(id); },
+             [this](EpisodeModel *m) {
+                 connect(this, &CoreBridge::episodesReady, m, &EpisodeModel::onPage);
+                 connect(this, &CoreBridge::requestFailed, m, [m](quint64 id) { m->onFailed(id); });
+                 connect(this, &CoreBridge::downloadProgress, m, &EpisodeModel::onProgress);
+                 connect(this, &CoreBridge::itemChanged, m, &EpisodeModel::onItemChanged);
+                 connect(this, &CoreBridge::libraryChanged, m, &EpisodeModel::refresh);
+             }});
     } catch (const rust::Error &e) {
         m_openError = QString::fromUtf8(e.what());
         qCCritical(lcCore) << "cannot open core:" << m_openError;
@@ -137,6 +224,20 @@ quint64 CoreBridge::openPath(const QString &path)
     return id;
 }
 
+quint64 CoreBridge::openItemFile(qint64 itemId, qint64 fileId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->open_item_file(id, itemId, fileId);
+    return id;
+}
+
+quint64 CoreBridge::splitFile(qint64 fileId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->split_file(id, fileId);
+    return id;
+}
+
 quint64 CoreBridge::openItem(qint64 itemId)
 {
     const quint64 id = nextId();
@@ -168,10 +269,10 @@ quint64 CoreBridge::libraries()
     return id;
 }
 
-quint64 CoreBridge::addLibrary(const QString &path)
+quint64 CoreBridge::addLibrary(const QString &path, const QString &content)
 {
     const quint64 id = nextId();
-    if (m_core) (*m_core)->add_library(id, rs(path.toUtf8()));
+    if (m_core) (*m_core)->add_library(id, rs(path.toUtf8()), rs(content.toUtf8()));
     return id;
 }
 
@@ -187,13 +288,13 @@ void CoreBridge::rescan(qint64 sourceId)
     if (m_core) (*m_core)->rescan(sourceId);
 }
 
-quint64 CoreBridge::browseItems(const QString &kind, qint64 parent, const QString &sort, bool unwatchedOnly,
-                                int offset, int limit)
+quint64 CoreBridge::browseItems(const QString &kind, qint64 parent, const QString &sort,
+                                const QString &filter, int offset, int limit)
 {
     const quint64 id = nextId();
-    const QByteArray k = kind.toUtf8(), so = sort.toUtf8();
+    const QByteArray k = kind.toUtf8(), so = sort.toUtf8(), fi = filter.toUtf8();
     if (m_core)
-        (*m_core)->browse_items(id, rs(k), parent, rs(so), unwatchedOnly, uint32_t(qMax(0, offset)),
+        (*m_core)->browse_items(id, rs(k), parent, rs(so), rs(fi), uint32_t(qMax(0, offset)),
                                 uint32_t(qMax(1, limit)));
     return id;
 }
@@ -205,17 +306,134 @@ quint64 CoreBridge::recentlyAdded(int limit)
     return id;
 }
 
-quint64 CoreBridge::search(const QString &text)
+quint64 CoreBridge::search(const QString &text, const QString &kind)
 {
     const quint64 id = nextId();
-    if (m_core) (*m_core)->search(id, rs(text.toUtf8()));
+    if (m_core) (*m_core)->search(id, rs(text.toUtf8()), rs(kind.toUtf8()));
     return id;
+}
+
+void CoreBridge::probeNow(qint64 fileId)
+{
+    if (m_core) (*m_core)->probe_now(fileId);
+}
+
+quint64 CoreBridge::saveItem(qint64 itemId, qint64 fileId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->save_item(id, itemId, fileId);
+    return id;
+}
+
+quint64 CoreBridge::exportItem(qint64 itemId, qint64 fileId, const QString &dest, bool overwrite)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->export_item(id, itemId, fileId, rs(dest.toUtf8()), overwrite);
+    return id;
+}
+
+QUrl CoreBridge::exportFolder()
+{
+    QString dir = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
+    if (dir.isEmpty() || !QDir(dir).exists()) dir = QDir::homePath();
+    return QUrl::fromLocalFile(dir);
+}
+
+bool CoreBridge::isPortalPath(const QString &path)
+{
+    // Same rule as the core's is_portal_path: /run/user/<uid>/doc/<id>/name
+    const QStringList parts = path.split(u'/');
+    return path.startsWith(QStringLiteral("/run/user/")) && parts.size() > 4 && parts.at(4) == u"doc";
+}
+
+QString CoreBridge::localPath(const QUrl &url)
+{
+    return url.isLocalFile() ? url.toLocalFile() : url.toString();
+}
+
+void CoreBridge::pauseDownload(qint64 copyId)
+{
+    if (m_core) (*m_core)->pause_download(copyId);
+}
+
+void CoreBridge::resumeDownload(qint64 copyId)
+{
+    if (m_core) (*m_core)->resume_download(copyId);
+}
+
+quint64 CoreBridge::deleteDownload(qint64 copyId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->delete_download(id, copyId);
+    return id;
+}
+
+quint64 CoreBridge::deleteSavedItem(qint64 itemId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->delete_saved_item(id, itemId);
+    return id;
+}
+
+void CoreBridge::pauseSavedItem(qint64 itemId)
+{
+    if (m_core) (*m_core)->pause_saved_item(itemId);
+}
+
+void CoreBridge::resumeSavedItem(qint64 itemId)
+{
+    if (m_core) (*m_core)->resume_saved_item(itemId);
+}
+
+quint64 CoreBridge::saveState(qint64 itemId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->save_state(id, itemId);
+    return id;
+}
+
+quint64 CoreBridge::deleteAllSaved()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->delete_all_saved(id);
+    return id;
+}
+
+quint64 CoreBridge::downloads()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->downloads(id);
+    return id;
+}
+
+quint64 CoreBridge::setStorageDir(const QString &path)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->set_storage_dir(id, rs(path.toUtf8()));
+    return id;
+}
+
+QString CoreBridge::downloadErrorText(const QString &kind, const QString &message)
+{
+    static const QHash<QString, int> kinds{{"auth", Auth},
+                                           {"unreachable", Unreachable},
+                                           {"not_found", NotFound},
+                                           {"unsupported", Unsupported},
+                                           {"no_space", NoSpace}};
+    return errorText(kinds.value(kind, Internal), message);
 }
 
 quint64 CoreBridge::itemDetail(qint64 itemId)
 {
     const quint64 id = nextId();
     if (m_core) (*m_core)->item_detail(id, itemId);
+    return id;
+}
+
+quint64 CoreBridge::seasonEpisodes(qint64 seasonId, int offset, int limit)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->season_episodes(id, seasonId, uint32_t(qMax(0, offset)), uint32_t(qMax(1, limit)));
     return id;
 }
 
@@ -259,6 +477,410 @@ quint64 CoreBridge::clearTmdbKey()
     return id;
 }
 
+quint64 CoreBridge::musicKeys()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->music_keys(id);
+    return id;
+}
+
+quint64 CoreBridge::setMusicKey(const QString &provider, const QString &key)
+{
+    const quint64 id = nextId();
+    const QByteArray p = provider.toUtf8(), k = key.trimmed().toUtf8();
+    if (m_core) (*m_core)->set_music_key(id, rs(p), rs(k));
+    return id;
+}
+
+quint64 CoreBridge::albumDetail(qint64 albumId, qint64 version, const QString &preference)
+{
+    const quint64 id = nextId();
+    const QByteArray p = (preference.isEmpty() ? QStringLiteral("quality") : preference).toUtf8();
+    if (m_core) (*m_core)->album_detail(id, albumId, version, rs(p));
+    return id;
+}
+
+quint64 CoreBridge::splitAlbumVersion(qint64 version)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->split_album_version(id, version);
+    return id;
+}
+
+// ---- audiobooks (issues #65 to #67) ---------------------------------------------------------------
+
+namespace {
+std::vector<int64_t> variantIds(const QVariantList &items)
+{
+    std::vector<int64_t> v;
+    v.reserve(items.size());
+    for (const QVariant &x : items)
+        v.push_back(x.toLongLong());
+    return v;
+}
+} // namespace
+
+quint64 CoreBridge::trackVisuals(qint64 track, qint64 file)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->track_visuals(rid, track, file);
+    return rid;
+}
+
+quint64 CoreBridge::playlists()
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->playlists(rid);
+    return rid;
+}
+
+quint64 CoreBridge::playlistDetail(const QString &key, int limit)
+{
+    const quint64 rid = nextId();
+    const QByteArray k = key.toUtf8();
+    if (m_core) (*m_core)->playlist_detail(rid, rs(k), uint32_t(qMax(1, limit)));
+    return rid;
+}
+
+quint64 CoreBridge::playlistCreate(const QString &name, const QVariantList &items, qint64 version)
+{
+    const quint64 rid = nextId();
+    const QByteArray n = name.toUtf8();
+    const auto v = variantIds(items);
+    if (m_core)
+        (*m_core)->playlist_create(rid, rs(n), rust::Slice<const int64_t>(v.data(), v.size()), version);
+    return rid;
+}
+
+quint64 CoreBridge::playlistAdd(qint64 id, const QVariantList &items, qint64 version)
+{
+    const quint64 rid = nextId();
+    const auto v = variantIds(items);
+    if (m_core) (*m_core)->playlist_add(rid, id, rust::Slice<const int64_t>(v.data(), v.size()), version);
+    return rid;
+}
+
+quint64 CoreBridge::playlistRename(qint64 id, const QString &name)
+{
+    const quint64 rid = nextId();
+    const QByteArray n = name.toUtf8();
+    if (m_core) (*m_core)->playlist_rename(rid, id, rs(n));
+    return rid;
+}
+
+quint64 CoreBridge::playlistDelete(qint64 id)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->playlist_delete(rid, id);
+    return rid;
+}
+
+quint64 CoreBridge::playlistMove(qint64 id, int index, int to)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->playlist_move(rid, id, uint32_t(qMax(0, index)), to);
+    return rid;
+}
+
+quint64 CoreBridge::playPlaylist(const QString &key, int start, bool shuffle)
+{
+    const quint64 rid = nextId();
+    const QByteArray k = key.toUtf8();
+    if (m_core) (*m_core)->queue_play_playlist(rid, rs(k), uint32_t(qMax(0, start)), shuffle);
+    return rid;
+}
+
+quint64 CoreBridge::playlistSave(const QString &key)
+{
+    const quint64 rid = nextId();
+    const QByteArray k = key.toUtf8();
+    if (m_core) (*m_core)->playlist_save(rid, rs(k));
+    return rid;
+}
+
+quint64 CoreBridge::musicFacets(const QString &kind, const QString &filter)
+{
+    const quint64 rid = nextId();
+    const QByteArray k = kind.toUtf8(), f = filter.toUtf8();
+    if (m_core) (*m_core)->music_facets(rid, rs(k), rs(f));
+    return rid;
+}
+
+quint64 CoreBridge::bookDetail(qint64 id)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->book_detail(rid, id);
+    return rid;
+}
+
+quint64 CoreBridge::searchBook(qint64 id, const QString &title, const QString &author)
+{
+    const quint64 rid = nextId();
+    const QByteArray t = title.toUtf8(), a = author.toUtf8();
+    if (m_core) (*m_core)->search_book(rid, id, rs(t), rs(a));
+    return rid;
+}
+
+quint64 CoreBridge::chooseBookMatch(qint64 id, const QString &work)
+{
+    const quint64 rid = nextId();
+    const QByteArray w = work.toUtf8();
+    if (m_core) (*m_core)->choose_book_match(rid, id, rs(w));
+    return rid;
+}
+
+quint64 CoreBridge::matchAgain(qint64 itemId, bool unlock)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->match_again(rid, itemId, unlock);
+    return rid;
+}
+
+quint64 CoreBridge::matchSearch(qint64 itemId, const QVariantMap &query)
+{
+    const quint64 rid = nextId();
+    const QByteArray q = QJsonDocument(QJsonObject::fromVariantMap(query)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->match_search(rid, itemId, rs(q));
+    return rid;
+}
+
+quint64 CoreBridge::matchChoose(qint64 itemId, const QVariantMap &choice)
+{
+    const quint64 rid = nextId();
+    const QByteArray c = QJsonDocument(QJsonObject::fromVariantMap(choice)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->match_choose(rid, itemId, rs(c));
+    return rid;
+}
+
+quint64 CoreBridge::matchPreview(qint64 itemId, const QVariantMap &choice)
+{
+    const quint64 rid = nextId();
+    const QByteArray c = QJsonDocument(QJsonObject::fromVariantMap(choice)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->match_preview(rid, itemId, rs(c));
+    return rid;
+}
+
+quint64 CoreBridge::rematchLibrary(const QString &library, bool all, bool includeLocked)
+{
+    const quint64 rid = nextId();
+    const QByteArray l = library.toUtf8();
+    if (m_core) (*m_core)->rematch_library(rid, rs(l), all, includeLocked);
+    return rid;
+}
+
+quint64 CoreBridge::rematchStop(const QString &library)
+{
+    const quint64 rid = nextId();
+    const QByteArray l = library.toUtf8();
+    if (m_core) (*m_core)->rematch_stop(rid, rs(l));
+    return rid;
+}
+
+quint64 CoreBridge::shares()
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->shares(rid);
+    return rid;
+}
+
+quint64 CoreBridge::shareAddFolders(qint64 share, const QVariantList &folders)
+{
+    const quint64 rid = nextId();
+    const QByteArray f = QJsonDocument(QJsonArray::fromVariantList(folders)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->share_add_folders(rid, share, rs(f));
+    return rid;
+}
+
+static QByteArray shareSpecJson(const QVariantMap &spec)
+{
+    QJsonObject o = QJsonObject::fromVariantMap(spec);
+    if (o.contains("port") && o.value("port").toInt() <= 0) o.remove("port");
+    return QJsonDocument(o).toJson(QJsonDocument::Compact);
+}
+
+quint64 CoreBridge::shareSignIn(const QVariantMap &spec, const QString &password)
+{
+    const quint64 rid = nextId();
+    const QByteArray s = shareSpecJson(spec), pw = password.toUtf8();
+    if (m_core) (*m_core)->share_sign_in(rid, rs(s), rs(pw));
+    return rid;
+}
+
+quint64 CoreBridge::shareCreate(const QVariantMap &spec, const QString &password, const QVariantList &folders)
+{
+    const quint64 rid = nextId();
+    const QByteArray s = shareSpecJson(spec), pw = password.toUtf8();
+    const QByteArray f = QJsonDocument(QJsonArray::fromVariantList(folders)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->share_create(rid, rs(s), rs(pw), rs(f));
+    return rid;
+}
+
+quint64 CoreBridge::shareEdit(qint64 share, const QVariantMap &spec, const QString &password, bool save)
+{
+    const quint64 rid = nextId();
+    const QByteArray s = shareSpecJson(spec), pw = password.toUtf8();
+    if (m_core) (*m_core)->share_edit(rid, share, rs(s), rs(pw), save);
+    return rid;
+}
+
+quint64 CoreBridge::shareFolderContent(qint64 source, const QString &content)
+{
+    const quint64 rid = nextId();
+    const QByteArray c = content.toUtf8();
+    if (m_core) (*m_core)->share_folder_content(rid, source, rs(c));
+    return rid;
+}
+
+quint64 CoreBridge::shareBrowse(const QVariantMap &target, const QString &password, const QString &path)
+{
+    const quint64 rid = nextId();
+    const QByteArray t = shareSpecJson(target);
+    const QByteArray pw = password.toUtf8(), p = path.toUtf8();
+    if (m_core) (*m_core)->share_browse(rid, rs(t), rs(pw), rs(p));
+    return rid;
+}
+
+quint64 CoreBridge::artistMergeCandidates(qint64 artist, const QString &query)
+{
+    const quint64 rid = nextId();
+    const QByteArray q = query.toUtf8();
+    if (m_core) (*m_core)->artist_merge_candidates(rid, artist, rs(q));
+    return rid;
+}
+
+quint64 CoreBridge::artistMergePreview(qint64 keep, qint64 drop)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->artist_merge_preview(rid, keep, drop);
+    return rid;
+}
+
+quint64 CoreBridge::artistMerge(qint64 keep, qint64 drop)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->artist_merge(rid, keep, drop);
+    return rid;
+}
+
+quint64 CoreBridge::artistMergeUndo()
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->artist_merge_undo(rid);
+    return rid;
+}
+
+quint64 CoreBridge::setArtistName(qint64 artist, const QString &choice, const QString &own)
+{
+    const quint64 rid = nextId();
+    const QByteArray c = choice.toUtf8(), o = own.toUtf8();
+    if (m_core) (*m_core)->set_artist_name(rid, artist, rs(c), rs(o));
+    return rid;
+}
+
+quint64 CoreBridge::shareRemove(qint64 share)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->share_remove(rid, share);
+    return rid;
+}
+
+quint64 CoreBridge::matchingStatus()
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->matching_status(rid);
+    return rid;
+}
+
+quint64 CoreBridge::bookPlay(qint64 book, qint64 positionMs)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->book_play(rid, book, positionMs);
+    return rid;
+}
+
+void CoreBridge::bookProgress(qint64 book, qint64 positionMs)
+{
+    if (m_core) (*m_core)->book_progress(book, positionMs);
+}
+
+quint64 CoreBridge::bookMarkFinished(qint64 book, bool finished)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->book_mark_finished(rid, book, finished);
+    return rid;
+}
+
+void CoreBridge::bookSetSpeed(qint64 book, double speed)
+{
+    if (m_core) (*m_core)->book_set_speed(book, speed);
+}
+
+quint64 CoreBridge::continueSeries(qint64 series)
+{
+    const quint64 rid = nextId();
+    if (m_core) (*m_core)->continue_series(rid, series);
+    return rid;
+}
+
+qint64 CoreBridge::previousChapter(const QList<qint64> &starts, qint64 position)
+{
+    std::vector<int64_t> v(starts.begin(), starts.end());
+    return coyotl::core::book_previous_chapter(rust::Slice<const int64_t>(v.data(), v.size()), position);
+}
+
+qint64 CoreBridge::nextChapter(const QList<qint64> &starts, qint64 position)
+{
+    std::vector<int64_t> v(starts.begin(), starts.end());
+    return coyotl::core::book_next_chapter(rust::Slice<const int64_t>(v.data(), v.size()), position);
+}
+
+qint64 CoreBridge::endOfChapter(const QList<qint64> &starts, qint64 duration, qint64 position)
+{
+    std::vector<int64_t> v(starts.begin(), starts.end());
+    return coyotl::core::book_end_of_chapter(rust::Slice<const int64_t>(v.data(), v.size()), duration,
+                                             position);
+}
+
+void CoreBridge::setTrackFile(qint64 track, qint64 file)
+{
+    if (m_core) (*m_core)->set_track_file(track, file);
+}
+
+quint64 CoreBridge::artistDetail(qint64 artistId)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->artist_detail(id, artistId);
+    return id;
+}
+
+void CoreBridge::setMusicOnline(bool on)
+{
+    if (m_core) (*m_core)->set_music_online(nextId(), on);
+}
+
+quint64 CoreBridge::libraryCall(const QString &action, const QVariantMap &args)
+{
+    const quint64 id = nextId();
+    const QByteArray a = action.toUtf8(),
+                     j = QJsonDocument(QJsonObject::fromVariantMap(args)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->library_call(id, rs(a), rs(j));
+    return id;
+}
+
+quint64 CoreBridge::onlineChoice()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->online_choice(id);
+    return id;
+}
+
+quint64 CoreBridge::testTmdbKey()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->test_tmdb_key(id);
+    return id;
+}
+
 static QByteArray specJson(const QVariantMap &spec)
 {
     QJsonObject o = QJsonObject::fromVariantMap(spec);
@@ -294,6 +916,120 @@ quint64 CoreBridge::discover()
     return id;
 }
 
+void CoreBridge::reportMediaInfo(quint64 ticket, const QString &mpvJson)
+{
+    const QByteArray j = mpvJson.toUtf8();
+    if (m_core) (*m_core)->report_media_info(ticket, rs(j));
+}
+
+namespace {
+std::vector<int64_t> ids(const QList<qint64> &items)
+{
+    return std::vector<int64_t>(items.begin(), items.end());
+}
+} // namespace
+
+quint64 CoreBridge::queuePlayQuery(const QString &kind, const QString &sort, const QString &filter,
+                                   qint64 startItem, bool shuffle)
+{
+    const quint64 id = nextId();
+    const QByteArray k = kind.toUtf8(), so = sort.toUtf8(), f = filter.toUtf8();
+    if (m_core) (*m_core)->queue_play_query(id, rs(k), rs(so), rs(f), startItem, shuffle);
+    return id;
+}
+
+quint64 CoreBridge::queuePlay(const QList<qint64> &items, qint64 startItem, bool shuffle, qint64 version,
+                              const QString &preference)
+{
+    const quint64 id = nextId();
+    const auto v = ids(items);
+    const QByteArray p = (preference.isEmpty() ? QStringLiteral("quality") : preference).toUtf8();
+    if (m_core)
+        (*m_core)->queue_play(id, rust::Slice<const int64_t>(v.data(), v.size()), startItem, shuffle, version,
+                              rs(p));
+    return id;
+}
+
+quint64 CoreBridge::queueInsert(const QList<qint64> &items, bool next, qint64 version,
+                                const QString &preference)
+{
+    const quint64 id = nextId();
+    const auto v = ids(items);
+    const QByteArray p = (preference.isEmpty() ? QStringLiteral("quality") : preference).toUtf8();
+    if (m_core)
+        (*m_core)->queue_insert(id, rust::Slice<const int64_t>(v.data(), v.size()), next, version, rs(p));
+    return id;
+}
+
+quint64 CoreBridge::queueStep(int delta, qint64 positionMs)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->queue_step(id, delta, uint64_t(qMax<qint64>(0, positionMs)));
+    return id;
+}
+
+quint64 CoreBridge::queueJump(int position)
+{
+    const quint64 id = nextId();
+    if (m_core && position >= 0) (*m_core)->queue_jump(id, uint32_t(position));
+    return id;
+}
+
+quint64 CoreBridge::queueRemove(int position)
+{
+    const quint64 id = nextId();
+    if (m_core && position >= 0) (*m_core)->queue_remove(id, uint32_t(position));
+    return id;
+}
+
+quint64 CoreBridge::queueMove(int from, int to)
+{
+    const quint64 id = nextId();
+    if (m_core && from >= 0 && to >= 0) (*m_core)->queue_move(id, uint32_t(from), uint32_t(to));
+    return id;
+}
+
+quint64 CoreBridge::queueSetMode(bool shuffle, const QString &repeat)
+{
+    const quint64 id = nextId();
+    const QByteArray r = repeat.toUtf8();
+    if (m_core) (*m_core)->queue_set_mode(id, shuffle, rs(r));
+    return id;
+}
+
+void CoreBridge::queueAdvanced(quint64 ticket)
+{
+    if (m_core) (*m_core)->queue_advanced(ticket);
+}
+
+quint64 CoreBridge::queueResume(bool afterEnd)
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->queue_resume(id, afterEnd);
+    return id;
+}
+
+quint64 CoreBridge::queueState()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->queue_state(id);
+    return id;
+}
+
+quint64 CoreBridge::queueClear()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->queue_clear(id);
+    return id;
+}
+
+void CoreBridge::musicProgress(quint64 ticket, qint64 positionMs, qint64 durationMs)
+{
+    if (m_core)
+        (*m_core)->music_progress(ticket, uint64_t(qMax<qint64>(0, positionMs)),
+                                  uint64_t(qMax<qint64>(0, durationMs)));
+}
+
 void CoreBridge::reportProgress(quint64 ticket, qint64 positionMs, qint64 durationMs, int state)
 {
     if (m_core)
@@ -317,6 +1053,8 @@ QString CoreBridge::errorText(int kind, const QString &message)
         return tr("Not found. It may have been moved or deleted.");
     case Unsupported:
         return tr("This is not supported.");
+    case NoSpace:
+        return tr("There is not enough free space on the drive.");
     default:
         return tr("Something went wrong: %1").arg(message);
     }
@@ -365,11 +1103,21 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
         emit itemChanged(e.item_id);
     } else if (e.kind == K::Page) {
         emit pageReady(e.request_id, int(e.total), int(e.offset), summaries(e.items));
+    } else if (e.kind == K::Episodes) {
+        QVariantList rows;
+        rows.reserve(qsizetype(e.episodes.size()));
+        for (const auto &ep : e.episodes) {
+            QVariantMap m = summaryMap(ep.item);
+            m.insert({{"files", fileList(ep.files)},
+                      {"lastFileId", qlonglong(ep.last_file_id)},
+                      {"durationMs", qulonglong(ep.duration_ms)},
+                      {"positionMs", qulonglong(ep.position_ms)},
+                      {"save", saveMap(ep.save)}});
+            rows.append(m);
+        }
+        emit episodesReady(e.request_id, int(e.total), int(e.offset), rows);
     } else if (e.kind == K::Detail) {
         const auto &d = e.detail;
-        QVariantList files;
-        for (const auto &f : d.files)
-            files.append(QVariantMap{{"path", qs(f.path)}, {"size", qlonglong(f.size)}});
         QVariantMap m = summaryMap(d.item);
         m.insert({{"originalTitle", qs(d.original_title)},
                   {"rating", d.rating},
@@ -381,10 +1129,13 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                   {"matchState", qs(d.match_state)},
                   {"tmdbId", qlonglong(d.tmdb_id)},
                   {"parentTitle", qs(d.parent_title)},
-                  {"files", files},
+                  {"files", fileList(d.files)},
                   {"positionMs", qulonglong(d.position_ms)},
+                  {"durationMs", qulonglong(d.duration_ms)},
+                  {"lastFileId", qlonglong(d.last_file_id)},
                   {"children", summaries(d.children)},
-                  {"nextUp", d.next_up.empty() ? QVariant() : QVariant(summaryMap(d.next_up[0]))}});
+                  {"nextUp", d.next_up.empty() ? QVariant() : QVariant(summaryMap(d.next_up[0]))},
+                  {"save", saveMap(d.save)}});
         emit detailReady(e.request_id, m);
     } else if (e.kind == K::Libraries) {
         QVariantList libs;
@@ -396,7 +1147,8 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                                     {"root", qs(l.root)},
                                     {"files", qlonglong(l.files)},
                                     {"lastScanMs", qlonglong(l.last_scan_ms)},
-                                    {"scanning", l.scanning}});
+                                    {"scanning", l.scanning},
+                                    {"content", qs(l.content)}});
         emit librariesListed(e.request_id, libs);
     } else if (e.kind == K::Review) {
         QVariantList items;
@@ -422,9 +1174,90 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
         m_failed = int(e.failed);
         emit activityChanged();
         emit libraryChanged();
+    } else if (e.kind == K::MusicDetail) {
+        // Local paths of covers become file URLs for QML.
+        QVariantMap m = QJsonDocument::fromJson(QByteArray::fromStdString(std::string(e.message)))
+                            .object()
+                            .toVariantMap();
+        const auto urls = [](QVariantMap &x) {
+            for (const char *k :
+                 {"poster", "posterFull", "posterLarge", "image", "background", "logo", "disc"})
+                if (!x.value(k).toString().isEmpty())
+                    x[k] = QUrl::fromLocalFile(x.value(k).toString()).toString();
+        };
+        urls(m);
+        // Issue #81: playlist cards carry a list of cover paths.
+        const auto coverUrls = [](QVariantMap &x) {
+            QVariantList c = x.value("covers").toList();
+            for (auto &p : c)
+                p = QUrl::fromLocalFile(p.toString()).toString();
+            if (x.contains("covers")) x["covers"] = c;
+        };
+        for (const char *list : {"smart", "mine"}) {
+            QVariantList l = m.value(list).toList();
+            for (auto &v : l) {
+                QVariantMap x = v.toMap();
+                coverUrls(x);
+                v = x;
+            }
+            if (m.contains(list)) m[list] = l;
+        }
+        if (m.contains("card")) {
+            QVariantMap card = m.value("card").toMap();
+            coverUrls(card);
+            m["card"] = card;
+        }
+        for (const char *list : {"albums", "appearsOn", "books"}) {
+            QVariantList l = m.value(list).toList();
+            for (auto &v : l) {
+                QVariantMap x = v.toMap();
+                urls(x);
+                v = x;
+            }
+            if (m.contains(list)) m[list] = l;
+        }
+        emit musicDetailReady(e.request_id, qs(e.path), m);
+    } else if (e.kind == K::MusicKeys) {
+        emit musicKeysReady(e.request_id,
+                            QJsonDocument::fromJson(QByteArray::fromStdString(std::string(e.message)))
+                                .object()
+                                .toVariantMap());
+    } else if (e.kind == K::QueueChanged || e.kind == K::MusicTickets) {
+        QVariantMap m = QJsonDocument::fromJson(QByteArray::fromStdString(std::string(e.message)))
+                            .object()
+                            .toVariantMap();
+        const auto entryUrls = [](QVariant v) {
+            QVariantMap x = v.toMap();
+            for (const char *k : {"poster", "posterFull"})
+                if (!x.value(k).toString().isEmpty())
+                    x[k] = QUrl::fromLocalFile(x.value(k).toString()).toString();
+            return QVariant(x);
+        };
+        if (e.kind == K::QueueChanged) {
+            QVariantList l = m.value("entries").toList();
+            for (auto &v : l)
+                v = entryUrls(v);
+            m["entries"] = l;
+            emit queueChanged(e.request_id, m);
+        } else {
+            for (const char *k : {"current", "next"}) {
+                QVariantMap t = m.value(k).toMap();
+                if (t.isEmpty()) continue;
+                t["entry"] = entryUrls(t.value("entry"));
+                m[k] = t;
+            }
+            emit musicTickets(m);
+        }
+    } else if (e.kind == K::MusicOnline) {
+        if (m_musicOnline != e.flag) {
+            m_musicOnline = e.flag;
+            emit musicOnlineChanged();
+        }
     } else if (e.kind == K::KeyStatus) {
         m_hasKey = e.flag;
         m_keyFromEnv = e.flag2;
+        m_keyState = qs(e.key_state);
+        m_keyValidatedAt = e.validated_at > 0 ? QDateTime::fromSecsSinceEpoch(e.validated_at) : QDateTime();
         emit keyStatusChanged(e.request_id, qs(e.message));
     } else if (e.kind == K::Discovered) {
         QVariantList servers;
@@ -435,6 +1268,17 @@ void CoreBridge::dispatch(const coyotl::core::CoreEvent &e)
                                        {"port", int(d.port)},
                                        {"tls", d.tls}});
         emit serversDiscovered(e.request_id, servers);
+    } else if (e.kind == K::Downloads) {
+        QVariantList items;
+        for (const auto &d : e.downloads)
+            items.append(downloadMap(d));
+        emit downloadsListed(e.request_id, items, double(e.used_bytes), qs(e.path));
+    } else if (e.kind == K::DownloadProgress) {
+        emit downloadProgress(downloadMap(e.download));
+    } else if (e.kind == K::ExportConflict) {
+        emit exportConflict(e.request_id, stringList(e.paths));
+    } else if (e.kind == K::SaveState) {
+        emit saveStateReady(e.request_id, qlonglong(e.item_id), saveMap(e.save));
     } else if (e.kind == K::Error) {
         const int kind = int(e.error);
         qCWarning(lcCore) << "request" << e.request_id << "failed:" << qs(e.message);

@@ -173,6 +173,90 @@ pub fn save_progress(
     Ok(state)
 }
 
+// ---- versions (issue #34) -----------------------------------------------------------------------
+
+/// Two versions are the same cut when their durations differ by less than 2 %; then they share
+/// the movie's resume position. An unknown duration counts as the same.
+pub fn same_cut(a_ms: u64, b_ms: u64) -> bool {
+    if a_ms == 0 || b_ms == 0 {
+        return true;
+    }
+    (a_ms as f64 - b_ms as f64).abs() / (a_ms.max(b_ms) as f64) < 0.02
+}
+
+/// Where playing `file` (of `item`, `file_duration_ms` long, 0 when unknown) starts: the item's
+/// position for the same cut, else that version's own position.
+pub fn resume_for(
+    c: &Connection,
+    item_id: i64,
+    file_id: i64,
+    file_duration_ms: u64,
+) -> Result<u64> {
+    let st = playstate(c, item_id)?;
+    if same_cut(st.duration_ms, file_duration_ms) {
+        return Ok(if st.watched { 0 } else { st.position_ms });
+    }
+    Ok(c.query_row(
+        "SELECT position_ms FROM file_state WHERE file_id = ?1 AND profile_id = ?2",
+        params![file_id, DEFAULT_PROFILE],
+        |r| r.get::<_, i64>(0),
+    )
+    .optional()?
+    .unwrap_or(0) as u64)
+}
+
+/// Progress of one version. The same cut as the item's last one updates the item's position;
+/// a different cut keeps its own. Watched always belongs to the item, and the version becomes
+/// the item's last played one.
+pub fn save_version_progress(
+    c: &mut Connection,
+    item_id: i64,
+    file_id: i64,
+    position_ms: u64,
+    duration_ms: u64,
+    ended: bool,
+) -> Result<PlayState> {
+    let prev = playstate(c, item_id)?;
+    let state = if same_cut(prev.duration_ms, duration_ms) {
+        save_progress(c, item_id, position_ms, duration_ms, ended)?
+    } else {
+        let finished = ended
+            || (duration_ms > 0 && position_ms as f64 >= duration_ms as f64 * WATCHED_FRACTION);
+        let pos = if finished || position_ms < RESUME_MIN_MS {
+            0
+        } else {
+            position_ms
+        };
+        c.execute(
+            "INSERT INTO file_state(file_id, profile_id, position_ms, duration_ms, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(file_id, profile_id) DO UPDATE SET position_ms = excluded.position_ms,
+               duration_ms = excluded.duration_ms, updated_at = excluded.updated_at",
+            params![
+                file_id,
+                DEFAULT_PROFILE,
+                pos as i64,
+                duration_ms as i64,
+                now_ms()
+            ],
+        )?;
+        if finished && !prev.watched {
+            c.execute(
+                "INSERT INTO playstate(item_id, profile_id, position_ms, duration_ms, watched, updated_at)
+                 VALUES (?1, ?2, 0, 0, 1, ?3)
+                 ON CONFLICT(item_id, profile_id) DO UPDATE SET watched = 1, updated_at = excluded.updated_at",
+                params![item_id, DEFAULT_PROFILE, now_ms()],
+            )?;
+        }
+        playstate(c, item_id)?
+    };
+    c.execute(
+        "UPDATE playstate SET last_file_id = ?3 WHERE item_id = ?1 AND profile_id = ?2",
+        params![item_id, DEFAULT_PROFILE, file_id],
+    )?;
+    Ok(state)
+}
+
 pub fn set_watched(c: &mut Connection, item_id: i64, watched: bool) -> Result<()> {
     c.execute(
         "INSERT INTO playstate(item_id, profile_id, position_ms, duration_ms, watched, updated_at)
@@ -295,6 +379,52 @@ mod tests {
         let mut c = Connection::open_in_memory().unwrap();
         crate::migrate(&mut c).unwrap();
         c
+    }
+
+    /// Issue #34: versions of one movie share its watched state and, for the same cut, its
+    /// resume point; another cut keeps its own; the last played version is remembered.
+    #[test]
+    fn versions_share_watched_and_same_cut_resume() {
+        let mut c = db();
+        c.execute_batch(
+            "INSERT INTO source(id, kind, name, root) VALUES (2, 'local', 'M', '/m'), (3, 'smb', 'NAS', '/n');
+             INSERT INTO item(id, kind, title) VALUES (1, 'movie', 'Alien');
+             INSERT INTO file(id, source_id, path, item_id, probe_json) VALUES
+               (10, 2, 'Alien.2160p.mkv', 1, '{\"duration_ms\": 7020000}'),
+               (11, 3, 'Alien.1080p.mkv', 1, '{\"duration_ms\": 7000000}'),
+               (12, 3, 'Alien.Directors.Cut.mkv', 1, '{\"duration_ms\": 8280000}');",
+        )
+        .unwrap();
+        assert!(same_cut(7_020_000, 7_000_000));
+        assert!(!same_cut(7_020_000, 8_280_000));
+        // Watch part of the 4K version, then switch to 1080p: same cut, same position.
+        save_version_progress(&mut c, 1, 10, 1_800_000, 7_020_000, false).unwrap();
+        assert_eq!(resume_for(&c, 1, 11, 7_000_000).unwrap(), 1_800_000);
+        // The director's cut is longer: it starts at its own position (none yet).
+        assert_eq!(resume_for(&c, 1, 12, 8_280_000).unwrap(), 0);
+        save_version_progress(&mut c, 1, 12, 3_600_000, 8_280_000, false).unwrap();
+        assert_eq!(resume_for(&c, 1, 12, 8_280_000).unwrap(), 3_600_000);
+        assert_eq!(
+            resume_for(&c, 1, 10, 7_020_000).unwrap(),
+            1_800_000,
+            "the movie's point is kept"
+        );
+        let last: i64 = c
+            .query_row(
+                "SELECT last_file_id FROM playstate WHERE item_id = 1",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(last, 12, "the version played last");
+        // Finishing any version marks the movie watched: one shared state.
+        save_version_progress(&mut c, 1, 12, 8_280_000, 8_280_000, true).unwrap();
+        assert!(playstate(&c, 1).unwrap().watched);
+        save_version_progress(&mut c, 1, 11, 60_000, 7_000_000, false).unwrap();
+        assert!(
+            playstate(&c, 1).unwrap().watched,
+            "watching another version keeps it watched"
+        );
     }
 
     #[test]

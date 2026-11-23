@@ -23,5 +23,11 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png",
 [dev-dependencies]
 wiremock = "0.6"
 
+[features]
+# Tests against the live MusicBrainz service (issue #11), at its pace; never in CI.
+live-musicbrainz = []
+# Tests against the live Open Library service (issue #67), at its pace; never in CI.
+live-openlibrary = []
+
 [lints]
 workspace = true

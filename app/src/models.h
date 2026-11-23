@@ -86,8 +86,10 @@ class ContinueWatchingModel : public VariantListModel {
 // Keys of an item summary as the bridge delivers it (CoreBridge::summaryMap).
 inline QList<QByteArray> summaryKeys()
 {
-    return {"id",     "kind",        "title",    "year",    "seasonNo",  "episodeNo",
-            "poster", "posterLarge", "progress", "watched", "unwatched", "overview"};
+    return {"id",          "kind",        "title",    "year",       "seasonNo", "episodeNo", "poster",
+            "posterLarge", "progress",    "watched",  "unwatched",  "overview", "onDisk",    "runtimeMin",
+            "saved",       "subtitle",    "parentId", "versions",   "ratio",    "format",    "hires",
+            "albums",      "hiresAlbums", "artist",   "durationMs", "plays"};
 }
 
 // Movies or shows, or the children of an item, fetched page by page as the view scrolls
@@ -97,7 +99,8 @@ class LibraryModel : public QAbstractListModel {
     QML_ELEMENT
     Q_PROPERTY(QString kind READ kind WRITE setKind NOTIFY queryChanged)
     Q_PROPERTY(QString sort READ sort WRITE setSort NOTIFY queryChanged)
-    Q_PROPERTY(bool unwatchedOnly READ unwatchedOnly WRITE setUnwatchedOnly NOTIFY queryChanged)
+    // "" (everything), "unwatched" or "saved" (issue #4).
+    Q_PROPERTY(QString filter READ filter WRITE setFilter NOTIFY queryChanged)
     Q_PROPERTY(int total READ total NOTIFY totalChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
   public:
@@ -115,47 +118,59 @@ class LibraryModel : public QAbstractListModel {
     void setKind(const QString &k);
     QString sort() const { return m_sort; }
     void setSort(const QString &s);
-    bool unwatchedOnly() const { return m_unwatched; }
-    void setUnwatchedOnly(bool u);
+    QString filter() const { return m_filter; }
+    void setFilter(const QString &f);
     int total() const { return m_total; }
     bool loading() const { return m_request != 0; }
     Q_INVOKABLE QVariantMap get(int row) const;
     Q_INVOKABLE void refresh();
+    // Issue #78: load pages until `row` exists, then emit rowLoaded (the letter rail jumps
+    // there).
+    Q_INVOKABLE void loadTo(int row);
 
   signals:
     void queryChanged();
     void totalChanged();
     void loadingChanged();
+    void rowLoaded(int row);
 
   private:
     void reload();
     void onPage(quint64 id, int total, int offset, const QVariantList &items);
     static constexpr int kPage = 120;
     QString m_kind = QStringLiteral("movie"), m_sort = QStringLiteral("title");
-    bool m_unwatched = false;
+    QString m_filter;
     QVariantList m_rows;
     int m_total = 0;
     quint64 m_request = 0;
     bool m_replace = false;
+    // A refresh or a page was asked for while a request was in flight.
+    bool m_dirty = false, m_morePending = false;
+    int m_target = -1;
 };
 
 class SearchModel : public VariantListModel {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
+    // Issue #10: one kind of result (movie, show, artist, album, track), or "" for all.
+    Q_PROPERTY(QString kind READ kind WRITE setKind NOTIFY kindChanged)
   public:
     explicit SearchModel(QObject *parent = nullptr);
     QString text() const { return m_text; }
     void setText(const QString &t);
+    QString kind() const { return m_kind; }
+    void setKind(const QString &k);
   signals:
     void textChanged();
+    void kindChanged();
 
   protected:
     QList<QByteArray> keys() const override { return summaryKeys(); }
     quint64 send() override;
 
   private:
-    QString m_text;
+    QString m_text, m_kind;
 };
 
 class RecentlyAddedModel : public VariantListModel {
@@ -174,13 +189,14 @@ class LibraryFoldersModel : public VariantListModel {
     QML_ELEMENT
   public:
     explicit LibraryFoldersModel(QObject *parent = nullptr);
-    Q_INVOKABLE void add(const QString &path);
+    // content: "video", "music" (2.0) or "audiobooks" (2.5).
+    Q_INVOKABLE void add(const QString &path, const QString &content = QStringLiteral("video"));
     Q_INVOKABLE void remove(qint64 id);
 
   protected:
     QList<QByteArray> keys() const override
     {
-        return {"id", "kind", "name", "root", "files", "lastScanMs", "scanning", "online"};
+        return {"id", "kind", "name", "root", "files", "lastScanMs", "scanning", "online", "content"};
     }
     quint64 send() override;
 };

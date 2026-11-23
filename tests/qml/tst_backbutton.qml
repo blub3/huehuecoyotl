@@ -1,0 +1,147 @@
+import QtQuick
+import QtQuick.Controls.Basic
+import QtTest
+import CoyotlUi
+
+// Issue #133: the Back button over a page stack: hidden on the first page, naming the page
+// below (its title, else its kind), shortened at 300 px, going back one page at a time, and the
+// page below keeping what it showed.
+Item {
+    id: root
+    width: 1000
+    height: 700
+
+    Component {
+        id: pageComp
+        Flickable {
+            property string pageTitle: ""
+            property string pageKind: ""
+            contentHeight: 3000
+        }
+    }
+
+    StackView {
+        id: stack
+        anchors.fill: parent
+        pushEnter: null; pushExit: null; popEnter: null; popExit: null
+    }
+    BackButton {
+        id: back
+        x: 40; y: 28
+        stack: stack
+        onBackRequested: stack.pop()
+        onBackToRequested: (i) => stack.pop(stack.get(i))
+    }
+    Icon { id: icon; name: "pause"; size: 26 }
+    TextField { id: field; y: 600 }
+
+    TestCase {
+        name: "BackButton"
+        when: windowShown
+
+        function init() {
+            stack.clear()
+            stack.push(pageComp, { pageTitle: "Artists" })
+        }
+
+        function test_hiddenOnFirstPage() {
+            verify(!back.visible)
+        }
+
+        function test_namesThePageBelowAndGoesBack() {
+            stack.push(pageComp, { pageTitle: "Pink Floyd", pageKind: "Artist" })
+            stack.get(1).contentY = 800
+            stack.push(pageComp, { pageTitle: "The Wall", pageKind: "Album" })
+            verify(back.visible)
+            compare(back.target, "Pink Floyd")
+            compare(back.Accessible.name, "Back to Pink Floyd")
+            back.clicked()
+            compare(stack.depth, 2)
+            compare(back.target, "Artists")
+            compare(stack.currentItem.contentY, 800, "the page below is as it was left")
+            back.clicked()
+            verify(!back.visible)
+        }
+
+        function test_kindWhenNoTitle() {
+            stack.push(pageComp, { pageKind: "Folder" })
+            stack.push(pageComp, { pageTitle: "x" })
+            compare(back.target, "Folder")
+        }
+
+        function test_longNamesAreShortened() {
+            stack.push(pageComp, { pageTitle: "The Lord of the Rings: The Fellowship of the Ring (Extended Edition)" })
+            stack.push(pageComp, {})
+            verify(back.width <= 300, back.width)
+            const label = findChild(back, "backLabel")
+            verify(label.truncated)
+        }
+
+        function test_keys() {
+            stack.push(pageComp, { pageTitle: "Pink Floyd" })
+            back.forceActiveFocus()
+            keyClick(Qt.Key_Return)
+            compare(stack.depth, 1)
+            stack.push(pageComp, { pageTitle: "Pink Floyd" })
+            back.forceActiveFocus()
+            keyClick(Qt.Key_Escape)
+            compare(stack.depth, 1)
+        }
+
+        function test_trail() {
+            stack.push(pageComp, { pageTitle: "Test Artist", pageKind: "Artist" })
+            stack.push(pageComp, { pageTitle: "First Album", pageKind: "Album" })
+            stack.push(pageComp, { pageTitle: "Now Playing" })
+            compare(back.path, "Artists  ›  Test Artist  ›  First Album  ›  Now Playing")
+            back.forceActiveFocus()
+            keyClick(Qt.Key_Down)
+            const popup = findChild(back, "trail")
+            tryVerify(() => popup.opened)
+            compare(back.trail.length, 4)
+            compare(back.trail[0].here, true)
+            compare(JSON.stringify(back.trail.map(r => r.title)), JSON.stringify(["Now Playing", "First Album", "Test Artist", "Artists"]))
+            compare(back.trail[1].kind, "Album")
+            // The nearest page is chosen first; two steps down is Artists.
+            keyClick(Qt.Key_Down)
+            keyClick(Qt.Key_Down)
+            keyClick(Qt.Key_Return)
+            tryVerify(() => !popup.visible)
+            compare(stack.depth, 1, "three pages closed in one step")
+            compare(stack.currentItem.pageTitle, "Artists")
+        }
+
+        function test_trailClosesWithoutGoing() {
+            stack.push(pageComp, { pageTitle: "Test Artist" })
+            stack.push(pageComp, { pageTitle: "First Album" })
+            back.openTrail()
+            const popup = findChild(back, "trail")
+            tryVerify(() => popup.opened)
+            keyClick(Qt.Key_Escape)
+            tryVerify(() => !popup.visible)
+            compare(stack.depth, 3)
+            verify(back.activeFocus, "focus returns to the button")
+        }
+
+        function test_rightClickOpensTrail() {
+            stack.push(pageComp, { pageTitle: "Test Artist" })
+            mouseClick(back, 10, 10, Qt.RightButton)
+            const popup = findChild(back, "trail")
+            tryVerify(() => popup.opened)
+            popup.close()
+        }
+
+        function test_otherBackKeys() {
+            verify(back.isBackKey(Qt.Key_Backspace, Qt.NoModifier, back))
+            verify(back.isBackKey(Qt.Key_Left, Qt.AltModifier, back))
+            verify(!back.isBackKey(Qt.Key_Left, Qt.NoModifier, back))
+            verify(!back.isBackKey(Qt.Key_Backspace, Qt.ControlModifier, back))
+            verify(!back.isBackKey(Qt.Key_Backspace, Qt.NoModifier, field), "typing is never taken for Back")
+        }
+
+        function test_iconsKeepTheirSize() {
+            compare(icon.width, 26)
+            icon.name = "play"
+            compare(icon.width, 26)
+        }
+    }
+}

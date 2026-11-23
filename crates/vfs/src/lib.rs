@@ -12,12 +12,18 @@ mod nfs;
 pub mod remote;
 #[cfg(feature = "smb")]
 mod smb;
+#[cfg(feature = "smb")]
+mod srvsvc;
 #[cfg(feature = "webdav")]
 mod webdav;
+pub mod write;
 
 pub use local::LocalSource;
 pub use media::{MediaKind, find_sidecar_subtitles, media_kind};
 pub use remote::{Protocol, RemoteConfig, RemoteSource};
+#[cfg(feature = "smb")]
+pub use smb::list_shares as smb_shares;
+pub use write::{Chunks, Expected, safe_write};
 
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -95,6 +101,12 @@ pub enum VfsError {
     NotFound(String),
     #[error("unsupported: {0}")]
     Unsupported(String),
+    /// Issue #151: the share, folder or file cannot be changed. Nothing was written.
+    #[error("read-only: {0}")]
+    ReadOnly(String),
+    /// Issue #151: the file on the server is not the one that was read. Nothing was written.
+    #[error("changed on the server: {0}")]
+    Changed(String),
     #[error("{0}")]
     Internal(String),
 }
@@ -105,6 +117,7 @@ impl From<std::io::Error> for VfsError {
         match e.kind() {
             NotFound => VfsError::NotFound(e.to_string()),
             PermissionDenied => VfsError::Auth(e.to_string()),
+            ReadOnlyFilesystem => VfsError::ReadOnly(e.to_string()),
             TimedOut | ConnectionRefused | ConnectionReset | HostUnreachable
             | NetworkUnreachable => VfsError::Unreachable(e.to_string()),
             _ => VfsError::Internal(e.to_string()),
@@ -120,6 +133,33 @@ pub trait Source: Send + Sync {
     async fn stat(&self, path: &VPath) -> Result<Entry>;
     async fn read_at(&self, path: &VPath, offset: u64, len: u32) -> Result<Bytes>;
     fn capabilities(&self) -> Caps;
+
+    // ---- writing (issue #151); see [`write`] for the safe way to replace a file --------------
+
+    /// A file's size, also of a hidden file (some backends' `stat` goes through a listing, which
+    /// skips those).
+    async fn size_of(&self, path: &VPath) -> Result<u64> {
+        Ok(self.stat(path).await?.size)
+    }
+
+    /// Write a new file from the chunks. Callers use [`write::safe_write`], which writes to a
+    /// temporary name.
+    async fn put(&self, path: &VPath, _data: Chunks) -> Result<u64> {
+        Err(VfsError::ReadOnly(path.to_string()))
+    }
+    async fn create_dir(&self, path: &VPath) -> Result<()> {
+        Err(VfsError::ReadOnly(path.to_string()))
+    }
+    /// Rename within the source; a server may refuse to replace an existing target.
+    async fn rename(&self, from: &VPath, _to: &VPath) -> Result<()> {
+        Err(VfsError::ReadOnly(from.to_string()))
+    }
+    async fn remove(&self, path: &VPath) -> Result<()> {
+        Err(VfsError::ReadOnly(path.to_string()))
+    }
+    async fn remove_dir(&self, path: &VPath) -> Result<()> {
+        Err(VfsError::ReadOnly(path.to_string()))
+    }
 }
 
 #[cfg(test)]

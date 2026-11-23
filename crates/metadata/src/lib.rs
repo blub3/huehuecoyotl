@@ -2,7 +2,14 @@
 //! implementation, local `.nfo` files or other databases can follow without touching it.
 
 pub mod artwork;
+pub mod books;
+pub mod fanarttv;
+pub mod ids;
 pub mod matching;
+pub mod music;
+pub mod musicbrainz;
+pub mod openlibrary;
+pub mod theaudiodb;
 pub mod tmdb;
 
 use async_trait::async_trait;
@@ -23,6 +30,8 @@ pub struct Candidate {
     pub overview: String,
     pub poster_path: Option<String>,
     pub popularity: f64,
+    /// Shows: ISO 3166 countries of origin ("US", "GB"); empty for movies.
+    pub origin_country: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -30,6 +39,7 @@ pub struct SeasonRef {
     pub season_no: u16,
     pub name: String,
     pub poster_path: Option<String>,
+    pub episode_count: u16,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -95,4 +105,8 @@ pub trait MetadataProvider: Send + Sync {
     async fn season(&self, show_id: i64, season_no: u16) -> Result<SeasonDetails>;
     /// Download an image by its provider path at a provider-specific size ("w342", "original").
     async fn image(&self, path: &str, size: &str) -> Result<Bytes>;
+    /// Issue #92: movies and shows with this IMDb id ("tt0133093").
+    async fn find_imdb(&self, _imdb: &str) -> Result<Vec<(MediaType, Candidate)>> {
+        Ok(vec![])
+    }
 }

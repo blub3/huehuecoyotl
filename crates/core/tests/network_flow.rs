@@ -30,10 +30,10 @@ fn started() -> Instant {
 fn wait(rx: &Receiver<Event>, what: &str, mut f: impl FnMut(&Event) -> bool) -> Event {
     let end = Instant::now() + Duration::from_secs(60);
     while Instant::now() < end {
-        if let Ok(e) = rx.recv_timeout(Duration::from_millis(200)) {
-            if f(&e) {
-                return e;
-            }
+        if let Ok(e) = rx.recv_timeout(Duration::from_millis(200))
+            && f(&e)
+        {
+            return e;
         }
     }
     panic!("timed out waiting for {what}");
@@ -149,7 +149,7 @@ fn flow(spec: &str) {
     );
 
     step(spec, "browse movies");
-    core.browse_items(4, "movie", 0, "title", false, 0, 50);
+    core.browse_items(4, "movie", 0, "title", "", 0, 50);
     let Event::Page { items, .. } = wait(&rx, "page", |e| {
         matches!(e, Event::Page { request_id: 4, .. })
     }) else {

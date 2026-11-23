@@ -145,16 +145,16 @@ impl Redactor {
             }
         }
         for var in ["USER", "USERNAME", "LOGNAME"] {
-            if let Ok(u) = std::env::var(var) {
-                if u.len() >= 3 {
-                    literals.push((u, "<login>".into()));
-                }
+            if let Ok(u) = std::env::var(var)
+                && u.len() >= 3
+            {
+                literals.push((u, "<login>".into()));
             }
         }
-        if let Ok(h) = hostname() {
-            if h.len() >= 3 {
-                literals.push((h, "<this-host>".into()));
-            }
+        if let Ok(h) = hostname()
+            && h.len() >= 3
+        {
+            literals.push((h, "<this-host>".into()));
         }
         // Longest first, so "nas.example.org" is replaced before "nas".
         literals.sort_by_key(|(v, _)| std::cmp::Reverse(v.len()));
@@ -232,10 +232,10 @@ impl Redactor {
 }
 
 fn hostname() -> io::Result<String> {
-    if let Ok(h) = std::env::var("HOSTNAME") {
-        if !h.is_empty() {
-            return Ok(h);
-        }
+    if let Ok(h) = std::env::var("HOSTNAME")
+        && !h.is_empty()
+    {
+        return Ok(h);
     }
     fs::read_to_string("/etc/hostname").map(|s| s.trim().to_string())
 }
@@ -292,7 +292,7 @@ impl crate::Core {
                 secrets.push((l.name.clone(), format!("<library-{}>", i + 1)));
             }
         }
-        if let Some((key, _)) = crate::secrets::load_tmdb_key() {
+        if let crate::secrets::KeyLoad::Found(key, _) = crate::secrets::load_tmdb_key() {
             secrets.push((key, "<tmdb-key>".into()));
         }
         let redactor = Redactor::new(secrets);

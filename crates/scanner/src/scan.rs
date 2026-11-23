@@ -4,7 +4,8 @@
 
 use std::collections::{HashMap, HashSet};
 
-use huehuecoyotl_library::rusqlite::{self, OptionalExtension, Transaction, params};
+use huehuecoyotl_library::merge;
+use huehuecoyotl_library::rusqlite::{self, Connection, OptionalExtension, Transaction, params};
 use huehuecoyotl_library::{DbError, Library};
 use huehuecoyotl_vfs::{MediaKind, Source, VPath, VfsError, media_kind};
 
@@ -44,7 +45,7 @@ const SKIP_DIRS: &[&str] = &[
 ];
 const FP_CHUNK: u32 = 64 * 1024;
 
-fn now_ms() -> i64 {
+pub(crate) fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_millis() as i64)
@@ -62,6 +63,16 @@ fn fnv1a(data: &[u8]) -> u64 {
 
 /// size + hash of the first and last 64 KiB (SPEC 7).
 pub async fn fingerprint(src: &dyn Source, path: &VPath, size: u64) -> Result<Vec<u8>, VfsError> {
+    Ok(fingerprint_with_data(src, path, size).await?.0)
+}
+
+/// The fingerprint, and the ranges it read ((offset, bytes): the first and the last 64 KiB), so
+/// the music scan can read tags from them without fetching them again.
+pub async fn fingerprint_with_data(
+    src: &dyn Source,
+    path: &VPath,
+    size: u64,
+) -> Result<(Vec<u8>, Vec<(u64, Vec<u8>)>), VfsError> {
     let head = src.read_at(path, 0, FP_CHUNK).await?;
     let tail_off = size.saturating_sub(u64::from(FP_CHUNK));
     let tail = src.read_at(path, tail_off, FP_CHUNK).await?;
@@ -69,36 +80,11 @@ pub async fn fingerprint(src: &dyn Source, path: &VPath, size: u64) -> Result<Ve
     out.extend_from_slice(&size.to_le_bytes());
     out.extend_from_slice(&fnv1a(&head).to_le_bytes());
     out.extend_from_slice(&fnv1a(&tail).to_le_bytes());
-    Ok(out)
+    Ok((out, vec![(0, head.to_vec()), (tail_off, tail.to_vec())]))
 }
 
-/// Lower-case alphanumerics and single spaces: the key that makes "The.Matrix" and
-/// "the matrix" the same title.
-pub fn normalize(title: &str) -> String {
-    title
-        .to_lowercase()
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { ' ' })
-        .collect::<String>()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-/// Sort without leading articles: "The Matrix" sorts under M.
-pub fn sort_title(title: &str) -> String {
-    let l = title.trim().to_lowercase();
-    for a in [
-        "the ", "a ", "an ", "der ", "die ", "das ", "le ", "la ", "les ", "el ",
-    ] {
-        if let Some(rest) = l.strip_prefix(a) {
-            if !rest.is_empty() {
-                return rest.to_string();
-            }
-        }
-    }
-    l
-}
+// Issue #63: shared with the library (its migration and merges compute the same keys).
+pub use huehuecoyotl_library::text::{normalize, sort_title};
 
 struct Walked {
     rel: String,
@@ -156,6 +142,39 @@ struct Existing {
     /// not matched, not locked, no play state.
     revisable: bool,
     item_key: Option<String>,
+}
+
+/// Grouping key of a show: the normalised title without a leading article, so "The Office"
+/// and "Office" meet. The year is compared separately ([`find_show`]); a country suffix such as
+/// "US" stays in the key, since it names a different show.
+pub fn show_key(title: &str) -> String {
+    let n = normalize(title);
+    for article in ["the ", "a ", "an "] {
+        if let Some(rest) = n.strip_prefix(article)
+            && !rest.is_empty()
+        {
+            return rest.to_string();
+        }
+    }
+    n
+}
+
+/// The show for a grouping key, found by its key or an alias left by a merge. With several
+/// candidates the one with the same year wins; an unknown year on either side matches.
+pub fn find_show(c: &Connection, key: &str, year: Option<u16>) -> rusqlite::Result<Option<i64>> {
+    let mut st = c.prepare(
+        "SELECT id, year FROM item WHERE kind = 'show' AND parent_id IS NULL AND group_key = ?1
+         UNION
+         SELECT i.id, i.year FROM group_alias a JOIN item i ON i.id = a.item_id
+         WHERE a.kind = 'show' AND a.key = ?1
+         ORDER BY id",
+    )?;
+    let found: Vec<(i64, Option<u16>)> = st
+        .query_map([key], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<rusqlite::Result<_>>()?;
+    let same = found.iter().find(|(_, y)| year.is_some() && *y == year);
+    let open = found.iter().find(|(_, y)| y.is_none() || year.is_none());
+    Ok(same.or(open).map(|(id, _)| *id))
 }
 
 /// Grouping key of a movie (matches `item.group_key`).
@@ -313,6 +332,8 @@ pub async fn scan_source(
             for (id, rel, mtime) in &moves {
                 tx.execute("UPDATE file SET path = ?2, mtime = ?3, last_seen_scan = ?4 WHERE id = ?1", params![id, rel, mtime, scan_id])?;
             }
+            // Issue #150: what the library keeps says where its original was.
+            huehuecoyotl_library::managed::record_gone(&tx, source_id, &gone, scan_id / 1000)?;
             for id in &gone {
                 tx.execute("DELETE FROM file WHERE id = ?1", [id])?;
             }
@@ -407,25 +428,20 @@ fn group(tx: &Transaction, p: &Parsed, now: i64) -> rusqlite::Result<(i64, Optio
             }
         });
     }
-    // Episode: show (by folder when there is one), season, episode.
-    let show_name = p.show_folder.as_deref().unwrap_or(&p.title);
-    let key = normalize(show_name);
+    // Episode: show (issue #32: named by the show folder or the release name, never by a
+    // season folder), season, episode.
+    let show_name = p.show_title.as_deref().unwrap_or(&p.title);
+    let show_year = p.show_year.or(p.year);
+    let key = show_key(show_name);
     let mut created = None;
-    let show: i64 = match tx
-        .query_row(
-            "SELECT id FROM item WHERE kind = 'show' AND group_key = ?1",
-            [&key],
-            |r| r.get(0),
-        )
-        .optional()?
-    {
+    let show: i64 = match find_show(tx, &key, show_year)? {
         Some(id) => id,
         None => {
             let id = insert_item(
                 tx,
                 "show",
-                &p.title,
-                p.year,
+                show_name,
+                show_year,
                 None,
                 None,
                 None,
@@ -493,6 +509,11 @@ fn group(tx: &Transaction, p: &Parsed, now: i64) -> rusqlite::Result<(i64, Optio
             )?
         }
     };
+    // A season or episode only TMDB knew so far now has a file.
+    tx.execute(
+        "UPDATE item SET virtual = 0 WHERE id IN (?1, ?2) AND virtual != 0",
+        params![season, episode],
+    )?;
     tx.execute(
         "UPDATE item SET added_at = ?2 WHERE id = ?1",
         params![show, now],
@@ -500,17 +521,163 @@ fn group(tx: &Transaction, p: &Parsed, now: i64) -> rusqlite::Result<(i64, Optio
     Ok((episode, created))
 }
 
+/// What [`regroup_shows`] did.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RegroupReport {
+    /// Shows that got the key the current parser derives (kept their match and history).
+    pub rekeyed: usize,
+    /// Shows merged into another one with the same key or TMDB id.
+    pub merged: usize,
+    /// Unmatched shows whose title changed: match them again.
+    pub rematch: Vec<i64>,
+}
+
+/// Offline repair for libraries scanned before issue #32: derive each show's key again from
+/// its episodes' file paths with the current parser, then rename the show to that key or merge
+/// it into the show that already has it. Matches, artwork and watch state are kept; a user's
+/// locked choice is not touched. No file is read.
+pub fn regroup_shows(c: &Connection) -> Result<RegroupReport, DbError> {
+    let mut report = RegroupReport::default();
+    let shows: Vec<(i64, Option<String>, bool, bool)> = {
+        let mut st = c.prepare(
+            "SELECT id, group_key, locked != 0, coalesce(match_state, '') = 'matched'
+             FROM item WHERE kind = 'show' AND parent_id IS NULL ORDER BY id",
+        )?;
+        let rows = st.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?;
+        rows.collect::<rusqlite::Result<_>>()?
+    };
+    for (show, old_key, locked, matched) in shows {
+        if locked {
+            continue;
+        }
+        // Still there? (It may have been merged into an earlier show in this loop.)
+        let exists: bool =
+            c.query_row("SELECT count(*) > 0 FROM item WHERE id = ?1", [show], |r| {
+                r.get(0)
+            })?;
+        if !exists {
+            continue;
+        }
+        let paths: Vec<String> = {
+            let mut st = c.prepare(
+                "SELECT f.path FROM item se JOIN item e ON e.parent_id = se.id
+                 JOIN file f ON f.item_id = e.id WHERE se.parent_id = ?1",
+            )?;
+            let rows = st.query_map([show], |r| r.get(0))?;
+            rows.collect::<rusqlite::Result<_>>()?
+        };
+        // The most common (key, title, year) among the show's episodes.
+        let mut votes: HashMap<String, (usize, String, Option<u16>)> = HashMap::new();
+        for path in &paths {
+            let p = parse(path);
+            if p.kind != Kind::Episode {
+                continue;
+            }
+            let title = p.show_title.clone().unwrap_or_else(|| p.title.clone());
+            let e = votes
+                .entry(show_key(&title))
+                .or_insert((0, title, p.show_year.or(p.year)));
+            e.0 += 1;
+        }
+        let Some((key, (_, title, year))) = votes.into_iter().max_by_key(|(_, v)| v.0) else {
+            continue;
+        };
+        if old_key.as_deref() == Some(key.as_str()) {
+            continue;
+        }
+        // Never merge two shows matched to different TMDB ids: same-named shows from different
+        // years are different shows, and a wrong match is for the review list to fix.
+        let other = find_show(c, &key, year)?.filter(|o| *o != show).filter(|o| {
+            let ids: (Option<i64>, Option<i64>) = c
+                .query_row(
+                    "SELECT (SELECT tmdb_id FROM item WHERE id = ?1), (SELECT tmdb_id FROM item WHERE id = ?2)",
+                    params![show, o],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )
+                .unwrap_or((None, None));
+            !matches!(ids, (Some(a), Some(b)) if a != b)
+        });
+        // This show takes the new key; its old key stays as an alias.
+        let rekey = |id: i64| -> rusqlite::Result<()> {
+            c.execute(
+                "INSERT OR IGNORE INTO group_alias(kind, key, item_id)
+                 SELECT 'show', group_key, id FROM item WHERE id = ?1 AND group_key IS NOT NULL",
+                [id],
+            )?;
+            c.execute(
+                "UPDATE item SET group_key = ?2 WHERE id = ?1",
+                params![id, key],
+            )?;
+            c.execute(
+                "DELETE FROM group_alias WHERE kind = 'show' AND key = ?1",
+                [&key],
+            )?;
+            Ok(())
+        };
+        let survivor = match other {
+            None => {
+                rekey(show)?;
+                report.rekeyed += 1;
+                show
+            }
+            Some(o) => {
+                let keep = merge::preferred(c, show, o)?;
+                let drop = if keep == show { o } else { show };
+                if keep == show {
+                    rekey(show)?;
+                }
+                merge::merge_into(c, keep, drop)?;
+                report.merged += 1;
+                keep
+            }
+        };
+        // An unmatched show gets the clean title (not "Show S01 2160p") and is matched again.
+        let survivor_matched: bool = c.query_row(
+            "SELECT coalesce(match_state, '') = 'matched' OR locked != 0 FROM item WHERE id = ?1",
+            [survivor],
+            |r| r.get(0),
+        )?;
+        if !survivor_matched && !(matched && survivor == show) {
+            c.execute(
+                "UPDATE item SET title = ?2, sort_title = ?3, year = coalesce(?4, year),
+                        match_state = 'unmatched'
+                 WHERE id = ?1",
+                params![survivor, title, sort_title(&title), year],
+            )?;
+            c.execute(
+                "UPDATE item_fts SET title = ?2 WHERE rowid = ?1",
+                params![survivor, title],
+            )?;
+            c.execute("DELETE FROM match_candidate WHERE item_id = ?1", [survivor])?;
+            if !report.rematch.contains(&survivor) {
+                report.rematch.push(survivor);
+            }
+        }
+    }
+    report.merged += merge::merge_tmdb_duplicates(c)?;
+    report.rematch.retain(|id| {
+        c.query_row("SELECT count(*) > 0 FROM item WHERE id = ?1", [id], |r| {
+            r.get::<_, bool>(0)
+        })
+        .unwrap_or(false)
+    });
+    tracing::info!(?report, "shows regrouped");
+    Ok(report)
+}
+
 /// Remove items that lost their last file. Items with play state are kept (a drive may come
-/// back), but stay invisible in grids, which only list items with files.
+/// back), but stay invisible in grids, which only list items with files. Seasons and episodes
+/// only TMDB knows (`virtual`) stay while their show has anything from the scanner.
 fn prune(tx: &Transaction) -> rusqlite::Result<()> {
     tx.execute_batch(
-        "DELETE FROM item WHERE kind IN ('movie','episode')
+        "DELETE FROM item WHERE kind IN ('movie','episode') AND virtual = 0
            AND NOT EXISTS (SELECT 1 FROM file f WHERE f.item_id = item.id)
            AND NOT EXISTS (SELECT 1 FROM playstate p WHERE p.item_id = item.id);
-         DELETE FROM item WHERE kind = 'season'
-           AND NOT EXISTS (SELECT 1 FROM item e WHERE e.parent_id = item.id);
          DELETE FROM item WHERE kind = 'show'
-           AND NOT EXISTS (SELECT 1 FROM item s WHERE s.parent_id = item.id);
+           AND NOT EXISTS (SELECT 1 FROM item s JOIN item e ON e.parent_id = s.id
+                           WHERE s.parent_id = item.id AND e.virtual = 0);
+         DELETE FROM item WHERE kind = 'season' AND virtual = 0
+           AND NOT EXISTS (SELECT 1 FROM item e WHERE e.parent_id = item.id);
          DELETE FROM item_fts WHERE rowid NOT IN (SELECT id FROM item);",
     )
 }
@@ -641,6 +808,327 @@ mod tests {
             1,
             "empty season pruned"
         );
+    }
+
+    /// Issue #32: every common layout gives exactly one show, named after the show (not after
+    /// a season or release folder), with the right seasons and episodes.
+    #[tokio::test]
+    async fn every_layout_groups_into_one_show() {
+        let (d, lib, sid, root) = setup().await;
+        let m = d.path().join("media");
+        for f in [
+            // Show (Year)/Season 01/Show - S01E01 - Title
+            "Alpha Show (2022)/Season 01/Alpha Show - S01E01 - Pilot.mkv",
+            "Alpha Show (2022)/Season 01/Alpha Show - S01E02 - Second.mkv",
+            "Alpha Show (2022)/Season 02/Alpha Show - S02E01 - Back.mkv",
+            // Show/S01/Show.S01E01
+            "Beta Show/S01/Beta.Show.S01E01.1080p.mkv",
+            "Beta Show/S01/Beta.Show.S01E02.1080p.mkv",
+            // Show/release folder per season/file
+            "Gamma Show/Gamma.Show.S01.1080p.WEB/Gamma.Show.S01E01.1080p.WEB.mkv",
+            "Gamma Show/Gamma.Show.S01.1080p.WEB/Gamma.Show.S01E02.1080p.WEB.mkv",
+            "Gamma Show/Gamma.Show.S02.2160p.WEB-DL/Gamma.Show.S02E01.2160p.WEB-DL.mkv",
+            // flat in a generic folder
+            "Shows/Delta.Show.S01E01.mkv",
+            "Shows/Delta.Show.S01E02.mkv",
+            // specials next to a season
+            "Epsilon Show/Specials/Epsilon Show - S00E01.mkv",
+            "Epsilon Show/Season 1/Epsilon Show - S01E01.mkv",
+            // release folder per season at the library root, no show folder
+            "Zeta.Show.S01.2160p.WEB-DL.DV.HDR.H265/Zeta.Show.S01E01.2160p.WEB-DL.mkv",
+            "Zeta.Show.S01.2160p.WEB-DL.DV.HDR.H265/Zeta.Show.S01E02.2160p.WEB-DL.mkv",
+            "Zeta.Show.S02.2160p.WEB-DL.DV.HDR.H265/Zeta.Show.S02E01.2160p.WEB-DL.mkv",
+            // one folder per episode
+            "Eta.Show.S02E01.First.Title.2160p.WEB/Eta.Show.S02E01.First.Title.2160p.WEB.mkv",
+            "Eta.Show.S02E02.Second.Title.2160p.WEB/Eta.Show.S02E02.Second.Title.2160p.WEB.mkv",
+            // release folder with a season folder inside, plus a plain show folder
+            "Theta.Show.S01.1080p.BluRay/Season 1/Theta.Show.S01E01.mkv",
+            "Theta Show (2019)/Season 2/Theta.Show.S02E01.mkv",
+            // a category folder that is not the show
+            "Kids/Mu.Show.S01E01.mkv",
+            "Kids/Mu.Show.S01E02.mkv",
+        ] {
+            touch(&m, f, 10 + f.len());
+        }
+        // One show spread over two sources (two shares).
+        let m2 = d.path().join("media2");
+        touch(&m2, "Iota Show/Season 2/Iota.Show.S02E01.mkv", 30);
+        touch(&m, "Iota Show/Season 1/Iota.Show.S01E01.mkv", 31);
+        let root2 = VPath::new(m2.to_string_lossy());
+        let r2 = root2.to_string();
+        let sid2 = lib
+            .write(move |c| {
+                c.execute(
+                    "INSERT INTO source(kind, name, root) VALUES ('local', 'Second', ?1)",
+                    [r2],
+                )?;
+                Ok(c.last_insert_rowid())
+            })
+            .await
+            .unwrap();
+        scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        scan_source(&lib, &LocalSource, sid2, &root2).await.unwrap();
+
+        // title -> sorted [(season, episodes)]
+        let shows: Vec<(String, Vec<(i64, i64)>)> = lib
+            .read(|c| {
+                let mut st = c.prepare(
+                    "SELECT s.id, s.title, se.season_no, count(e.id) FROM item s
+                     JOIN item se ON se.parent_id = s.id AND se.kind = 'season'
+                     JOIN item e ON e.parent_id = se.id AND e.kind = 'episode'
+                     WHERE s.kind = 'show' GROUP BY s.id, se.id ORDER BY s.title, se.season_no",
+                )?;
+                let rows = st.query_map([], |r| {
+                    Ok((
+                        r.get::<_, i64>(0)?,
+                        r.get::<_, String>(1)?,
+                        r.get::<_, i64>(2)?,
+                        r.get::<_, i64>(3)?,
+                    ))
+                })?;
+                // One entry per show item, so a duplicate shows up as a second entry.
+                type Show = (i64, String, Vec<(i64, i64)>);
+                let mut out: Vec<Show> = Vec::new();
+                for row in rows {
+                    let (id, t, s, n) = row?;
+                    match out.last_mut() {
+                        Some((lid, _, v)) if *lid == id => v.push((s, n)),
+                        _ => out.push((id, t, vec![(s, n)])),
+                    }
+                }
+                Ok(out.into_iter().map(|(_, t, v)| (t, v)).collect())
+            })
+            .await
+            .unwrap();
+        let want: Vec<(&str, Vec<(i64, i64)>)> = vec![
+            ("Alpha Show", vec![(1, 2), (2, 1)]),
+            ("Beta Show", vec![(1, 2)]),
+            ("Delta Show", vec![(1, 2)]),
+            ("Epsilon Show", vec![(0, 1), (1, 1)]),
+            ("Eta Show", vec![(2, 2)]),
+            ("Gamma Show", vec![(1, 2), (2, 1)]),
+            ("Iota Show", vec![(1, 1), (2, 1)]),
+            ("Mu Show", vec![(1, 2)]),
+            ("Theta Show", vec![(1, 1), (2, 1)]),
+            ("Zeta Show", vec![(1, 2), (2, 1)]),
+        ];
+        let got: Vec<(&str, Vec<(i64, i64)>)> =
+            shows.iter().map(|(t, v)| (t.as_str(), v.clone())).collect();
+        assert_eq!(got, want);
+        assert_eq!(
+            count(&lib, "SELECT count(*) FROM item WHERE kind = 'show'").await,
+            10,
+            "no empty or duplicate shows"
+        );
+    }
+
+    /// A library as 1.1.0 left it: one show per release folder and per episode folder, one of
+    /// them matched and watched. The offline regroup repairs it without losing anything.
+    #[tokio::test]
+    async fn regroup_repairs_shows_split_by_older_versions() {
+        let (_d, lib, _sid, _root) = setup().await;
+        let report = lib
+            .write(|c| {
+                c.execute_batch(
+                    "INSERT INTO source(id, kind, name, root) VALUES (5, 'local', 'Old', '/old');
+                     -- Zeta: one show per season release folder; season 1 matched (TMDB 99), watched
+                     INSERT INTO item(id, kind, title, group_key, tmdb_id, match_state, year) VALUES
+                       (100, 'show', 'Zeta Show', 'zeta show s01 2160p web dl dv hdr h265', 99, 'matched', 2020),
+                       (200, 'show', 'Zeta Show S02', 'zeta show s02 2160p web dl dv hdr h265', NULL, 'needs_review', NULL);
+                     INSERT INTO item(id, kind, parent_id, season_no) VALUES (101, 'season', 100, 1), (201, 'season', 200, 2);
+                     INSERT INTO item(id, kind, parent_id, episode_no) VALUES (102, 'episode', 101, 1), (202, 'episode', 201, 1);
+                     INSERT INTO file(source_id, path, item_id) VALUES
+                       (5, 'Zeta.Show.S01.2160p.WEB-DL.DV.HDR.H265/Zeta.Show.S01E01.2160p.WEB-DL.mkv', 102),
+                       (5, 'Zeta.Show.S02.2160p.WEB-DL.DV.HDR.H265/Zeta.Show.S02E01.2160p.WEB-DL.mkv', 202);
+                     INSERT INTO playstate(item_id, position_ms, watched, updated_at) VALUES (102, 0, 1, 10), (202, 60000, 0, 20);
+                     INSERT INTO match_candidate(item_id, provider_id, title) VALUES (200, 99, 'Zeta Show');
+                     -- Eta: one unmatched show per episode folder
+                     INSERT INTO item(id, kind, title, group_key, match_state) VALUES
+                       (300, 'show', 'Eta Show', 'eta show s02e01 first title 2160p web', 'unmatched'),
+                       (400, 'show', 'Eta Show', 'eta show s02e02 second title 2160p web', 'unmatched');
+                     INSERT INTO item(id, kind, parent_id, season_no) VALUES (301, 'season', 300, 2), (401, 'season', 400, 2);
+                     INSERT INTO item(id, kind, parent_id, episode_no) VALUES (302, 'episode', 301, 1), (402, 'episode', 401, 2);
+                     INSERT INTO file(source_id, path, item_id) VALUES
+                       (5, 'Eta.Show.S02E01.First.Title.2160p.WEB/Eta.Show.S02E01.First.Title.2160p.WEB.mkv', 302),
+                       (5, 'Eta.Show.S02E02.Second.Title.2160p.WEB/Eta.Show.S02E02.Second.Title.2160p.WEB.mkv', 402);",
+                )?;
+                regroup_shows(c)
+            })
+            .await
+            .unwrap();
+        assert_eq!(report.merged, 2, "{report:?}");
+        assert_eq!(
+            count(&lib, "SELECT count(*) FROM item WHERE kind = 'show'").await,
+            2
+        );
+        // Zeta: the matched item survives with its match and both seasons' watch state.
+        assert_eq!(
+            count(
+                &lib,
+                "SELECT count(*) FROM item WHERE kind = 'season' AND parent_id = 100"
+            )
+            .await,
+            2
+        );
+        assert_eq!(
+            count(&lib, "SELECT tmdb_id FROM item WHERE id = 100").await,
+            99
+        );
+        assert_eq!(count(&lib, "SELECT count(*) FROM playstate").await, 2);
+        assert_eq!(count(&lib, "SELECT count(*) FROM match_candidate").await, 0);
+        // Eta: one unmatched show with a clean title, queued for matching once.
+        assert_eq!(
+            count(&lib, "SELECT count(*) FROM item WHERE kind = 'episode' AND parent_id IN (SELECT id FROM item WHERE parent_id = 300)").await,
+            2
+        );
+        assert_eq!(report.rematch, vec![300]);
+        // A rescan finds the repaired shows through their keys and aliases: nothing new.
+        let again = lib.write(|c| regroup_shows(c)).await.unwrap();
+        assert_eq!((again.merged, again.rekeyed), (0, 0));
+        let found = lib
+            .read(|c| {
+                Ok(find_show(
+                    c,
+                    "zeta show s02 2160p web dl dv hdr h265",
+                    None,
+                )?)
+            })
+            .await
+            .unwrap();
+        assert_eq!(found, Some(100), "old keys lead to the survivor");
+
+        // Same title, different TMDB shows (e.g. a remake): never merged.
+        let r = lib
+            .write(|c| {
+                c.execute_batch(
+                    "INSERT INTO item(id, kind, title, group_key, tmdb_id, match_state) VALUES
+                       (500, 'show', 'Nu Show', 'nu show 1978', 1, 'matched'),
+                       (600, 'show', 'Nu Show', 'nu show s01 2160p', 2, 'matched');
+                     INSERT INTO item(id, kind, parent_id, season_no) VALUES (501, 'season', 500, 1), (601, 'season', 600, 1);
+                     INSERT INTO item(id, kind, parent_id, episode_no) VALUES (502, 'episode', 501, 1), (602, 'episode', 601, 1);
+                     INSERT INTO file(source_id, path, item_id) VALUES
+                       (5, 'Nu Show/Season 1/Nu.Show.S01E01.mkv', 502),
+                       (5, 'Nu.Show.S01.2160p/Nu.Show.S01E01.2160p.mkv', 602);",
+                )?;
+                regroup_shows(c)
+            })
+            .await
+            .unwrap();
+        assert_eq!(r.merged, 0, "{r:?}");
+        assert_eq!(
+            count(
+                &lib,
+                "SELECT count(*) FROM item WHERE kind = 'show' AND tmdb_id IN (1, 2)"
+            )
+            .await,
+            2
+        );
+    }
+
+    /// Episodes only TMDB knows survive rescans, become real when their file appears, and go
+    /// with the show once nothing of it is on disk any more.
+    #[tokio::test]
+    async fn virtual_episodes_survive_rescans_and_turn_real() {
+        let (d, lib, sid, root) = setup().await;
+        let m = d.path().join("media");
+        touch(&m, "Firefly/Season 1/Firefly.S01E01.mkv", 10);
+        scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        let virtual_ep: i64 = lib
+            .write(|c| {
+                let season: i64 =
+                    c.query_row("SELECT id FROM item WHERE kind = 'season'", [], |r| {
+                        r.get(0)
+                    })?;
+                huehuecoyotl_library::catalog::ensure_episode(c, season, 2, "The Train Job")
+            })
+            .await
+            .unwrap();
+        scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        assert_eq!(
+            count(&lib, "SELECT count(*) FROM item WHERE kind = 'episode'").await,
+            2,
+            "kept by the rescan"
+        );
+        touch(&m, "Firefly/Season 1/Firefly.S01E02.mkv", 11);
+        scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        let (item, virt): (i64, i64) = lib
+            .read(|c| {
+                Ok(c.query_row(
+                    "SELECT i.id, i.virtual FROM file f JOIN item i ON i.id = f.item_id WHERE f.path LIKE '%S01E02%'",
+                    [],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )?)
+            })
+            .await
+            .unwrap();
+        assert_eq!(
+            (item, virt),
+            (virtual_ep, 0),
+            "the file joins the TMDB episode"
+        );
+        std::fs::remove_dir_all(m.join("Firefly")).unwrap();
+        touch(&m, "Other (2001).mkv", 3); // keep the folder from looking unreachable
+        scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        assert_eq!(
+            count(
+                &lib,
+                "SELECT count(*) FROM item WHERE kind IN ('show', 'season', 'episode')"
+            )
+            .await,
+            0
+        );
+    }
+
+    /// Issue #34: a version split off by "This is a different movie" stays split after a rescan.
+    #[tokio::test]
+    async fn split_versions_stay_split() {
+        let (d, lib, sid, root) = setup().await;
+        let m = d.path().join("media");
+        touch(&m, "Movies/Alien (1979)/Alien.1979.2160p.mkv", 10);
+        touch(
+            &m,
+            "Movies/Alien (1979)/Alien.1979.Directors.Cut.1080p.mkv",
+            11,
+        );
+        scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        assert_eq!(
+            count(&lib, "SELECT count(*) FROM item WHERE kind = 'movie'").await,
+            1
+        );
+        let split = lib
+            .write(|c| {
+                let f: i64 = c.query_row(
+                    "SELECT id FROM file WHERE path LIKE '%Directors%'",
+                    [],
+                    |r| r.get(0),
+                )?;
+                huehuecoyotl_library::catalog::split_file(
+                    c,
+                    f,
+                    "Alien (Director's Cut)",
+                    Some(1979),
+                )
+            })
+            .await
+            .unwrap();
+        for _ in 0..2 {
+            scan_source(&lib, &LocalSource, sid, &root).await.unwrap();
+        }
+        assert_eq!(
+            count(&lib, "SELECT count(*) FROM item WHERE kind = 'movie'").await,
+            2
+        );
+        let (item, locked, state): (i64, i64, String) = lib
+            .read(|c| {
+                Ok(c.query_row(
+                    "SELECT i.id, i.locked, i.match_state FROM file f JOIN item i ON i.id = f.item_id WHERE f.path LIKE '%Directors%'",
+                    [],
+                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                )?)
+            })
+            .await
+            .unwrap();
+        assert_eq!((item, locked, state.as_str()), (split, 1, "needs_review"));
     }
 
     #[tokio::test]

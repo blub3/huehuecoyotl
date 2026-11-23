@@ -155,6 +155,15 @@ pub fn classify(msg: &str) -> fn(String) -> VfsError {
     let m = msg.to_ascii_uppercase().replace('_', " ");
     let any = |keys: &[&str]| keys.iter().any(|k| m.contains(k));
     if any(&[
+        "READ-ONLY",
+        "READ ONLY",
+        "READONLY",
+        "ROFS",
+        "WRITE PROTECTED",
+        "MEDIA WRITE",
+    ]) {
+        VfsError::ReadOnly
+    } else if any(&[
         "LOGON FAILURE",
         "ACCESS DENIED",
         "AUTHENTICATION",
@@ -186,6 +195,9 @@ pub fn classify(msg: &str) -> fn(String) -> VfsError {
         "RESET",
         "BROKEN PIPE",
         "UNREACHABLE",
+        // A switched-off NAS: the network answers that the host is gone (EHOSTUNREACH).
+        "NO ROUTE",
+        "HOST IS DOWN",
         "EOF",
         "DISCONNECT",
         "CLOSED",
@@ -202,6 +214,14 @@ pub fn err(msg: impl std::fmt::Display) -> VfsError {
     classify(&s)(s)
 }
 
+/// A refusal while writing: the user may read here but not change anything.
+pub fn write_err(e: VfsError) -> VfsError {
+    match e {
+        VfsError::Auth(m) => VfsError::ReadOnly(m),
+        e => e,
+    }
+}
+
 /// Worth reconnecting for: the connection itself failed, not the request.
 pub fn retryable(e: &VfsError) -> bool {
     matches!(e, VfsError::Unreachable(_) | VfsError::Internal(_))
@@ -210,6 +230,17 @@ pub fn retryable(e: &VfsError) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_switched_off_server_is_unreachable() {
+        for m in [
+            "Transport error: IO Error: No route to host (os error 113)",
+            "Host is down (os error 112)",
+            "Connection refused",
+        ] {
+            assert!(matches!(err(m), VfsError::Unreachable(_)), "{m}");
+        }
+    }
 
     #[test]
     fn paths_and_urls() {

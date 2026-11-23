@@ -12,11 +12,11 @@ use bytes::Bytes;
 use suppaftp::list::File as ListFile;
 use suppaftp::tokio::{AsyncFtpStream, AsyncNoTlsStream};
 use suppaftp::types::FileType;
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 
-use crate::remote::{RemoteConfig, RemoteSource, err, join, retryable};
-use crate::{Caps, Entry, Result, Source, VPath, VfsError};
+use crate::remote::{RemoteConfig, RemoteSource, err, join, retryable, write_err};
+use crate::{Caps, Chunks, Entry, Result, Source, VPath, VfsError};
 
 type Transfer = suppaftp::tokio::TransferStream<AsyncNoTlsStream>;
 
@@ -112,23 +112,41 @@ impl FtpSource {
         Ok(out)
     }
 
+    /// One command that changes something, on the metadata connection; a refusal is read-only.
+    async fn change<F>(&self, f: F) -> Result<()>
+    where
+        F: for<'a> FnOnce(
+            &'a mut AsyncFtpStream,
+        ) -> std::pin::Pin<
+            Box<dyn std::future::Future<Output = suppaftp::FtpResult<()>> + Send + 'a>,
+        >,
+    {
+        self.reader.lock().await.take();
+        let mut g = self.meta.lock().await;
+        if g.is_none() {
+            *g = Some(self.login().await?);
+        }
+        let s = g.as_mut().expect("connected");
+        f(s).await.map_err(|e| write_err(err(e)))
+    }
+
     async fn read_once(&self, path: &VPath, offset: u64, len: u32) -> Result<Bytes> {
         let sp = self.server_path(path);
         let mut g = self.reader.lock().await;
         let reusable = g.as_ref().is_some_and(|r| r.path == sp && r.pos == offset);
         if !reusable {
             // Seek: abort the running transfer (or drop the connection if that fails).
-            if let Some(mut r) = g.take() {
-                if r.ctrl.abort(r.data).await.is_ok() {
-                    r.ctrl.resume_transfer(offset as usize).await.map_err(err)?;
-                    let data = r.ctrl.retr_as_stream(&sp).await.map_err(err)?;
-                    *g = Some(Reader {
-                        path: sp.clone(),
-                        pos: offset,
-                        ctrl: r.ctrl,
-                        data,
-                    });
-                }
+            if let Some(mut r) = g.take()
+                && r.ctrl.abort(r.data).await.is_ok()
+            {
+                r.ctrl.resume_transfer(offset as usize).await.map_err(err)?;
+                let data = r.ctrl.retr_as_stream(&sp).await.map_err(err)?;
+                *g = Some(Reader {
+                    path: sp.clone(),
+                    pos: offset,
+                    ctrl: r.ctrl,
+                    data,
+                });
             }
             if g.is_none() {
                 let mut ctrl = self.login().await?;
@@ -200,6 +218,63 @@ impl Source for FtpSource {
             }
             r => r,
         }
+    }
+
+    async fn size_of(&self, path: &VPath) -> Result<u64> {
+        let mut g = self.meta.lock().await;
+        if g.is_none() {
+            *g = Some(self.login().await?);
+        }
+        let s = g.as_mut().expect("connected");
+        s.size(self.server_path(path))
+            .await
+            .map(|n| n as u64)
+            .map_err(err)
+    }
+
+    async fn put(&self, path: &VPath, mut data: Chunks) -> Result<u64> {
+        self.reader.lock().await.take();
+        // A connection of its own: the upload keeps it busy, listings go on.
+        let mut ctrl = self.login().await?;
+        let sp = self.server_path(path);
+        let mut up = ctrl
+            .put_with_stream(&sp)
+            .await
+            .map_err(|e| write_err(err(e)))?;
+        let mut n = 0u64;
+        while let Some(chunk) = data.recv().await {
+            let chunk = chunk?;
+            up.write_all(&chunk).await.map_err(err)?;
+            n += chunk.len() as u64;
+        }
+        up.flush().await.map_err(err)?;
+        up.finish().await.map_err(|e| write_err(err(e)))?;
+        let _ = ctrl.quit().await;
+        Ok(n)
+    }
+
+    async fn create_dir(&self, path: &VPath) -> Result<()> {
+        let p = self.server_path(path);
+        self.change(move |s| Box::pin(async move { s.mkdir(&p).await }))
+            .await
+    }
+
+    async fn rename(&self, from: &VPath, to: &VPath) -> Result<()> {
+        let (a, b) = (self.server_path(from), self.server_path(to));
+        self.change(move |s| Box::pin(async move { s.rename(&a, &b).await }))
+            .await
+    }
+
+    async fn remove(&self, path: &VPath) -> Result<()> {
+        let p = self.server_path(path);
+        self.change(move |s| Box::pin(async move { s.rm(&p).await }))
+            .await
+    }
+
+    async fn remove_dir(&self, path: &VPath) -> Result<()> {
+        let p = self.server_path(path);
+        self.change(move |s| Box::pin(async move { s.rmdir(&p).await }))
+            .await
     }
 
     fn capabilities(&self) -> Caps {

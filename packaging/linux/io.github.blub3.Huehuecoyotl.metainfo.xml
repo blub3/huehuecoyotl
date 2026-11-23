@@ -12,21 +12,23 @@
   </developer>
   <description>
     <p>
-      Huehuecoyotl is a media player for the films and series you already own. Point it at
-      folders on your computer or on a NAS, and it builds a library with posters, descriptions
-      and episode lists, remembers where you stopped, and plays everything with libmpv.
+      Huehuecoyotl is a media player for the films, series and music you already own. Point it
+      at folders on your computer or on a NAS, and it builds a library with posters,
+      descriptions, episode lists, albums and artists, remembers where you stopped, and plays
+      everything with libmpv.
     </p>
     <p xml:lang="de">
-      Huehuecoyotl ist eine Medienwiedergabe für die Filme und Serien, die du schon besitzt.
-      Gib Ordner auf deinem Rechner oder einem NAS an, und es baut eine Bibliothek mit Postern,
-      Beschreibungen und Episodenlisten, merkt sich, wo du aufgehört hast, und spielt alles mit
-      libmpv ab.
+      Huehuecoyotl ist eine Medienwiedergabe für die Filme, Serien und Musik, die du schon
+      besitzt. Gib Ordner auf deinem Rechner oder einem NAS an, und es baut eine Bibliothek mit
+      Postern, Beschreibungen, Episodenlisten, Alben und Künstlern, merkt sich, wo du aufgehört
+      hast, und spielt alles mit libmpv ab.
     </p>
     <ul>
       <li>Libraries from local folders and SMB, NFS, WebDAV and FTP shares, found automatically on the network</li>
       <li>Posters and descriptions from The Movie Database (needs a free personal API key)</li>
       <li>Resume, watched state and "continue watching"</li>
       <li>Hardware decoding, subtitles and audio tracks, chapters</li>
+      <li>Music from your files' tags: albums, artists, a play queue with gapless playback, Hi-Res badges and an optional bit-perfect output</li>
       <li>Fully usable with keyboard or remote, in a window or fullscreen on the TV</li>
       <li>No account, no server, no telemetry</li>
     </ul>
@@ -35,6 +37,7 @@
       <li>Poster und Beschreibungen von The Movie Database (braucht einen kostenlosen persönlichen API-Schlüssel)</li>
       <li>Fortsetzen, Gesehen-Status und „Weiterschauen“</li>
       <li>Hardware-Dekodierung, Untertitel und Tonspuren, Kapitel</li>
+      <li>Musik aus den Tags deiner Dateien: Alben, Künstler, eine Warteschlange mit lückenloser Wiedergabe, Hi-Res-Kennzeichnung und eine optionale bit-perfekte Ausgabe</li>
       <li>Vollständig mit Tastatur oder Fernbedienung bedienbar, im Fenster oder im Vollbild am Fernseher</li>
       <li>Kein Konto, kein Server, keine Telemetrie</li>
     </ul>
@@ -77,6 +80,7 @@
   <categories>
     <category>AudioVideo</category>
     <category>Video</category>
+    <category>Audio</category>
     <category>Player</category>
   </categories>
   <keywords>
@@ -84,9 +88,112 @@
     <keyword>movie</keyword>
     <keyword>series</keyword>
     <keyword>NAS</keyword>
+    <keyword>music</keyword>
+    <keyword>FLAC</keyword>
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="3.0.1" date="2026-11-23" type="stable">
+      <description>
+        <p>In the full-screen Now Playing view, the Back bar now fades out with the other controls when idle and returns when you move the mouse or press a key. F11 enters and leaves this view again.</p>
+      </description>
+    </release>
+    <release version="3.0.0" date="2026-11-23" type="stable">
+      <description>
+        <p>A managed library: choose a folder on this computer or a share, and the app keeps your own named and tagged copies there while your originals stay where they are. Add items by hand or import watched folders automatically, review unsure matches first, and edit the tags of a song, an album or an artist after a preview.</p>
+      </description>
+    </release>
+    <release version="2.9.2" date="2026-11-23" type="stable">
+      <description>
+        <p>When a video, song or audiobook has no decoder, the app now names the codec and shows how to add it, instead of a black picture. A new library asks whether to use online services or your files only before anything is sent. Settings shows TMDB's approved logo, and the licence notices are complete.</p>
+      </description>
+    </release>
+    <release version="2.9.1" date="2026-11-22" type="stable">
+      <description>
+        <p>One entry per artist: spellings like Rosalia and Rosalía join when they are the same artist, a matched artist shows the MusicBrainz name unless you choose your own, and Merge with… joins the rest. Each MusicBrainz release is its own album, so standard and deluxe editions stay apart and link to each other under Other editions. The app now uses the codecs of its runtime: H.264, HEVC, VC-1 and E-AC-3 need Flathub's codecs-extra extension.</p>
+      </description>
+    </release>
+    <release version="2.9.0" date="2026-11-19" type="stable">
+      <description>
+        <p>One Back button on every page: it names the page it returns to, and Back brings you to that page as you left it, from an album back to its artist or from Now Playing to where you started it. Hold Escape or right-click Back to go back several pages at once; Backspace, Alt+Left and the mouse's back button work too. The mini player has the controls of Now Playing, with shuffle, repeat and volume, and nothing moves when Play turns into Pause; for audiobooks it skips back and ahead and sets the speed.</p>
+      </description>
+    </release>
+    <release version="2.8.0" date="2026-11-19" type="stable">
+      <description>
+        <p>Network shares, easier: a server is added once and holds any number of library folders. Sources shows one card per server with its folders inside. Add several folders at once, each with a look inside and a guess of what it holds. Adding a share takes three steps, and an SMB server lists its shares to choose from. A share's address, user or password can be changed without losing anything, a folder's type changed, and a server added twice under two names joined.</p>
+      </description>
+    </release>
+    <release version="2.7.1" date="2026-11-18" type="stable">
+      <description>
+        <p>Settings with tabs: Metadata, Matching, Appearance, Playback, Audio, Storage, Troubleshooting and About each have a tab, easy to reach with a remote, and Settings opens on the tab you used last. Matching the music library again now matches artists too.</p>
+      </description>
+    </release>
+    <release version="2.7.0" date="2026-11-18" type="stable">
+      <description>
+        <p>Matching, again: match a whole library of movies, shows, music or audiobooks again from Settings, or a single movie, show, album, song, artist, book or author. Search by hand by title or a pasted link, and see what a match changes before you choose it. A film taken for a series, or the reverse, can be corrected with its watched state. Artists and authors without a match take the one their album, song or book names, with photos and biographies. Your own metadata and your choices are kept.</p>
+      </description>
+    </release>
+    <release version="2.6.0" date="2026-11-18" type="stable">
+      <description>
+        <p>Music, redesigned: Albums, Artists, Songs, Genres and Playlists in a top menu, and a Quality lens that finds your Hi-Res and lossless albums. Smart playlists fill themselves and your own playlists keep the exact files you chose. Now Playing takes the whole window in the colours of the cover, with the song's waveform and the signal path from file to speakers, and a full-screen view for the living room.</p>
+      </description>
+    </release>
+    <release version="2.5.0" date="2026-11-18" type="stable">
+      <description>
+        <p>Audiobooks: add folders as audiobooks and browse books, authors, series and narrators. Each book resumes exactly where you stopped, with chapters, a speed from 0.5× to 3.0× without a change of pitch, and a sleep timer. Descriptions and covers your files lack come from Open Library, if you allow it.</p>
+      </description>
+    </release>
+    <release version="2.1.0" date="2026-11-16" type="stable">
+      <description>
+        <p>An album that is in your library more than once — in two formats, on two shares, or as a remaster next to the original — now appears once. Its page lets you choose the version, and Play, the track list and the Hi-Res badge follow it. The preferred version setting gains "Lossless only", and a wrong match can be split off.</p>
+      </description>
+    </release>
+    <release version="2.0.0" date="2026-11-16" type="stable">
+      <description>
+        <p>Music: add folders as music, browse albums and artists, and play them in a queue that keeps going while you browse, gapless between tracks, with a mini player, Now Playing and your desktop's media controls.</p>
+        <ul>
+          <li>Albums and artists from your files' tags, matched with MusicBrainz; covers from the Cover Art Archive (can be turned off)</li>
+          <li>Optional artist images and biographies from TheAudioDB and Fanart.tv with your own keys</li>
+          <li>Hi-Res badges and an optional bit-perfect output with the signal path on Now Playing</li>
+          <li>Search finds artists, albums and tracks</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.6.1" date="2026-11-16" type="stable">
+      <description>
+        <p>Settings now shows that your TMDB key is stored, where it comes from and when TMDB last accepted it, with Replace, Test and Remove. The key field no longer looks empty after a restart, and a missing keyring is explained.</p>
+      </description>
+    </release>
+    <release version="1.6.0" date="2026-11-16" type="stable">
+      <description>
+        <p>Every episode of a show now has its own version choice, technical details and Save menu (Save, Save as…, Delete saved copy) right in the episode list, with progress and saved marks; long seasons load as you scroll.</p>
+      </description>
+    </release>
+    <release version="1.5.2" date="2026-11-16" type="stable">
+      <description>
+        <p>Keyboard and remote keep working after the "Save as…" and storage-folder dialogs.</p>
+      </description>
+    </release>
+    <release version="1.5.1" date="2026-11-16" type="stable">
+      <description>
+        <p>Fixes "Save as…" of a single file in the Flatpak version, which left a hidden temporary file instead of the subtitles.</p>
+      </description>
+    </release>
+    <release version="1.5.0" date="2026-11-16" type="stable">
+      <description>
+        <p>Save movies, episodes and whole shows from network shares as offline copies that play without the network, with a Downloads screen and storage settings; and "Save as…" to copy files to a folder or drive of your choice.</p>
+      </description>
+    </release>
+    <release version="1.2.0" date="2026-11-15" type="stable">
+      <description>
+        <p>Technical details for every movie and episode (resolution, HDR, codecs, audio and subtitle tracks, bit rates), analysed in the background, also on network shares; and a choice between several versions of the same movie.</p>
+      </description>
+    </release>
+    <release version="1.1.0" date="2026-11-12" type="stable">
+      <description>
+        <p>SFTP network shares, a page per show with season switching, each show listed once (libraries from older versions are repaired automatically), cover sizes for window and fullscreen, and the new logo.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-11-11" type="stable">
       <description>
         <p>First stable release for Linux: player, library with TMDB metadata, and libraries on SMB, NFS, WebDAV and FTP shares. New app icon; fixes a crash after leaving the player.</p>

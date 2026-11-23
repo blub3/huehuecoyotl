@@ -1,19 +1,20 @@
 [workspace]
 resolver = "3"
-members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "crates/vfs-sftp", "crates/scanner", "crates/metadata", "crates/stream", "crates/cli"]
+members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "crates/vfs-sftp", "crates/probe", "crates/scanner", "crates/metadata", "crates/stream", "crates/cli"]
 
 [workspace.package]
-version = "1.0.0"
+version = "3.0.1"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/blub3/huehuecoyotl"
-rust-version = "1.86"
+rust-version = "1.89"
 
 [workspace.dependencies]
 huehuecoyotl-core = { path = "crates/core" }
 huehuecoyotl-library = { path = "crates/library" }
 huehuecoyotl-vfs = { path = "crates/vfs" }
 huehuecoyotl-vfs-sftp = { path = "crates/vfs-sftp" }
+huehuecoyotl-probe = { path = "crates/probe" }
 huehuecoyotl-scanner = { path = "crates/scanner" }
 huehuecoyotl-stream = { path = "crates/stream" }
 huehuecoyotl-metadata = { path = "crates/metadata" }
@@ -22,6 +23,8 @@ bytes = "1"
 crossbeam-channel = "0.5"
 cxx = "1.0.205"
 rusqlite = { version = "0.41", features = ["bundled"] }
+# Issue #7: audio tags (MIT OR Apache-2.0).
+lofty = "0.25.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tempfile = "3"

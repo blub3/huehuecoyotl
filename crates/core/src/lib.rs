@@ -5,20 +5,40 @@
 //! [`Event`] on the sink; change events carry ids, not payloads; every request can be
 //! cancelled; errors carry an [`ErrorKind`]; panics never escape a task.
 
+mod books;
+mod books_matching;
+/// Issue #66: chapter navigation on a book's timeline, for the player (pure).
+pub mod booktime {
+    pub use huehuecoyotl_library::books::{end_of_chapter, next_chapter, previous_chapter};
+}
 pub mod diagnostics;
+mod download;
+mod extras;
+mod imports;
+mod kinds;
 pub mod lang;
 mod library;
+mod managed;
+mod matching;
+mod music;
+mod music_matching;
 mod network;
+mod playlists;
+mod playqueue;
+mod probe;
 pub mod secrets;
+mod shares;
+mod tag_edit;
 mod worker;
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
-use huehuecoyotl_library::{DbError, Library, queries};
+use huehuecoyotl_library::{DbError, Library, catalog, queries};
 use huehuecoyotl_metadata::MetadataProvider;
+use huehuecoyotl_metadata::music::MusicProvider;
 use huehuecoyotl_vfs::{
     LocalSource, MediaKind, RemoteSource, Source, VPath, VfsError, find_sidecar_subtitles,
     media_kind,
@@ -27,10 +47,16 @@ use tokio::runtime::Runtime;
 use tokio::sync::Notify;
 use tokio::task::AbortHandle;
 
-pub use huehuecoyotl_library::catalog::{CandidateRow, Detail, FileInfo, Summary};
+pub use download::{DownloadInfo, available_space, is_portal_path};
+pub use huehuecoyotl_library::catalog::{CandidateRow, Detail, EpisodeRow, FileInfo, Summary};
+pub use huehuecoyotl_library::copies::SaveInfo;
 pub use network::{Discovered, NetworkSpec};
 pub use queries::TrackPref;
 use secrets::KeySource;
+
+/// Issue #52: the `setting` key that holds when TMDB last accepted the key (Unix seconds).
+const KEY_VALIDATED: &str = "tmdb_key_validated_at";
+pub use worker::find_match;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LibraryInfo {
@@ -45,6 +71,8 @@ pub struct LibraryInfo {
     pub files: i64,
     pub last_scan_ms: i64,
     pub scanning: bool,
+    /// `video` or `music` (2.0).
+    pub content: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -60,6 +88,8 @@ pub enum ErrorKind {
     NotFound,
     Unsupported,
     Internal,
+    /// Not enough free space on the drive a copy is written to (issue #3).
+    NoSpace,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -86,6 +116,8 @@ impl From<VfsError> for CoreError {
             VfsError::NotFound(_) => ErrorKind::NotFound,
             VfsError::Unsupported(_) => ErrorKind::Unsupported,
             VfsError::Internal(_) => ErrorKind::Internal,
+            // Issue #151: until callers present them, reported as an unsupported action.
+            VfsError::ReadOnly(_) | VfsError::Changed(_) => ErrorKind::Unsupported,
         };
         Self::new(kind, e.to_string())
     }
@@ -198,6 +230,13 @@ pub enum Event {
         offset: u32,
         items: Vec<Summary>,
     },
+    /// Issue #48: a page of a season's episodes (`Core::season_episodes`).
+    Episodes {
+        request_id: u64,
+        total: u32,
+        offset: u32,
+        items: Vec<EpisodeRow>,
+    },
     Detail {
         request_id: u64,
         detail: Box<Detail>,
@@ -230,16 +269,81 @@ pub enum Event {
         request_id: u64,
         devices: Vec<Discovered>,
     },
+    /// Issue #10: an album's or artist's page (`kind`: album, artist) as JSON
+    /// (`huehuecoyotl_library::music::AlbumDetail`, `ArtistDetail`).
+    MusicDetail {
+        request_id: u64,
+        kind: String,
+        json: String,
+    },
+    /// Issue #11: whether music information is looked up online (MusicBrainz, Cover Art Archive).
+    /// Issue #8: the play queue changed (JSON: count, position, shuffle, repeat, offset,
+    /// entries).
+    QueueChanged {
+        request_id: u64,
+        json: String,
+    },
+    /// Issue #8: what the music player loads (see `playqueue`).
+    MusicTickets {
+        json: String,
+    },
+    /// Issue #12: which optional music providers have a key (JSON: `fanarttv`, `theaudiodb` →
+    /// none | keystore | session | rejected; `message`). Never the key.
+    MusicKeys {
+        request_id: u64,
+        json: String,
+    },
+    MusicOnline {
+        request_id: u64,
+        online: bool,
+    },
     KeyStatus {
         request_id: u64,
         has_key: bool,
         from_env: bool,
         message: String,
+        /// Issue #52: keystore, environment, session, none or unavailable (secrets::key_state).
+        state: String,
+        /// When TMDB last accepted the key (Unix seconds, 0: never).
+        validated_at: i64,
     },
     Error {
         request_id: u64,
         kind: ErrorKind,
         message: String,
+    },
+    /// The state of an item's saved copies (issue #4).
+    SaveState {
+        request_id: u64,
+        item_id: i64,
+        info: huehuecoyotl_library::copies::SaveInfo,
+    },
+    /// "Save as…" (issue #5) would overwrite these files; nothing was started.
+    ExportConflict {
+        request_id: u64,
+        paths: Vec<String>,
+    },
+    /// Saved copies and exports (issue #3), with the space saved copies use.
+    Downloads {
+        request_id: u64,
+        items: Vec<DownloadInfo>,
+        used_bytes: u64,
+        storage_dir: String,
+    },
+    /// One copied file moved on (at most twice a second while it runs), changed state
+    /// (queued, running, paused, done, failed, outdated) or was removed (`removed`).
+    /// `main_id` is the row the Downloads screen shows; subtitles and parts count towards it.
+    DownloadProgress {
+        id: i64,
+        main_id: i64,
+        item_id: i64,
+        /// saved | export (issue #48: tiles show only saved copies' progress).
+        kind: String,
+        state: String,
+        bytes_done: u64,
+        size: u64,
+        error_kind: String,
+        error: String,
     },
 }
 
@@ -259,11 +363,23 @@ struct Inner {
     sink: Box<dyn EventSink>,
     tasks: Mutex<HashMap<u64, AbortHandle>>,
     tickets: Mutex<HashMap<u64, i64>>,
+    /// The library file a ticket plays (issue #33: what mpv reports during playback fills in
+    /// the file's technical details when the probe could not).
+    ticket_files: Mutex<HashMap<u64, i64>>,
     data_dir: PathBuf,
     /// BCP-47 UI language for metadata ("de-DE").
     language: String,
     provider: RwLock<Option<Arc<dyn MetadataProvider>>>,
+    /// Issue #11: MusicBrainz and the Cover Art Archive; one client, so one rate limiter.
+    music: RwLock<Arc<dyn MusicProvider>>,
+    /// Issue #67: Open Library, or a test's provider.
+    books: RwLock<Arc<dyn huehuecoyotl_metadata::books::BookProvider>>,
     key_source: Mutex<Option<KeySource>>,
+    /// Issue #52: whether a keystore that keeps secrets is available (else why not), the time
+    /// TMDB last accepted the key, and whether the start-up has looked for the key yet.
+    keystore: Mutex<Result<(), String>>,
+    key_validated_at: AtomicI64,
+    key_loaded: tokio::sync::watch::Sender<bool>,
     /// Wakes the job workers: new work, a new key.
     wake: Notify,
     changed: AtomicBool,
@@ -271,8 +387,25 @@ struct Inner {
     /// Live connections of network sources, by source id.
     remotes: Mutex<HashMap<i64, Arc<dyn RemoteSource>>>,
     offline: Mutex<HashSet<i64>>,
+    /// Issue #150: why the library's move is paused, while it is.
+    library_move_error: Mutex<Option<String>>,
+    /// Issue #157: sources that refused a tag write, shown as read-only until the app restarts.
+    read_only_sources: Mutex<HashSet<i64>>,
     /// The "add network share" dialog's connection: (settings key, source).
     probe: Mutex<Option<(String, Arc<dyn RemoteSource>)>>,
+    /// Issue #149: the last merge by hand, undoable for a short while.
+    merge_undo: Mutex<Option<(huehuecoyotl_library::artists::Undo, std::time::Instant)>>,
+    /// Read priorities per source (issue #3): playback before downloads and probes.
+    gates: Mutex<HashMap<i64, Arc<download::Gate>>>,
+    /// Pause and cancel of the copies that are running, by `local_copy` id.
+    downloads: Mutex<HashMap<i64, Arc<download::Ctl>>>,
+    /// Issue #8: the play queue's task, its ticket numbers, and the tickets whose track was
+    /// counted as played.
+    queue_tx: Mutex<Option<tokio::sync::mpsc::UnboundedSender<(u64, playqueue::Op)>>>,
+    music_ticket: AtomicU64,
+    counted: Mutex<HashSet<u64>>,
+    /// Issue #12: TheAudioDB and Fanart.tv, when the user entered keys.
+    extras: RwLock<extras::Extras>,
 }
 
 impl Inner {
@@ -309,13 +442,80 @@ impl Inner {
     }
 
     fn key_status_event(&self, request_id: u64, message: String) -> Event {
-        let src = *self.key_source.lock().unwrap();
+        let has_key = self.provider().is_some();
+        let src = if has_key {
+            *self.key_source.lock().unwrap()
+        } else {
+            None
+        };
+        let keystore = self.keystore.lock().unwrap().clone();
         Event::KeyStatus {
             request_id,
-            has_key: self.provider().is_some(),
+            has_key,
             from_env: src == Some(KeySource::Environment),
             message,
+            state: secrets::key_state(src, &keystore).to_string(),
+            validated_at: self.key_validated_at.load(Ordering::Relaxed),
         }
+    }
+
+    /// Issue #52: TMDB accepted the key now (or, with `at` 0, the key is gone).
+    async fn set_key_validated(self: &Arc<Self>, at: i64) {
+        self.key_validated_at.store(at, Ordering::Relaxed);
+        let value = (at > 0).then(|| at.to_string());
+        let _ = self
+            .lib
+            .write(move |c| {
+                huehuecoyotl_library::copies::set_setting(c, KEY_VALIDATED, value.as_deref())
+            })
+            .await;
+    }
+
+    /// Issue #52: look for the TMDB key once at start-up (before anything else waits on the
+    /// network) and tell the UI what was found. Status requests wait for this.
+    async fn load_key(self: &Arc<Self>) {
+        let at = self
+            .lib
+            .read(|c| huehuecoyotl_library::copies::setting(c, KEY_VALIDATED))
+            .await
+            .ok()
+            .flatten()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0);
+        self.key_validated_at.store(at, Ordering::Relaxed);
+        let (load, keystore) = tokio::task::spawn_blocking(|| {
+            let keystore = if std::env::var_os("COYOTL_DISABLE_KEYSTORE").is_some() {
+                Ok(())
+            } else {
+                secrets::keystore_status()
+            };
+            (secrets::load_tmdb_key(), keystore)
+        })
+        .await
+        .unwrap_or((secrets::KeyLoad::Absent, Ok(())));
+        *self.keystore.lock().unwrap() = match &load {
+            secrets::KeyLoad::Unavailable(why) => Err(why.clone()),
+            _ => keystore,
+        };
+        if let secrets::KeyLoad::Found(key, src) = load {
+            match huehuecoyotl_metadata::tmdb::Tmdb::new(key, self.language.clone()) {
+                // A provider set meanwhile (tests, the CLI) wins over the keystore.
+                Ok(t) if self.provider().is_none() => {
+                    self.set_provider(Some(Arc::new(t)), Some(src))
+                }
+                Ok(_) => {}
+                Err(e) => tracing::error!("TMDB client: {e}"),
+            }
+        }
+        tracing::info!(
+            state = secrets::key_state(
+                *self.key_source.lock().unwrap(),
+                &self.keystore.lock().unwrap()
+            ),
+            "TMDB key looked up"
+        );
+        self.key_loaded.send_replace(true);
+        self.sink.post(self.key_status_event(0, String::new()));
     }
 
     /// Post a debounced LibraryChanged so grids re-query at most a few times per second.
@@ -388,6 +588,7 @@ impl Core {
             sink: Box::new(sink),
             tasks: Mutex::default(),
             tickets: Mutex::default(),
+            ticket_files: Mutex::default(),
             data_dir: data_dir.to_path_buf(),
             language: if language.is_empty() {
                 "en-US".into()
@@ -395,13 +596,33 @@ impl Core {
                 language.to_string()
             },
             provider: RwLock::new(None),
+            music: RwLock::new(Arc::new(
+                huehuecoyotl_metadata::musicbrainz::MusicBrainz::new(env!("CARGO_PKG_VERSION"))
+                    .map_err(|e| CoreError::new(ErrorKind::Internal, e.to_string()))?,
+            )),
+            books: RwLock::new(Arc::new(
+                huehuecoyotl_metadata::openlibrary::OpenLibrary::new(env!("CARGO_PKG_VERSION"))
+                    .map_err(|e| CoreError::new(ErrorKind::Internal, e.to_string()))?,
+            )),
             key_source: Mutex::new(None),
+            keystore: Mutex::new(Ok(())),
+            key_validated_at: AtomicI64::new(0),
+            key_loaded: tokio::sync::watch::channel(false).0,
             wake: Notify::new(),
             changed: AtomicBool::new(false),
             scanning: Mutex::default(),
             remotes: Mutex::default(),
             offline: Mutex::default(),
+            library_move_error: Mutex::default(),
+            read_only_sources: Mutex::default(),
             probe: Mutex::default(),
+            merge_undo: Mutex::default(),
+            gates: Mutex::default(),
+            downloads: Mutex::default(),
+            queue_tx: Mutex::default(),
+            music_ticket: AtomicU64::new(playqueue::FIRST_MUSIC_TICKET),
+            counted: Mutex::default(),
+            extras: RwLock::default(),
         });
         // mpv's demuxer threads open coyotl:// URLs through this (SPEC 5.3).
         let weak = Arc::downgrade(&inner);
@@ -410,22 +631,33 @@ impl Core {
                 .upgrade()
                 .ok_or_else(|| VfsError::Internal("core closed".into()))?;
             huehuecoyotl_stream::block_on(inner.remote_source(id))
-                .map(|s| s as Arc<dyn Source>)
+                .map(|s| {
+                    Arc::new(download::Prioritised::playback(s, inner.gate(id))) as Arc<dyn Source>
+                })
                 .map_err(|e| match e.kind {
                     ErrorKind::Auth => VfsError::Auth(e.message),
                     ErrorKind::Unreachable => VfsError::Unreachable(e.message),
                     ErrorKind::NotFound => VfsError::NotFound(e.message),
                     ErrorKind::Unsupported => VfsError::Unsupported(e.message),
-                    ErrorKind::Internal => VfsError::Internal(e.message),
+                    ErrorKind::Internal | ErrorKind::NoSpace => VfsError::Internal(e.message),
                 })
         }));
+        // Offline copies: clean up after the last session (exports are forgotten) and queue
+        // unfinished ones, before the first request can list them.
+        rt.block_on(download::startup(&inner));
         let start = inner.clone();
         rt.spawn(async move {
+            start.load_key().await;
+            start.load_music_keys().await;
+            // Artists not looked up at the optional providers yet (only with a key).
+            extras::enqueue_artists(&start, &[]).await;
             // Crash-safe queue: running jobs from a previous session run again.
             let _ = start
                 .lib
                 .write(|c| huehuecoyotl_library::jobs::recover(c))
                 .await;
+            // Technical details of files not analysed yet (low priority, its own worker).
+            probe::enqueue_unprobed(&start).await;
             // Larger grid thumbnails for libraries from before they existed (offline).
             worker::enqueue_tiers(
                 &start,
@@ -448,18 +680,14 @@ impl Core {
                     .await;
                 }
             }
-            if let Ok(Some((key, src))) = tokio::task::spawn_blocking(secrets::load_tmdb_key).await
-            {
-                match huehuecoyotl_metadata::tmdb::Tmdb::new(key, start.language.clone()) {
-                    // A provider set meanwhile (tests, the CLI) wins over the keystore.
-                    Ok(t) if start.provider().is_none() => {
-                        start.set_provider(Some(Arc::new(t)), Some(src))
-                    }
-                    Ok(_) => {}
-                    Err(e) => tracing::error!("TMDB client: {e}"),
-                }
-            }
+            // Issue #118: passwords of folders from before shares move to their share first.
+            shares::move_passwords(&start).await;
             worker::spawn_workers(&start);
+            // Issue #148: matched artists without MusicBrainz's spelling yet.
+            music_matching::enqueue_artist_names(&start).await;
+            // Issue #92: a library rematch waiting from the last session.
+            matching::kick(&start).await;
+            download::spawn_worker(&start);
             network::spawn_reconnect(&start);
         });
         Ok(Self {
@@ -585,41 +813,19 @@ impl Core {
     }
 
     /// Prepare a known item for playback. Shows and seasons play their next-up episode.
+    /// Issue #34: play one version (file) of a movie or episode.
+    pub fn open_item_file(&self, request_id: u64, item_id: i64, file_id: i64) {
+        self.open_files(request_id, item_id, Some(file_id));
+    }
+
     pub fn open_item(&self, request_id: u64, item_id: i64) {
+        self.open_files(request_id, item_id, None);
+    }
+
+    fn open_files(&self, request_id: u64, item_id: i64, only: Option<i64>) {
         let ticket_id = self.next_ticket.fetch_add(1, Ordering::Relaxed);
         self.spawn(request_id, move |inner| async move {
-            let files = inner
-                .lib
-                .read(move |c| {
-                    let mut id = item_id;
-                    if let Some(d) = huehuecoyotl_library::catalog::detail(c, item_id)? {
-                        if let Some(n) = d.next_up {
-                            id = n.id;
-                        }
-                    }
-                    huehuecoyotl_library::catalog::playable_files(c, id)
-                })
-                .await?;
-            // Local copies first, then network copies.
-            let mut last =
-                CoreError::new(ErrorKind::NotFound, format!("item {item_id} has no file"));
-            let mut ticket = None;
-            for f in files {
-                // A source marked offline is tried anyway: the user asked, and it may be back.
-                let r = if f.kind == "local" {
-                    prepare_local(&inner, &f.path, ticket_id).await
-                } else {
-                    network::prepare_remote(&inner, f.source_id, &f.path, ticket_id).await
-                };
-                match r {
-                    Ok(t) => {
-                        ticket = Some(t);
-                        break;
-                    }
-                    Err(e) => last = e,
-                }
-            }
-            let ticket = ticket.ok_or(last)?;
+            let ticket = prepare_item(&inner, item_id, only, ticket_id).await?;
             Ok(Event::Playback { request_id, ticket })
         });
     }
@@ -640,11 +846,21 @@ impl Core {
             return; // nothing meaningful to store yet
         }
         let ended = state == PlayerState::Ended;
-        // Queued from here, in call order, onto the single writer.
-        let fut = self
+        // Issue #34: a known version keeps its own position when it is another cut.
+        let file = self
             .inner
-            .lib
-            .submit(move |c| queries::save_progress(c, item_id, position_ms, duration_ms, ended));
+            .ticket_files
+            .lock()
+            .unwrap()
+            .get(&ticket)
+            .copied();
+        // Queued from here, in call order, onto the single writer.
+        let fut = self.inner.lib.submit(move |c| match file {
+            Some(f) => {
+                queries::save_version_progress(c, item_id, f, position_ms, duration_ms, ended)
+            }
+            None => queries::save_progress(c, item_id, position_ms, duration_ms, ended),
+        });
         let sink_inner = self.inner.clone();
         self.rt.spawn(async move {
             match fut.await {
@@ -655,6 +871,47 @@ impl Core {
         if ended {
             self.inner.tickets.lock().unwrap().remove(&ticket);
         }
+    }
+
+    /// What mpv reports about the playing file (issue #33 fallback): stored as the file's
+    /// technical details when it has none, or only an error or older mpv data.
+    pub fn report_media_info(&self, ticket: u64, mpv_json: &str) {
+        let Some(file_id) = self
+            .inner
+            .ticket_files
+            .lock()
+            .unwrap()
+            .get(&ticket)
+            .copied()
+        else {
+            return;
+        };
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(mpv_json) else {
+            return;
+        };
+        let inner = self.inner.clone();
+        self.rt.spawn(async move {
+            let r = inner
+                .lib
+                .write(move |c| {
+                    let current = catalog::probe_json(c, file_id)?.and_then(|j| {
+                        serde_json::from_str::<huehuecoyotl_probe::ProbeInfo>(&j).ok()
+                    });
+                    let replace = current.is_none_or(|p| p.error.is_some() || p.source == "mpv");
+                    if !replace {
+                        return Ok(None);
+                    }
+                    let info = huehuecoyotl_probe::from_mpv(&v);
+                    let json = serde_json::to_string(&info).unwrap_or_default();
+                    catalog::set_probe(c, file_id, &json)
+                })
+                .await;
+            match r {
+                Ok(Some(item_id)) => inner.sink.post(Event::ItemChanged { item_id }),
+                Ok(None) => {}
+                Err(e) => tracing::error!(file_id, "storing media info failed: {e}"),
+            }
+        });
     }
 
     pub fn set_track_pref(&self, ticket: u64, mut pref: TrackPref) {
@@ -762,13 +1019,155 @@ async fn prepare_local(inner: &Arc<Inner>, path: &str, ticket_id: u64) -> CResul
         })
         .await?;
     inner.tickets.lock().unwrap().insert(ticket_id, item_id);
+    let p3 = vp.to_string();
+    if let Ok(Some(file)) = inner
+        .lib
+        .read(move |c| huehuecoyotl_library::catalog::file_for_path(c, None, &p3))
+        .await
+    {
+        inner.ticket_files.lock().unwrap().insert(ticket_id, file);
+    }
+    // Issue #34: a version of another cut resumes from its own position.
+    let file = inner.ticket_files.lock().unwrap().get(&ticket_id).copied();
+    let resume_ms = match file {
+        Some(f) => inner
+            .lib
+            .read(move |c| {
+                let dur = catalog::file_duration_ms(c, f)?;
+                queries::resume_for(c, item_id, f, dur)
+            })
+            .await
+            .unwrap_or(if state.watched { 0 } else { state.position_ms }),
+        None => {
+            if state.watched {
+                0
+            } else {
+                state.position_ms
+            }
+        }
+    };
     Ok(Ticket {
         ticket: ticket_id,
         item_id,
         title: title.unwrap_or_else(|| entry.name.clone()),
         url: vp.to_string(),
         is_network: false,
-        resume_ms: if state.watched { 0 } else { state.position_ms },
+        resume_ms,
+        subtitles,
+        audio_langs: lang::variants(&prefs.audio_lang),
+        sub_langs: lang::variants(&prefs.sub_lang),
+        prefs,
+    })
+}
+
+/// Prepare an item for playback: shows and seasons play their next-up episode; files on this
+/// computer first, then saved copies, then network files (issue #4, #34: `only` one version).
+/// Issue #8: the play queue prepares its tracks the same way.
+pub(crate) async fn prepare_item(
+    inner: &Arc<Inner>,
+    item_id: i64,
+    only: Option<i64>,
+    ticket_id: u64,
+) -> CResult<Ticket> {
+    let files = inner
+        .lib
+        .read(move |c| {
+            let mut id = item_id;
+            if let Some(d) = huehuecoyotl_library::catalog::detail(c, item_id)?
+                && let Some(n) = d.next_up
+            {
+                id = n.id;
+            }
+            let mut files = huehuecoyotl_library::catalog::playable_files(c, id)?;
+            if let Some(f) = only {
+                files.retain(|p| p.file_id == f);
+            }
+            // Issue #4: a complete, current saved copy plays instead of the network file.
+            let mut out = Vec::new();
+            for f in files {
+                let saved = if f.kind == "local" {
+                    None
+                } else {
+                    huehuecoyotl_library::copies::usable_path(c, f.file_id)?
+                };
+                out.push((f, saved, id));
+            }
+            // Files on this computer first, then saved copies, then network files.
+            out.sort_by_key(|(f, saved, _)| (f.kind != "local", saved.is_none()));
+            Ok(out)
+        })
+        .await?;
+    let mut last = CoreError::new(ErrorKind::NotFound, format!("item {item_id} has no file"));
+    let mut ticket = None;
+    for (f, saved, played) in files {
+        // A source marked offline is tried anyway: the user asked, and it may be back.
+        let r = if let Some(path) = saved {
+            match prepare_copy(inner, &path, played, f.file_id, ticket_id).await {
+                Ok(t) => Ok(t),
+                // The copy went missing: fall back to the network file.
+                Err(_) => network::prepare_remote(inner, f.source_id, &f.path, ticket_id).await,
+            }
+        } else if f.kind == "local" {
+            prepare_local(inner, &f.path, ticket_id).await
+        } else {
+            network::prepare_remote(inner, f.source_id, &f.path, ticket_id).await
+        };
+        match r {
+            Ok(t) => {
+                ticket = Some(t);
+                break;
+            }
+            Err(e) => last = e,
+        }
+    }
+    ticket.ok_or(last)
+}
+
+/// Prepare a saved copy (issue #4) of a library file: a local file, but the item, its watch
+/// state and its version's resume position are the library file's.
+async fn prepare_copy(
+    inner: &Arc<Inner>,
+    path: &str,
+    item_id: i64,
+    file_id: i64,
+    ticket_id: u64,
+) -> CResult<Ticket> {
+    let vp = VPath::new(path);
+    let entry = inner.local.stat(&vp).await?;
+    let siblings = match vp.parent() {
+        Some(dir) => inner.local.list(&dir).await.unwrap_or_default(),
+        None => vec![],
+    };
+    let subtitles = find_sidecar_subtitles(&entry.name, &siblings)
+        .into_iter()
+        .map(|e| sidecar(&entry.name, &e.name, e.path.to_string()))
+        .collect();
+    let (title, state, prefs, resume) = inner
+        .lib
+        .read(move |c| {
+            let dur = catalog::file_duration_ms(c, file_id)?;
+            Ok((
+                queries::item_title(c, item_id)?,
+                queries::playstate(c, item_id)?,
+                queries::track_pref(c, item_id)?,
+                queries::resume_for(c, item_id, file_id, dur),
+            ))
+        })
+        .await?;
+    inner.tickets.lock().unwrap().insert(ticket_id, item_id);
+    inner
+        .ticket_files
+        .lock()
+        .unwrap()
+        .insert(ticket_id, file_id);
+    let fallback = if state.watched { 0 } else { state.position_ms };
+    Ok(Ticket {
+        ticket: ticket_id,
+        item_id,
+        title: title.unwrap_or_else(|| entry.name.clone()),
+        url: vp.to_string(),
+        is_network: false,
+        resume_ms: resume.unwrap_or(fallback),
         subtitles,
         audio_langs: lang::variants(&prefs.audio_lang),
         sub_langs: lang::variants(&prefs.sub_lang),
@@ -814,8 +1213,14 @@ mod tests {
         (d, c, rx)
     }
 
+    /// The next answer; the start-up's key lookup (issue #52) is not one.
     fn next(rx: &Receiver<Event>) -> Event {
-        rx.recv_timeout(Duration::from_secs(5)).expect("event")
+        loop {
+            match rx.recv_timeout(Duration::from_secs(5)).expect("event") {
+                Event::KeyStatus { request_id: 0, .. } => continue,
+                e => return e,
+            }
+        }
     }
 
     #[test]

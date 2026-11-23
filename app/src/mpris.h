@@ -7,6 +7,7 @@
 #include <QVariantMap>
 
 class MpvPlayer;
+class MusicPlayer;
 class PlaybackController;
 
 class MprisRoot : public QDBusAbstractAdaptor {
@@ -40,6 +41,8 @@ class MprisRoot : public QDBusAbstractAdaptor {
     void Quit();
 };
 
+class BookPlayer;
+
 class MprisPlayer : public QDBusAbstractAdaptor {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "org.mpris.MediaPlayer2.Player")
@@ -58,7 +61,8 @@ class MprisPlayer : public QDBusAbstractAdaptor {
     Q_PROPERTY(bool CanControl READ alwaysTrue CONSTANT)
 
   public:
-    MprisPlayer(QObject *parent, MpvPlayer *player, PlaybackController *playback);
+    MprisPlayer(QObject *parent, MpvPlayer *player, PlaybackController *playback, MusicPlayer *music,
+                BookPlayer *book);
 
     QString playbackStatus() const;
     double rate() const;
@@ -91,13 +95,21 @@ class MprisPlayer : public QDBusAbstractAdaptor {
   private:
     void notify(const QStringList &names);
     QDBusObjectPath trackId() const;
+    // Issue #8: MPRIS shows the player that plays: music unless a video is open.
+    bool music() const;
+    // Issue #66: a book, when it played last and no video is open.
+    bool book() const;
+    double pos() const;
 
     MpvPlayer *m_player;
     PlaybackController *m_playback;
+    MusicPlayer *m_music;
+    BookPlayer *m_book;
     double m_lastPos = 0;
     qint64 m_lastPosAt = 0;
     int m_track = 0;
 };
 
 // Registers both adaptors on /org/mpris/MediaPlayer2. Does nothing without a session bus.
-void registerMpris(QObject *owner, MpvPlayer *player, PlaybackController *playback);
+void registerMpris(QObject *owner, MpvPlayer *player, PlaybackController *playback, MusicPlayer *music,
+                   BookPlayer *book);

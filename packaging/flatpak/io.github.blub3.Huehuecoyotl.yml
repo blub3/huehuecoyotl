@@ -1,9 +1,10 @@
 # Flatpak build of Huehuecoyotl (SPEC 10). Build locally with packaging/flatpak/build.sh,
 # which vendors the Rust crates and generates the third-party notices first.
 #
-# libmpv and its libraries are built here from the same pinned sources as the Docker recipe in
-# third_party/mpv (LGPL configuration: no --enable-gpl, mpv -Dgpl=false). Qt comes from the
-# KDE runtime.
+# libmpv, libass and libplacebo are built here from the same pinned sources as the Docker recipe
+# in third_party/mpv (mpv -Dgpl=false). Qt and FFmpeg come from the KDE runtime (issue #161): this
+# package ships no FFmpeg. The runtime's LGPL FFmpeg has no H.264, HEVC, VC-1 or E-AC-3 decoder;
+# Flathub's org.freedesktop.Platform.codecs-extra adds them and is GPL (docs/SPEC.md, section 3).
 id: io.github.blub3.Huehuecoyotl
 runtime: org.kde.Platform
 runtime-version: '6.11'
@@ -35,7 +36,6 @@ cleanup:
   - /lib/pkgconfig
   - /share/pkgconfig
   - /share/aclocal
-  - /share/ffmpeg
   - '*.la'
   - '*.a'
 
@@ -49,35 +49,6 @@ modules:
         url: https://github.com/FFmpeg/nv-codec-headers.git
         tag: n13.0.19.0
         commit: e844e5b26f46bb77479f063029595293aa8f812d
-
-  # FFmpeg: LGPL v2.1+. Decoders, demuxers, parsers and filters only.
-  - name: ffmpeg
-    config-opts:
-      - --enable-shared
-      - --disable-static
-      - --disable-programs
-      - --disable-doc
-      - --disable-encoders
-      - --disable-muxers
-      - --disable-indevs
-      - --disable-outdevs
-      - --disable-autodetect
-      - --enable-zlib
-      - --enable-vaapi
-      - --enable-ffnvcodec
-      - --enable-nvdec
-      - --enable-cuvid
-      - --enable-network
-      - --enable-pic
-    post-install:
-      # Fail the build if the configuration ever turns GPL, non-free or LGPLv3.
-      - "! grep -E '^#define (CONFIG_GPL|CONFIG_NONFREE|CONFIG_VERSION3) 1' config.h"
-      - install -Dm644 -t /app/share/licenses/ffmpeg LICENSE.md COPYING.LGPLv2.1
-    sources:
-      - type: git
-        url: https://github.com/FFmpeg/FFmpeg.git
-        tag: n8.1.3
-        commit: 1041abdc962f4cc4f394aa8de9dc5236c0c3b9e7
 
   - name: libass
     config-opts: [--disable-static]
@@ -174,6 +145,8 @@ modules:
       env:
         CARGO_HOME: /run/build/coyotl/cargo
         CARGO_NET_OFFLINE: 'true'
+        # The media probe's struct layouts must match the runtime's FFmpeg.
+        COYOTL_FFMPEG_ABI: '7.1'
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCOYOTL_BUILD_TESTS=OFF
@@ -181,6 +154,9 @@ modules:
       - -DCOYOTL_NOTICES_FILE=/run/build/coyotl/THIRD_PARTY_NOTICES.txt
       - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
       - -DFETCHCONTENT_SOURCE_DIR_CORROSION=/run/build/coyotl/corrosion
+      # Issue #161: DT_RUNPATH instead of DT_RPATH, so LD_LIBRARY_PATH can point the app at a
+      # rebuilt or modified LGPL library (all bundled libraries are in /app/lib anyway).
+      - -DCMAKE_EXE_LINKER_FLAGS=-Wl,--enable-new-dtags
     sources:
       - type: dir
         path: ../..

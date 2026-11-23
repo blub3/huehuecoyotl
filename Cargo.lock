@@ -1239,9 +1239,9 @@ checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "form_urlencoded"
-version = "1.2.2"
+version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf"
+checksum = "afa489199eaffb1211795df1c6236ce1ad0d41a6fa45250add73e3b02420f06e"
 dependencies = [
  "percent-encoding",
 ]
@@ -1585,27 +1585,32 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "huehuecoyotl-cli"
-version = "1.0.0"
+version = "3.0.1"
 dependencies = [
  "crossbeam-channel",
  "huehuecoyotl-core",
+ "huehuecoyotl-probe",
+ "serde_json",
 ]
 
 [[package]]
 name = "huehuecoyotl-core"
-version = "1.0.0"
+version = "3.0.1"
 dependencies = [
  "async-trait",
  "bytes 1.12.1",
  "crossbeam-channel",
  "huehuecoyotl-library",
  "huehuecoyotl-metadata",
+ "huehuecoyotl-probe",
  "huehuecoyotl-scanner",
  "huehuecoyotl-stream",
  "huehuecoyotl-vfs",
  "huehuecoyotl-vfs-sftp",
  "image",
  "keyring",
+ "keyring-core",
+ "libc",
  "mdns-sd",
  "regex",
  "serde",
@@ -1615,11 +1620,13 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "windows-sys 0.61.2",
+ "wiremock",
 ]
 
 [[package]]
 name = "huehuecoyotl-core-api"
-version = "1.0.0"
+version = "3.0.1"
 dependencies = [
  "cxx",
  "huehuecoyotl-core",
@@ -1629,20 +1636,23 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-library"
-version = "1.0.0"
+version = "3.0.1"
 dependencies = [
  "crossbeam-channel",
  "image",
  "rusqlite",
+ "serde",
+ "serde_json",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
+ "unicode-normalization",
 ]
 
 [[package]]
 name = "huehuecoyotl-metadata"
-version = "1.0.0"
+version = "3.0.1"
 dependencies = [
  "async-trait",
  "bytes 1.12.1",
@@ -1658,11 +1668,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "huehuecoyotl-scanner"
-version = "1.0.0"
+name = "huehuecoyotl-probe"
+version = "3.0.1"
 dependencies = [
+ "libloading",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "huehuecoyotl-scanner"
+version = "3.0.1"
+dependencies = [
+ "async-trait",
+ "bytes 1.12.1",
+ "futures-util",
  "huehuecoyotl-library",
  "huehuecoyotl-vfs",
+ "lofty",
+ "quick-xml",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
@@ -1671,7 +1697,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-stream"
-version = "1.0.0"
+version = "3.0.1"
 dependencies = [
  "async-trait",
  "bytes 1.12.1",
@@ -1683,7 +1709,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-vfs"
-version = "1.0.0"
+version = "3.0.1"
 dependencies = [
  "async-trait",
  "bytes 1.12.1",
@@ -1706,7 +1732,7 @@ dependencies = [
 
 [[package]]
 name = "huehuecoyotl-vfs-sftp"
-version = "1.0.0"
+version = "3.0.1"
 dependencies = [
  "async-trait",
  "bytes 1.12.1",
@@ -2140,6 +2166,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
 
 [[package]]
+name = "libloading"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1832accd5a4ca2795ace4d05d15c4039be15b62d3b950eff99746a990e3cc10"
+dependencies = [
+ "cfg-if",
+ "windows-link",
+]
+
+[[package]]
 name = "libsqlite3-sys"
 version = "0.39.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2178,6 +2214,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965"
 dependencies = [
  "scopeguard",
+]
+
+[[package]]
+name = "lofty"
+version = "0.25.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35d45c446382e04663705aa8e786157f64ef1fa85755d410121ffbf08f54b0db"
+dependencies = [
+ "byteorder",
+ "data-encoding",
+ "flate2",
+ "lofty_attr",
+ "log",
+ "ogg_pager",
+ "paste",
+]
+
+[[package]]
+name = "lofty_attr"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fdbca1b60ba7cea959ffc84ac27f3dbdbacd6dfda168c7eabbc00e48654bb9fd"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -2538,6 +2600,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ogg_pager"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "166611b491f939446e64c6be930843a31eb8e6798204ec3e9f57e084c18e7446"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "oid"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2662,6 +2733,12 @@ checksum = "aab41826031698d6ffcd9cff78ef56ef998e39dc7e5067cdfebe373842d4723b"
 dependencies = [
  "phc",
 ]
+
+[[package]]
+name = "paste"
+version = "1.0.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pastey"
@@ -3351,6 +3428,7 @@ dependencies = [
  "base64 0.23.1",
  "bytes 1.12.1",
  "futures-core",
+ "futures-util",
  "h2",
  "http",
  "http-body",
@@ -3371,12 +3449,14 @@ dependencies = [
  "sync_wrapper",
  "tokio",
  "tokio-rustls",
+ "tokio-util",
  "tower",
  "tower-http",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "wasm-streams",
  "web-sys",
 ]
 
@@ -4758,6 +4838,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
 
 [[package]]
+name = "unicode-normalization"
+version = "0.1.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5033c97c4262335cded6d6fc3e5c18ab755e1a3dc96376350f3d8e9f009ad956"
+dependencies = [
+ "tinyvec",
+]
+
+[[package]]
 name = "unicode-width"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4781,9 +4870,9 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "url"
-version = "2.5.8"
+version = "2.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff67a8a4397373c3ef660812acab3268222035010ab8680ec4215f38ba3d0eed"
+checksum = "f00cd2407bb42c0ef17be88d4cf020f5cceffd121665bac9b8b9493a369b3b1a"
 dependencies = [
  "form_urlencoded",
  "idna",
@@ -4923,6 +5012,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b1f9c3798725016c6ee5f2f57869ec0831e8bbc0ab0310a86e787e97f41389e"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "wasm-streams"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d1ec4f6517c9e11ae630e200b2b65d193279042e28edd4a2cda233e46670bbb"
+dependencies = [
+ "futures-util",
+ "js-sys",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
