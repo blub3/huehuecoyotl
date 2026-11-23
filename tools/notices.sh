@@ -26,6 +26,16 @@ file() { printf '\n----- %s -----\n\n' "$2"; cat "$1"; }
   cat "$root/NOTICE"
   file "$root/LICENSE" "Apache License 2.0"
 
+  # Issue #164: the icons in this package are not under the Apache License.
+  section "Huehuecoyotl logo and icons"
+  cat "$root/assets/logo/LICENSE"
+
+  section "FFmpeg types in the media probe (LGPL-2.1-or-later)"
+  echo "The media probe contains types and constants generated from FFmpeg's headers"
+  echo "(crates/probe/src/ffi_types.rs and ffi_types_71.rs). FFmpeg's headers are licensed under the"
+  echo "GNU Lesser General Public License, version 2.1 or later; its text is in the libmpv section"
+  echo "below. FFmpeg's source: https://ffmpeg.org"
+
   section "Qt 6 (LGPL-3.0-only) – https://www.qt.io"
   echo "Modules: Qt Core, Gui, OpenGL, Qml, Quick, Quick Controls 2, D-Bus (Linux)."
   echo "Source: https://download.qt.io/official_releases/qt/"

@@ -2,7 +2,7 @@
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
 
-**Changes in v1.19:** 2.9.2, in progress: a notice when a track has no decoder (issue #171, section 10, *Codecs at run time*); the choice of online lookups or files only before the first request (issue #165, section 7, *Privacy*).
+**Changes in v1.19:** 2.9.2, in progress: a notice when a track has no decoder (issue #171, section 10, *Codecs at run time*); the choice of online lookups or files only before the first request (issue #165, section 7, *Privacy*); licence boundaries in `docs/PROVENANCE.md`, with the logo's terms and the FFmpeg-derived types in the notices (issue #164).
 
 **Changes in v1.18:** 2.9.1 is released for Linux on Nov 22, 2026: artist and album identity (issues #146 to #149), and the Flatpak uses the KDE runtime's FFmpeg with a source bundle for its LGPL libraries (#161, planned for 2.9.2 and merged before this release; section 10): one artist per MusicBrainz artist ID and per name without case and accents, migration 14; the artist's name (MusicBrainz's spelling, the files' or the user's), migration 15; Merge with…; one album per MusicBrainz release, with the release group linking its editions, which replaces the grouping of #63, migration 16 (section 7, *Artist identity*, *Artist names*, *Merge with…*, *One album per release*; section 9, *Other editions*).
 
