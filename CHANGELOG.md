@@ -2,15 +2,15 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
-## Unreleased (3.0)
+## 3.0.0 – 2026-11-23 (Linux)
 
-- Your library folder (#150, part of 3.0). Settings → Library picks a folder on this computer or a writable share, checks it, and holds Movies, TV Shows, Music and Audiobooks. Changing it moves your copies one by one, each checked before the old one is removed, or starts empty and keeps the old copies as a normal folder. What is in the library stays when its original is deleted or its source removed. Schema 17; a library that 3.0 has opened cannot be opened by 2.9.
-- Names for library copies (#152, part of 3.0): movies, shows, music and audiobooks get consistent folder and file names from their matched metadata, with IDs, disc numbers and track artists where they belong. Settings → Library shows an example.
-- Metadata for library copies (#153, part of 3.0): every MusicBrainz ID, ISRC and barcode is stored and can be written into a copy's tags (FLAC, Ogg, Opus, MP3, M4A, M4B), keeping ReplayGain and audiobook chapters. Movies and episodes get an `.nfo` beside the file.
-- Add to Library (#154, part of 3.0): copy a song, album, artist, movie, show or book into your library, named and tagged, with a preview first. The originals stay where they are. Imports under Downloads shows progress and what waits for you; importing something again copies nothing, and an unsure match or an occupied folder waits instead of being guessed or overwritten. Schema 18.
-- Review of imports (#155, part of 3.0): an unsure match waits for your choice, or imports with its own names. The same album or film in another quality can become another version, replace the library's copy (the old files go to a `.trash` folder in the library) or be left out. A folder holding other files is never written into.
-- Automatic import (#156, part of 3.0): per media type, new items in the folders you watch are copied into your library once they are matched. Unsure ones wait for you, and what was already in a folder when you started watching it stays where it is.
-- Edit tags (#157, part of 3.0): change the tags of a song, an album or all of an artist in your files, after a preview of every change. Read-only and unreachable files are reported and left alone, and a file changed meanwhile is not overwritten. Files are never renamed or moved. Under Flatpak, allowing writes now accepts only the folder that really holds these files.
+- Your library folder (#150). Settings → Library picks a folder on this computer or a writable share, checks it, and holds Movies, TV Shows, Music and Audiobooks. Changing it moves your copies one by one, each checked before the old one is removed, or starts empty and keeps the old copies as a normal folder. What is in the library stays when its original is deleted or its source removed. Schema 17; a library that 3.0 has opened cannot be opened by 2.9.
+- Names for library copies (#152): movies, shows, music and audiobooks get consistent folder and file names from their matched metadata, with IDs, disc numbers and track artists where they belong. Settings → Library shows an example.
+- Metadata for library copies (#153): every MusicBrainz ID, ISRC and barcode is stored and can be written into a copy's tags (FLAC, Ogg, Opus, MP3, M4A, M4B), keeping ReplayGain and audiobook chapters. Movies and episodes get an `.nfo` beside the file.
+- Add to Library (#154): copy a song, album, artist, movie, show or book into your library, named and tagged, with a preview first. The originals stay where they are. Imports under Downloads shows progress and what waits for you; importing something again copies nothing, and an unsure match or an occupied folder waits instead of being guessed or overwritten. Schema 18.
+- Review of imports (#155): an unsure match waits for your choice, or imports with its own names. The same album or film in another quality can become another version, replace the library's copy (the old files go to a `.trash` folder in the library) or be left out. A folder holding other files is never written into.
+- Automatic import (#156): per media type, new items in the folders you watch are copied into your library once they are matched. Unsure ones wait for you, and what was already in a folder when you started watching it stays where it is.
+- Edit tags (#157): change the tags of a song, an album or all of an artist in your files, after a preview of every change. Read-only and unreachable files are reported and left alone, and a file changed meanwhile is not overwritten. Files are never renamed or moved. Under Flatpak, allowing writes now accepts only the folder that really holds these files.
 
 ## 2.9.2 – 2026-11-23 (Linux)
 

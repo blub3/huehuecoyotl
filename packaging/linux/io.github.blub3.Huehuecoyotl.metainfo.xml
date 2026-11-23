@@ -93,6 +93,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="3.0.0" date="2026-11-23" type="stable">
+      <description>
+        <p>A managed library: choose a folder on this computer or a share, and the app keeps your own named and tagged copies there while your originals stay where they are. Add items by hand or import watched folders automatically, review unsure matches first, and edit the tags of a song, an album or an artist after a preview.</p>
+      </description>
+    </release>
     <release version="2.9.2" date="2026-11-23" type="stable">
       <description>
         <p>When a video, song or audiobook has no decoder, the app now names the codec and shows how to add it, instead of a black picture. A new library asks whether to use online services or your files only before anything is sent. Settings shows TMDB's approved logo, and the licence notices are complete.</p>
