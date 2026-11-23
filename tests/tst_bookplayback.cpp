@@ -16,6 +16,7 @@
 #include <algorithm>
 
 #include "bookplayer.h"
+#include "missingcodec.h"
 
 namespace {
 bool ffmpeg(const QStringList &args)
@@ -49,6 +50,7 @@ class TestBookPlayback : public QObject {
     QList<QPair<qint64, qint64>> saved;
     QList<double> speeds;
     qint64 ticketAt = 0;
+    QString onlyFile; // Issue #171: a book of this one file.
 
     QVariantMap ticket(qint64 positionMs)
     {
@@ -65,8 +67,11 @@ class TestBookPlayback : public QObject {
             {"positionMs", positionMs},
             {"speed", QVariant()},
             {"chapters", chapters},
-            {"files", QVariantList{QVariantMap{{"url", first}, {"startMs", 0}, {"durationMs", 20000}},
-                                   QVariantMap{{"url", second}, {"startMs", 20000}, {"durationMs", 20000}}}}};
+            {"files",
+             !onlyFile.isEmpty()
+                 ? QVariantList{QVariantMap{{"url", onlyFile}, {"startMs", 0}, {"durationMs", 40000}}}
+                 : QVariantList{QVariantMap{{"url", first}, {"startMs", 0}, {"durationMs", 20000}},
+                                QVariantMap{{"url", second}, {"startMs", 20000}, {"durationMs", 20000}}}}};
     }
 
     // Play the book from `positionMs` and wait until it plays.
@@ -190,6 +195,42 @@ class TestBookPlayback : public QObject {
         player->nextChapter();
         QTRY_VERIFY(qAbs(player->position() - 20.0) < 1.0);
         QTRY_COMPARE(player->chapter(), 2);
+    }
+
+    // Issue #171: mpv's lines as the KDE runtime's FFmpeg writes them without the extension.
+    void missingCodecLines()
+    {
+        const auto video = MissingCodec::parse("vd", "Failed to initialize a decoder for codec 'h264'.");
+        QVERIFY(video && video->video);
+        QCOMPARE(video->codec, QStringLiteral("H.264"));
+        const auto audio = MissingCodec::parse("ad", "Failed to initialize a decoder for codec 'eac3'.");
+        QVERIFY(audio && !audio->video);
+        QCOMPARE(audio->codec, QStringLiteral("E-AC-3"));
+        QVERIFY(!MissingCodec::parse("cplayer", "Failed to initialize a decoder for codec 'h264'."));
+        QVERIFY(!MissingCodec::parse("ad", "Could not open codec."));
+        QVERIFY(MissingCodec::command(false).isEmpty());
+        QVERIFY(MissingCodec::command(true).contains("codecs-extra//25.08-extra"));
+        QVERIFY(MissingCodec::withFix("x", true).contains("flatpak install"));
+        QCOMPARE(MissingCodec::withFix("x", false), QStringLiteral("x"));
+    }
+
+    // A real stream without a decoder: the bundled FFmpeg does not decode this experimental codec
+    // unless asked to, so mpv reports it like a missing one.
+    void noDecoderSaysWhich()
+    {
+        const QString file = dir.filePath("nodecoder.mka");
+        if (!ffmpeg({"-f", "lavfi", "-i", "sine=frequency=441:sample_rate=48000:duration=1", "-c:a",
+                     "sonicls", "-strict", "-2", file}))
+            QSKIP("this ffmpeg cannot write the test stream");
+        onlyFile = file;
+        QSignalSpy failed(player, &BookPlayer::failed);
+        player->playBook(7, 0);
+        const bool got = failed.wait(10000);
+        onlyFile.clear();
+        QVERIFY(got);
+        const QString message = failed.first().first().toString();
+        QVERIFY2(message.contains("SONIC") && message.contains("no decoder"), qPrintable(message));
+        QCOMPARE(player->state(), BookPlayer::Error);
     }
 
     void cleanupTestCase() { delete player; }

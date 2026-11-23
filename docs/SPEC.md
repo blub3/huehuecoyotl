@@ -2,6 +2,8 @@
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
 
+**Changes in v1.19:** 2.9.2, in progress: a notice when a track has no decoder (issue #171, section 10, *Codecs at run time*).
+
 **Changes in v1.18:** 2.9.1 is released for Linux on Nov 22, 2026: artist and album identity (issues #146 to #149), and the Flatpak uses the KDE runtime's FFmpeg with a source bundle for its LGPL libraries (#161, planned for 2.9.2 and merged before this release; section 10): one artist per MusicBrainz artist ID and per name without case and accents, migration 14; the artist's name (MusicBrainz's spelling, the files' or the user's), migration 15; Merge with…; one album per MusicBrainz release, with the release group linking its editions, which replaces the grouping of #63, migration 16 (section 7, *Artist identity*, *Artist names*, *Merge with…*, *One album per release*; section 9, *Other editions*).
 
 **Changes in v1.17:** 2.9 is released for Linux on Nov 19, 2026: the Back button and the mini player (issues #133 to #138): one Back button on every stacked page, used by every page, with the trail and more Back keys (section 9, *Back button*); the mini player with the Now Playing controls, and for audiobooks skip and speed (section 9, *Mini player*).
@@ -739,6 +741,8 @@ Cargo.toml           Rust workspace
 **Formats in the bundle (2.0).** The FFmpeg recipe already builds every decoder and demuxer: it disables only encoders, muxers and devices. The bundle therefore already decodes FLAC, ALAC, PCM (WAV, AIFF), MP3, AAC, Vorbis, Opus and WavPack (checked on the 1.6 bundle); nothing has to be added for 2.0. mpv is built with PulseAudio, PipeWire and ALSA outputs and its file output (`ao=pcm`) for the tests. Issue #8 added the test that plays one generated fixture per format through the bundled libmpv (`tests/tst_musicplayback.cpp`); the recipe needed no change. Fixtures are generated in the test setup (tones or silence with tags); no copyrighted music is committed.
 
 **Audiobooks in the bundle (2.5).** M4B is MP4 with chapters, which FFmpeg demuxes already; mpv's `scaletempo2` filter is part of mpv. `tests/tst_musicplayback.cpp` gains an M4B fixture with chapters and a two-file book played back to back without a gap. Nothing is added to the recipe.
+
+**Codecs at run time (2.9.2, issue #171).** mpv reports a track without a decoder only in its log (`Failed to initialize a decoder for codec '<name>'`, from `vd` or `ad`). `app/src/missingcodec.h` reads that line for all three players. The video player keeps playing the other track and shows a notice (`CodecNotice.qml`); when nothing can play, its error names the codecs. Music and audiobooks ignore video tracks (cover art), name the codec in their error and do not retry on another audio device. In the Flatpak the notice adds the selectable command that installs `org.freedesktop.Platform.codecs-extra//25.08-extra`. The lines were captured from the KDE runtime's FFmpeg with the extension's libraries bypassed; the automated test plays a real stream whose decoder refuses to open.
 
 **CI pipeline (GitHub Actions, Windows and Linux runners)**
 

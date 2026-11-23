@@ -186,6 +186,23 @@ FocusScope {
         }
     }
 
+    // Issue #171: one track has no decoder, the other plays.
+    Rectangle {
+        objectName: "codecBanner"
+        anchors { top: parent.top; topMargin: 32; horizontalCenter: parent.horizontalCenter }
+        visible: page.player.codecNotice !== "" && page.player.state !== MpvPlayer.Error
+        width: Math.min(parent.width - 80, 720); height: bannerNotice.implicitHeight + 32
+        radius: Theme.radius
+        color: Theme.scrim
+        CodecNotice {
+            id: bannerNotice
+            anchors.centerIn: parent
+            width: parent.width - 32
+            message: page.player.codecNotice
+            command: page.player.codecCommand
+        }
+    }
+
     Rectangle {
         anchors.centerIn: parent
         visible: page.player.state === MpvPlayer.Error
@@ -198,6 +215,7 @@ FocusScope {
             width: parent.width - 48
             spacing: 16
             Label { Layout.fillWidth: true; text: page.player.errorString; color: Theme.text; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter }
+            CodecNotice { Layout.fillWidth: true; visible: command !== ""; command: page.player.codecCommand }
             FocusButton { Layout.alignment: Qt.AlignHCenter; text: qsTr("Back"); onClicked: page.leave() }
         }
     }

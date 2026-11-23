@@ -1,6 +1,7 @@
 #include "musicplayer.h"
 #include "audiopath.h"
 #include "corebridge.h"
+#include "missingcodec.h"
 #include "musicoptions.h"
 
 #include <QLoggingCategory>
@@ -547,6 +548,7 @@ void MusicPlayer::drainEvents()
             const qint64 id = ef->playlist_entry_id;
             qCDebug(lcMusic) << "end file" << id << "reason" << ef->reason << "entries" << m_entries.size();
             if (m_entries.isEmpty() || m_entries.first().value("mpvId").toLongLong() != id) break;
+            if (ef->reason != MPV_END_FILE_REASON_ERROR) m_noDecoder.clear();
             if (ef->reason == MPV_END_FILE_REASON_EOF) {
                 // Played to the end: counts, and the next start is from the beginning.
                 CoreBridge::instance()->musicProgress(ticket(), qint64(m_duration * 1000),
@@ -560,6 +562,15 @@ void MusicPlayer::drainEvents()
                     m_awaitNext = more;
                     setState(more ? Buffering : Ended);
                 }
+            } else if (ef->reason == MPV_END_FILE_REASON_ERROR && !m_noDecoder.isEmpty()) {
+                // Issue #171: another device would not help.
+                emit failed(MissingCodec::withFix(
+                    MissingCodec::cannotPlayTitled(m_current.value("title").toString(), m_noDecoder)));
+                m_noDecoder.clear();
+                m_retry = false;
+                m_loaded = false;
+                m_entries.clear();
+                setState(Error);
             } else if (ef->reason == MPV_END_FILE_REASON_ERROR && m_retry) {
                 // The device could not be opened for it: start it again on the default device.
                 m_retry = false;
@@ -585,6 +596,9 @@ void MusicPlayer::drainEvents()
             qCWarning(lcMusic).noquote() << m->prefix << text;
             // Only the final failure: with the automatic choice mpv tries several drivers.
             if (text.contains("Could not open/initialize audio device")) fallBack();
+            // Cover art is a video track: only audio counts here.
+            if (const auto hit = MissingCodec::parse(m->prefix, text); hit && !hit->video)
+                m_noDecoder = hit->codec;
             break;
         }
         default:

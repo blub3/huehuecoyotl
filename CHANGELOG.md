@@ -2,6 +2,10 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased (2.9.2)
+
+- A missing codec is explained (#171). When a video has no decoder for its picture or sound, a notice names the codec while the other track keeps playing; if nothing can play, the error says why. Music and audiobooks do the same. In the Flatpak the notice shows the command that installs the codec extension.
+
 ## 2.9.1 – 2026-11-22 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). One entry per artist and per MusicBrainz release, the artist's name, Merge with…, and linked album editions. The Flatpak now uses the KDE runtime's FFmpeg and comes with a source bundle. Schema 16; 2.9.0 cannot open a library that 2.9.1 has migrated.

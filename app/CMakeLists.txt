@@ -1,7 +1,7 @@
 qt_add_executable(coyotl WIN32 MACOSX_BUNDLE
   src/main.cpp
   src/corebridge.h src/corebridge.cpp src/coyotl/event_sink.h
-  src/mpvplayer.h src/mpvplayer.cpp
+  src/missingcodec.h src/mpvplayer.h src/mpvplayer.cpp
   src/mpvvideoitem.h src/mpvvideoitem.cpp
   src/playbackcontroller.h src/playbackcontroller.cpp
   src/musicplayer.h src/musicplayer.cpp src/musicoptions.h src/audiopath.h
@@ -75,6 +75,7 @@ qt_add_qml_module(coyotl
     qml/ArtistNameDialog.qml
     qml/ArtistMergeDialog.qml
     qml/OtherEditions.qml
+    qml/CodecNotice.qml
     qml/ShareEditor.qml
     qml/ShareEditPage.qml
     qml/ShareFoldersPage.qml

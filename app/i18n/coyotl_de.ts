@@ -1281,7 +1281,7 @@
 <context>
     <name>BookPlayer</name>
     <message>
-        <location filename="../src/bookplayer.cpp" line="475"/>
+        <location filename="../src/bookplayer.cpp" line="479"/>
         <source>Cannot play “%1”: %2</source>
         <translation>„%1“ kann nicht abgespielt werden: %2</translation>
     </message>
@@ -1432,6 +1432,14 @@
         <location filename="../qml/BrowserPage.qml" line="156"/>
         <source>No videos or folders here.</source>
         <translation>Hier gibt es keine Videos oder Ordner.</translation>
+    </message>
+</context>
+<context>
+    <name>CodecNotice</name>
+    <message>
+        <location filename="../qml/CodecNotice.qml" line="26"/>
+        <source>Install the codec extension, then start the app again:</source>
+        <translation>Installiere die Codec-Erweiterung und starte die App danach neu:</translation>
     </message>
 </context>
 <context>
@@ -3168,6 +3176,34 @@
     </message>
 </context>
 <context>
+    <name>MissingCodec</name>
+    <message>
+        <location filename="../src/missingcodec.h" line="55"/>
+        <source>No picture: there is no decoder for %1 on this system. The sound keeps playing.</source>
+        <translation>Kein Bild: Auf diesem System gibt es keinen Decoder für %1. Der Ton läuft weiter.</translation>
+    </message>
+    <message>
+        <location filename="../src/missingcodec.h" line="63"/>
+        <source>No sound: there is no decoder for %1 on this system. The picture keeps playing.</source>
+        <translation>Kein Ton: Auf diesem System gibt es keinen Decoder für %1. Das Bild läuft weiter.</translation>
+    </message>
+    <message>
+        <location filename="../src/missingcodec.h" line="71"/>
+        <source>Cannot play this file: there is no decoder for %1 on this system.</source>
+        <translation>Diese Datei kann nicht abgespielt werden: Auf diesem System gibt es keinen Decoder für %1.</translation>
+    </message>
+    <message>
+        <location filename="../src/missingcodec.h" line="78"/>
+        <source>Cannot play “%1”: there is no decoder for %2 on this system.</source>
+        <translation>„%1“ kann nicht abgespielt werden: Auf diesem System gibt es keinen Decoder für %2.</translation>
+    </message>
+    <message>
+        <location filename="../src/missingcodec.h" line="89"/>
+        <source>Install the codec extension, then start the app again:</source>
+        <translation>Installiere die Codec-Erweiterung und starte die App danach neu:</translation>
+    </message>
+</context>
+<context>
     <name>MoviesPage</name>
     <message>
         <location filename="../qml/MoviesPage.qml" line="5"/>
@@ -3183,33 +3219,33 @@
 <context>
     <name>MpvPlayer</name>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="330"/>
+        <location filename="../src/mpvplayer.cpp" line="357"/>
         <source>Cannot play this file: %1</source>
         <translation>Diese Datei kann nicht abgespielt werden: %1</translation>
     </message>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="408"/>
+        <location filename="../src/mpvplayer.cpp" line="441"/>
         <source>software decoding</source>
         <translation>Software-Dekodierung</translation>
     </message>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="419"/>
-        <location filename="../src/mpvplayer.cpp" line="486"/>
+        <location filename="../src/mpvplayer.cpp" line="452"/>
+        <location filename="../src/mpvplayer.cpp" line="519"/>
         <source>Forced</source>
         <translation>Erzwungen</translation>
     </message>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="478"/>
+        <location filename="../src/mpvplayer.cpp" line="511"/>
         <source>external</source>
         <translation>extern</translation>
     </message>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="479"/>
+        <location filename="../src/mpvplayer.cpp" line="512"/>
         <source>forced</source>
         <translation>erzwungen</translation>
     </message>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="480"/>
+        <location filename="../src/mpvplayer.cpp" line="513"/>
         <source>Track %1</source>
         <translation>Spur %1</translation>
     </message>
@@ -4025,7 +4061,7 @@
 <context>
     <name>MusicPlayer</name>
     <message>
-        <location filename="../src/musicplayer.cpp" line="575"/>
+        <location filename="../src/musicplayer.cpp" line="586"/>
         <source>Cannot play “%1”: %2</source>
         <translation>„%1“ kann nicht abgespielt werden: %2</translation>
     </message>
@@ -4487,7 +4523,7 @@
     <name>PlayerPage</name>
     <message>
         <location filename="../qml/PlayerPage.qml" line="120"/>
-        <location filename="../qml/PlayerPage.qml" line="201"/>
+        <location filename="../qml/PlayerPage.qml" line="219"/>
         <source>Back</source>
         <translation>Zurück</translation>
     </message>
