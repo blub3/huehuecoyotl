@@ -13,7 +13,8 @@ The release workflow stages these files, the Rust SBOM, and `SHA256SUMS`. Releas
 2.9.1 instead carry `flatpak-lgpl-sources.tar.gz` and `SHA256SUMS-lgpl`, with their own rebuild
 instructions inside the archive, and a `libmpv-BUILDINFO.txt` that describes the separate
 Docker build of libmpv rather than the Flatpak; it is no longer published.
-For a manual release, include the same assets and generate the checksums from the staged files.
+For a manual release, include the same assets, make the SBOM with `tools/sbom.sh OUT` (it removes
+the build machine's paths and stops if one remains) and generate the checksums from the staged files.
 Run `sha256sum -c SHA256SUMS` in the download directory to verify the pair.
 
 The source bundle contains the build manifest and source snapshots for libmpv, libplacebo and

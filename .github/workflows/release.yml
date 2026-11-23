@@ -62,8 +62,7 @@ jobs:
           cp build/io.github.blub3.Huehuecoyotl.flatpak dist/
           cp build/io.github.blub3.Huehuecoyotl.Sources.flatpak build/flatpak-BUILDINFO.txt dist/
           cp packaging/flatpak/generated/THIRD_PARTY_NOTICES.txt dist/
-          cargo cyclonedx --manifest-path crates/core-api/Cargo.toml --format json --override-filename sbom-rust
-          cp crates/core-api/sbom-rust.json dist/huehuecoyotl-sbom-rust.cdx.json
+          tools/sbom.sh dist/huehuecoyotl-sbom-rust.cdx.json
           (cd dist && sha256sum * > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with: { name: release-linux, path: dist }
