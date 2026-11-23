@@ -698,6 +698,19 @@ pub async fn scan_audiobook_source(
         if stored[i].as_deref() == Some(sig.as_str()) {
             continue;
         }
+        // Issue #154: a book in the library has one timeline, its copies'. Neither its old place
+        // nor the copies under their own folder name become a second book.
+        let (k, paths): (String, Vec<String>) =
+            (key.clone(), p.files.iter().map(|f| f.rel.clone()).collect());
+        let imported = lib
+            .read(move |c| {
+                Ok(huehuecoyotl_library::imports::book_is_imported(c, &k)?
+                    || huehuecoyotl_library::imports::files_belong_to_book(c, source_id, &paths)?)
+            })
+            .await?;
+        if imported {
+            continue;
+        }
         report.read += 1;
         let book = read_book(src, p, source_id, key).await;
         let (input, cover, sig) = (book.0, book.1, sig.clone());

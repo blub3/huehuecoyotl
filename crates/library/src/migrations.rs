@@ -233,6 +233,8 @@ UPDATE item SET files_title = title WHERE kind = 'artist';
     // 17 (3.0, issue #150): the managed library: four sources marked by media type, where it
     // lives, and the originals that left a folder while the library kept their copies.
     Migration::Sql(crate::managed::SCHEMA),
+    // 18 (3.0, issue #154): imports into the library, one job per album, movie, show or book.
+    Migration::Sql(crate::imports::SCHEMA),
 ];
 
 /// The old and new kind constraint of `item`.

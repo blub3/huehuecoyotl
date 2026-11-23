@@ -31,6 +31,19 @@ FocusScope {
         { key: "settings", glyph: "⚙", label: qsTr("Settings") }
     ]
 
+    // Issue #154: how many imports wait for the user.
+    property int importsWaiting: 0
+    property var importsRequest: 0
+    function loadImports() { importsRequest = Core.libraryCall("imports", {}) }
+    Component.onCompleted: loadImports()
+    Connections {
+        target: Core
+        function onMusicDetailReady(requestId, kind, detail) {
+            if (kind === "imports") rail.importsWaiting = Number(detail.waiting || 0)
+        }
+        function onLibraryChanged() { rail.loadImports() }
+    }
+
     Rectangle { anchors.fill: parent; color: Theme.surface }
 
     ColumnLayout {
@@ -105,6 +118,17 @@ FocusScope {
                         text: entry.modelData.label
                         color: entry.selected || entry.activeFocus ? Theme.text : Theme.textDim
                         font.pixelSize: Theme.fontBody
+                    }
+                    Rectangle {
+                        objectName: "importsBadge"
+                        visible: entry.modelData.key === "downloads" && rail.importsWaiting > 0
+                        Layout.rightMargin: 18
+                        implicitWidth: Math.max(22, badgeText.implicitWidth + 10)
+                        implicitHeight: 22
+                        radius: 11
+                        color: Theme.accent
+                        Accessible.name: qsTr("%n import(s) wait for you", "", rail.importsWaiting)
+                        Label { id: badgeText; anchors.centerIn: parent; text: rail.importsWaiting; color: Theme.bg; font.pixelSize: 12; font.bold: true }
                     }
                 }
             }

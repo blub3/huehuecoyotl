@@ -242,6 +242,146 @@
     </message>
 </context>
 <context>
+    <name>AddToLibrarySheet</name>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="34"/>
+        <source>Title</source>
+        <translation>Titel</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="34"/>
+        <source>Artist</source>
+        <translation>Künstler</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="34"/>
+        <source>Album</source>
+        <translation>Album</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="34"/>
+        <source>Date</source>
+        <translation>Datum</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="35"/>
+        <source>Track</source>
+        <translation>Titelnummer</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="35"/>
+        <source>MusicBrainz IDs</source>
+        <translation>MusicBrainz-IDs</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="35"/>
+        <source>ISRC</source>
+        <translation>ISRC</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="35"/>
+        <source>Barcode</source>
+        <translation>Barcode</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="68"/>
+        <source>Add to Library</source>
+        <translation>Zur Bibliothek hinzufügen</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/AddToLibrarySheet.qml" line="77"/>
+        <source>%n item(s)</source>
+        <translation>
+            <numerusform>%n Titel</numerusform>
+            <numerusform>%n Titel</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="86"/>
+        <source>Choose where your library lives first.</source>
+        <translation>Wähle zuerst, wo deine Bibliothek liegt.</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/AddToLibrarySheet.qml" line="94"/>
+        <source>%n item(s) are not surely matched or are already in your library. They wait under Imports → To review, and nothing is guessed.</source>
+        <translation>
+            <numerusform>%n Titel ist nicht sicher zugeordnet oder schon in deiner Bibliothek. Er wartet unter Importe → Zu prüfen, nichts wird geraten.</numerusform>
+            <numerusform>%n Titel sind nicht sicher zugeordnet oder schon in deiner Bibliothek. Sie warten unter Importe → Zu prüfen, nichts wird geraten.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="102"/>
+        <source>Already in your library. Nothing to copy.</source>
+        <translation>Schon in deiner Bibliothek. Nichts zu kopieren.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="110"/>
+        <source>From</source>
+        <translation>Von</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="112"/>
+        <source>To</source>
+        <translation>Nach</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="126"/>
+        <source>Tags written to the copies</source>
+        <translation>Tags, die in die Kopien geschrieben werden</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="129"/>
+        <source>Field</source>
+        <translation>Feld</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="130"/>
+        <source>In the file now</source>
+        <translation>Jetzt in der Datei</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="131"/>
+        <source>In the copy</source>
+        <translation>In der Kopie</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="151"/>
+        <source>Files</source>
+        <translation>Dateien</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/AddToLibrarySheet.qml" line="166"/>
+        <source>… %n more</source>
+        <translation>
+            <numerusform>… %n weitere</numerusform>
+            <numerusform>… %n weitere</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="190"/>
+        <source>The original files stay where they are.</source>
+        <translation>Die Originaldateien bleiben, wo sie sind.</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="192"/>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="196"/>
+        <source>Settings → Library</source>
+        <translation>Einstellungen → Bibliothek</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/AddToLibrarySheet.qml" line="205"/>
+        <source>Add %n file(s) to Library</source>
+        <translation>
+            <numerusform>%n Datei zur Bibliothek hinzufügen</numerusform>
+            <numerusform>%n Dateien zur Bibliothek hinzufügen</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>AddToPlaylist</name>
     <message>
         <location filename="../qml/AddToPlaylist.qml" line="53"/>
@@ -318,7 +458,7 @@
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="208"/>
-        <location filename="../qml/AlbumPage.qml" line="440"/>
+        <location filename="../qml/AlbumPage.qml" line="441"/>
         <source>Hi-Res</source>
         <translation>Hi-Res</translation>
     </message>
@@ -349,13 +489,13 @@
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="291"/>
-        <location filename="../qml/AlbumPage.qml" line="482"/>
+        <location filename="../qml/AlbumPage.qml" line="483"/>
         <source>Play next</source>
         <translation>Als Nächstes abspielen</translation>
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="302"/>
-        <location filename="../qml/AlbumPage.qml" line="482"/>
+        <location filename="../qml/AlbumPage.qml" line="483"/>
         <source>Add to queue</source>
         <translation>Zur Warteschlange hinzufügen</translation>
     </message>
@@ -371,33 +511,39 @@
     </message>
     <message>
         <location filename="../qml/AlbumPage.qml" line="341"/>
-        <location filename="../qml/AlbumPage.qml" line="488"/>
+        <location filename="../qml/AlbumPage.qml" line="485"/>
+        <source>Add to Library…</source>
+        <translation>Zur Bibliothek hinzufügen…</translation>
+    </message>
+    <message>
+        <location filename="../qml/AlbumPage.qml" line="342"/>
+        <location filename="../qml/AlbumPage.qml" line="490"/>
         <source>Match again</source>
         <translation>Neu zuordnen</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="342"/>
-        <location filename="../qml/AlbumPage.qml" line="488"/>
+        <location filename="../qml/AlbumPage.qml" line="343"/>
+        <location filename="../qml/AlbumPage.qml" line="490"/>
         <source>Search MusicBrainz…</source>
         <translation>Bei MusicBrainz suchen …</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="357"/>
+        <location filename="../qml/AlbumPage.qml" line="358"/>
         <source>Tracks</source>
         <translation>Titel</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="363"/>
+        <location filename="../qml/AlbumPage.qml" line="364"/>
         <source>Disc %1</source>
         <translation>CD %1</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="383"/>
+        <location filename="../qml/AlbumPage.qml" line="384"/>
         <source>Track %1, %2</source>
         <translation>Titel %1, %2</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="434"/>
+        <location filename="../qml/AlbumPage.qml" line="435"/>
         <source>%n version(s)</source>
         <translation>
             <numerusform>%n Version</numerusform>
@@ -405,47 +551,47 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="483"/>
+        <location filename="../qml/AlbumPage.qml" line="484"/>
         <source>Add to playlist…</source>
         <translation>Zur Playlist hinzufügen …</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="486"/>
+        <location filename="../qml/AlbumPage.qml" line="488"/>
         <source>Version: %1</source>
         <translation>Version: %1</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="538"/>
+        <location filename="../qml/AlbumPage.qml" line="542"/>
         <source>Make “%1” an album of its own? It stays apart from this one, also after the next scan.</source>
         <translation>„%1“ zu einem eigenen Album machen? Es bleibt von diesem getrennt, auch nach dem nächsten Scan.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="543"/>
+        <location filename="../qml/AlbumPage.qml" line="547"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="547"/>
+        <location filename="../qml/AlbumPage.qml" line="551"/>
         <source>Make it an album</source>
         <translation>Eigenes Album machen</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="573"/>
+        <location filename="../qml/AlbumPage.qml" line="577"/>
         <source>Stop saving and remove what was copied so far? The files on the server stay.</source>
         <translation>Speichern abbrechen und das bisher Kopierte entfernen? Die Dateien auf dem Server bleiben.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="574"/>
+        <location filename="../qml/AlbumPage.qml" line="578"/>
         <source>Delete the saved copies of this album from this computer? The files on the server stay.</source>
         <translation>Die gespeicherten Kopien dieses Albums von diesem Computer löschen? Die Dateien auf dem Server bleiben.</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="578"/>
+        <location filename="../qml/AlbumPage.qml" line="582"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>
     <message>
-        <location filename="../qml/AlbumPage.qml" line="582"/>
+        <location filename="../qml/AlbumPage.qml" line="586"/>
         <source>Delete saved copies</source>
         <translation>Gespeicherte Kopien löschen</translation>
     </message>
@@ -757,37 +903,42 @@
         <translation>Zugeordnet, wie du gewählt hast.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="222"/>
+        <location filename="../qml/ArtistPage.qml" line="223"/>
+        <source>Add to Library…</source>
+        <translation>Zur Bibliothek hinzufügen…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArtistPage.qml" line="232"/>
         <source>Match again</source>
         <translation>Neu zuordnen</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="231"/>
+        <location filename="../qml/ArtistPage.qml" line="241"/>
         <source>Not this artist?</source>
         <translation>Nicht dieser Künstler?</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="231"/>
+        <location filename="../qml/ArtistPage.qml" line="241"/>
         <source>Search MusicBrainz…</source>
         <translation>Bei MusicBrainz suchen …</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="241"/>
+        <location filename="../qml/ArtistPage.qml" line="251"/>
         <source>Edit name…</source>
         <translation>Name bearbeiten …</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="251"/>
+        <location filename="../qml/ArtistPage.qml" line="261"/>
         <source>Merge with…</source>
         <translation>Zusammenführen mit …</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="263"/>
+        <location filename="../qml/ArtistPage.qml" line="273"/>
         <source>“%1” is now part of %2.</source>
         <translation>„%1“ gehört jetzt zu %2.</translation>
     </message>
     <message>
-        <location filename="../qml/ArtistPage.qml" line="270"/>
+        <location filename="../qml/ArtistPage.qml" line="280"/>
         <source>Undo</source>
         <translation>Rückgängig</translation>
     </message>
@@ -1262,18 +1413,23 @@
         <translation>Als gehört markieren</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="321"/>
-        <location filename="../qml/BookPage.qml" line="336"/>
+        <location filename="../qml/BookPage.qml" line="310"/>
+        <source>Add to Library…</source>
+        <translation>Zur Bibliothek hinzufügen…</translation>
+    </message>
+    <message>
+        <location filename="../qml/BookPage.qml" line="331"/>
+        <location filename="../qml/BookPage.qml" line="346"/>
         <source>Chapters</source>
         <translation>Kapitel</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="348"/>
+        <location filename="../qml/BookPage.qml" line="358"/>
         <source>current chapter</source>
         <translation>aktuelles Kapitel</translation>
     </message>
     <message>
-        <location filename="../qml/BookPage.qml" line="400"/>
+        <location filename="../qml/BookPage.qml" line="410"/>
         <source>Copy the book&apos;s files into</source>
         <translation>Die Dateien des Buchs kopieren nach</translation>
     </message>
@@ -1588,105 +1744,110 @@
         <translation>Zuordnung korrigieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="665"/>
+        <location filename="../qml/DetailPage.qml" line="609"/>
+        <source>Add to Library…</source>
+        <translation>Zur Bibliothek hinzufügen…</translation>
+    </message>
+    <message>
+        <location filename="../qml/DetailPage.qml" line="675"/>
         <source>Save as…</source>
         <translation>Speichern unter …</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="666"/>
+        <location filename="../qml/DetailPage.qml" line="676"/>
         <source>Copy the file to a place you choose</source>
         <translation>Die Datei an einen Ort deiner Wahl kopieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="667"/>
+        <location filename="../qml/DetailPage.qml" line="677"/>
         <source>Copy every episode into a folder you choose</source>
         <translation>Alle Folgen in einen Ordner deiner Wahl kopieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="715"/>
+        <location filename="../qml/DetailPage.qml" line="725"/>
         <source>Technical details</source>
         <translation>Technische Details</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="727"/>
+        <location filename="../qml/DetailPage.qml" line="737"/>
         <source>Analysing…</source>
         <translation>Wird analysiert …</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="727"/>
+        <location filename="../qml/DetailPage.qml" line="737"/>
         <source>This file could not be analysed.</source>
         <translation>Diese Datei konnte nicht analysiert werden.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="734"/>
+        <location filename="../qml/DetailPage.qml" line="744"/>
         <source>Analyse now</source>
         <translation>Jetzt analysieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="750"/>
-        <location filename="../qml/DetailPage.qml" line="773"/>
-        <location filename="../qml/DetailPage.qml" line="851"/>
+        <location filename="../qml/DetailPage.qml" line="760"/>
+        <location filename="../qml/DetailPage.qml" line="783"/>
+        <location filename="../qml/DetailPage.qml" line="861"/>
         <source>Seasons</source>
         <translation>Staffeln</translation>
     </message>
     <message>
         <location filename="../qml/DetailPage.qml" line="389"/>
-        <location filename="../qml/DetailPage.qml" line="750"/>
+        <location filename="../qml/DetailPage.qml" line="760"/>
         <source>Episodes</source>
         <translation>Folgen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="793"/>
+        <location filename="../qml/DetailPage.qml" line="803"/>
         <source>not in your library</source>
         <translation>nicht in deiner Bibliothek</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="802"/>
+        <location filename="../qml/DetailPage.qml" line="812"/>
         <source>Choose a season</source>
         <translation>Staffel wählen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="819"/>
+        <location filename="../qml/DetailPage.qml" line="829"/>
         <source>Mark season unwatched</source>
         <translation>Staffel als ungesehen markieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="819"/>
+        <location filename="../qml/DetailPage.qml" line="829"/>
         <source>Mark season watched</source>
         <translation>Staffel als gesehen markieren</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="936"/>
+        <location filename="../qml/DetailPage.qml" line="946"/>
         <source>Stop saving and remove what was copied so far? The file on the server stays.</source>
         <translation>Speichern abbrechen und das bisher Kopierte entfernen? Die Datei auf dem Server bleibt erhalten.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="937"/>
+        <location filename="../qml/DetailPage.qml" line="947"/>
         <source>Delete the saved copy from this computer? Only the local copy is removed; the file on the server stays and can be streamed or saved again.</source>
         <translation>Die gespeicherte Kopie von diesem Computer löschen? Nur die lokale Kopie wird entfernt; die Datei auf dem Server bleibt erhalten und kann weiter gestreamt oder erneut gespeichert werden.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="943"/>
+        <location filename="../qml/DetailPage.qml" line="953"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="950"/>
+        <location filename="../qml/DetailPage.qml" line="960"/>
         <source>Stop and remove</source>
         <translation>Abbrechen und entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="968"/>
+        <location filename="../qml/DetailPage.qml" line="978"/>
         <source>Save a copy as</source>
         <translation>Kopie speichern unter</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="977"/>
+        <location filename="../qml/DetailPage.qml" line="987"/>
         <source>Copy every episode into</source>
         <translation>Alle Folgen kopieren nach</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/DetailPage.qml" line="999"/>
+        <location filename="../qml/DetailPage.qml" line="1009"/>
         <source>%n file(s) exist already in %1. Replace them?</source>
         <translation>
             <numerusform>%n Datei ist in %1 schon vorhanden. Ersetzen?</numerusform>
@@ -1694,14 +1855,14 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="1012"/>
+        <location filename="../qml/DetailPage.qml" line="1022"/>
         <source>Replace</source>
         <translation>Ersetzen</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="650"/>
-        <location filename="../qml/DetailPage.qml" line="899"/>
-        <location filename="../qml/DetailPage.qml" line="1005"/>
+        <location filename="../qml/DetailPage.qml" line="660"/>
+        <location filename="../qml/DetailPage.qml" line="909"/>
+        <location filename="../qml/DetailPage.qml" line="1015"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
@@ -1762,13 +1923,13 @@
     </message>
     <message>
         <location filename="../qml/DetailPage.qml" line="136"/>
-        <location filename="../qml/DetailPage.qml" line="950"/>
+        <location filename="../qml/DetailPage.qml" line="960"/>
         <source>Delete saved copies</source>
         <translation>Gespeicherte Kopien löschen</translation>
     </message>
     <message>
         <location filename="../qml/DetailPage.qml" line="136"/>
-        <location filename="../qml/DetailPage.qml" line="950"/>
+        <location filename="../qml/DetailPage.qml" line="960"/>
         <source>Delete saved copy</source>
         <translation>Gespeicherte Kopie löschen</translation>
     </message>
@@ -1823,12 +1984,12 @@
         <translation>Die Quelle dieser Version ist gerade nicht erreichbar; die gespeicherte Kopie wird abgespielt.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="893"/>
+        <location filename="../qml/DetailPage.qml" line="903"/>
         <source>Move “%1” into its own entry? It will not be merged with this movie again, and you can choose its match under Settings → Matching → Review matches.</source>
         <translation>„%1“ in einen eigenen Eintrag verschieben? Er wird nicht wieder mit diesem Film zusammengeführt, und du kannst die Zuordnung unter Einstellungen → Zuordnung → Zuordnungen prüfen wählen.</translation>
     </message>
     <message>
-        <location filename="../qml/DetailPage.qml" line="906"/>
+        <location filename="../qml/DetailPage.qml" line="916"/>
         <source>Move to its own entry</source>
         <translation>In eigenen Eintrag verschieben</translation>
     </message>
@@ -1872,94 +2033,104 @@
     </message>
     <message>
         <location filename="../qml/DownloadsPage.qml" line="15"/>
-        <location filename="../qml/DownloadsPage.qml" line="81"/>
-        <location filename="../qml/DownloadsPage.qml" line="105"/>
+        <location filename="../qml/DownloadsPage.qml" line="83"/>
+        <location filename="../qml/DownloadsPage.qml" line="141"/>
         <source>Downloads</source>
         <translation>Downloads</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="89"/>
+        <location filename="../qml/DownloadsPage.qml" line="94"/>
+        <source>Saved for offline</source>
+        <translation>Offline gespeichert</translation>
+    </message>
+    <message>
+        <location filename="../qml/DownloadsPage.qml" line="104"/>
+        <source>Imports to Library</source>
+        <translation>Importe in die Bibliothek</translation>
+    </message>
+    <message>
+        <location filename="../qml/DownloadsPage.qml" line="124"/>
         <source>Saved copies use %1 in %2</source>
         <translation>Gespeicherte Kopien belegen %1 in %2</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="113"/>
+        <location filename="../qml/DownloadsPage.qml" line="150"/>
         <source>In progress</source>
         <translation>Läuft</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="114"/>
+        <location filename="../qml/DownloadsPage.qml" line="151"/>
         <source>Failed</source>
         <translation>Fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="115"/>
+        <location filename="../qml/DownloadsPage.qml" line="152"/>
         <source>Outdated</source>
         <translation>Veraltet</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="115"/>
+        <location filename="../qml/DownloadsPage.qml" line="152"/>
         <source>Done</source>
         <translation>Fertig</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="188"/>
+        <location filename="../qml/DownloadsPage.qml" line="225"/>
         <source>Pause</source>
         <translation>Pausieren</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="189"/>
+        <location filename="../qml/DownloadsPage.qml" line="226"/>
         <source>Resume</source>
         <translation>Fortsetzen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="190"/>
+        <location filename="../qml/DownloadsPage.qml" line="227"/>
         <source>Try again</source>
         <translation>Erneut versuchen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="192"/>
+        <location filename="../qml/DownloadsPage.qml" line="229"/>
         <source>Save again</source>
         <translation>Erneut speichern</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="193"/>
+        <location filename="../qml/DownloadsPage.qml" line="230"/>
         <source>Show in file manager</source>
         <translation>Im Dateimanager zeigen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="208"/>
+        <location filename="../qml/DownloadsPage.qml" line="245"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="209"/>
+        <location filename="../qml/DownloadsPage.qml" line="246"/>
         <source>Dismiss</source>
         <translation>Ausblenden</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="209"/>
+        <location filename="../qml/DownloadsPage.qml" line="246"/>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="210"/>
-        <location filename="../qml/DownloadsPage.qml" line="266"/>
+        <location filename="../qml/DownloadsPage.qml" line="247"/>
+        <location filename="../qml/DownloadsPage.qml" line="303"/>
         <source>Delete saved copy</source>
         <translation>Gespeicherte Kopie löschen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="228"/>
+        <location filename="../qml/DownloadsPage.qml" line="265"/>
         <source>Nothing saved yet. Use “Save” on a movie or episode to keep a copy on this computer.</source>
         <translation>Noch nichts gespeichert. Mit „Speichern“ bei einem Film oder einer Folge legst du eine Kopie auf diesem Computer ab.</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="253"/>
+        <location filename="../qml/DownloadsPage.qml" line="290"/>
         <source>Delete the saved copy of “%1” from this computer? Only the local copy is removed; the file on the server stays.</source>
         <translation>Die gespeicherte Kopie von „%1“ von diesem Computer löschen? Nur die lokale Kopie wird entfernt; die Datei auf dem Server bleibt erhalten.</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="259"/>
+        <location filename="../qml/DownloadsPage.qml" line="296"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>
@@ -2476,6 +2647,102 @@
     </message>
 </context>
 <context>
+    <name>ImportsPanel</name>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="24"/>
+        <source>To review (%1)</source>
+        <translation>Zu prüfen (%1)</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="25"/>
+        <source>Now</source>
+        <translation>Jetzt</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="26"/>
+        <source>Done</source>
+        <translation>Fertig</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="32"/>
+        <source>Not surely matched: which one is it?</source>
+        <translation>Nicht sicher zugeordnet: Welches ist es?</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="33"/>
+        <source>The library already has this, or other files are in its folder.</source>
+        <translation>Die Bibliothek hat das schon, oder in seinem Ordner liegen andere Dateien.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="37"/>
+        <source>Not copied: %1</source>
+        <translation>Nicht kopiert: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="38"/>
+        <source>Already in your library  ·  nothing copied</source>
+        <translation>Schon in deiner Bibliothek  ·  nichts kopiert</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ImportsPanel.qml" line="39"/>
+        <source>Added %n file(s)</source>
+        <translation>
+            <numerusform>%n Datei hinzugefügt</numerusform>
+            <numerusform>%n Dateien hinzugefügt</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="42"/>
+        <source>Paused at %1 of %2 files</source>
+        <translation>Pausiert bei %1 von %2 Dateien</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="43"/>
+        <source>Waiting for the source: %1</source>
+        <translation>Wartet auf die Quelle: %1</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="44"/>
+        <source>Copying %1 of %2 files</source>
+        <translation>Kopiere %1 von %2 Dateien</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="63"/>
+        <source>Nothing is being imported. Add to Library is in the menu of a song, album, artist, movie, show or book.</source>
+        <translation>Gerade wird nichts importiert. „Zur Bibliothek hinzufügen“ findest du im Menü von Songs, Alben, Künstlern, Filmen, Serien und Büchern.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="138"/>
+        <source>Choose…</source>
+        <translation>Wählen…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="138"/>
+        <source>Decide…</source>
+        <translation>Entscheiden…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="139"/>
+        <source>Pause</source>
+        <translation>Pause</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="140"/>
+        <source>Resume</source>
+        <translation>Fortsetzen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="140"/>
+        <source>Retry</source>
+        <translation>Erneut versuchen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportsPanel.qml" line="152"/>
+        <source>Skip</source>
+        <translation>Überspringen</translation>
+    </message>
+</context>
+<context>
     <name>LibraryOnlyNote</name>
     <message>
         <location filename="../qml/LibraryOnlyNote.qml" line="30"/>
@@ -2786,6 +3053,14 @@
         <location filename="../qml/LibrarySettings.qml" line="480"/>
         <source>This folder overlaps “%1”, which is already in your sources.</source>
         <translation>Dieser Ordner überschneidet sich mit „%1“, das schon in deinen Quellen ist.</translation>
+    </message>
+</context>
+<context>
+    <name>Main</name>
+    <message>
+        <location filename="../qml/Main.qml" line="134"/>
+        <source>Added to your imports. See Downloads → Imports.</source>
+        <translation>Zu deinen Importen hinzugefügt. Siehe Downloads → Importe.</translation>
     </message>
 </context>
 <context>
@@ -4427,17 +4702,25 @@
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="64"/>
+        <location filename="../qml/NavRail.qml" line="77"/>
         <source>Navigation</source>
         <translation>Navigation</translation>
     </message>
+    <message numerus="yes">
+        <location filename="../qml/NavRail.qml" line="130"/>
+        <source>%n import(s) wait for you</source>
+        <translation>
+            <numerusform>%n Import wartet auf dich</numerusform>
+            <numerusform>%n Importe warten auf dich</numerusform>
+        </translation>
+    </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="121"/>
+        <location filename="../qml/NavRail.qml" line="145"/>
         <source>Scanning folders…</source>
         <translation>Ordner werden durchsucht …</translation>
     </message>
     <message>
-        <location filename="../qml/NavRail.qml" line="121"/>
+        <location filename="../qml/NavRail.qml" line="145"/>
         <source>Updating library… %1</source>
         <translation>Bibliothek wird aktualisiert … %1</translation>
     </message>
@@ -6504,57 +6787,62 @@
         <translation>Behalten</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="290"/>
+        <location filename="../qml/SourcesPage.qml" line="291"/>
+        <source>Add those to Library first…</source>
+        <translation>Diese zuerst zur Bibliothek hinzufügen…</translation>
+    </message>
+    <message>
+        <location filename="../qml/SourcesPage.qml" line="304"/>
         <source>Remove folder</source>
         <translation>Ordner entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="331"/>
+        <location filename="../qml/SourcesPage.qml" line="345"/>
         <source>No longer in “%1”</source>
         <translation>Nicht mehr in „%1“</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="343"/>
+        <location filename="../qml/SourcesPage.qml" line="357"/>
         <source>In your library</source>
         <translation>In deiner Bibliothek</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="343"/>
+        <location filename="../qml/SourcesPage.qml" line="357"/>
         <source>Left the app</source>
         <translation>Aus der App verschwunden</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="346"/>
+        <location filename="../qml/SourcesPage.qml" line="360"/>
         <source>Close</source>
         <translation>Schließen</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="368"/>
+        <location filename="../qml/SourcesPage.qml" line="382"/>
         <source>What is in “%1”?</source>
         <translation>Was liegt in „%1“?</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="375"/>
+        <location filename="../qml/SourcesPage.qml" line="389"/>
         <source>Video folders become Movies and Shows, music folders Music, audiobook folders Audiobooks. A folder with more than one is added once per subfolder.</source>
         <translation>Videoordner landen unter Filme und Serien, Musikordner unter Musik, Hörbuchordner unter Hörbücher. Einen Ordner mit mehreren Arten fügst du je Unterordner einmal hinzu.</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="382"/>
+        <location filename="../qml/SourcesPage.qml" line="396"/>
         <source>Movies and shows</source>
         <translation>Filme und Serien</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="388"/>
+        <location filename="../qml/SourcesPage.qml" line="402"/>
         <source>Music</source>
         <translation>Musik</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="395"/>
+        <location filename="../qml/SourcesPage.qml" line="409"/>
         <source>Audiobooks</source>
         <translation>Hörbücher</translation>
     </message>
     <message>
-        <location filename="../qml/SourcesPage.qml" line="402"/>
+        <location filename="../qml/SourcesPage.qml" line="416"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>

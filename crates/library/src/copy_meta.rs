@@ -134,6 +134,15 @@ pub fn track_tags(c: &Connection, track: i64) -> Result<Option<CopyTags>> {
 
 /// The tags of an audiobook. Fields the user locked (`book.locked`) stay as they are in the file.
 pub fn book_tags(c: &Connection, book: i64) -> Result<Option<CopyTags>> {
+    book_fields(c, book, true)
+}
+
+/// All of a book's fields, for its name: a locked title still names the folder.
+pub fn book_tags_unlocked(c: &Connection, book: i64) -> Result<Option<CopyTags>> {
+    book_fields(c, book, false)
+}
+
+fn book_fields(c: &Connection, book: i64, honour_locks: bool) -> Result<Option<CopyTags>> {
     let head = c
         .query_row(
             "SELECT coalesce(i.title, ''), coalesce(b.published, i.year, ''), b.series_position, b.locked,
@@ -180,6 +189,9 @@ pub fn book_tags(c: &Connection, book: i64) -> Result<Option<CopyTags>> {
         series_part: position.map(|p| p.to_string()).unwrap_or_default(),
         ..Default::default()
     };
+    if !honour_locks {
+        return Ok(Some(tags));
+    }
     let locked: BTreeSet<String> = serde_json::from_str(&locked).unwrap_or_default();
     let is = |f: &str| locked.contains(f);
     if is("title") {

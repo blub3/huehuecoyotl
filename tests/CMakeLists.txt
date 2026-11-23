@@ -43,7 +43,9 @@ set(_ui_files Theme.qml FocusButton.qml TrackMenu.qml PlayerControls.qml
   # Issue #165: online lookups or files only.
   OnlineChoiceDialog.qml
   # Issue #150: the managed library.
-  LibrarySettings.qml LibraryOnlyNote.qml)
+  LibrarySettings.qml LibraryOnlyNote.qml
+  # Issue #154: Add to Library.
+  AddToLibrarySheet.qml ImportsPanel.qml)
 file(MAKE_DIRECTORY "${_ui_dir}")
 set(_qmldir "module CoyotlUi\nsingleton Theme 1.0 Theme.qml\n")
 foreach(f IN LISTS _ui_files)

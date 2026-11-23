@@ -79,6 +79,8 @@ qt_add_qml_module(coyotl
     qml/OnlineChoiceDialog.qml
     qml/LibrarySettings.qml
     qml/LibraryOnlyNote.qml
+    qml/AddToLibrarySheet.qml
+    qml/ImportsPanel.qml
     qml/ShareEditor.qml
     qml/ShareEditPage.qml
     qml/ShareFoldersPage.qml

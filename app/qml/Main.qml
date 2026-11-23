@@ -23,6 +23,8 @@ ApplicationWindow {
         visibility = visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen
     }
     function showError(message) { toast.show(message) }
+    // Issue #154: the sheet of every Add to Library.
+    function addToLibrary(item, from) { addSheet.show(item, from) }
 
     StackView {
         id: stack
@@ -125,6 +127,12 @@ ApplicationWindow {
     Binding { target: Music; property: "preference"; value: Appearance.preferredVersion }
 
     Toast { id: toast }
+    AddToLibrarySheet {
+        id: addSheet
+        backend: Core
+        onSettingsRequested: Nav.settings("library")
+        onStarted: win.showError(qsTr("Added to your imports. See Downloads → Imports."))
+    }
     // Issue #165: before the first online lookup.
     OnlineChoiceDialog { backend: Core }
 }

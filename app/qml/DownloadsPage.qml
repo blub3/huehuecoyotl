@@ -42,7 +42,9 @@ FocusScope {
     }
 
     Component.onCompleted: reload()
-    onActiveFocusChanged: if (activeFocus) list.forceActiveFocus()
+    onActiveFocusChanged: if (activeFocus) (page.view === "imports" ? importsPanel.focusFirst() : list.forceActiveFocus())
+    // Issue #154: saved copies, or imports into the library.
+    property string view: "saved"
 
     Timer { id: settle; interval: 300; onTriggered: page.reload() }
 
@@ -84,7 +86,40 @@ FocusScope {
             font.bold: true
             Accessible.role: Accessible.Heading
         }
+        RowLayout {
+            spacing: 8
+            FocusButton {
+                id: savedTab
+                objectName: "tabSaved"
+                text: qsTr("Saved for offline")
+                primary: page.view === "saved"
+                KeyNavigation.right: importsTab
+                Keys.onLeftPressed: Nav.focusRail()
+                Keys.onDownPressed: if (list.count > 0) list.forceActiveFocus()
+                onClicked: page.view = "saved"
+            }
+            FocusButton {
+                id: importsTab
+                objectName: "tabImports"
+                text: qsTr("Imports to Library")
+                primary: page.view === "imports"
+                KeyNavigation.left: savedTab
+                Keys.onDownPressed: importsPanel.focusFirst()
+                onClicked: { page.view = "imports"; importsPanel.load() }
+            }
+        }
+        ImportsPanel {
+            id: importsPanel
+            objectName: "importsPanel"
+            visible: page.view === "imports"
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            backend: Core
+            onLeaveUp: importsTab.forceActiveFocus()
+            onLeaveLeft: Nav.focusRail()
+        }
         Label {
+            visible: page.view === "saved"
             Layout.fillWidth: true
             text: qsTr("Saved copies use %1 in %2").arg(MediaInfo.size(page.used)).arg(page.storageDir)
             color: Theme.textDim
@@ -94,6 +129,7 @@ FocusScope {
 
         ListView {
             id: list
+            visible: page.view === "saved"
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
@@ -105,6 +141,7 @@ FocusScope {
             Accessible.name: qsTr("Downloads")
             ScrollBar.vertical: ScrollBar {}
             Keys.onLeftPressed: Nav.focusRail()
+            Keys.onUpPressed: (e) => { if (currentIndex <= 0) savedTab.forceActiveFocus(); else e.accepted = false }
             section.property: "state"
             section.criteria: ViewSection.FullString
             section.delegate: Item {
@@ -224,7 +261,7 @@ FocusScope {
 
     Label {
         anchors.centerIn: parent
-        visible: page.items.length === 0
+        visible: page.view === "saved" && (page.items.length === 0)
         text: qsTr("Nothing saved yet. Use “Save” on a movie or episode to keep a copy on this computer.")
         color: Theme.textDim
         font.pixelSize: Theme.fontLarge
