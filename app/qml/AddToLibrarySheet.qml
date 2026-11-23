@@ -18,6 +18,8 @@ Popup {
     property var pending: ({ plan: 0, start: 0 })
     signal started()
     signal settingsRequested()
+    // Issue #155: choose another release before adding.
+    signal anotherRelease(var item, string title, string artist)
 
     readonly property var first: plan && plan.plans && plan.plans.length > 0 ? plan.plans[0] : null
     readonly property int count: plan ? Number(plan.files || 0) : 0
@@ -76,6 +78,18 @@ Popup {
             text: sheet.plan && sheet.plan.plans.length > 1
                   ? qsTr("%n item(s)", "", sheet.plan.plans.length)
                   : sheet.first ? [sheet.first.title, sheet.first.subtitle].filter(x => x).join("  ·  ") : ""
+        }
+        FocusButton {
+            id: another
+            objectName: "sheetAnother"
+            visible: !!sheet.first && sheet.first.kind === "music" && sheet.plan.plans.length === 1 && sheet.count > 0
+            text: qsTr("Another release…")
+            KeyNavigation.down: cancel
+            onClicked: {
+                const f = sheet.first
+                sheet.close()
+                sheet.anotherRelease(f.item, f.title, f.subtitle)
+            }
         }
         Label {
             objectName: "sheetNotConfigured"
@@ -189,7 +203,7 @@ Popup {
                 font.pixelSize: Theme.fontSmall
                 text: sheet.count > 0 ? MediaInfo.size(Number(sheet.plan.size || 0)) + "  ·  " + qsTr("The original files stay where they are.") : ""
             }
-            FocusButton { id: cancel; objectName: "sheetCancel"; text: qsTr("Cancel"); KeyNavigation.right: add.visible ? add : settings; onClicked: sheet.close() }
+            FocusButton { id: cancel; objectName: "sheetCancel"; text: qsTr("Cancel"); KeyNavigation.up: another.visible ? another : null; KeyNavigation.right: add.visible ? add : settings; onClicked: sheet.close() }
             FocusButton {
                 id: settings
                 visible: !!sheet.plan && !sheet.plan.configured

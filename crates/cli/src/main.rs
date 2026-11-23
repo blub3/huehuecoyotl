@@ -45,7 +45,7 @@ fn usage() -> ExitCode {
         "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent\n\
          \x20      | library add PATH [--music] | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
          \x20      | music artists | music albums | music tracks ALBUM | music album ID | music artist ID (a music folder's artists, albums, tracks)\n\
-         \x20      | managed status | managed check PATH | managed use PATH [move|empty] (the managed library)\n\
+         \x20      | managed status | managed check PATH | managed use PATH [move|empty] | managed add ITEM | managed imports (the managed library)\n\
          \x20      | music online [on|off] (look music up at MusicBrainz and the Cover Art Archive)\n\
          \x20      | music album ID VERSION (an album's page for one version) | music split VERSION (this is a different album)\n\
          \x20      | music keys | music key theaudiodb|fanarttv (key from COYOTL_MUSIC_KEY; none removes it)\n\
@@ -421,6 +421,22 @@ fn main() -> ExitCode {
                 "apply",
                 &serde_json::json!({ "where": "local", "path": path, "mode": mode }).to_string(),
             );
+            wait()
+        }
+        // Issue #154: Add to Library and its list.
+        ("managed", [what, id]) if what == "add" => {
+            let Ok(id) = id.parse::<i64>() else {
+                return usage();
+            };
+            core.library_call(
+                1,
+                "importStart",
+                &serde_json::json!({ "item": id }).to_string(),
+            );
+            wait()
+        }
+        ("managed", [what]) if what == "imports" => {
+            core.library_call(1, "imports", "{}");
             wait()
         }
         // Issue #11: online music information (MusicBrainz, Cover Art Archive) on or off.

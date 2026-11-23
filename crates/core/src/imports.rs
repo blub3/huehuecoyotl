@@ -634,6 +634,84 @@ pub(crate) async fn action(
             inner.mark_changed();
             ("imports", inner.lib.read(imports::list).await?)
         }
+        "importReview" => {
+            let job = id("job");
+            (
+                "importReview",
+                inner
+                    .lib
+                    .read(move |c| imports::review_info(c, job))
+                    .await?,
+            )
+        }
+        "importReplan" => {
+            let job = id("job");
+            inner.lib.write(move |c| imports::replan(c, job)).await?;
+            enqueue(inner).await;
+            inner.mark_changed();
+            ("imports", inner.lib.read(imports::list).await?)
+        }
+        "importResolve" => {
+            let job = id("job");
+            let choice = args["choice"].as_str().unwrap_or("").to_string();
+            let label = args["label"].as_str().unwrap_or("").to_string();
+            let mut list = vec![job];
+            if args["all"] == true {
+                list.extend(
+                    inner
+                        .lib
+                        .read(move |c| imports::other_clashes(c, job))
+                        .await?,
+                );
+            }
+            for j in list {
+                if choice == "replace" {
+                    to_trash(inner, j).await?;
+                }
+                let (ch, l) = (choice.clone(), label.clone());
+                inner
+                    .lib
+                    .write(move |c| imports::resolve(c, j, &ch, &l))
+                    .await?;
+            }
+            enqueue(inner).await;
+            inner.mark_changed();
+            ("imports", inner.lib.read(imports::list).await?)
+        }
         _ => return Ok(None),
     }))
+}
+
+/// "Replace the copy in the library": the old files move to `.trash` inside the type's library
+/// folder (never deleted by the app, and not scanned). The item keeps its play counts and
+/// playlists.
+async fn to_trash(inner: &Arc<Inner>, job: i64) -> CResult<()> {
+    let held = inner
+        .lib
+        .read(move |c| imports::library_copies(c, job))
+        .await?;
+    for (file, source, path) in held {
+        let row = inner
+            .lib
+            .read(move |c| catalog::source(c, source))
+            .await?
+            .ok_or_else(|| CoreError::new(ErrorKind::NotFound, "the library folder"))?;
+        let root = VPath::new(row.root.unwrap_or_else(|| "/".into()));
+        let src = source_connection(inner, source).await?;
+        let scoped = Scoped::new(src.clone(), root.clone());
+        let from = root.join(&path);
+        let to = root.join(&format!(".trash/{job}-{file}/{path}"));
+        if let Some(dir) = to.parent() {
+            scoped.ensure_dir(&dir).await?;
+        }
+        match src.rename(&from, &to).await {
+            Ok(()) | Err(VfsError::NotFound(_)) => {}
+            Err(e) => return Err(e.into()),
+        }
+        inner
+            .lib
+            .write(move |c| imports::drop_copy(c, file))
+            .await?;
+    }
+    Ok(())
 }

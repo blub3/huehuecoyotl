@@ -244,52 +244,52 @@
 <context>
     <name>AddToLibrarySheet</name>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="34"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="36"/>
         <source>Title</source>
         <translation>Titel</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="34"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="36"/>
         <source>Artist</source>
         <translation>Künstler</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="34"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="36"/>
         <source>Album</source>
         <translation>Album</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="34"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="36"/>
         <source>Date</source>
         <translation>Datum</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="35"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="37"/>
         <source>Track</source>
         <translation>Titelnummer</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="35"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="37"/>
         <source>MusicBrainz IDs</source>
         <translation>MusicBrainz-IDs</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="35"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="37"/>
         <source>ISRC</source>
         <translation>ISRC</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="35"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="37"/>
         <source>Barcode</source>
         <translation>Barcode</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="68"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="70"/>
         <source>Add to Library</source>
         <translation>Zur Bibliothek hinzufügen</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AddToLibrarySheet.qml" line="77"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="79"/>
         <source>%n item(s)</source>
         <translation>
             <numerusform>%n Titel</numerusform>
@@ -298,11 +298,16 @@
     </message>
     <message>
         <location filename="../qml/AddToLibrarySheet.qml" line="86"/>
+        <source>Another release…</source>
+        <translation>Andere Veröffentlichung…</translation>
+    </message>
+    <message>
+        <location filename="../qml/AddToLibrarySheet.qml" line="100"/>
         <source>Choose where your library lives first.</source>
         <translation>Wähle zuerst, wo deine Bibliothek liegt.</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AddToLibrarySheet.qml" line="94"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="108"/>
         <source>%n item(s) are not surely matched or are already in your library. They wait under Imports → To review, and nothing is guessed.</source>
         <translation>
             <numerusform>%n Titel ist nicht sicher zugeordnet oder schon in deiner Bibliothek. Er wartet unter Importe → Zu prüfen, nichts wird geraten.</numerusform>
@@ -310,47 +315,47 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="102"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="116"/>
         <source>Already in your library. Nothing to copy.</source>
         <translation>Schon in deiner Bibliothek. Nichts zu kopieren.</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="110"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="124"/>
         <source>From</source>
         <translation>Von</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="112"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="126"/>
         <source>To</source>
         <translation>Nach</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="126"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="140"/>
         <source>Tags written to the copies</source>
         <translation>Tags, die in die Kopien geschrieben werden</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="129"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="143"/>
         <source>Field</source>
         <translation>Feld</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="130"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="144"/>
         <source>In the file now</source>
         <translation>Jetzt in der Datei</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="131"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="145"/>
         <source>In the copy</source>
         <translation>In der Kopie</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="151"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="165"/>
         <source>Files</source>
         <translation>Dateien</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AddToLibrarySheet.qml" line="166"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="180"/>
         <source>… %n more</source>
         <translation>
             <numerusform>… %n weitere</numerusform>
@@ -358,22 +363,22 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="190"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="204"/>
         <source>The original files stay where they are.</source>
         <translation>Die Originaldateien bleiben, wo sie sind.</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="192"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="206"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/AddToLibrarySheet.qml" line="196"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="210"/>
         <source>Settings → Library</source>
         <translation>Einstellungen → Bibliothek</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AddToLibrarySheet.qml" line="205"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="219"/>
         <source>Add %n file(s) to Library</source>
         <translation>
             <numerusform>%n Datei zur Bibliothek hinzufügen</numerusform>
@@ -2033,104 +2038,104 @@
     </message>
     <message>
         <location filename="../qml/DownloadsPage.qml" line="15"/>
-        <location filename="../qml/DownloadsPage.qml" line="83"/>
-        <location filename="../qml/DownloadsPage.qml" line="141"/>
+        <location filename="../qml/DownloadsPage.qml" line="117"/>
+        <location filename="../qml/DownloadsPage.qml" line="176"/>
         <source>Downloads</source>
         <translation>Downloads</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="94"/>
+        <location filename="../qml/DownloadsPage.qml" line="128"/>
         <source>Saved for offline</source>
         <translation>Offline gespeichert</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="104"/>
+        <location filename="../qml/DownloadsPage.qml" line="138"/>
         <source>Imports to Library</source>
         <translation>Importe in die Bibliothek</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="124"/>
+        <location filename="../qml/DownloadsPage.qml" line="159"/>
         <source>Saved copies use %1 in %2</source>
         <translation>Gespeicherte Kopien belegen %1 in %2</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="150"/>
+        <location filename="../qml/DownloadsPage.qml" line="185"/>
         <source>In progress</source>
         <translation>Läuft</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="151"/>
+        <location filename="../qml/DownloadsPage.qml" line="186"/>
         <source>Failed</source>
         <translation>Fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="152"/>
+        <location filename="../qml/DownloadsPage.qml" line="187"/>
         <source>Outdated</source>
         <translation>Veraltet</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="152"/>
+        <location filename="../qml/DownloadsPage.qml" line="187"/>
         <source>Done</source>
         <translation>Fertig</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="225"/>
+        <location filename="../qml/DownloadsPage.qml" line="260"/>
         <source>Pause</source>
         <translation>Pausieren</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="226"/>
+        <location filename="../qml/DownloadsPage.qml" line="261"/>
         <source>Resume</source>
         <translation>Fortsetzen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="227"/>
+        <location filename="../qml/DownloadsPage.qml" line="262"/>
         <source>Try again</source>
         <translation>Erneut versuchen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="229"/>
+        <location filename="../qml/DownloadsPage.qml" line="264"/>
         <source>Save again</source>
         <translation>Erneut speichern</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="230"/>
+        <location filename="../qml/DownloadsPage.qml" line="265"/>
         <source>Show in file manager</source>
         <translation>Im Dateimanager zeigen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="245"/>
+        <location filename="../qml/DownloadsPage.qml" line="280"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="246"/>
+        <location filename="../qml/DownloadsPage.qml" line="281"/>
         <source>Dismiss</source>
         <translation>Ausblenden</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="246"/>
+        <location filename="../qml/DownloadsPage.qml" line="281"/>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="247"/>
-        <location filename="../qml/DownloadsPage.qml" line="303"/>
+        <location filename="../qml/DownloadsPage.qml" line="282"/>
+        <location filename="../qml/DownloadsPage.qml" line="338"/>
         <source>Delete saved copy</source>
         <translation>Gespeicherte Kopie löschen</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="265"/>
+        <location filename="../qml/DownloadsPage.qml" line="300"/>
         <source>Nothing saved yet. Use “Save” on a movie or episode to keep a copy on this computer.</source>
         <translation>Noch nichts gespeichert. Mit „Speichern“ bei einem Film oder einer Folge legst du eine Kopie auf diesem Computer ab.</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="290"/>
+        <location filename="../qml/DownloadsPage.qml" line="325"/>
         <source>Delete the saved copy of “%1” from this computer? Only the local copy is removed; the file on the server stays.</source>
         <translation>Die gespeicherte Kopie von „%1“ von diesem Computer löschen? Nur die lokale Kopie wird entfernt; die Datei auf dem Server bleibt erhalten.</translation>
     </message>
     <message>
-        <location filename="../qml/DownloadsPage.qml" line="296"/>
+        <location filename="../qml/DownloadsPage.qml" line="331"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>
@@ -2644,6 +2649,170 @@
         <location filename="../qml/HomePage.qml" line="318"/>
         <source>Arrow keys to move · Enter to open · Esc or Backspace to go back (hold Esc for more) · F11 fullscreen</source>
         <translation>Pfeiltasten zum Bewegen · Enter zum Öffnen · Esc oder Rücktaste für zurück (Esc halten für mehr) · F11 Vollbild</translation>
+    </message>
+</context>
+<context>
+    <name>ImportReviewDialog</name>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="130"/>
+        <source>Loading…</source>
+        <translation>Wird geladen…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="131"/>
+        <source>The folder for “%1” holds other files</source>
+        <translation>Der Ordner für „%1“ enthält andere Dateien</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="132"/>
+        <source>“%1” is already in your library</source>
+        <translation>„%1“ ist schon in deiner Bibliothek</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="133"/>
+        <source>Which one is “%1”?</source>
+        <translation>Welches ist „%1“?</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="144"/>
+        <source>Your files</source>
+        <translation>Deine Dateien</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ImportReviewDialog.qml" line="146"/>
+        <location filename="../qml/ImportReviewDialog.qml" line="175"/>
+        <location filename="../qml/ImportReviewDialog.qml" line="182"/>
+        <source>%n file(s)</source>
+        <translation>
+            <numerusform>%n Datei</numerusform>
+            <numerusform>%n Dateien</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="153"/>
+        <source>This is not surely matched. The match you choose decides the name, the year and the IDs written into the copies.</source>
+        <translation>Das ist nicht sicher zugeordnet. Die Zuordnung, die du wählst, bestimmt den Namen, das Jahr und die IDs in den Kopien.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="166"/>
+        <source>Nothing is copied or replaced until you choose.</source>
+        <translation>Nichts wird kopiert oder ersetzt, bevor du wählst.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="173"/>
+        <source>In that folder</source>
+        <translation>In diesem Ordner</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="173"/>
+        <source>In your library</source>
+        <translation>In deiner Bibliothek</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="175"/>
+        <source>Files the library did not put there</source>
+        <translation>Dateien, die nicht von der Bibliothek stammen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="180"/>
+        <source>To import</source>
+        <translation>Zu importieren</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="190"/>
+        <source>Add as another version (recommended)</source>
+        <translation>Als weitere Version hinzufügen (empfohlen)</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="191"/>
+        <source>Goes into “%1 [%2]”. The item shows both versions, and you pick which plays.</source>
+        <translation>Kommt nach „%1 [%2]“. Beide Versionen werden angezeigt, und du wählst, welche läuft.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="198"/>
+        <source>Replace the copy in the library</source>
+        <translation>Kopie in der Bibliothek ersetzen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="199"/>
+        <source>The old files move to the .trash folder inside your library. Play counts and playlists stay.</source>
+        <translation>Die alten Dateien wandern in den Ordner .trash in deiner Bibliothek. Wiedergabezahlen und Playlists bleiben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="207"/>
+        <source>Keep the library&apos;s copy</source>
+        <translation>Kopie der Bibliothek behalten</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="208"/>
+        <source>Nothing is copied. This import is marked as done.</source>
+        <translation>Nichts wird kopiert. Dieser Import gilt als erledigt.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="217"/>
+        <source>Use another folder name</source>
+        <translation>Anderen Ordnernamen verwenden</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="218"/>
+        <source>The files there stay as they are.</source>
+        <translation>Die Dateien dort bleiben, wie sie sind.</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="226"/>
+        <location filename="../qml/ImportReviewDialog.qml" line="227"/>
+        <source>Added to the folder name</source>
+        <translation>Zusatz zum Ordnernamen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="236"/>
+        <source>Do the same for the next clashes of this import</source>
+        <translation>Bei den nächsten Konflikten dieses Imports genauso verfahren</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="257"/>
+        <source>Search MusicBrainz…</source>
+        <translation>MusicBrainz durchsuchen…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="257"/>
+        <source>Find the match…</source>
+        <translation>Zuordnung suchen…</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="265"/>
+        <source>Import with its own names</source>
+        <translation>Mit den eigenen Namen importieren</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="274"/>
+        <source>Skip</source>
+        <translation>Überspringen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="282"/>
+        <source>Decide later</source>
+        <translation>Später entscheiden</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="294"/>
+        <source>Replace</source>
+        <translation>Ersetzen</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="294"/>
+        <source>Keep the copy</source>
+        <translation>Kopie behalten</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="295"/>
+        <source>Use this name</source>
+        <translation>Diesen Namen verwenden</translation>
+    </message>
+    <message>
+        <location filename="../qml/ImportReviewDialog.qml" line="295"/>
+        <source>Add as another version</source>
+        <translation>Als weitere Version hinzufügen</translation>
     </message>
 </context>
 <context>

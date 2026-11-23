@@ -450,6 +450,191 @@ fn a_movie_gets_its_nfo_and_a_book_stays_one_book() {
     assert_eq!(on, 1, "the book plays from the library");
 }
 
+/// A second copy of one release in another quality, for the review tests.
+fn quality_copy(dir: &Path, album: &str) {
+    std::fs::create_dir_all(dir).unwrap();
+    let (tr, al) = ("track=1".to_string(), format!("album={album}"));
+    let rel = format!("MUSICBRAINZ_ALBUMID={RELEASE}");
+    let p = dir.join("01.flac");
+    assert!(ffmpeg(&[
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=240:duration=1:sample_rate=96000",
+        "-c:a",
+        "flac",
+        "-sample_fmt",
+        "s32",
+        "-bits_per_raw_sample",
+        "24",
+        "-metadata",
+        "title=Song 1",
+        "-metadata",
+        &tr,
+        "-metadata",
+        &al,
+        "-metadata",
+        "artist=Test Band",
+        "-metadata",
+        "album_artist=Test Band",
+        "-metadata",
+        "date=2001",
+        "-metadata",
+        &rel,
+        p.to_str().unwrap(),
+    ]));
+}
+
+#[test]
+fn another_quality_is_the_users_call() {
+    let d = tempfile::tempdir().unwrap();
+    let (music, lib) = (d.path().join("music"), d.path().join("lib"));
+    std::fs::create_dir_all(&lib).unwrap();
+    track(&music.join("cd"), 1, "Same", true);
+    let a = App::new(&d.path().join("data"));
+    a.library(&lib);
+    let source = a.add(&music, "music", 1);
+    let album = a.item("album", "Same");
+    a.call("importStart", json!({ "item": album })).unwrap();
+    a.finish(20);
+    let plain = lib.join("Music/Test Band/Same (2001)/01 - Song 1.flac");
+    assert!(plain.is_file());
+    let first = std::fs::read(&plain).unwrap();
+    let track_id: i64 = a
+        .db()
+        .query_row("SELECT id FROM item WHERE kind = 'track'", [], |r| r.get(0))
+        .unwrap();
+    a.db().execute("INSERT INTO playstate(item_id, profile_id, updated_at, play_count) VALUES (?1, 1, 1, 7)", [track_id]).unwrap();
+
+    // The same release in 24/96 appears; the CD files leave the source.
+    quality_copy(&music.join("hires"), "Same");
+    std::fs::remove_dir_all(music.join("cd")).unwrap();
+    a.core.rescan(source);
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while a.db().query_row("SELECT count(*) FROM file f JOIN file_audio x ON x.file_id = f.id WHERE x.sample_rate = 96000", [], |r| r.get::<_, i64>(0)).unwrap() == 0 {
+        assert!(Instant::now() < deadline, "scan");
+        std::thread::sleep(Duration::from_millis(80));
+    }
+    a.call("importStart", json!({ "item": album })).unwrap();
+    let l = a.call("imports", json!({})).unwrap();
+    let j = l["jobs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|j| j["state"] == "review")
+        .cloned()
+        .unwrap_or_else(|| panic!("{l}"));
+    assert_eq!(j["review"], "clash", "{l}");
+    let job = j["id"].as_i64().unwrap();
+    let r = a.call("importReview", json!({ "job": job })).unwrap();
+    assert_eq!(r["library"]["files"], 1, "{r}");
+    assert!(r["format"].as_str().unwrap().contains("96"), "{r}");
+    assert_eq!(r["label"], "24-96", "{r}");
+
+    // Another version: its own folder, the first copy untouched.
+    a.call("importResolve", json!({ "job": job, "choice": "version" }))
+        .unwrap();
+    let l = a.finish(20);
+    assert_eq!(
+        l["jobs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|x| x["id"] == job)
+            .unwrap()["state"],
+        "done",
+        "{l}"
+    );
+    let second = lib.join("Music/Test Band/Same (2001) [24-96]/01 - Song 1.flac");
+    assert!(second.is_file());
+    assert_eq!(std::fs::read(&plain).unwrap(), first);
+    let versions: i64 = a.db().query_row("SELECT count(*) FROM album_version v WHERE album_id = ?1 AND EXISTS (SELECT 1 FROM file f WHERE f.version_id = v.id)", [album], |r| r.get(0)).unwrap();
+    assert!(versions >= 2, "{versions}");
+
+    // Replace: the old copies move aside, play counts stay.
+    let job2 = {
+        a.db()
+            .execute(
+                "UPDATE import_job SET state = 'review', review = 'clash' WHERE id = ?1",
+                [job],
+            )
+            .unwrap();
+        a.db().execute("UPDATE import_file SET state = 'pending', dest = 'Test Band/Same (2001)/01 - Song 1.flac' WHERE job_id = ?1", [job]).unwrap();
+        job
+    };
+    a.call("importResolve", json!({ "job": job2, "choice": "replace" }))
+        .unwrap();
+    a.finish(20);
+    assert!(
+        walk(&lib.join("Music/.trash")).len() >= 2,
+        "the old files are kept in the trash"
+    );
+    let new = std::fs::read(&plain).unwrap();
+    assert_ne!(new, first);
+    let plays: i64 = a
+        .db()
+        .query_row(
+            "SELECT play_count FROM playstate WHERE item_id = ?1",
+            [track_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(plays, 7);
+}
+
+#[test]
+fn keep_and_as_is_answers() {
+    let d = tempfile::tempdir().unwrap();
+    let (music, lib) = (d.path().join("music"), d.path().join("lib"));
+    std::fs::create_dir_all(&lib).unwrap();
+    track(&music.join("u"), 1, "Mine", false);
+    track(&music.join("k"), 1, "Kept", true);
+    let a = App::new(&d.path().join("data"));
+    a.library(&lib);
+    a.add(&music, "music", 2);
+    let mine = a.item("album", "Mine");
+    a.call("importStart", json!({ "item": mine })).unwrap();
+    let l = a.call("imports", json!({})).unwrap();
+    let job = a.job(&l, "Mine")["id"].as_i64().unwrap();
+    assert_eq!(
+        a.call("importReview", json!({ "job": job })).unwrap()["review"],
+        "match"
+    );
+    a.call("importResolve", json!({ "job": job, "choice": "asIs" }))
+        .unwrap();
+    let l = a.finish(20);
+    assert_eq!(a.job(&l, "Mine")["state"], "done");
+    assert!(
+        lib.join("Music/Test Band/Mine (2001)/01 - Song 1.flac")
+            .is_file()
+    );
+
+    // A foreign folder: keeping changes nothing; another name imports next to it.
+    let dir = lib.join("Music/Test Band/Kept (2001)");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("01 - Song 1.flac"), b"mine").unwrap();
+    let kept = a.item("album", "Kept");
+    a.call("importStart", json!({ "item": kept })).unwrap();
+    let l = a.finish(20);
+    let job = a.job(&l, "Kept")["id"].as_i64().unwrap();
+    assert_eq!(a.job(&l, "Kept")["review"], "clash");
+    assert!(a.call("importReview", json!({ "job": job })).unwrap()["library"].is_null());
+    a.call(
+        "importResolve",
+        json!({ "job": job, "choice": "rename", "label": "Second" }),
+    )
+    .unwrap();
+    a.finish(20);
+    assert_eq!(
+        std::fs::read(dir.join("01 - Song 1.flac")).unwrap(),
+        b"mine"
+    );
+    assert!(
+        lib.join("Music/Test Band/Kept (2001) [Second]/01 - Song 1.flac")
+            .is_file()
+    );
+}
+
 fn relay(rt: &tokio::runtime::Runtime, target: &'static str, down: Arc<AtomicBool>) -> u16 {
     let l = rt
         .block_on(tokio::net::TcpListener::bind("127.0.0.1:0"))

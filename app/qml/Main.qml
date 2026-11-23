@@ -132,6 +132,19 @@ ApplicationWindow {
         backend: Core
         onSettingsRequested: Nav.settings("library")
         onStarted: win.showError(qsTr("Added to your imports. See Downloads → Imports."))
+        onAnotherRelease: (item, title, artist) => {
+            sheetMatch.album = item
+            sheetMatch.search(item, "album", title, artist, null)
+        }
+    }
+    // Issue #155: after another release is chosen, the sheet shows what it now means.
+    MusicMatch {
+        id: sheetMatch
+        property var album: 0
+        backend: Core
+        onNotice: (text) => win.showError(text)
+        onSettingsRequested: (tab) => Nav.settings(tab)
+        onChanged: (id) => addSheet.show(id !== undefined ? id : album, null)
     }
     // Issue #165: before the first online lookup.
     OnlineChoiceDialog { backend: Core }
