@@ -2,6 +2,41 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en" sourcelanguage="en">
 <context>
+    <name>AddToLibrarySheet</name>
+    <message numerus="yes">
+        <location filename="../qml/AddToLibrarySheet.qml" line="77"/>
+        <source>%n item(s)</source>
+        <translation>
+            <numerusform>%n item</numerusform>
+            <numerusform>%n items</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/AddToLibrarySheet.qml" line="94"/>
+        <source>%n item(s) are not surely matched or are already in your library. They wait under Imports → To review, and nothing is guessed.</source>
+        <translation>
+            <numerusform>%n item is not surely matched or is already in your library. It waits under Imports → To review, and nothing is guessed.</numerusform>
+            <numerusform>%n items are not surely matched or are already in your library. They wait under Imports → To review, and nothing is guessed.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/AddToLibrarySheet.qml" line="166"/>
+        <source>… %n more</source>
+        <translation>
+            <numerusform>… %n more</numerusform>
+            <numerusform>… %n more</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/AddToLibrarySheet.qml" line="205"/>
+        <source>Add %n file(s) to Library</source>
+        <translation>
+            <numerusform>Add %n file to Library</numerusform>
+            <numerusform>Add %n files to Library</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>AddToPlaylist</name>
     <message numerus="yes">
         <location filename="../qml/AddToPlaylist.qml" line="124"/>
@@ -31,7 +66,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="434"/>
+        <location filename="../qml/AlbumPage.qml" line="435"/>
         <source>%n version(s)</source>
         <translation>
             <numerusform>%n version</numerusform>
@@ -151,11 +186,22 @@
 <context>
     <name>DetailPage</name>
     <message numerus="yes">
-        <location filename="../qml/DetailPage.qml" line="999"/>
+        <location filename="../qml/DetailPage.qml" line="1009"/>
         <source>%n file(s) exist already in %1. Replace them?</source>
         <translation>
             <numerusform>%n file exists already in %1. Replace it?</numerusform>
             <numerusform>%n files exist already in %1. Replace them?</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>ImportsPanel</name>
+    <message numerus="yes">
+        <location filename="../qml/ImportsPanel.qml" line="39"/>
+        <source>Added %n file(s)</source>
+        <translation>
+            <numerusform>Added %n file</numerusform>
+            <numerusform>Added %n files</numerusform>
         </translation>
     </message>
 </context>
@@ -401,6 +447,17 @@
         <translation>
             <numerusform>Saving %n song. Progress is under Downloads.</numerusform>
             <numerusform>Saving %n songs. Progress is under Downloads.</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>NavRail</name>
+    <message numerus="yes">
+        <location filename="../qml/NavRail.qml" line="130"/>
+        <source>%n import(s) wait for you</source>
+        <translation>
+            <numerusform>%n import waits for you</numerusform>
+            <numerusform>%n imports wait for you</numerusform>
         </translation>
     </message>
 </context>

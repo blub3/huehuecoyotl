@@ -6,6 +6,7 @@ pub mod books;
 pub mod catalog;
 pub mod copies;
 pub mod copy_meta;
+pub mod imports;
 pub mod jobs;
 pub mod kinds;
 pub mod managed;

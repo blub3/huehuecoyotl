@@ -216,13 +216,23 @@ FocusScope {
                     }
                     RowLayout {
                         spacing: 10
+                        // Issue #154.
+                        FocusButton {
+                            id: addArtist
+                            objectName: "artistAddToLibrary"
+                            text: qsTr("Add to Library…")
+                            KeyNavigation.right: matchButton
+                            Keys.onDownPressed: page.focusRow(0)
+                            Keys.onLeftPressed: Nav.focusRail()
+                            onClicked: (page.Window.window as Main).addToLibrary(page.itemId, addArtist)
+                        }
                         FocusButton {
                             id: matchButton
                             objectName: "artistMatchAgain"
                             text: qsTr("Match again")
                             KeyNavigation.right: searchArtist
+                            KeyNavigation.left: addArtist
                             Keys.onDownPressed: page.focusRow(0)
-                            Keys.onLeftPressed: Nav.focusRail()
                             onClicked: musicMatch.again(page.itemId, "artist", page.d.title, matchButton)
                         }
                         FocusButton {

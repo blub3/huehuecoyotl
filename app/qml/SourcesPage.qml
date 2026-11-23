@@ -282,7 +282,21 @@ FocusScope {
             }
             RowLayout {
                 spacing: 12
-                FocusButton { id: keepFolder; text: qsTr("Keep it"); KeyNavigation.right: removeFolder; onClicked: removeConfirm.close() }
+                FocusButton { id: keepFolder; text: qsTr("Keep it"); KeyNavigation.right: addThoseFirst.visible ? addThoseFirst : removeFolder; onClicked: removeConfirm.close() }
+                // Issue #154: what only this folder has can go into the library first.
+                FocusButton {
+                    id: addThoseFirst
+                    objectName: "addThoseFirst"
+                    visible: !!page.overview.library && !!removeConfirm.preview && Number(removeConfirm.preview.leave) > 0
+                    text: qsTr("Add those to Library first…")
+                    KeyNavigation.left: keepFolder
+                    KeyNavigation.right: removeFolder
+                    onClicked: {
+                        Core.libraryCall("importSource", { source: Number(removeConfirm.folder.sourceId) })
+                        removeConfirm.close()
+                        Nav.go("downloads")
+                    }
+                }
                 FocusButton {
                     id: removeFolder
                     objectName: "confirmRemove"

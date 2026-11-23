@@ -338,7 +338,8 @@ FocusScope {
                                 Keys.onUpPressed: (e) => { const t = versionPicker.visible ? versionPicker : artistButton.visible ? artistButton : null; if (t) t.forceActiveFocus(); else e.accepted = Nav.focusBack() }
                                 KeyNavigation.left: saveMenu.visible ? saveMenu : playlistButton
                                 KeyNavigation.down: trackList
-                                onClicked: albumMenu.show(moreButton, [{ value: "match", label: qsTr("Match again") },
+                                onClicked: albumMenu.show(moreButton, [{ value: "library", label: qsTr("Add to Library…") },
+                                                                       { value: "match", label: qsTr("Match again") },
                                                                        { value: "search", label: qsTr("Search MusicBrainz…") }])
                             }
                         }
@@ -480,7 +481,8 @@ FocusScope {
             trackTitle = t.title || ""
             trackArtist = t.artists || page.d.artist || ""
             const list = [{ value: "next", label: qsTr("Play next") }, { value: "queue", label: qsTr("Add to queue") },
-                          { value: "playlist", label: qsTr("Add to playlist…") }]
+                          { value: "playlist", label: qsTr("Add to playlist…") },
+                          { value: "library", label: qsTr("Add to Library…") }]
             for (const f of (t.files || []))
                 list.push({ value: "file:" + f.id,
                             label: (f.id === t.fileId ? "✓ " : "") + qsTr("Version: %1").arg(MediaInfo.trackFileLabel(f)) })
@@ -492,6 +494,7 @@ FocusScope {
             if (v === "next") Music.playNext([trackId], page.d.versionId || 0)
             else if (v === "queue") Music.addToQueue([trackId], page.d.versionId || 0)
             else if (v === "playlist") addToPlaylist.show([trackId], page.d.versionId || 0, trackList)
+            else if (v === "library") (page.Window.window as Main).addToLibrary(trackId, trackList)
             else if (v.startsWith("file:")) Core.setTrackFile(trackId, Number(v.slice(5)))
             else if (v === "match") musicMatch.again(trackId, "track", trackTitle, trackList)
             else if (v === "search") musicMatch.search(trackId, "track", trackTitle, trackArtist, trackList)
@@ -501,7 +504,8 @@ FocusScope {
     ActionMenu {
         id: albumMenu
         onChosen: (v) => {
-            if (v === "match") musicMatch.again(page.itemId, "album", page.d.title, moreButton)
+            if (v === "library") (page.Window.window as Main).addToLibrary(page.itemId, moreButton)
+            else if (v === "match") musicMatch.again(page.itemId, "album", page.d.title, moreButton)
             else musicMatch.search(page.itemId, "album", page.d.title, page.d.artist, moreButton)
         }
     }

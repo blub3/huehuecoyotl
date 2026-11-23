@@ -18,7 +18,7 @@ type CResult<T> = Result<T, CoreError>;
 const CHUNK: u32 = 1 << 20;
 /// How soon a paused move tries again.
 const RETRY_SECONDS: i64 = 15;
-pub const LIBRARY_KINDS: &[&str] = &["library_move"];
+pub const LIBRARY_KINDS: &[&str] = &["library_move", "library_import"];
 
 /// Writes confined to one folder.
 pub(crate) struct Scoped {
@@ -104,7 +104,7 @@ async fn connection(inner: &Arc<Inner>, p: &managed::Place) -> CResult<Arc<dyn S
     })
 }
 
-async fn source_connection(inner: &Arc<Inner>, id: i64) -> CResult<Arc<dyn Source>> {
+pub(crate) async fn source_connection(inner: &Arc<Inner>, id: i64) -> CResult<Arc<dyn Source>> {
     let row = inner
         .lib
         .read(move |c| huehuecoyotl_library::catalog::source(c, id))
@@ -319,7 +319,7 @@ async fn finish(inner: &Arc<Inner>) -> CResult<()> {
 }
 
 /// Stream a file into a channel, chunk by chunk.
-fn reader(src: Arc<dyn Source>, path: VPath, size: u64) -> huehuecoyotl_vfs::Chunks {
+pub(crate) fn reader(src: Arc<dyn Source>, path: VPath, size: u64) -> huehuecoyotl_vfs::Chunks {
     let (tx, rx) = mpsc::channel::<huehuecoyotl_vfs::Result<Bytes>>(4);
     tokio::spawn(async move {
         let mut at = 0u64;
@@ -348,7 +348,7 @@ fn reader(src: Arc<dyn Source>, path: VPath, size: u64) -> huehuecoyotl_vfs::Chu
 }
 
 /// Byte for byte: the copy is what was read.
-async fn same_content(
+pub(crate) async fn same_content(
     a: &dyn Source,
     pa: &VPath,
     b: &dyn Source,
@@ -558,12 +558,15 @@ impl Core {
                     v["item"] = json!(id);
                     ("libraryOrigin", v)
                 }
-                other => {
-                    return Err(CoreError::new(
-                        ErrorKind::Unsupported,
-                        format!("unknown library action {other}"),
-                    ));
-                }
+                other => match crate::imports::action(&inner, other, &args).await? {
+                    Some(answer) => answer,
+                    None => {
+                        return Err(CoreError::new(
+                            ErrorKind::Unsupported,
+                            format!("unknown library action {other}"),
+                        ));
+                    }
+                },
             };
             Ok(Event::MusicDetail {
                 request_id,

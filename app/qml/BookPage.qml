@@ -298,9 +298,19 @@ FocusScope {
                                 objectName: "bookSearch"
                                 text: qsTr("Search Open Library…")
                                 KeyNavigation.left: matchButton
+                                KeyNavigation.right: addBook
                                 KeyNavigation.down: chapterList.count > 0 ? chapterList : null
                                 onClicked: bookMatch.search(page.itemId, "audiobook", page.d.title,
                                                             (page.d.authors || []).length > 0 ? page.d.authors[0].name : "", searchButton)
+                            }
+                            // Issue #154.
+                            FocusButton {
+                                id: addBook
+                                objectName: "bookAddToLibrary"
+                                text: qsTr("Add to Library…")
+                                KeyNavigation.left: searchButton
+                                KeyNavigation.down: chapterList.count > 0 ? chapterList : null
+                                onClicked: (page.Window.window as Main).addToLibrary(page.itemId, addBook)
                             }
                         }
                     }

@@ -14,6 +14,7 @@ pub mod booktime {
 pub mod diagnostics;
 mod download;
 mod extras;
+mod imports;
 mod kinds;
 pub mod lang;
 mod library;

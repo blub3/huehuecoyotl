@@ -161,6 +161,11 @@ copies fit. If you already have copies, **Move them there** copies them one at a
 each one and only then removes the old one, and continues later if the place goes away. **Start
 empty there** leaves them where they are as a normal folder under Sources.
 
+**Add to Library** is in the menu of a song or album and on the pages of artists, movies, shows
+and books. It shows where the copy goes, which tags change and how the files will be named. The
+originals are not changed. Progress is under **Downloads → Imports to Library**; something the
+app is not sure about waits there for you, and importing the same thing again copies nothing.
+
 What is in your library stays when its original file is deleted or its source is removed. Its
 page then says **In your library only**, and Sources shows what left each folder.
 

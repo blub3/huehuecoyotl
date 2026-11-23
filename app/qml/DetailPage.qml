@@ -589,7 +589,7 @@ FocusScope {
                                 id: watchedButton
                                 text: page.d.watched || (page.kind !== "movie" && page.kind !== "episode" && page.d.unwatched === 0) ? qsTr("Mark unwatched") : qsTr("Mark watched")
                                 KeyNavigation.left: playButton
-                                KeyNavigation.right: fixButton.visible ? fixButton : null
+                                KeyNavigation.right: fixButton.visible ? fixButton : addLibrary
                                 KeyNavigation.down: page.belowActions()
                                 onClicked: Core.setWatched(page.itemId, !(page.d.watched || (page.kind !== "movie" && page.kind !== "episode" && page.d.unwatched === 0)))
                             }
@@ -598,8 +598,18 @@ FocusScope {
                                 visible: Core.hasTmdbKey && (page.kind === "movie" || page.kind === "show" || page.kind === "episode")
                                 text: qsTr("Fix match")
                                 KeyNavigation.left: watchedButton
+                                KeyNavigation.right: addLibrary
                                 KeyNavigation.down: page.belowActions()
                                 onClicked: fixDialog.openFor(page.itemId, page.d.title, page.d.year, page.kind)
+                            }
+                            // Issue #154: a movie, show, season or episode.
+                            FocusButton {
+                                id: addLibrary
+                                objectName: "detailAddToLibrary"
+                                text: qsTr("Add to Library…")
+                                KeyNavigation.left: fixButton.visible ? fixButton : watchedButton
+                                KeyNavigation.down: page.belowActions()
+                                onClicked: (page.Window.window as Main).addToLibrary(page.itemId, addLibrary)
                             }
                         }
 

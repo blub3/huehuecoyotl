@@ -178,6 +178,12 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
                 None => Outcome::Done,
             };
         }
+        "library_import" => {
+            return match crate::imports::run(inner).await {
+                Some(wait) => Outcome::Defer(wait),
+                None => Outcome::Done,
+            };
+        }
         other => Err(format!("unknown job kind {other}")),
     };
     // Issue #146: a scan or a music match may have given two artists one ID or one name.
