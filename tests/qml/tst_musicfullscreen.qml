@@ -104,6 +104,18 @@ Item {
             verify(findChild(v, "fullPlay").activeFocus, "↓ goes back to Play / Pause")
         }
 
+        // Issue #191: while the shell's Back bar is in use the view stays awake; afterwards it fades.
+        function test_heldStaysAwake() {
+            const v = enter(150)
+            v.held = true
+            wait(450)
+            verify(v.awake, "no idle while the Back bar is in use")
+            v.held = false
+            tryVerify(() => !v.awake, 2000, "idle again after the bar is left")
+            v.wake()
+            verify(v.awake)
+        }
+
         function test_fadeAndWakeWithoutActing() {
             const v = enter(300)
             tryVerify(() => !v.awake, 3000, "controls fade without input")

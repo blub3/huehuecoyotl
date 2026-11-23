@@ -107,7 +107,8 @@ FocusScope {
     function toggleFullView() {
         const p = content.currentItem
         if (!p || p.objectName !== "nowPlaying") return false
-        (p as NowPlayingPage).toggleFull()
+        const nowPlaying = p as NowPlayingPage
+        nowPlaying.toggleFull()
         return true
     }
     // Issue #82: Now Playing uses the whole window; the rail steps aside.
@@ -156,6 +157,8 @@ FocusScope {
         objectName: "backPath"
         z: 10
         visible: backButton.visible && width > 80
+        opacity: shell.backIdle ? 0 : 1
+        Behavior on opacity { NumberAnimation { duration: 600 } }
         x: backButton.x + backButton.width + 18
         y: backButton.y + (backButton.height - height) / 2
         width: Math.max(0, backStrip.width - (x - backStrip.x) - 40)
@@ -163,6 +166,37 @@ FocusScope {
         elide: Text.ElideLeft
         color: Theme.textDim
         font.pixelSize: Theme.fontSmall
+    }
+
+    // Issue #191: the full-screen Now Playing view goes idle, and the Back bar with it. A real
+    // mouse move wakes it (Qt also sends hover events for a still pointer); using the bar keeps it.
+    readonly property var fullPage: immersive ? content.currentItem : null
+    readonly property bool backIdle: fullPage !== null && fullPage.fullIdle === true
+    HoverHandler {
+        id: pointer
+        property point last: Qt.point(-1, -1)
+        onPointChanged: {
+            const p = point.scenePosition
+            if (Math.abs(p.x - last.x) < 2 && Math.abs(p.y - last.y) < 2) return
+            last = p
+            if (shell.fullPage) shell.fullPage.wakeFull()
+        }
+    }
+    Binding {
+        when: shell.fullPage !== null
+        target: shell.fullPage
+        property: "holdAwake"
+        value: (pointer.hovered && pointer.point.position.y < backStrip.height)
+               || backButton.activeFocus || backButton.trailOpen
+    }
+    MouseArea {
+        objectName: "backWake"
+        z: 11
+        anchors.fill: backStrip
+        enabled: shell.backIdle
+        acceptedButtons: Qt.AllButtons
+        onPressed: shell.fullPage.wakeFull()
+        onWheel: shell.fullPage.wakeFull()
     }
 
     // Issue #134: above every page but a section's first, a strip that holds the Back button, so
@@ -207,6 +241,9 @@ FocusScope {
         x: backStrip.x + 40
         y: backStrip.y + 20
         stack: content
+        enabled: !shell.backIdle
+        opacity: shell.backIdle ? 0 : 1
+        Behavior on opacity { NumberAnimation { duration: 600 } }
         onBackRequested: shell.back()
         onBackToRequested: (index) => shell.backTo(index)
         Keys.onRightPressed: shell.focusContent()
