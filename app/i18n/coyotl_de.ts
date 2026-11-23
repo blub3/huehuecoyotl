@@ -5398,7 +5398,7 @@
     </message>
     <message>
         <location filename="../qml/SettingsPage.qml" line="665"/>
-        <location filename="../qml/SettingsPage.qml" line="837"/>
+        <location filename="../qml/SettingsPage.qml" line="843"/>
         <source>Delete all saved copies</source>
         <translation>Alle gespeicherten Kopien löschen</translation>
     </message>
@@ -5444,41 +5444,46 @@
     </message>
     <message>
         <location filename="../qml/SettingsPage.qml" line="757"/>
+        <source>TMDB logo</source>
+        <translation>TMDB-Logo</translation>
+    </message>
+    <message>
+        <location filename="../qml/SettingsPage.qml" line="763"/>
         <source>This product uses the TMDB API but is not endorsed or certified by TMDB.</source>
         <translation>Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="765"/>
+        <location filename="../qml/SettingsPage.qml" line="771"/>
         <source>Music information from MusicBrainz (musicbrainz.org, data under CC0). Album covers from the Cover Art Archive (coverartarchive.org), a joint project of the Internet Archive and MusicBrainz.</source>
         <translation>Musikinformationen von MusicBrainz (musicbrainz.org, Daten unter CC0). Albumcover aus dem Cover Art Archive (coverartarchive.org), einem gemeinsamen Projekt des Internet Archive und von MusicBrainz.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="772"/>
+        <location filename="../qml/SettingsPage.qml" line="778"/>
         <source>Book information and covers from Open Library (openlibrary.org), a project of the Internet Archive.</source>
         <translation>Buchinformationen und Cover von Open Library (openlibrary.org), einem Projekt des Internet Archive.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="780"/>
+        <location filename="../qml/SettingsPage.qml" line="786"/>
         <source>Artist images, biographies and album art from TheAudioDB (theaudiodb.com), contributed by its community.</source>
         <translation>Künstlerbilder, Biografien und Albumbilder von TheAudioDB (theaudiodb.com), beigetragen von dessen Community.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="787"/>
+        <location filename="../qml/SettingsPage.qml" line="793"/>
         <source>Artist images, logos and album art from Fanart.tv (fanart.tv), contributed by its community.</source>
         <translation>Künstlerbilder, Logos und Albumbilder von Fanart.tv (fanart.tv), beigetragen von dessen Community.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="796"/>
+        <location filename="../qml/SettingsPage.qml" line="802"/>
         <source>Where saved copies go</source>
         <translation>Ordner für gespeicherte Kopien</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="824"/>
+        <location filename="../qml/SettingsPage.qml" line="830"/>
         <source>Delete every saved copy from this computer (%1)? The files on your servers stay, and everything can be streamed or saved again.</source>
         <translation>Alle gespeicherten Kopien von diesem Computer löschen (%1)? Die Dateien auf deinen Servern bleiben erhalten, und alles kann weiter gestreamt oder erneut gespeichert werden.</translation>
     </message>
     <message>
-        <location filename="../qml/SettingsPage.qml" line="830"/>
+        <location filename="../qml/SettingsPage.qml" line="836"/>
         <source>Keep</source>
         <translation>Behalten</translation>
     </message>

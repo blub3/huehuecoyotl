@@ -111,6 +111,9 @@ endif()
 qt_add_resources(coyotl notices PREFIX /notices BASE ${CMAKE_CURRENT_BINARY_DIR}/notices FILES ${_notices})
 install(FILES ${_notices} DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/coyotl)
 
+# Issue #162: TMDB's approved logo for Settings → About (assets/tmdb).
+qt_add_resources(coyotl tmdb_logo PREFIX /tmdb BASE ${CMAKE_SOURCE_DIR}/assets/tmdb FILES
+  ${CMAKE_SOURCE_DIR}/assets/tmdb/tmdb-blue-short.png)
 # Window icon (the taskbar and title bar on Windows and X11; Wayland uses the desktop entry) and
 # the logo in the UI (AppLogo.qml, from the 512 px size).
 qt_add_resources(coyotl icons PREFIX /icons BASE ${CMAKE_SOURCE_DIR}/packaging/icons/hicolor FILES

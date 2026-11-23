@@ -30,6 +30,10 @@ file() { printf '\n----- %s -----\n\n' "$2"; cat "$1"; }
   section "Huehuecoyotl logo and icons"
   cat "$root/assets/logo/LICENSE"
 
+  # Issue #162: TMDB's logo, shown in Settings → About.
+  section "TMDB logo"
+  cat "$root/assets/tmdb/README.md"
+
   section "FFmpeg types in the media probe (LGPL-2.1-or-later)"
   echo "The media probe contains types and constants generated from FFmpeg's headers"
   echo "(crates/probe/src/ffi_types.rs and ffi_types_71.rs). FFmpeg's headers are licensed under the"

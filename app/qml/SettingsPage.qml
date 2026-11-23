@@ -745,10 +745,16 @@ FocusScope {
                 }
                 RowLayout {
                     spacing: 14
-                    Rectangle {   // TMDB attribution (SPEC 7); the approved logo asset replaces this mark.
-                        Layout.preferredWidth: 74; Layout.preferredHeight: 28; radius: 5
-                        color: "#0d253f"
-                        Label { anchors.centerIn: parent; text: "TMDB"; color: "#01b4e4"; font.bold: true; font.pixelSize: 13 }
+                    Image {   // Issue #162: TMDB's approved logo (assets/tmdb), smaller than the app's.
+                        objectName: "tmdbLogo"
+                        Layout.preferredWidth: 123; Layout.preferredHeight: 16
+                        source: "qrc:/tmdb/tmdb-blue-short.png"
+                        sourceSize.width: 246
+                        fillMode: Image.PreserveAspectFit
+                        smooth: true
+                        mipmap: true
+                        Accessible.role: Accessible.Graphic
+                        Accessible.name: qsTr("TMDB logo")
                     }
                     Label {
                         Layout.fillWidth: true
