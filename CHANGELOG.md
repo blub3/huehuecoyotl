@@ -2,7 +2,7 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
-## Unreleased (3.0.1)
+## 3.0.1 – 2026-11-23 (Linux)
 
 - Now Playing full screen (#191): the Back bar and its trail fade out with the controls when idle, and come back on a mouse move or key press.
 - F11 on Now Playing enters and leaves full screen again (#191).

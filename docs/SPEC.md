@@ -86,6 +86,7 @@ Huehuecoyotl is a desktop player for Windows and Linux with local and network pl
 | 2.6 (Linux, released) | Music redesign: a top menu (Albums, Artists, Songs, Genres, Playlists), the Quality lens (Hi-Res, Lossless, Several versions, Saved), format ribbons, a letter rail, an Artists preview panel, a Songs list with a quality column, smart and own playlists, a new Now Playing with a waveform and the signal path as a chain, and a full-screen Now Playing (issues #78 to #83) |
 | 2.7 (Linux, released) | Matching again: Settings → Matching for every library, Fix match with the current match, links and a Movie ↔ TV show switch, match again and search for albums, songs, artists, books and authors, and artists and authors that follow their albums, songs and books (issues #92 to #110) |
 | 2.7.1 (Linux, released) | Settings with a tab bar (issue #117); the music library run matches artists too (issue #124) |
+| 3.0.1 (Linux, released) | The Back bar fades with the idle full-screen Now Playing view, and F11 works there again (#191) |
 | 3.0 (Linux, released) | The managed library: its folder (#150), names (#152), metadata (#153), Add to Library (#154), review (#155), automatic import (#156) and tag editing (#157) |
 | 2.9.2 (Linux, released) | A notice for missing codecs (#171), the choice of online lookups or files only (#165), licence notices and provenance (#162 to #164) |
 | 2.9.1 (Linux, released) | One artist per MusicBrainz ID and name, the artist's name, Merge with…, one album per release with linked editions (migrations 14 to 16, issues #146 to #149); the Flatpak uses the runtime's FFmpeg, with a source bundle (#161) |
@@ -826,6 +827,8 @@ Gates are the diamonds between milestones. Until v1.2 every gate had to pass on 
 **M5 status (Nov 12, 2026).** Paused: GitHub Actions has no minutes left, and the Windows build needs it (or a Windows build machine). The portable Windows package of 1.0 ran on a Windows PC without problems ([first-run checklist](testing/windows-first-run.md)). The Windows release workflow is ready in PR #31 but untested. Open: that PR, media keys (SMTC), signing, Windows SMB servers and integrated graphics.
 
 **2.5 (planned): audiobooks.** The specification (#64) first, then in this order: the audiobook library (#65), Open Library and MusicBrainz for books (#67), and the Audiobooks category and player (#66). 2.5 is released when all four are done. The Flatpak needs no new permission.
+
+**3.0.1 (Nov 23, 2026): released for Linux.** The idle full-screen Now Playing view hides the Back bar, and F11 toggles that view again (#191). No migration: the library stays at schema 18.
 
 **3.0 (Nov 23, 2026): released for Linux.** The managed library (#150, #152 to #157). The library moves from schema 16 to 18, and the Flatpak folder flows were tested with the real document portal.
 
