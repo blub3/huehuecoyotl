@@ -9,6 +9,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use bytes::Bytes;
+use huehuecoyotl_vfs::{Expected, safe_write};
 use huehuecoyotl_vfs::{Protocol, RemoteConfig, VPath, VfsError, remote};
 use tokio::io::copy_bidirectional;
 use tokio::net::{TcpListener, TcpStream};
@@ -139,6 +141,193 @@ async fn check(protocol: Protocol) {
             "{name}: wrong password gave {e:?}"
         );
     }
+}
+
+/// Issue #151: the writable share of each protocol.
+fn writable(protocol: Protocol) -> RemoteConfig {
+    let mut c = cfg(protocol);
+    match protocol {
+        Protocol::Smb => c.share = "write".into(),
+        Protocol::Nfs => c.share = "write".into(),
+        Protocol::Webdav => c.port = Some(8081),
+        Protocol::Ftp => c.port = Some(2121),
+        Protocol::Sftp => c.port = Some(2023),
+    }
+    c
+}
+
+async fn chunks(parts: Vec<huehuecoyotl_vfs::Result<Bytes>>) -> huehuecoyotl_vfs::Chunks {
+    let (tx, rx) = tokio::sync::mpsc::channel(parts.len().max(1));
+    for p in parts {
+        tx.send(p).await.unwrap();
+    }
+    rx
+}
+
+async fn read_all(src: &dyn huehuecoyotl_vfs::Source, p: &VPath) -> Vec<u8> {
+    let mut out = Vec::new();
+    loop {
+        let b = src.read_at(p, out.len() as u64, 1 << 20).await.unwrap();
+        if b.is_empty() {
+            return out;
+        }
+        out.extend_from_slice(&b);
+    }
+}
+
+async fn check_writes(protocol: Protocol) {
+    let name = protocol.as_str();
+    let src = remote::connect(writable(protocol))
+        .await
+        .unwrap_or_else(|e| panic!("{name}: connect: {e}"));
+    let dir = VPath::new(format!("/t-{name}-{}", std::process::id()));
+    src.create_dir(&dir)
+        .await
+        .unwrap_or_else(|e| panic!("{name}: create folder: {e}"));
+    let sub = dir.join("Sub Folder");
+    src.create_dir(&sub).await.unwrap();
+    let file = sub.join("Tëst file (1).bin");
+
+    // A new file, larger than one protocol block.
+    let body: Vec<u8> = (0..3_000_000u32).map(|i| (i % 251) as u8).collect();
+    let parts = body
+        .chunks(700_000)
+        .map(|c| Ok(Bytes::copy_from_slice(c)))
+        .collect();
+    let n = safe_write(&*src, &file, chunks(parts).await, None)
+        .await
+        .unwrap_or_else(|e| panic!("{name}: write: {e}"));
+    assert_eq!(n, body.len() as u64, "{name}: bytes written");
+    assert!(read_all(&*src, &file).await == body, "{name}: content");
+    let st = src.stat(&file).await.unwrap();
+    let x = Expected {
+        size: st.size,
+        mtime: st.mtime,
+    };
+
+    // An interrupted write leaves the old file and no temporary one.
+    let broken = chunks(vec![
+        Ok(Bytes::from_static(b"half of it")),
+        Err(VfsError::Unreachable("cut".into())),
+    ])
+    .await;
+    assert!(
+        safe_write(&*src, &file, broken, Some(x)).await.is_err(),
+        "{name}"
+    );
+    assert!(
+        read_all(&*src, &file).await == body,
+        "{name}: old file kept"
+    );
+    assert_eq!(
+        src.list(&sub).await.unwrap().len(),
+        1,
+        "{name}: no leftovers"
+    );
+    let raw = hidden_entries(protocol, &sub).await;
+    assert_eq!(raw, 0, "{name}: no temporary file left");
+
+    // A file changed on the server is not overwritten.
+    let stale = Expected {
+        size: x.size + 1,
+        ..x
+    };
+    let e = safe_write(
+        &*src,
+        &file,
+        chunks(vec![Ok(Bytes::from_static(b"x"))]).await,
+        Some(stale),
+    )
+    .await
+    .unwrap_err();
+    assert!(matches!(e, VfsError::Changed(_)), "{name}: gave {e:?}");
+
+    // Replacing, renaming, removing.
+    let new = safe_write(
+        &*src,
+        &file,
+        chunks(vec![Ok(Bytes::from_static(b"new"))]).await,
+        Some(x),
+    )
+    .await
+    .unwrap_or_else(|e| panic!("{name}: replace: {e}"));
+    assert_eq!(new, 3);
+    assert_eq!(read_all(&*src, &file).await, b"new", "{name}: replaced");
+    let moved = dir.join("moved.bin");
+    src.rename(&file, &moved)
+        .await
+        .unwrap_or_else(|e| panic!("{name}: rename: {e}"));
+    assert!(
+        matches!(src.stat(&file).await, Err(VfsError::NotFound(_))),
+        "{name}"
+    );
+    assert_eq!(read_all(&*src, &moved).await, b"new", "{name}: moved");
+    huehuecoyotl_vfs::write::check_writable(&*src, &dir)
+        .await
+        .unwrap_or_else(|e| panic!("{name}: check: {e}"));
+    src.remove(&moved)
+        .await
+        .unwrap_or_else(|e| panic!("{name}: remove: {e}"));
+    src.remove_dir(&sub)
+        .await
+        .unwrap_or_else(|e| panic!("{name}: rmdir: {e}"));
+    src.remove_dir(&dir)
+        .await
+        .unwrap_or_else(|e| panic!("{name}: rmdir: {e}"));
+
+    // The read-only share says so, and nothing is written.
+    let ro = remote::connect(cfg(protocol)).await.unwrap();
+    let e = huehuecoyotl_vfs::write::check_writable(&*ro, &VPath::new("/"))
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(e, VfsError::ReadOnly(_)),
+        "{name}: read-only share gave {e:?}"
+    );
+    let e = ro.create_dir(&VPath::new("/nope")).await.unwrap_err();
+    assert!(
+        matches!(e, VfsError::ReadOnly(_)),
+        "{name}: read-only folder gave {e:?}"
+    );
+}
+
+/// Hidden files in the writable folder on disk (listings skip them).
+async fn hidden_entries(protocol: Protocol, dir: &VPath) -> usize {
+    // The NFS server keeps its writable export in a volume of its own (one file system cannot
+    // be exported read-only and writable at once).
+    if protocol == Protocol::Nfs {
+        return 0;
+    }
+    let local = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/servers/writable")
+        .join(dir.as_str().trim_start_matches('/'));
+    std::fs::read_dir(local)
+        .unwrap()
+        .filter(|e| {
+            e.as_ref()
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with('.')
+        })
+        .count()
+}
+
+macro_rules! write_tests {
+    ($($test:ident: $p:expr,)*) => {$(
+        #[tokio::test(flavor = "multi_thread")]
+        async fn $test() {
+            if enabled() {
+                check_writes($p).await;
+            }
+        }
+    )*};
+}
+write_tests! {
+    smb_writes: Protocol::Smb,
+    nfs_writes: Protocol::Nfs,
+    webdav_writes: Protocol::Webdav,
+    ftp_writes: Protocol::Ftp,
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -275,7 +464,7 @@ async fn smb_lists_its_shares() {
     let mut c = cfg(Protocol::Smb);
     c.share = String::new();
     let shares = huehuecoyotl_vfs::smb_shares(&c).await.unwrap();
-    assert_eq!(shares, ["media"], "{shares:?}");
+    assert_eq!(shares, ["media", "write"], "{shares:?}");
     c.password = "wrong".into();
     assert!(huehuecoyotl_vfs::smb_shares(&c).await.is_err());
 }

@@ -2,6 +2,10 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased (3.0)
+
+- Writing to network shares (#151, part of 3.0, not visible in the app yet): SMB, NFS, WebDAV, FTP and SFTP can write, rename and create folders. A file is written under a temporary name and replaces the old one only when complete; read-only shares and files changed on the server are reported and left untouched.
+
 ## Unreleased (2.9.2)
 
 - A missing codec is explained (#171). When a video has no decoder for its picture or sound, a notice names the codec while the other track keeps playing; if nothing can play, the error says why. Music and audiobooks do the same. In the Flatpak the notice shows the command that installs the codec extension.

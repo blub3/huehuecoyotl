@@ -16,11 +16,11 @@ use bytes::Bytes;
 use russh::client;
 use russh::keys::HashAlg;
 use russh_sftp::client::SftpSession;
-use tokio::io::{AsyncReadExt, AsyncSeekExt};
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 
-use huehuecoyotl_vfs::remote::{RemoteConfig, RemoteSource, err, join, retryable};
-use huehuecoyotl_vfs::{Caps, Entry, Result, Source, VPath, VfsError};
+use huehuecoyotl_vfs::remote::{RemoteConfig, RemoteSource, err, join, retryable, write_err};
+use huehuecoyotl_vfs::{Caps, Chunks, Entry, Result, Source, VPath, VfsError};
 
 struct Handler {
     expected: Option<String>,
@@ -270,6 +270,62 @@ impl Source for SftpSource {
             }
             r => r,
         }
+    }
+
+    async fn put(&self, path: &VPath, mut data: Chunks) -> Result<u64> {
+        self.files.lock().await.remove(path.as_str());
+        let c = self.conn().await?;
+        let mut f = c
+            .sftp
+            .create(self.server_path(path))
+            .await
+            .map_err(|e| write_err(err(e)))?;
+        let mut n = 0u64;
+        while let Some(chunk) = data.recv().await {
+            let chunk = chunk?;
+            f.write_all(&chunk).await.map_err(|e| write_err(err(e)))?;
+            n += chunk.len() as u64;
+        }
+        f.shutdown().await.map_err(|e| write_err(err(e)))?;
+        Ok(n)
+    }
+
+    async fn create_dir(&self, path: &VPath) -> Result<()> {
+        let c = self.conn().await?;
+        c.sftp
+            .create_dir(self.server_path(path))
+            .await
+            .map_err(|e| write_err(err(e)))
+    }
+
+    async fn rename(&self, from: &VPath, to: &VPath) -> Result<()> {
+        {
+            let mut files = self.files.lock().await;
+            files.remove(from.as_str());
+            files.remove(to.as_str());
+        }
+        let c = self.conn().await?;
+        c.sftp
+            .rename(self.server_path(from), self.server_path(to))
+            .await
+            .map_err(|e| write_err(err(e)))
+    }
+
+    async fn remove(&self, path: &VPath) -> Result<()> {
+        self.files.lock().await.remove(path.as_str());
+        let c = self.conn().await?;
+        c.sftp
+            .remove_file(self.server_path(path))
+            .await
+            .map_err(|e| write_err(err(e)))
+    }
+
+    async fn remove_dir(&self, path: &VPath) -> Result<()> {
+        let c = self.conn().await?;
+        c.sftp
+            .remove_dir(self.server_path(path))
+            .await
+            .map_err(|e| write_err(err(e)))
     }
 
     fn capabilities(&self) -> Caps {

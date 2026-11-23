@@ -155,6 +155,15 @@ pub fn classify(msg: &str) -> fn(String) -> VfsError {
     let m = msg.to_ascii_uppercase().replace('_', " ");
     let any = |keys: &[&str]| keys.iter().any(|k| m.contains(k));
     if any(&[
+        "READ-ONLY",
+        "READ ONLY",
+        "READONLY",
+        "ROFS",
+        "WRITE PROTECTED",
+        "MEDIA WRITE",
+    ]) {
+        VfsError::ReadOnly
+    } else if any(&[
         "LOGON FAILURE",
         "ACCESS DENIED",
         "AUTHENTICATION",
@@ -203,6 +212,14 @@ pub fn classify(msg: &str) -> fn(String) -> VfsError {
 pub fn err(msg: impl std::fmt::Display) -> VfsError {
     let s = msg.to_string();
     classify(&s)(s)
+}
+
+/// A refusal while writing: the user may read here but not change anything.
+pub fn write_err(e: VfsError) -> VfsError {
+    match e {
+        VfsError::Auth(m) => VfsError::ReadOnly(m),
+        e => e,
+    }
 }
 
 /// Worth reconnecting for: the connection itself failed, not the request.

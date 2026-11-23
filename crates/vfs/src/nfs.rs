@@ -11,8 +11,8 @@ use futures_util::StreamExt;
 use nfs_rs::Mount;
 use tokio::sync::Mutex;
 
-use crate::remote::{RemoteConfig, RemoteSource, rel, retryable};
-use crate::{Caps, Entry, Result, Source, VPath, VfsError};
+use crate::remote::{RemoteConfig, RemoteSource, rel, retryable, write_err};
+use crate::{Caps, Chunks, Entry, Result, Source, VPath, VfsError};
 
 const NF_DIR: u32 = 2;
 
@@ -190,6 +190,68 @@ impl Source for NfsSource {
             }
             r => r,
         }
+    }
+
+    async fn put(&self, path: &VPath, mut data: Chunks) -> Result<u64> {
+        self.handles.lock().await.remove(path.as_str());
+        let m = self.mount().await?;
+        let o = m
+            .create_path(rel(path), Some(0o644))
+            .await
+            .map_err(|e| write_err(nfs_err(e)))?;
+        let max = (m.get_max_write_size().max(64 * 1024)) as usize;
+        let mut pos = 0u64;
+        while let Some(chunk) = data.recv().await {
+            let chunk = chunk?;
+            let mut at = 0;
+            while at < chunk.len() {
+                let part = chunk.slice(at..(at + max).min(chunk.len()));
+                let w = m
+                    .write(o.fh.clone(), pos, part)
+                    .await
+                    .map_err(|e| write_err(nfs_err(e)))?;
+                if w.count == 0 {
+                    return Err(VfsError::Internal("the server wrote nothing".into()));
+                }
+                at += w.count as usize;
+                pos += u64::from(w.count);
+            }
+        }
+        m.commit(o.fh.clone(), 0, 0)
+            .await
+            .map_err(|e| write_err(nfs_err(e)))?;
+        Ok(pos)
+    }
+
+    async fn create_dir(&self, path: &VPath) -> Result<()> {
+        let m = self.mount().await?;
+        m.mkdir_path(rel(path), 0o755)
+            .await
+            .map(|_| ())
+            .map_err(|e| write_err(nfs_err(e)))
+    }
+
+    async fn rename(&self, from: &VPath, to: &VPath) -> Result<()> {
+        self.handles.lock().await.clear();
+        let m = self.mount().await?;
+        m.rename_path(rel(from), rel(to))
+            .await
+            .map_err(|e| write_err(nfs_err(e)))
+    }
+
+    async fn remove(&self, path: &VPath) -> Result<()> {
+        self.handles.lock().await.remove(path.as_str());
+        let m = self.mount().await?;
+        m.remove_path(rel(path))
+            .await
+            .map_err(|e| write_err(nfs_err(e)))
+    }
+
+    async fn remove_dir(&self, path: &VPath) -> Result<()> {
+        let m = self.mount().await?;
+        m.rmdir_path(rel(path))
+            .await
+            .map_err(|e| write_err(nfs_err(e)))
     }
 
     fn capabilities(&self) -> Caps {

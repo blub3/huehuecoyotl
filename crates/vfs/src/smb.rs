@@ -9,13 +9,14 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures_util::StreamExt;
 use smb::{
-    Client, ClientConfig, Directory, FileAccessMask, FileCreateArgs, FileDirectoryInformation,
-    GetLen, UncPath,
+    Client, ClientConfig, CreateOptions, Directory, FileAccessMask, FileAttributes, FileCreateArgs,
+    FileDirectoryInformation, FileDispositionInformation, FileRenameInformation, GetLen, Resource,
+    UncPath,
 };
 use tokio::sync::Mutex;
 
-use crate::remote::{RemoteConfig, RemoteSource, err, rel, retryable};
-use crate::{Caps, Entry, Result, Source, VPath, VfsError};
+use crate::remote::{RemoteConfig, RemoteSource, err, rel, retryable, write_err};
+use crate::{Caps, Chunks, Entry, Result, Source, VPath, VfsError};
 
 const READ_BLOCK: usize = 1 << 20;
 const MAX_OPEN: usize = 8;
@@ -58,6 +59,15 @@ pub async fn list_shares(cfg: &RemoteConfig) -> Result<Vec<String>> {
     names.sort_by_key(|n| n.to_lowercase());
     names.dedup();
     Ok(names)
+}
+
+/// The open file or folder behind a create answer.
+fn handle(r: &Resource) -> Result<&smb::resource::ResourceHandle> {
+    match r {
+        Resource::File(f) => Ok(f),
+        Resource::Directory(d) => Ok(d),
+        Resource::Pipe(_) => Err(VfsError::Unsupported("a pipe".into())),
+    }
 }
 
 impl SmbSource {
@@ -175,6 +185,23 @@ impl SmbSource {
         Ok((f, len))
     }
 
+    /// Open for a change of its name or its removal; files and folders alike.
+    async fn open_for_delete(&self, path: &VPath) -> Result<Resource> {
+        let c = self.client().await?;
+        let args = FileCreateArgs::make_open_existing(
+            FileAccessMask::new()
+                .with_delete(true)
+                .with_file_read_attributes(true),
+        );
+        c.create_file(&self.unc(path)?, &args)
+            .await
+            .map_err(|e| write_err(err(e)))
+    }
+
+    async fn forget(&self, path: &VPath) {
+        self.files.lock().await.remove(path.as_str());
+    }
+
     async fn read_once(&self, path: &VPath, offset: u64, len: u32) -> Result<Bytes> {
         let (f, size) = self.file(path).await?;
         if offset >= size {
@@ -259,6 +286,91 @@ impl Source for SmbSource {
             }
             r => r,
         }
+    }
+
+    async fn size_of(&self, path: &VPath) -> Result<u64> {
+        self.forget(path).await;
+        let (_, len) = self.file(path).await?;
+        self.forget(path).await;
+        Ok(len)
+    }
+
+    async fn put(&self, path: &VPath, mut data: Chunks) -> Result<u64> {
+        self.forget(path).await;
+        let c = self.client().await?;
+        let mut args = FileCreateArgs::make_overwrite(FileAttributes::new(), CreateOptions::new());
+        args.desired_access = FileAccessMask::new()
+            .with_generic_read(true)
+            .with_generic_write(true);
+        let res = c
+            .create_file(&self.unc(path)?, &args)
+            .await
+            .map_err(|e| write_err(err(e)))?;
+        let f = res.unwrap_file();
+        let mut pos = 0u64;
+        while let Some(chunk) = data.recv().await {
+            let chunk = chunk?;
+            for block in chunk.chunks(READ_BLOCK) {
+                let mut done = 0;
+                while done < block.len() {
+                    let n = f
+                        .write_block(&block[done..], pos + done as u64, None)
+                        .await
+                        .map_err(|e| write_err(err(e)))?;
+                    if n == 0 {
+                        return Err(VfsError::Internal("the server wrote nothing".into()));
+                    }
+                    done += n;
+                }
+                pos += block.len() as u64;
+            }
+        }
+        f.close().await.map_err(err)?;
+        Ok(pos)
+    }
+
+    async fn create_dir(&self, path: &VPath) -> Result<()> {
+        let c = self.client().await?;
+        let args = FileCreateArgs::make_create_new(
+            FileAttributes::new().with_directory(true),
+            CreateOptions::new().with_directory_file(true),
+        );
+        let res = c
+            .create_file(&self.unc(path)?, &args)
+            .await
+            .map_err(|e| write_err(err(e)))?;
+        res.unwrap_dir().close().await.map_err(err)
+    }
+
+    async fn rename(&self, from: &VPath, to: &VPath) -> Result<()> {
+        self.forget(from).await;
+        self.forget(to).await;
+        let res = self.open_for_delete(from).await?;
+        let info = FileRenameInformation {
+            replace_if_exists: true.into(),
+            root_directory: 0,
+            file_name: rel(to).replace('/', "\\").as_str().into(),
+        };
+        let h = handle(&res)?;
+        let r = h.set_info(info).await.map_err(|e| write_err(err(e)));
+        let _ = h.close().await;
+        r
+    }
+
+    async fn remove(&self, path: &VPath) -> Result<()> {
+        self.forget(path).await;
+        let res = self.open_for_delete(path).await?;
+        let h = handle(&res)?;
+        let r = h
+            .set_info(FileDispositionInformation::default())
+            .await
+            .map_err(|e| write_err(err(e)));
+        let _ = h.close().await;
+        r
+    }
+
+    async fn remove_dir(&self, path: &VPath) -> Result<()> {
+        self.remove(path).await
     }
 
     fn capabilities(&self) -> Caps {

@@ -8,14 +8,16 @@ networks:
 services:
   samba:
     build: { context: ., dockerfile: Dockerfile.samba }
-    volumes: ["./fixtures:/media:ro"]
+    volumes: ["./fixtures:/media:ro", "./writable:/write"]
     networks: { test: { ipv4_address: 172.29.0.10 } }
   nfs:
     build: { context: ., dockerfile: Dockerfile.nfs }
     volumes: ["./fixtures:/media:ro"]
+    # Its own file system: Ganesha treats two exports of one file system as read-only.
+    tmpfs: ["/write:mode=1777"]
     cap_add: [DAC_READ_SEARCH, SYS_RESOURCE]
     networks: { test: { ipv4_address: 172.29.0.11 } }
   rclone:
     build: { context: ., dockerfile: Dockerfile.rclone }
-    volumes: ["./fixtures:/media:ro", "./keys:/keys:ro"]
+    volumes: ["./fixtures:/media:ro", "./writable:/write", "./keys:/keys:ro"]
     networks: { test: { ipv4_address: 172.29.0.12 } }

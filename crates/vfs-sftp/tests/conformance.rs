@@ -151,3 +151,102 @@ async fn sftp_key_login() {
         );
     }
 }
+
+async fn chunks(parts: Vec<huehuecoyotl_vfs::Result<bytes::Bytes>>) -> huehuecoyotl_vfs::Chunks {
+    let (tx, rx) = tokio::sync::mpsc::channel(parts.len().max(1));
+    for p in parts {
+        tx.send(p).await.unwrap();
+    }
+    rx
+}
+
+async fn read_all(src: &SftpSource, p: &VPath) -> Vec<u8> {
+    let mut out = Vec::new();
+    loop {
+        let b = src.read_at(p, out.len() as u64, 1 << 20).await.unwrap();
+        if b.is_empty() {
+            return out;
+        }
+        out.extend_from_slice(&b);
+    }
+}
+
+/// Issue #151: writing, on the writable server next to the read-only one.
+#[tokio::test(flavor = "multi_thread")]
+async fn sftp_writes() {
+    if std::env::var_os("COYOTL_TEST_SERVERS").is_none() {
+        return;
+    }
+    use bytes::Bytes;
+    use huehuecoyotl_vfs::{Expected, safe_write};
+    let mut c = cfg();
+    c.port = Some(2023);
+    let src = SftpSource::new(c);
+    let dir = VPath::new(format!("/t-sftp-{}", std::process::id()));
+    src.create_dir(&dir).await.unwrap();
+    let file = dir.join("Tëst file.bin");
+    let body: Vec<u8> = (0..1_500_000u32).map(|i| (i % 251) as u8).collect();
+    let parts = body
+        .chunks(400_000)
+        .map(|p| Ok(Bytes::copy_from_slice(p)))
+        .collect();
+    assert_eq!(
+        safe_write(&src, &file, chunks(parts).await, None)
+            .await
+            .unwrap(),
+        body.len() as u64
+    );
+    assert!(read_all(&src, &file).await == body);
+    let st = src.stat(&file).await.unwrap();
+    let x = Expected {
+        size: st.size,
+        mtime: st.mtime,
+    };
+    let broken = chunks(vec![
+        Ok(Bytes::from_static(b"half")),
+        Err(VfsError::Unreachable("cut".into())),
+    ])
+    .await;
+    assert!(safe_write(&src, &file, broken, Some(x)).await.is_err());
+    assert!(read_all(&src, &file).await == body, "old file kept");
+    let stale = Expected {
+        size: x.size + 1,
+        ..x
+    };
+    let e = safe_write(
+        &src,
+        &file,
+        chunks(vec![Ok(Bytes::from_static(b"x"))]).await,
+        Some(stale),
+    )
+    .await
+    .unwrap_err();
+    assert!(matches!(e, VfsError::Changed(_)), "{e:?}");
+    // Plain SFTP may refuse to rename over a file: replacing still works.
+    safe_write(
+        &src,
+        &file,
+        chunks(vec![Ok(Bytes::from_static(b"new"))]).await,
+        Some(x),
+    )
+    .await
+    .unwrap();
+    assert_eq!(read_all(&src, &file).await, b"new");
+    let moved = dir.join("moved.bin");
+    src.rename(&file, &moved).await.unwrap();
+    huehuecoyotl_vfs::write::check_writable(&src, &dir)
+        .await
+        .unwrap();
+    assert_eq!(src.list(&dir).await.unwrap().len(), 1);
+    src.remove(&moved).await.unwrap();
+    src.remove_dir(&dir).await.unwrap();
+
+    let ro = SftpSource::new(cfg());
+    let e = huehuecoyotl_vfs::write::check_writable(&ro, &VPath::new("/"))
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(e, VfsError::ReadOnly(_)),
+        "read-only server gave {e:?}"
+    );
+}
