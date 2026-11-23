@@ -28,6 +28,7 @@ mod playqueue;
 mod probe;
 pub mod secrets;
 mod shares;
+mod tag_edit;
 mod worker;
 
 use std::collections::{HashMap, HashSet};
@@ -388,6 +389,8 @@ struct Inner {
     offline: Mutex<HashSet<i64>>,
     /// Issue #150: why the library's move is paused, while it is.
     library_move_error: Mutex<Option<String>>,
+    /// Issue #157: sources that refused a tag write, shown as read-only until the app restarts.
+    read_only_sources: Mutex<HashSet<i64>>,
     /// The "add network share" dialog's connection: (settings key, source).
     probe: Mutex<Option<(String, Arc<dyn RemoteSource>)>>,
     /// Issue #149: the last merge by hand, undoable for a short while.
@@ -611,6 +614,7 @@ impl Core {
             remotes: Mutex::default(),
             offline: Mutex::default(),
             library_move_error: Mutex::default(),
+            read_only_sources: Mutex::default(),
             probe: Mutex::default(),
             merge_undo: Mutex::default(),
             gates: Mutex::default(),

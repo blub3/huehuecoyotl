@@ -341,6 +341,10 @@ stays. Albums, playlists and play counts stay, your files are not changed, and l
 the two together. **Undo** reverses a merge for 30 seconds. Two artists with different
 MusicBrainz IDs cannot be merged: use Match again on the wrong one first.
 
+**Edit tags…** in the menu of a song or album, and on an artist's page, changes the tags in your
+files. Tick the fields to change, check the preview of every file, then write. Files on read-only
+shares or unreachable places are listed and left alone, and files are never renamed or moved.
+
 ## Audiobooks
 
 From 2.5, a folder added as **Audiobooks** becomes a library of books, authors, narrators and

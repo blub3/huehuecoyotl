@@ -464,7 +464,7 @@ async fn smb_lists_its_shares() {
     let mut c = cfg(Protocol::Smb);
     c.share = String::new();
     let shares = huehuecoyotl_vfs::smb_shares(&c).await.unwrap();
-    assert_eq!(shares, ["media", "write"], "{shares:?}");
+    assert_eq!(shares, ["media", "write", "write-ro"], "{shares:?}");
     c.password = "wrong".into();
     assert!(huehuecoyotl_vfs::smb_shares(&c).await.is_err());
 }

@@ -19,6 +19,7 @@ pub mod playlists;
 pub mod queries;
 pub mod queue;
 pub mod shares;
+pub mod tag_edit;
 pub mod text;
 pub mod versions;
 

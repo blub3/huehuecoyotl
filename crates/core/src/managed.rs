@@ -562,12 +562,15 @@ impl Core {
                 }
                 other => match crate::imports::action(&inner, other, &args).await? {
                     Some(answer) => answer,
-                    None => {
-                        return Err(CoreError::new(
-                            ErrorKind::Unsupported,
-                            format!("unknown library action {other}"),
-                        ));
-                    }
+                    None => match crate::tag_edit::action(&inner, other, &args).await? {
+                        Some(answer) => answer,
+                        None => {
+                            return Err(CoreError::new(
+                                ErrorKind::Unsupported,
+                                format!("unknown library action {other}"),
+                            ));
+                        }
+                    },
                 },
             };
             Ok(Event::MusicDetail {

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Dialogs
 import QtCore
 import Coyotl
 
@@ -25,6 +26,8 @@ ApplicationWindow {
     function showError(message) { toast.show(message) }
     // Issue #154: the sheet of every Add to Library.
     function addToLibrary(item, from) { addSheet.show(item, from) }
+    // Issue #157: Edit tags… of a song, an album or an artist.
+    function editTags(item, from) { tagEditor.show(item, from) }
 
     StackView {
         id: stack
@@ -135,6 +138,21 @@ ApplicationWindow {
         onAnotherRelease: (item, title, artist) => {
             sheetMatch.album = item
             sheetMatch.search(item, "album", title, artist, null)
+        }
+    }
+    TagEditor {
+        id: tagEditor
+        backend: Core
+        onGrantRequested: (source) => { grantDialog.source = source; grantDialog.open() }
+    }
+    // Issue #157: under Flatpak the portal grants write access to the folder of a source.
+    FolderDialog {
+        id: grantDialog
+        property var source: 0
+        title: qsTr("Allow writing to this folder")
+        onAccepted: {
+            Core.libraryCall("tagGrant", { source: Number(source), path: decodeURIComponent(String(selectedFolder).replace(/^file:\/\//, "")) })
+            tagEditor.write(null)
         }
     }
     // Issue #155: after another release is chosen, the sheet shows what it now means.

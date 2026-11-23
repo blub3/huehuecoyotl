@@ -82,6 +82,7 @@ qt_add_qml_module(coyotl
     qml/AddToLibrarySheet.qml
     qml/ImportsPanel.qml
     qml/ImportReviewDialog.qml
+    qml/TagEditor.qml
     qml/ShareEditor.qml
     qml/ShareEditPage.qml
     qml/ShareFoldersPage.qml
