@@ -190,6 +190,16 @@ pub fn remove_library(c: &mut Connection, id: i64) -> Result<()> {
         "DELETE FROM job WHERE kind = 'scan' AND json_extract(payload_json, '$.source_id') = ?1",
         [id],
     )?;
+    // Issue #150: what the library keeps says where its original was.
+    let files: Vec<i64> = {
+        let mut st = tx.prepare("SELECT id FROM file WHERE source_id = ?1")?;
+        st.query_map([id], |r| r.get(0))?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as i64);
+    crate::managed::record_gone(&tx, id, &files, now)?;
     tx.execute("DELETE FROM file WHERE source_id = ?1", [id])?;
     tx.execute(
         "DELETE FROM source WHERE id = ?1 AND id != ?2",

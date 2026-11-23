@@ -100,6 +100,17 @@ impl Core {
 
     pub fn remove_library(&self, request_id: u64, source_id: i64) {
         self.spawn(request_id, move |inner| async move {
+            // Issue #150: only Settings → Library changes the library's own folders.
+            if inner
+                .lib
+                .read(move |c| huehuecoyotl_library::managed::is_library_source(c, source_id))
+                .await?
+            {
+                return Err(CoreError::new(
+                    ErrorKind::Unsupported,
+                    "this is your library; change it under Settings → Library",
+                ));
+            }
             let row = inner
                 .lib
                 .read(move |c| catalog::source(c, source_id))

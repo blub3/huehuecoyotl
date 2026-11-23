@@ -45,6 +45,7 @@ fn usage() -> ExitCode {
         "usage: coyotl-cli [--data-dir DIR] browse [PATH] | open PATH | progress PATH POS_S DUR_S [--ended] | recent\n\
          \x20      | library add PATH [--music] | library add-share SPEC_JSON | library list | share-ls SPEC_JSON [PATH]\n\
          \x20      | music artists | music albums | music tracks ALBUM | music album ID | music artist ID (a music folder's artists, albums, tracks)\n\
+         \x20      | managed status | managed check PATH | managed use PATH [move|empty] (the managed library)\n\
          \x20      | music online [on|off] (look music up at MusicBrainz and the Cover Art Archive)\n\
          \x20      | music album ID VERSION (an album's page for one version) | music split VERSION (this is a different album)\n\
          \x20      | music keys | music key theaudiodb|fanarttv (key from COYOTL_MUSIC_KEY; none removes it)\n\
@@ -394,6 +395,32 @@ fn main() -> ExitCode {
         }
         ("queue", [what]) if what == "clear" => {
             core.queue_clear(1);
+            wait()
+        }
+        // Issue #150: the managed library.
+        ("managed", [what]) if what == "status" => {
+            core.library_call(1, "status", "{}");
+            wait()
+        }
+        ("managed", [what, path]) if what == "check" => {
+            core.library_call(
+                1,
+                "check",
+                &serde_json::json!({ "where": "local", "path": path }).to_string(),
+            );
+            wait()
+        }
+        ("managed", [what, path, rest @ ..]) if what == "use" && rest.len() <= 1 => {
+            let mode = match rest.first().map(String::as_str) {
+                None | Some("move") => "move",
+                Some("empty") => "empty",
+                Some(_) => return usage(),
+            };
+            core.library_call(
+                1,
+                "apply",
+                &serde_json::json!({ "where": "local", "path": path, "mode": mode }).to_string(),
+            );
             wait()
         }
         // Issue #11: online music information (MusicBrainz, Cover Art Archive) on or off.

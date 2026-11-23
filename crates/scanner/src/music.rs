@@ -456,6 +456,13 @@ pub async fn scan_music_source(
                 placed.push((file_id, rel, t));
             }
             let mut removed = 0;
+            // Issue #150: what the library keeps says where its original was.
+            let leaving: Vec<i64> = missing
+                .iter()
+                .filter(|(p, ..)| !moved_from.contains(p))
+                .map(|(_, id, _)| *id)
+                .collect();
+            huehuecoyotl_library::managed::record_gone(&tx, source_id, &leaving, scan_id / 1000)?;
             for (p, id, _) in &missing {
                 if !moved_from.contains(p) {
                     tx.execute("DELETE FROM file WHERE id = ?1", [id])?;

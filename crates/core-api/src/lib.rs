@@ -402,6 +402,9 @@ mod ffi {
         /// Issue #165: the choice before the first lookup.
         fn prepare_online_choice(self: &Core, request_id: u64);
         fn online_choice(self: &Core, request_id: u64);
+        /// Issue #150: Settings → Library (status, check, apply, setType, removePreview, gone,
+        /// itemOrigin), answered with MusicDetail.
+        fn library_call(self: &Core, request_id: u64, action: &str, args_json: &str);
         /// Issue #10: an album's or an artist's page (answers with MusicDetail).
         /// Issue #63: `version` 0 picks the one played last, else by `preference` (quality,
         /// smallest or lossless).
@@ -1606,6 +1609,11 @@ impl Core {
     fn prepare_online_choice(&self, request_id: u64) {
         guard("prepare_online_choice", || {
             self.0.prepare_online_choice(request_id)
+        })
+    }
+    fn library_call(&self, request_id: u64, action: &str, args_json: &str) {
+        guard("library_call", || {
+            self.0.library_call(request_id, action, args_json)
         })
     }
     fn online_choice(&self, request_id: u64) {

@@ -240,6 +240,8 @@ FocusScope {
                                 onClicked: splitConfirm.open()
                             }
                         }
+                        // Issue #150: the original went; the library copy stays.
+                        LibraryOnlyNote { Layout.fillWidth: true; backend: Core; itemId: page.itemId }
                         Label {
                             visible: page.loaded && page.d.allOffline === true
                             Layout.fillWidth: true

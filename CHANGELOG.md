@@ -2,6 +2,10 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased (3.0)
+
+- Your library folder (#150, part of 3.0). Settings → Library picks a folder on this computer or a writable share, checks it, and holds Movies, TV Shows, Music and Audiobooks. Changing it moves your copies one by one, each checked before the old one is removed, or starts empty and keeps the old copies as a normal folder. What is in the library stays when its original is deleted or its source removed. Schema 17; a library that 3.0 has opened cannot be opened by 2.9.
+
 ## 2.9.2 – 2026-11-23 (Linux)
 
 Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). A missing codec is explained, new libraries ask before their first online lookup, and the licence notices are completed. No migration: the library stays at schema 16.

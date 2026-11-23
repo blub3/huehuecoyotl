@@ -20,6 +20,8 @@ FocusScope {
     signal editRequested()
     signal rescanRequested(var sourceId)
     signal removeRequested(var folder)
+    // Issue #150: "Show them" on a folder whose items have gone.
+    signal goneRequested(var folder)
     signal upRequested()
     signal downRequested()
     signal leftEdge()
@@ -154,7 +156,7 @@ FocusScope {
                     required property var modelData
                     required property int index
                     Layout.fillWidth: true
-                    implicitHeight: 56
+                    implicitHeight: row.modelData.gone ? 84 : 56
                     Rectangle { width: parent.width; height: 1; color: Theme.surfaceHi }
                     Rectangle {
                         anchors.fill: parent
@@ -192,6 +194,33 @@ FocusScope {
                                 font.pixelSize: Theme.fontSmall
                                 elide: Text.ElideMiddle
                             }
+                            // Issue #150: what left this folder, and what the library kept.
+                            Label {
+                                objectName: "goneNote" + row.index
+                                visible: !!row.modelData.gone
+                                Layout.fillWidth: true
+                                wrapMode: Text.Wrap
+                                maximumLineCount: 2
+                                color: Theme.accent
+                                font.pixelSize: Theme.fontSmall
+                                text: row.modelData.gone
+                                      ? qsTr("%n item(s) are no longer in this folder:", "", Number(row.modelData.gone.total)) + " "
+                                        + qsTr("%n in your library and stay,", "", Number(row.modelData.gone.kept)) + " "
+                                        + qsTr("%n were only here and have left the app.", "", Number(row.modelData.gone.left))
+                                      : ""
+                            }
+                        }
+                        FocusButton {
+                            id: showGone
+                            objectName: "showGone" + row.index
+                            visible: !!row.modelData.gone
+                            text: qsTr("Show them")
+                            Accessible.description: row.modelData.name
+                            KeyNavigation.right: rescanOne
+                            Keys.onLeftPressed: card.leftEdge()
+                            Keys.onUpPressed: row.index === 0 ? toggle.forceActiveFocus() : card.focusFolder(row.index - 1)
+                            Keys.onDownPressed: row.index === folderRows.count - 1 ? card.downRequested() : card.focusFolder(row.index + 1)
+                            onClicked: card.goneRequested(row.modelData)
                         }
                         FocusButton {
                             id: rescanOne
@@ -200,7 +229,7 @@ FocusScope {
                             text: qsTr("Rescan")
                             Accessible.description: row.modelData.name
                             KeyNavigation.right: removeOne
-                            Keys.onLeftPressed: card.leftEdge()
+                            Keys.onLeftPressed: showGone.visible ? showGone.forceActiveFocus() : card.leftEdge()
                             Keys.onUpPressed: row.index === 0 ? toggle.forceActiveFocus() : card.focusFolder(row.index - 1)
                             Keys.onDownPressed: row.index === folderRows.count - 1 ? card.downRequested() : card.focusFolder(row.index + 1)
                             onClicked: card.rescanRequested(row.modelData.sourceId)

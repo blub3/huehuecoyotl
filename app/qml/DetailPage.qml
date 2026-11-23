@@ -488,6 +488,8 @@ FocusScope {
                             wrapMode: Text.Wrap
                             Accessible.role: Accessible.Heading
                         }
+                        // Issue #150: the original went; the library copy stays.
+                        LibraryOnlyNote { Layout.fillWidth: true; backend: Core; itemId: page.itemId }
                         Label {
                             visible: text !== ""
                             text: page.loaded ? page.metaLine() : ""

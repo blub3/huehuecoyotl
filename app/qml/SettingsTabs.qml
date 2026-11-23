@@ -30,8 +30,9 @@ Flow {
             objectName: "tab_" + modelData.key
             text: modelData.label
             primary: bar.current === modelData.key
-            // Eight tabs on one line in an 860 px column.
-            horizontalPadding: 13
+            // Nine tabs on one line in an 860 px column.
+            horizontalPadding: 9
+            font.pixelSize: 14
             Accessible.role: Accessible.PageTab
             Accessible.checkable: true
             Accessible.checked: primary
