@@ -4,9 +4,10 @@ use std::time::UNIX_EPOCH;
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use tokio::io::{AsyncReadExt, AsyncSeekExt};
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
-use crate::{Caps, Entry, Result, Source, VPath, VfsError};
+use crate::remote::write_err;
+use crate::{Caps, Chunks, Entry, Result, Source, VPath, VfsError};
 
 #[derive(Default)]
 pub struct LocalSource;
@@ -70,6 +71,44 @@ impl Source for LocalSource {
         }
         buf.truncate(got);
         Ok(Bytes::from(buf))
+    }
+
+    async fn put(&self, path: &VPath, mut data: Chunks) -> Result<u64> {
+        let mut f = tokio::fs::File::create(path.as_str())
+            .await
+            .map_err(|e| write_err(e.into()))?;
+        let mut n = 0;
+        while let Some(chunk) = data.recv().await {
+            let chunk = chunk?;
+            f.write_all(&chunk).await.map_err(|e| write_err(e.into()))?;
+            n += chunk.len() as u64;
+        }
+        f.sync_all().await.map_err(|e| write_err(e.into()))?;
+        Ok(n)
+    }
+
+    async fn create_dir(&self, path: &VPath) -> Result<()> {
+        tokio::fs::create_dir(path.as_str())
+            .await
+            .map_err(|e| write_err(e.into()))
+    }
+
+    async fn rename(&self, from: &VPath, to: &VPath) -> Result<()> {
+        tokio::fs::rename(from.as_str(), to.as_str())
+            .await
+            .map_err(|e| write_err(e.into()))
+    }
+
+    async fn remove(&self, path: &VPath) -> Result<()> {
+        tokio::fs::remove_file(path.as_str())
+            .await
+            .map_err(|e| write_err(e.into()))
+    }
+
+    async fn remove_dir(&self, path: &VPath) -> Result<()> {
+        tokio::fs::remove_dir(path.as_str())
+            .await
+            .map_err(|e| write_err(e.into()))
     }
 
     fn capabilities(&self) -> Caps {

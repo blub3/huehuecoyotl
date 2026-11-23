@@ -346,6 +346,8 @@ fn vfs_kind(e: &VfsError) -> ErrorKind {
         VfsError::NotFound(_) => ErrorKind::NotFound,
         VfsError::Unsupported(_) => ErrorKind::Unsupported,
         VfsError::Internal(_) => ErrorKind::Internal,
+        // Issue #151: until callers present them, reported as an unsupported action.
+        VfsError::ReadOnly(_) | VfsError::Changed(_) => ErrorKind::Unsupported,
     }
 }
 

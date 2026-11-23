@@ -21,9 +21,11 @@ mkdir -p keys
 [ -f keys/id_ed25519 ] || ssh-keygen -q -t ed25519 -N '' -C coyotl-test -f keys/id_ed25519
 [ -f keys/id_ed25519_pass ] || ssh-keygen -q -t ed25519 -N 'coyotl-key' -C coyotl-test-pass -f keys/id_ed25519_pass
 cat keys/id_ed25519.pub keys/id_ed25519_pass.pub > keys/authorized_keys
+# Issue #151: the writable share; each test works in a folder of its own.
+mkdir -p writable && chmod 0777 writable
 docker compose up -d --build --wait 2>/dev/null || docker compose up -d --build
 # Wait until every service accepts connections (CI starts the tests right after this).
-for hp in 172.29.0.10:445 172.29.0.11:2049 172.29.0.12:8080 172.29.0.12:21 172.29.0.12:2022; do
+for hp in 172.29.0.10:445 172.29.0.11:2049 172.29.0.12:8080 172.29.0.12:21 172.29.0.12:2022 172.29.0.12:8081 172.29.0.12:2023 172.29.0.12:2121; do
   for _ in $(seq 60); do
     (exec 3<>"/dev/tcp/${hp%:*}/${hp#*:}") 2>/dev/null && break
     sleep 1

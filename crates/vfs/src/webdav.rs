@@ -12,7 +12,7 @@ use quick_xml::events::Event;
 use reqwest::{Method, StatusCode, Url};
 
 use crate::remote::{RemoteConfig, RemoteSource, rel};
-use crate::{Caps, Entry, Result, Source, VPath, VfsError};
+use crate::{Caps, Chunks, Entry, Result, Source, VPath, VfsError};
 
 const PROPFIND_BODY: &str = r#"<?xml version="1.0" encoding="utf-8"?>
 <D:propfind xmlns:D="DAV:"><D:prop><D:resourcetype/><D:getcontentlength/><D:getlastmodified/></D:prop></D:propfind>"#;
@@ -96,6 +96,19 @@ impl WebdavSource {
         }
         let xml = resp.text().await.map_err(err)?;
         parse_multistatus(&xml)
+    }
+}
+
+/// The answer to a change: refusals are read-only, not a login problem.
+fn write_status(s: StatusCode, what: &str, path: &VPath) -> Result<()> {
+    match s {
+        s if s.is_success() => Ok(()),
+        StatusCode::UNAUTHORIZED => Err(VfsError::Auth(format!("HTTP {s}"))),
+        StatusCode::FORBIDDEN | StatusCode::METHOD_NOT_ALLOWED | StatusCode::LOCKED => {
+            Err(VfsError::ReadOnly(format!("{path}: HTTP {s}")))
+        }
+        StatusCode::NOT_FOUND | StatusCode::CONFLICT => Err(VfsError::NotFound(path.to_string())),
+        s => Err(VfsError::Internal(format!("{what} answered HTTP {s}"))),
     }
 }
 
@@ -242,6 +255,72 @@ impl Source for WebdavSource {
             StatusCode::NOT_FOUND => Err(VfsError::NotFound(path.to_string())),
             s => Err(VfsError::Internal(format!("GET answered HTTP {s}"))),
         }
+    }
+
+    async fn put(&self, path: &VPath, data: Chunks) -> Result<u64> {
+        let written = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let count = written.clone();
+        let body = futures_util::stream::unfold((data, count), |(mut rx, count)| async move {
+            let c = rx.recv().await?;
+            if let Ok(b) = &c {
+                count.fetch_add(b.len() as u64, std::sync::atomic::Ordering::Relaxed);
+            }
+            Some((c, (rx, count)))
+        });
+        let resp = self
+            .request(Method::PUT, self.url(path, false))
+            // The client's 60 s limit is for requests, not for the upload of a whole film.
+            .timeout(Duration::from_secs(24 * 3600))
+            .body(reqwest::Body::wrap_stream(body))
+            .send()
+            .await
+            .map_err(err)?;
+        write_status(resp.status(), "PUT", path)?;
+        Ok(written.load(std::sync::atomic::Ordering::Relaxed))
+    }
+
+    async fn create_dir(&self, path: &VPath) -> Result<()> {
+        let resp = self
+            .request(
+                Method::from_bytes(b"MKCOL").expect("method"),
+                self.url(path, true),
+            )
+            .send()
+            .await
+            .map_err(err)?;
+        write_status(resp.status(), "MKCOL", path)
+    }
+
+    async fn rename(&self, from: &VPath, to: &VPath) -> Result<()> {
+        let resp = self
+            .request(
+                Method::from_bytes(b"MOVE").expect("method"),
+                self.url(from, false),
+            )
+            .header("Destination", self.url(to, false).as_str())
+            .header("Overwrite", "T")
+            .send()
+            .await
+            .map_err(err)?;
+        write_status(resp.status(), "MOVE", from)
+    }
+
+    async fn remove(&self, path: &VPath) -> Result<()> {
+        let resp = self
+            .request(Method::DELETE, self.url(path, false))
+            .send()
+            .await
+            .map_err(err)?;
+        write_status(resp.status(), "DELETE", path)
+    }
+
+    async fn remove_dir(&self, path: &VPath) -> Result<()> {
+        let resp = self
+            .request(Method::DELETE, self.url(path, true))
+            .send()
+            .await
+            .map_err(err)?;
+        write_status(resp.status(), "DELETE", path)
     }
 
     fn capabilities(&self) -> Caps {

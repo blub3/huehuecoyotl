@@ -220,7 +220,10 @@ fn add_a_share_in_steps() {
     let v = detail(answer(&rx, 2));
     assert_eq!(
         v["shares"],
-        serde_json::json!([{ "name": "media", "existing": null }])
+        serde_json::json!([
+            { "name": "media", "existing": null },
+            { "name": "write", "existing": null }
+        ])
     );
 
     // A failing folder keeps nothing.
