@@ -183,6 +183,8 @@ class CoreBridge : public QObject {
     void setMusicOnline(bool on);
     // Issue #165: whether to ask about online lookups now (musicDetailReady "onlineChoice").
     Q_INVOKABLE quint64 onlineChoice();
+    // Issue #150: Settings → Library (see Core::library_call), answered with musicDetailReady.
+    Q_INVOKABLE quint64 libraryCall(const QString &action, const QVariantMap &args);
 
     // M3: network sources. `spec`: protocol, host, port, share, user, tls, path, name.
     // browseNetwork answers with folderListed (or requestFailed: wrong password, unreachable).

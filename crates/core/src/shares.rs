@@ -102,10 +102,30 @@ struct NewFolder {
 /// Sources page: `shares: [{id, kind, name, protocol, host, share, user, url, online, folders:
 /// [{sourceId, name, root, url, content, files, lastScan, scanning, online}]}]`, `local: [folder]`.
 pub(crate) async fn overview(inner: &Arc<Inner>) -> CResult<Value> {
-    let (list, libs) = inner
+    let (list, libs, library, gone) = inner
         .lib
-        .read(|c| Ok((shares::list(c)?, catalog::libraries(c)?)))
+        .read(|c| {
+            let libs = catalog::libraries(c)?;
+            let mut gone = std::collections::HashMap::new();
+            for l in &libs {
+                let g = huehuecoyotl_library::managed::gone_counts(c, l.id)?;
+                if g.0 > 0 {
+                    gone.insert(l.id, g);
+                }
+            }
+            let own: std::collections::HashSet<i64> = libs
+                .iter()
+                .map(|l| l.id)
+                .filter(|id| {
+                    huehuecoyotl_library::managed::is_library_source(c, *id).unwrap_or(false)
+                })
+                .collect();
+            let place = huehuecoyotl_library::managed::place(c)?;
+            let copies = huehuecoyotl_library::managed::copies(c)?;
+            Ok((shares::list(c)?, libs, (own, place, copies), gone))
+        })
         .await?;
+    let (own, place, copies) = library;
     let scanning = inner.scanning.lock().unwrap().clone();
     let offline = inner.offline.lock().unwrap().clone();
     let folder =
@@ -114,6 +134,7 @@ pub(crate) async fn overview(inner: &Arc<Inner>) -> CResult<Value> {
                 "sourceId": id, "name": name, "root": root, "url": url, "content": content,
                 "files": files, "lastScan": last, "scanning": scanning.contains(&id),
                 "online": !offline.contains(&id),
+                "gone": gone.get(&id).map(|g| json!({ "total": g.0, "kept": g.1, "left": g.2 })),
             })
         };
     let shares_json: Vec<Value> = list
@@ -134,6 +155,7 @@ pub(crate) async fn overview(inner: &Arc<Inner>) -> CResult<Value> {
             let folders: Vec<Value> = s
                 .folders
                 .iter()
+                .filter(|f| !own.contains(&f.source_id))
                 .map(|f| {
                     folder(
                         f.source_id,
@@ -164,7 +186,7 @@ pub(crate) async fn overview(inner: &Arc<Inner>) -> CResult<Value> {
         .collect();
     let local: Vec<Value> = libs
         .iter()
-        .filter(|l| l.kind == "local")
+        .filter(|l| l.kind == "local" && !own.contains(&l.id))
         .map(|l| {
             folder(
                 l.id,
@@ -177,7 +199,15 @@ pub(crate) async fn overview(inner: &Arc<Inner>) -> CResult<Value> {
             )
         })
         .collect();
-    Ok(json!({ "shares": shares_json, "local": local }))
+    let share_name = place
+        .as_ref()
+        .and_then(|p| p.share)
+        .and_then(|id| list.iter().find(|s| s.id == id))
+        .map(|s| s.name.clone());
+    let library_json = place.as_ref().map(|p| {
+        json!({ "path": p.root, "shareName": share_name, "copies": copies.0, "size": copies.1 })
+    });
+    Ok(json!({ "shares": shares_json, "local": local, "library": library_json }))
 }
 
 fn overview_event(request_id: u64, v: Value) -> Event {
@@ -260,6 +290,25 @@ pub(crate) async fn remove_share(inner: &Arc<Inner>, share: i64) -> CResult<()> 
         .lib
         .read(move |c| shares::folder_ids(c, share))
         .await?;
+    // Issue #150: a share holding the library stays until the library has moved.
+    let check = ids.clone();
+    let holds_library = inner
+        .lib
+        .read(move |c| {
+            for id in &check {
+                if huehuecoyotl_library::managed::is_library_source(c, *id)? {
+                    return Ok(true);
+                }
+            }
+            Ok(false)
+        })
+        .await?;
+    if holds_library {
+        return Err(CoreError::new(
+            ErrorKind::Unsupported,
+            "your library is on this share; move it under Settings → Library first",
+        ));
+    }
     for id in ids {
         crate::download::delete_saved(inner, Some(id)).await?;
         inner

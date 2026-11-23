@@ -858,6 +858,15 @@ void CoreBridge::setMusicOnline(bool on)
     if (m_core) (*m_core)->set_music_online(nextId(), on);
 }
 
+quint64 CoreBridge::libraryCall(const QString &action, const QVariantMap &args)
+{
+    const quint64 id = nextId();
+    const QByteArray a = action.toUtf8(),
+                     j = QJsonDocument(QJsonObject::fromVariantMap(args)).toJson(QJsonDocument::Compact);
+    if (m_core) (*m_core)->library_call(id, rs(a), rs(j));
+    return id;
+}
+
 quint64 CoreBridge::onlineChoice()
 {
     const quint64 id = nextId();

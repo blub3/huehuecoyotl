@@ -193,6 +193,8 @@ FocusScope {
                             wrapMode: Text.Wrap
                             Accessible.role: Accessible.Heading
                         }
+                        // Issue #150: the original went; the library copy stays.
+                        LibraryOnlyNote { Layout.fillWidth: true; backend: Core; itemId: page.itemId }
                         // Authors, then narrators ("read by"); each opens their books.
                         Flow {
                             Layout.fillWidth: true

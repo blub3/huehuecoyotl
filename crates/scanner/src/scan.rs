@@ -332,6 +332,8 @@ pub async fn scan_source(
             for (id, rel, mtime) in &moves {
                 tx.execute("UPDATE file SET path = ?2, mtime = ?3, last_seen_scan = ?4 WHERE id = ?1", params![id, rel, mtime, scan_id])?;
             }
+            // Issue #150: what the library keeps says where its original was.
+            huehuecoyotl_library::managed::record_gone(&tx, source_id, &gone, scan_id / 1000)?;
             for id in &gone {
                 tx.execute("DELETE FROM file WHERE id = ?1", [id])?;
             }

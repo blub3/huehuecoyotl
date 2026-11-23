@@ -747,6 +747,11 @@ pub async fn scan_audiobook_source(
         keys.iter().map(|(k, _)| format!("book_scan:{k}")).collect();
     lib.write(move |c| {
         let tx = c.transaction()?;
+        // Issue #150: what the library keeps says where its original was.
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs() as i64);
+        huehuecoyotl_library::managed::record_gone(&tx, source_id, &gone, now)?;
         for id in &gone {
             tx.execute("DELETE FROM file WHERE id = ?1", [id])?;
         }

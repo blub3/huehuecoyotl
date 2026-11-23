@@ -7,6 +7,7 @@ pub mod catalog;
 pub mod copies;
 pub mod jobs;
 pub mod kinds;
+pub mod managed;
 pub mod matching;
 pub mod merge;
 mod migrations;
@@ -458,11 +459,12 @@ mod tests {
         let c = Connection::open(&path).unwrap();
         for (i, t) in tables.iter().enumerate() {
             let mut got = dump(&c, t);
-            // Migration 13 (issue #118) adds `source.share_id`, empty for local folders.
+            // Migrations 13 and 17 (issues #118, #150) add `source.share_id`, `managed` and
+            // `moving_to`, empty for these folders.
             if *t == "source" {
                 got = got
                     .into_iter()
-                    .map(|r| r.strip_suffix("|Null").unwrap_or(&r).to_string())
+                    .map(|r| r.strip_suffix("|Null|Null|Null").unwrap_or(&r).to_string())
                     .collect();
             }
             // Migration 15 (issue #148) adds four name columns; an artist's files' name is filled.

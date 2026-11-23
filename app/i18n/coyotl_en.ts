@@ -31,7 +31,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AlbumPage.qml" line="432"/>
+        <location filename="../qml/AlbumPage.qml" line="434"/>
         <source>%n version(s)</source>
         <translation>
             <numerusform>%n version</numerusform>
@@ -121,7 +121,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/BookPage.qml" line="226"/>
+        <location filename="../qml/BookPage.qml" line="228"/>
         <source>%n chapter(s)</source>
         <translation>
             <numerusform>%n chapter</numerusform>
@@ -151,11 +151,38 @@
 <context>
     <name>DetailPage</name>
     <message numerus="yes">
-        <location filename="../qml/DetailPage.qml" line="997"/>
+        <location filename="../qml/DetailPage.qml" line="999"/>
         <source>%n file(s) exist already in %1. Replace them?</source>
         <translation>
             <numerusform>%n file exists already in %1. Replace it?</numerusform>
             <numerusform>%n files exist already in %1. Replace them?</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>LibrarySettings</name>
+    <message numerus="yes">
+        <location filename="../qml/LibrarySettings.qml" line="167"/>
+        <source>%n copies</source>
+        <translation>
+            <numerusform>%n copy</numerusform>
+            <numerusform>%n copies</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/LibrarySettings.qml" line="179"/>
+        <source>Moving your library: %n copies to go. They keep playing.</source>
+        <translation>
+            <numerusform>Moving your library: %n copy to go. It keeps playing.</numerusform>
+            <numerusform>Moving your library: %n copies to go. They keep playing.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/LibrarySettings.qml" line="425"/>
+        <source>Your library has %n copies (%1) in %2</source>
+        <translation>
+            <numerusform>Your library has %n copy (%1) in %2</numerusform>
+            <numerusform>Your library has %n copies (%1) in %2</numerusform>
         </translation>
     </message>
 </context>
@@ -475,7 +502,7 @@
 <context>
     <name>ShareCard</name>
     <message numerus="yes">
-        <location filename="../qml/ShareCard.qml" line="50"/>
+        <location filename="../qml/ShareCard.qml" line="52"/>
         <source>%n file(s)</source>
         <translation>
             <numerusform>%n file</numerusform>
@@ -483,7 +510,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareCard.qml" line="50"/>
+        <location filename="../qml/ShareCard.qml" line="52"/>
         <source>%n video(s)</source>
         <translation>
             <numerusform>%n video</numerusform>
@@ -491,11 +518,35 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/ShareCard.qml" line="112"/>
+        <location filename="../qml/ShareCard.qml" line="114"/>
         <source>%n folder(s)</source>
         <translation>
             <numerusform>%n folder</numerusform>
             <numerusform>%n folders</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareCard.qml" line="207"/>
+        <source>%n item(s) are no longer in this folder:</source>
+        <translation>
+            <numerusform>%n item is no longer in this folder:</numerusform>
+            <numerusform>%n items are no longer in this folder:</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareCard.qml" line="208"/>
+        <source>%n in your library and stay,</source>
+        <translation>
+            <numerusform>%n is in your library and stays,</numerusform>
+            <numerusform>%n are in your library and stay,</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/ShareCard.qml" line="209"/>
+        <source>%n were only here and have left the app.</source>
+        <translation>
+            <numerusform>%n was only here and has left the app.</numerusform>
+            <numerusform>%n were only here and have left the app.</numerusform>
         </translation>
     </message>
 </context>
@@ -559,6 +610,33 @@
         <translation>
             <numerusform>Add %n folder</numerusform>
             <numerusform>Add %n folders</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>SourcesPage</name>
+    <message numerus="yes">
+        <location filename="../qml/SourcesPage.qml" line="140"/>
+        <source>%n copies</source>
+        <translation>
+            <numerusform>%n copy</numerusform>
+            <numerusform>%n copies</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/SourcesPage.qml" line="279"/>
+        <source>%n item(s) are in your library and stay, with their play counts and playlists.</source>
+        <translation>
+            <numerusform>%n item is in your library and stays, with its play counts and playlists.</numerusform>
+            <numerusform>%n items are in your library and stay, with their play counts and playlists.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../qml/SourcesPage.qml" line="280"/>
+        <source>%n item(s) are only here and leave the app.</source>
+        <translation>
+            <numerusform>%n item is only here and leaves the app.</numerusform>
+            <numerusform>%n items are only here and leave the app.</numerusform>
         </translation>
     </message>
 </context>

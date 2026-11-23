@@ -17,6 +17,7 @@ mod extras;
 mod kinds;
 pub mod lang;
 mod library;
+mod managed;
 mod matching;
 mod music;
 mod music_matching;
@@ -384,6 +385,8 @@ struct Inner {
     /// Live connections of network sources, by source id.
     remotes: Mutex<HashMap<i64, Arc<dyn RemoteSource>>>,
     offline: Mutex<HashSet<i64>>,
+    /// Issue #150: why the library's move is paused, while it is.
+    library_move_error: Mutex<Option<String>>,
     /// The "add network share" dialog's connection: (settings key, source).
     probe: Mutex<Option<(String, Arc<dyn RemoteSource>)>>,
     /// Issue #149: the last merge by hand, undoable for a short while.
@@ -606,6 +609,7 @@ impl Core {
             scanning: Mutex::default(),
             remotes: Mutex::default(),
             offline: Mutex::default(),
+            library_move_error: Mutex::default(),
             probe: Mutex::default(),
             merge_undo: Mutex::default(),
             gates: Mutex::default(),

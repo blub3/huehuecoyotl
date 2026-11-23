@@ -44,6 +44,8 @@ pub fn spawn_workers(inner: &Arc<Inner>) {
         (crate::probe::PROBE_KINDS, false),
         (MUSIC_KINDS, false),
         (BOOK_KINDS, false),
+        // Issue #150: moving the library, one file at a time, never holds up anything else.
+        (crate::managed::LIBRARY_KINDS, false),
     ] {
         let inner = inner.clone();
         tokio::spawn(async move {
@@ -170,6 +172,12 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
                 Err(e) => Err(e.to_string()),
             }
         }
+        "library_move" => {
+            return match crate::managed::run_move(inner).await {
+                Some(wait) => Outcome::Defer(wait),
+                None => Outcome::Done,
+            };
+        }
         other => Err(format!("unknown job kind {other}")),
     };
     // Issue #146: a scan or a music match may have given two artists one ID or one name.
@@ -187,6 +195,15 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
 }
 
 async fn scan(inner: &Arc<Inner>, source_id: i64) -> Result<(), String> {
+    // Issue #150: copies are still arriving; the move scans it when it is done.
+    let arriving = inner
+        .lib
+        .read(move |c| huehuecoyotl_library::managed::is_move_target(c, source_id))
+        .await
+        .unwrap_or(false);
+    if arriving {
+        return Ok(());
+    }
     let row = inner
         .lib
         .read(move |c| catalog::source(c, source_id))

@@ -77,6 +77,8 @@ qt_add_qml_module(coyotl
     qml/OtherEditions.qml
     qml/CodecNotice.qml
     qml/OnlineChoiceDialog.qml
+    qml/LibrarySettings.qml
+    qml/LibraryOnlyNote.qml
     qml/ShareEditor.qml
     qml/ShareEditPage.qml
     qml/ShareFoldersPage.qml

@@ -150,6 +150,20 @@ chose yourself**, and a match is only replaced by a sure one. One library runs a
 background; you can keep playing, stop it, or close the app: it goes on after the next start.
 For music, the albums come first, then the artists that still have no match. Music and audiobooks need **Music and book information online**, movies and shows a TMDB key.
 
+## Your library
+
+**Settings → Library** sets up a folder of your own copies, on this computer or on a network
+share you may write to. It holds `Movies`, `TV Shows`, `Music` and `Audiobooks`. Huehuecoyotl
+writes only inside this folder; your other folders and shares are not changed.
+
+When you choose a folder, the app checks that it can be reached and written to and that your
+copies fit. If you already have copies, **Move them there** copies them one at a time, checks
+each one and only then removes the old one, and continues later if the place goes away. **Start
+empty there** leaves them where they are as a normal folder under Sources.
+
+What is in your library stays when its original file is deleted or its source is removed. Its
+page then says **In your library only**, and Sources shows what left each folder.
+
 ## Browse and play
 
 - **Home** shows *Continue watching* and *Recently added*.

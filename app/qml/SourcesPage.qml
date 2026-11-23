@@ -44,6 +44,12 @@ FocusScope {
         if (!on) keys.push(cardKey(c))
         Appearance.closedSources = keys.join(",")
     }
+    // Issue #150: the library's row comes first when there is one.
+    function focusBelowButtons() {
+        if (librarySettings.visible) librarySettings.forceActiveFocus()
+        else if (cardRows.count > 0) focusCard(0, false)
+        else placesList.forceActiveFocus()
+    }
     function focusCard(i, last) {
         const c = cardRows.itemAt(i) as ShareCard
         if (!c) return
@@ -85,7 +91,7 @@ FocusScope {
                     text: qsTr("Add network share")
                     primary: true
                     KeyNavigation.right: addButton
-                    Keys.onDownPressed: cardRows.count > 0 ? page.focusCard(0, false) : placesList.forceActiveFocus()
+                    Keys.onDownPressed: page.focusBelowButtons()
                     Keys.onLeftPressed: Nav.focusRail()
                     onClicked: Nav.open(Qt.resolvedUrl("NetworkSharePage.qml"), {})
                 }
@@ -95,7 +101,7 @@ FocusScope {
                     text: qsTr("Folder on this computer")
                     KeyNavigation.left: addShare
                     KeyNavigation.right: rescanAll
-                    Keys.onDownPressed: cardRows.count > 0 ? page.focusCard(0, false) : placesList.forceActiveFocus()
+                    Keys.onDownPressed: page.focusBelowButtons()
                     onClicked: page.pickFolder()
                 }
                 FocusButton {
@@ -104,8 +110,45 @@ FocusScope {
                     text: Core.scanning ? qsTr("Scanning…") : qsTr("Rescan all")
                     enabled: !Core.scanning
                     KeyNavigation.left: addButton
-                    Keys.onDownPressed: page.focusCard(0, false)
+                    Keys.onDownPressed: page.focusBelowButtons()
                     onClicked: Core.rescan(0)
+                }
+            }
+            // Issue #150: the managed library, above the folders it was copied from.
+            Rectangle {
+                visible: !!page.overview.library
+                Layout.fillWidth: true
+                implicitHeight: libraryRow.implicitHeight + 24
+                radius: Theme.radius
+                color: Theme.surface
+                RowLayout {
+                    id: libraryRow
+                    anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 14 }
+                    spacing: 14
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        Label { text: qsTr("Your library"); color: Theme.text; font.bold: true }
+                        Label {
+                            objectName: "libraryLine"
+                            Layout.fillWidth: true
+                            elide: Text.ElideMiddle
+                            color: Theme.textDim
+                            font.pixelSize: Theme.fontSmall
+                            text: page.overview.library
+                                  ? (page.overview.library.shareName ? page.overview.library.shareName + " › " : "") + page.overview.library.path
+                                    + "  ·  " + qsTr("%n copies", "", Number(page.overview.library.copies || 0))
+                                  : ""
+                        }
+                    }
+                    FocusButton {
+                        id: librarySettings
+                        text: qsTr("Settings…")
+                        Keys.onUpPressed: addShare.forceActiveFocus()
+                        Keys.onDownPressed: cardRows.count > 0 ? page.focusCard(0, false) : placesList.forceActiveFocus()
+                        Keys.onLeftPressed: Nav.focusRail()
+                        onClicked: Nav.settings("library")
+                    }
                 }
             }
             Label {
@@ -131,7 +174,8 @@ FocusScope {
                     onAddFoldersRequested: Nav.open(Qt.resolvedUrl("ShareFoldersPage.qml"), { share: shareCard.modelData.id, shareName: shareCard.modelData.name })
                     onRescanRequested: (id) => Core.rescan(id)
                     onRemoveRequested: (f) => removeConfirm.ask(f, shareCard)
-                    onUpRequested: shareCard.index === 0 ? addShare.forceActiveFocus() : page.focusCard(shareCard.index - 1, true)
+                    onGoneRequested: (f) => goneList.ask(f, shareCard)
+                    onUpRequested: shareCard.index === 0 ? (librarySettings.visible ? librarySettings.forceActiveFocus() : addShare.forceActiveFocus()) : page.focusCard(shareCard.index - 1, true)
                     onDownRequested: shareCard.index === cardRows.count - 1 ? placesList.forceActiveFocus() : page.focusCard(shareCard.index + 1, false)
                     onLeftEdge: Nav.focusRail()
                 }
@@ -146,7 +190,7 @@ FocusScope {
                 spacing: 6
                 model: places
                 keyNavigationEnabled: true
-                Keys.onUpPressed: (e) => { if (currentIndex === 0) (cardRows.count > 0 ? page.focusCard(cardRows.count - 1, true) : addShare.forceActiveFocus()); else e.accepted = false }
+                Keys.onUpPressed: (e) => { if (currentIndex === 0) (cardRows.count > 0 ? page.focusCard(cardRows.count - 1, true) : librarySettings.visible ? librarySettings.forceActiveFocus() : addShare.forceActiveFocus()); else e.accepted = false }
                 Keys.onLeftPressed: Nav.focusRail()
                 delegate: ItemDelegate {
                     id: place
@@ -185,7 +229,22 @@ FocusScope {
         objectName: "removeConfirm"
         property var folder: ({})
         property Item from: null
-        function ask(f, item) { folder = f; from = item; open() }
+        // Issue #150: how many items stay because the library has them.
+        property var preview: null
+        property var previewRequest: 0
+        function ask(f, item) {
+            folder = f
+            from = item
+            preview = null
+            previewRequest = Core.libraryCall("removePreview", { source: Number(f.sourceId) })
+            open()
+        }
+        Connections {
+            target: Core
+            function onMusicDetailReady(requestId, kind, detail) {
+                if (requestId === removeConfirm.previewRequest && kind === "libraryRemovePreview") removeConfirm.preview = detail
+            }
+        }
         parent: Overlay.overlay
         anchors.centerIn: parent
         width: Math.min(580, parent.width - 80)
@@ -210,6 +269,17 @@ FocusScope {
                 color: Theme.textDim
                 text: qsTr("Its titles leave the library, and saved copies of its files on this computer are deleted. The files on the server or disk stay. If you add the folder again, it is scanned and matched again.")
             }
+            Label {
+                objectName: "removePreview"
+                visible: !!removeConfirm.preview && Number(removeConfirm.preview.stay) > 0
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.text
+                text: removeConfirm.preview
+                      ? qsTr("%n item(s) are in your library and stay, with their play counts and playlists.", "", Number(removeConfirm.preview.stay)) + " "
+                        + qsTr("%n item(s) are only here and leave the app.", "", Number(removeConfirm.preview.leave))
+                      : ""
+            }
             RowLayout {
                 spacing: 12
                 FocusButton { id: keepFolder; text: qsTr("Keep it"); KeyNavigation.right: removeFolder; onClicked: removeConfirm.close() }
@@ -222,6 +292,58 @@ FocusScope {
                     onClicked: { folders.remove(removeConfirm.folder.sourceId); removeConfirm.close() }
                 }
             }
+        }
+    }
+
+    // Issue #150: what left a folder.
+    Popup {
+        id: goneList
+        objectName: "goneList"
+        property var items: []
+        property string name: ""
+        property var request: 0
+        property Item from: null
+        function ask(f, item) {
+            name = f.name
+            from = item
+            items = []
+            request = Core.libraryCall("gone", { source: Number(f.sourceId) })
+            open()
+        }
+        Connections {
+            target: Core
+            function onMusicDetailReady(requestId, kind, detail) {
+                if (requestId === goneList.request && kind === "libraryGone") goneList.items = detail.items
+            }
+        }
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(620, parent.width - 80)
+        height: Math.min(520, parent.height - 80)
+        modal: true
+        padding: 24
+        background: Rectangle { radius: Theme.radius; color: Theme.surface; border.color: Theme.surfaceHi }
+        onOpened: goneClose.forceActiveFocus()
+        onClosed: if (from) from.focusFirst()
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 10
+            Label { Layout.fillWidth: true; text: qsTr("No longer in “%1”").arg(goneList.name); color: Theme.text; font.bold: true; elide: Text.ElideRight }
+            ListView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                model: goneList.items
+                delegate: RowLayout {
+                    id: goneRow
+                    required property var modelData
+                    width: ListView.view.width
+                    height: 34
+                    Label { Layout.fillWidth: true; text: goneRow.modelData.title; color: Theme.text; elide: Text.ElideRight }
+                    Label { text: goneRow.modelData.kept ? qsTr("In your library") : qsTr("Left the app"); color: goneRow.modelData.kept ? Theme.accent : Theme.textDim; font.pixelSize: Theme.fontSmall }
+                }
+            }
+            FocusButton { id: goneClose; Layout.alignment: Qt.AlignRight; text: qsTr("Close"); onClicked: goneList.close() }
         }
     }
 

@@ -230,6 +230,9 @@ UPDATE item SET files_title = title WHERE kind = 'artist';
     // 16 (2.9.1, issue #147): one album per MusicBrainz release; the release group links its
     // editions. Albums are split and tracks rewritten, so the database is copied first.
     Migration::Merge(crate::versions::migration_16),
+    // 17 (3.0, issue #150): the managed library: four sources marked by media type, where it
+    // lives, and the originals that left a folder while the library kept their copies.
+    Migration::Sql(crate::managed::SCHEMA),
 ];
 
 /// The old and new kind constraint of `item`.

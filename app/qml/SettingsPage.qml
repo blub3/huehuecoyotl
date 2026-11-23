@@ -142,6 +142,7 @@ FocusScope {
     // ui.ini); Nav.settings(tab) opens Settings on a given tab.
     readonly property var tabs: [
         { key: "metadata", label: qsTr("Metadata") }, { key: "matching", label: qsTr("Matching") },
+        { key: "library", label: qsTr("Library") },
         { key: "appearance", label: qsTr("Appearance") }, { key: "playback", label: qsTr("Playback") },
         { key: "audio", label: qsTr("Audio") }, { key: "storage", label: qsTr("Storage") },
         { key: "troubleshooting", label: qsTr("Troubleshooting") }, { key: "about", label: qsTr("About") }
@@ -154,6 +155,7 @@ FocusScope {
         switch (tab) {
         case "metadata": (keyStatus.firstButton || (page.showKeyField ? keyField : musicOnline)).forceActiveFocus(); break
         case "matching": reviewButton.forceActiveFocus(); break
+        case "library": librarySettings.focusFirst(); break
         case "appearance": windowSizes.focusSelected(); break
         case "playback": versionChoice.focusSelected(); break
         case "audio": bitPerfectButton.forceActiveFocus(); break
@@ -390,6 +392,20 @@ FocusScope {
                     onRemoveRequested: page.setMusicKey("fanarttv", "")
                     onUpRequested: audioDbKey.firstItem.forceActiveFocus()
                 }
+            }
+
+            // ---- Library (issue #150) ---------------------------------------------------------
+            LibrarySettings {
+                id: librarySettings
+                objectName: "librarySection"
+                visible: page.tab === "library"
+                Layout.fillWidth: true
+                backend: Core
+                onLeaveUp: page.focusTabs()
+                onLeaveLeft: Nav.focusRail()
+                onPickLocal: libraryDialog.open()
+                onAddShare: Nav.open(Qt.resolvedUrl("NetworkSharePage.qml"), {})
+                onVisibleChanged: if (visible) load()
             }
 
             // ---- Matching (issues #93 to #96) ------------------------------------------------
@@ -795,6 +811,14 @@ FocusScope {
             }
 
         }
+    }
+
+    // Issue #150: under Flatpak the portal grants write access to this one folder.
+    FolderDialog {
+        id: libraryDialog
+        title: qsTr("Your library folder")
+        onAccepted: librarySettings.checkLocal(decodeURIComponent(String(selectedFolder).replace(/^file:\/\//, "")))
+        onRejected: librarySettings.focusFirst()
     }
 
     FolderDialog {
