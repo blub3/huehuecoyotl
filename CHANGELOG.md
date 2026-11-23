@@ -2,6 +2,11 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
+## Unreleased
+
+- Governance: while CI is unavailable, packages may be built from the release tag on a maintainer's Linux machine or a dedicated Windows build VM, with passing tests, checksums and a note in the release.
+- Windows packages in releases (#23): a portable zip and an MSIX (Start menu, file associations for video files, uninstall in Settings), both unsigned for now (the unsigned MSIX needs Windows 11; Windows 10 uses the zip), plus winget manifests for later. The Visual C++ runtime now ships next to `coyotl.exe`, so the separate `vc_redist.x64.exe` is gone. CI and releases share one Windows workflow, and CI test-installs the MSIX. The release also carries the exact LGPL sources of the Windows libmpv bundle.
+
 ## 3.0.1 – 2026-11-23 (Linux)
 
 - Now Playing full screen (#191): the Back bar and its trail fade out with the controls when idle, and come back on a mouse move or key press.
@@ -180,6 +185,7 @@ by CI (GitHub Actions was unavailable).
 - Show page (#32): one page per show with a season switcher (tabs, or a list for many seasons) and the selected season's episodes, including the ones TMDB knows but your library does not have (dimmed). The main button plays the next episode, resumes a started one, or offers "Play again". Mark episodes, seasons or the whole show watched; left/right switch seasons, up/down move through episodes, W marks watched.
 
 - Fixed: shows appeared many times in the Shows grid, once per season release folder or even once per episode (#32). The scanner now names a show after the folder above season, release and per-episode folders (or the release name), and the TMDB id is unique per show and movie. Existing libraries are repaired on upgrade without network access: duplicates are merged, watch state is kept. Show matching now handles punctuation differences, country suffixes ("US", "UK"), folder years, and titles used by several shows (decided by the seasons and episodes on disk).
+
 
 - The Huehuecoyotl logo replaces the placeholder "H" in the sidebar and appears on the welcome card and in Settings → About (#1). All icon sizes, including the MSIX image assets, are generated from `assets/logo/huehuecoyotl.png`; the logo has its own licence (`assets/logo/LICENSE`).
 - Cover sizes for windowed and fullscreen layouts (#2): Settings → Appearance sets Small, Medium or Large for each mode (defaults Medium and Large). Grids and the "Recently added" row work out their columns from it, and the focused cover stays in view when switching modes. A sharper 540 px thumbnail tier is downloaded with new posters and made offline for existing libraries.

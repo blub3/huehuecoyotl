@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MSIX manifest; @VERSION@ is filled in by packaging/windows/package.ps1. The publisher carries
+     the OID Windows reserves for unsigned packages (installable with Add-AppxPackage
+     -AllowUnsigned). Signing (#24) replaces it with the certificate's subject. -->
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         IgnorableNamespaces="uap rescap">
+  <Identity Name="io.github.blub3.Huehuecoyotl"
+            Publisher="CN=Huehuecoyotl, OID.2.25.311729368913984317654407730594956997722=1"
+            Version="@VERSION@.0" ProcessorArchitecture="x64"/>
+  <Properties>
+    <DisplayName>Huehuecoyotl</DisplayName>
+    <PublisherDisplayName>The Huehuecoyotl contributors</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0"/>
+  </Dependencies>
+  <Resources>
+    <Resource Language="en-us"/>
+    <Resource Language="de-de"/>
+  </Resources>
+  <Applications>
+    <Application Id="Huehuecoyotl" Executable="bin\coyotl.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Huehuecoyotl"
+                          Description="Play and browse your films and series from local folders and network shares"
+                          BackgroundColor="transparent"
+                          Square150x150Logo="Assets\Square150x150Logo.png"
+                          Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"
+                         Square71x71Logo="Assets\Square71x71Logo.png"
+                         Square310x310Logo="Assets\Square310x310Logo.png"/>
+      </uap:VisualElements>
+      <Extensions>
+        <!-- The same video types as the Linux desktop entry. -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="video">
+            <uap:DisplayName>Video</uap:DisplayName>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.mp4</uap:FileType>
+              <uap:FileType>.m4v</uap:FileType>
+              <uap:FileType>.mkv</uap:FileType>
+              <uap:FileType>.webm</uap:FileType>
+              <uap:FileType>.mov</uap:FileType>
+              <uap:FileType>.avi</uap:FileType>
+              <uap:FileType>.ts</uap:FileType>
+              <uap:FileType>.m2ts</uap:FileType>
+              <uap:FileType>.mpg</uap:FileType>
+              <uap:FileType>.mpeg</uap:FileType>
+              <uap:FileType>.ogv</uap:FileType>
+              <uap:FileType>.flv</uap:FileType>
+              <uap:FileType>.3gp</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust"/>
+  </Capabilities>
+</Package>

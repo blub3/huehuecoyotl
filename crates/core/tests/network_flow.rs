@@ -9,6 +9,24 @@ use huehuecoyotl_stream::{MpvStreamCbInfo, coyotl_stream_open};
 
 const MOVIE: &str = "tests/servers/fixtures/Movies/Alien (1979)/Alien.1979.1080p.mkv";
 
+/// Progress on stderr (the test runs with --nocapture in CI), so a hang shows where it is.
+fn step(spec: &str, what: &str) {
+    let proto = spec
+        .split("\"protocol\":\"")
+        .nth(1)
+        .and_then(|r| r.split('"').next())
+        .unwrap_or("?");
+    eprintln!(
+        "[network_flow {:>7.1}s] {proto}: {what}",
+        started().elapsed().as_secs_f32()
+    );
+}
+
+fn started() -> Instant {
+    static START: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+    *START.get_or_init(Instant::now)
+}
+
 fn wait(rx: &Receiver<Event>, what: &str, mut f: impl FnMut(&Event) -> bool) -> Event {
     let end = Instant::now() + Duration::from_secs(60);
     while Instant::now() < end {
@@ -65,6 +83,7 @@ fn flow(spec: &str) {
     let reference =
         std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../").to_string() + MOVIE)
             .expect("fixtures: run tests/servers/up.sh");
+    step(spec, "open core");
     let d = tempfile::tempdir().unwrap();
     let (tx, rx) = unbounded();
     let core = Core::open(d.path(), "en-US", move |e| {
@@ -74,6 +93,7 @@ fn flow(spec: &str) {
 
     // Wrong password: a typed error, nothing added.
     if !spec.contains("\"nfs\"") {
+        step(spec, "wrong password");
         core.browse_network(1, spec, "wrong", "");
         let e = wait(&rx, "auth error", |e| {
             matches!(e, Event::Error { request_id: 1, .. })
@@ -91,6 +111,7 @@ fn flow(spec: &str) {
     }
 
     // The folder picker.
+    step(spec, "folder picker");
     core.browse_network(2, spec, "coyotl-test", "/");
     let Event::Folder { entries, .. } = wait(&rx, "folder", |e| {
         matches!(e, Event::Folder { request_id: 2, .. })
@@ -110,6 +131,7 @@ fn flow(spec: &str) {
 
     // Add the Movies folder and wait for its scan.
     let with_path = spec.replace('}', r#","path":"/Movies"}"#);
+    step(spec, "add library");
     core.add_network_library(3, &with_path, "coyotl-test");
     let Event::Libraries { libraries, .. } = wait(&rx, "libraries", |e| {
         matches!(e, Event::Libraries { request_id: 3, .. })
@@ -126,6 +148,7 @@ fn flow(spec: &str) {
         |e| matches!(e, Event::ScanState { running: false, source_id, .. } if *source_id == lib.id),
     );
 
+    step(spec, "browse movies");
     core.browse_items(4, "movie", 0, "title", "", 0, 50);
     let Event::Page { items, .. } = wait(&rx, "page", |e| {
         matches!(e, Event::Page { request_id: 4, .. })
@@ -134,6 +157,7 @@ fn flow(spec: &str) {
     };
     assert_eq!(items.len(), 1, "{spec}: {items:?}");
 
+    step(spec, "open item");
     core.open_item(5, items[0].id);
     let ev = wait(&rx, "ticket", |e| {
         matches!(e, Event::Playback { request_id: 5, .. })
@@ -153,6 +177,7 @@ fn flow(spec: &str) {
     assert_eq!(ticket.subtitles.len(), 1);
     assert_eq!(ticket.subtitles[0].lang, "eng");
 
+    step(spec, "stream the movie");
     assert!(
         read_all(&ticket.url) == reference,
         "{spec}: streamed bytes differ"
@@ -167,6 +192,7 @@ fn flow(spec: &str) {
         .len() as usize
     );
 
+    step(spec, "stream the subtitle done; remove library");
     core.remove_library(6, lib.id);
     let Event::Libraries { libraries, .. } = wait(&rx, "removed", |e| {
         matches!(e, Event::Libraries { request_id: 6, .. })
@@ -174,6 +200,9 @@ fn flow(spec: &str) {
         unreachable!()
     };
     assert!(libraries.is_empty());
+    step(spec, "close core");
+    drop(core);
+    step(spec, "done");
 }
 
 fn enabled() -> bool {
@@ -186,6 +215,15 @@ fn network_libraries() {
     if !enabled() {
         return;
     }
+    // A hang anywhere fails the test after three minutes with the last step printed above,
+    // instead of running into the CI step's 20-minute timeout.
+    std::thread::spawn(|| {
+        std::thread::sleep(Duration::from_secs(180));
+        eprintln!(
+            "network_flow: not finished after 3 minutes; the last step above is where it hangs"
+        );
+        std::process::exit(101);
+    });
     for spec in [
         r#"{"protocol":"smb","host":"172.29.0.10","share":"media","user":"coyotl"}"#,
         r#"{"protocol":"nfs","host":"172.29.0.11","share":"/media"}"#,

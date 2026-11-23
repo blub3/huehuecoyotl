@@ -1,9 +1,11 @@
 # SPEC 10, CI step 6: release packages, third-party notices and a software bill of materials.
 # Runs on a version tag (v1.0.0) and creates a *draft* GitHub release; a maintainer reviews and
-# publishes it (GOVERNANCE.md: releases are built by CI only).
+# publishes it (GOVERNANCE.md: built by CI; while CI is unavailable, a maintainer's Linux machine
+# and a Windows build VM may build from the tag).
 #
-# Not here yet: the Windows MSIX/zip and code signing (blocked on the Windows libmpv build,
-# docs/milestones/M4.md). Flathub builds and signs the Flatpak itself from its own manifest.
+# Linux: the Flatpak bundle. Windows: a portable zip and an unsigned MSIX, built by the shared
+# workflow windows.yml (as in CI, but a Release build). Not here yet: code signing (#24).
+# Flathub builds and signs the Flatpak itself from its own manifest.
 name: Release
 
 on:
@@ -63,18 +65,30 @@ jobs:
           cp build/io.github.blub3.Huehuecoyotl.Sources.flatpak build/flatpak-BUILDINFO.txt dist/
           cp packaging/flatpak/generated/THIRD_PARTY_NOTICES.txt dist/
           tools/sbom.sh dist/huehuecoyotl-sbom-rust.cdx.json
-          (cd dist && sha256sum * > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with: { name: release-linux, path: dist }
 
+  windows:
+    uses: ./.github/workflows/windows.yml
+    with: { build-type: Release, lgpl-sources: true }
+
   draft:
-    needs: linux
+    needs: [linux, windows]
     runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: { name: release-linux, path: dist }
+      - uses: actions/download-artifact@v4
+        with: { name: release-windows, path: windows }
+      - uses: actions/download-artifact@v4
+        with: { name: libmpv-windows-sources, path: windows-sources }
+      - name: Collect the Windows files and the checksums of everything
+        run: |
+          cp windows/*.zip windows/*.msix windows/THIRD_PARTY_NOTICES-windows.txt dist/
+          cp windows-sources/huehuecoyotl-windows-lgpl-sources.tar.xz dist/
+          (cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS)
       - name: Draft release
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |

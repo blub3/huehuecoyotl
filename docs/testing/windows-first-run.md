@@ -4,8 +4,8 @@ The Windows build has been compiled by CI but never run. This checklist is for t
 on a real Windows PC. Note what happens at each step; a failure early on usually explains the
 rest.
 
-The package is a portable folder: unzip `Huehuecoyotl-0.9.0-windows-x64.zip` anywhere and run
-`Huehuecoyotl\bin\coyotl.exe`. Nothing is installed. Windows SmartScreen will warn because the
+The portable package is a folder: unzip `Huehuecoyotl-<version>-windows-x64.zip` anywhere and run
+`Huehuecoyotl\bin\coyotl.exe`. Nothing is installed; the Visual C++ runtime is included. Windows SmartScreen will warn because the
 build is unsigned: choose **More info → Run anyway**.
 
 Use test clips you own; the app's data goes to `%APPDATA%\coyotl` (delete it to start over).
@@ -15,7 +15,7 @@ Use test clips you own; the app's data goes to `%APPDATA%\coyotl` (delete it to 
 | # | Step | Expected | Result |
 | --- | --- | --- | --- |
 | 1 | Start `coyotl.exe` | The window opens with the Home screen | |
-| 2 | If it does not start: run `bin\vc_redist.x64.exe` once, then try again | Starts | |
+| 2 | Windows 11 only, MSIX instead: `Add-AppxPackage -Path .\Huehuecoyotl-<version>-windows-x64.msix -AllowUnsigned` in PowerShell, then start it from the Start menu | Installs; Start menu entry with the logo; "Open with" lists it for video files | |
 | 3 | Move around with the arrow keys, Enter, Escape | Everything reachable by keyboard | |
 
 ## 2. Playback (embedded mode, OpenGL)

@@ -768,7 +768,7 @@ Cargo.toml           Rust workspace
 
 | Platform | Formats | Notes |
 | --- | --- | --- |
-| Windows | MSIX and a portable zip; winget manifest | MSVC toolchain; `windeployqt` collects the Qt libraries. Code signing is needed to avoid SmartScreen warnings and has a recurring cost. |
+| Windows | MSIX and a portable zip; winget manifest | MSVC toolchain; `windeployqt` collects the Qt libraries and the Visual C++ runtime DLLs sit next to the exe (app-local). `.github/workflows/windows.yml` builds both packages for CI and releases (`packaging/windows/package.ps1`); CI installs the MSIX once and starts the app. Until code signing (#24) the MSIX uses the publisher OID Windows reserves for unsigned packages and installs with `Add-AppxPackage -AllowUnsigned`, an option Windows 10 does not have, so Windows 10 uses the portable zip. The winget manifests (portable zip) are generated with each release and submitted once the repository is public. Code signing is needed to avoid SmartScreen warnings and has a recurring cost. |
 | Linux | Flatpak on Flathub first; AppImage second | The Flatpak builds on the KDE runtime, which provides Qt 6; it reaches the Secret Service directly (section 6) and uses portals for files and idle inhibit. The AppImage bundles Qt. Distribution packages are left to the community. |
 | macOS | Universal, notarised app bundle | Tier 2, after 1.0 |
 
@@ -950,7 +950,7 @@ Adopt the Contributor Covenant unchanged, with a contact address that reaches th
 - **Decisions.** At the start the founder is the sole maintainer and has the final say. Say so in `GOVERNANCE.md`; unclear authority causes more trouble than concentrated authority.
 - **Maintainers.** Invited after sustained, good contributions. They get merge rights and are listed in a `MAINTAINERS` file.
 - **Changes.** Everything goes through pull requests with CI passing. Once there are two maintainers, each change needs a review from the other. Larger changes, such as architecture or a dependency with a new licence, start as a short written proposal in an issue.
-- **Releases.** Only maintainers create release tags. A signed tag on the main branch triggers CI, which builds, signs and publishes every package. Nothing is built on a personal machine, signing keys live only in CI secrets, and all maintainer accounts use two-factor authentication.
+- **Releases.** Only maintainers create release tags. A signed tag on the main branch triggers CI, which builds, signs and publishes every package. While CI is unavailable, a maintainer may build from that tag instead: the Linux packages on their own Linux machine, the Windows packages on a dedicated Windows build VM. The tests must pass there, and the release notes must say where the packages were built and include their checksums. Signing keys live only in CI secrets and never on these machines, and all maintainer accounts use two-factor authentication.
 - **Versions.** Semantic versioning and a changelog kept with each pull request.
 - **Security.** A `SECURITY.md` with a private reporting channel; fixes ship before details are published.
 - **Name and accounts.** The project name, domain and store accounts are held by the founder at first. Record who else has access, so the project survives one person becoming unavailable. If the project grows, these can move to a fiscal host or foundation.

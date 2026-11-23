@@ -1,0 +1,110 @@
+# The Windows build, shared by CI (ci.yml) and releases (release.yml): the LGPL libmpv bundle
+# cross-built on Linux, then the app with MSVC and Qt, tested, and packaged as a portable zip and
+# an MSIX (packaging/windows/package.ps1). Artifacts: huehuecoyotl-windows-x64 (the folder) and
+# release-windows (zip, MSIX, notices, winget manifests).
+name: Windows
+
+on:
+  workflow_call:
+    inputs:
+      build-type:
+        description: CMake build type
+        type: string
+        default: RelWithDebInfo
+      lgpl-sources:
+        description: Upload the libmpv bundle's corresponding source for a release
+        type: boolean
+        default: false
+
+env:
+  CARGO_TERM_COLOR: always
+  QT_VERSION: "6.12.0"
+
+jobs:
+  libmpv-windows:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache the Windows LGPL libmpv bundle
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            third_party/mpv/out-win
+            third_party/mpv/out-win-src
+          key: libmpv-win-${{ hashFiles('third_party/mpv/Dockerfile.windows', 'third_party/mpv/build-windows-deps.sh', 'third_party/mpv/build-windows.sh') }}
+      - name: Cross-build LGPL libmpv + FFmpeg for Windows
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: third_party/mpv/build-windows.sh
+      - name: Licence assertions
+        run: |
+          cat third_party/mpv/out-win/ffmpeg-licence-flags.txt
+          ! grep -qE ' 1$' third_party/mpv/out-win/ffmpeg-licence-flags.txt
+          test ! -s third_party/mpv/out-win/mpv-gpl-check.txt || ! grep -qi 'gpl.*true' third_party/mpv/out-win/mpv-gpl-check.txt
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with: { tool: cargo-about }
+      - name: Third-party notices for the Windows package
+        run: tools/notices.sh third_party/mpv/out-win/THIRD_PARTY_NOTICES.txt third_party/mpv/out-win
+      - uses: actions/upload-artifact@v4
+        with: { name: libmpv-windows, path: third_party/mpv/out-win }
+      - uses: actions/upload-artifact@v4
+        if: inputs.lgpl-sources
+        with: { name: libmpv-windows-sources, path: third_party/mpv/out-win-src, compression-level: 0 }
+
+  app-windows:
+    needs: libmpv-windows
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: libmpv-windows, path: third_party/mpv/out-win }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # Qt 6.11+ uses a repository layout that aqtinstall (install-qt-action) cannot read yet.
+      - name: Cache Qt
+        id: qt-cache
+        uses: actions/cache@v4
+        with:
+          path: C:/Qt
+          key: qt-${{ env.QT_VERSION }}-msvc2022_64-${{ hashFiles('tools/install-qt-windows.py') }}
+      - name: Install Qt (MSVC 2022, from the official repository)
+        if: steps.qt-cache.outputs.cache-hit != 'true'
+        run: python tools/install-qt-windows.py ${{ env.QT_VERSION }} C:/Qt
+      - name: Qt on PATH
+        shell: bash
+        run: |
+          echo "C:/Qt/${QT_VERSION}/msvc2022_64/bin" >> "$GITHUB_PATH"
+          echo "CMAKE_PREFIX_PATH=C:/Qt/${QT_VERSION}/msvc2022_64" >> "$GITHUB_ENV"
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Configure
+        shell: bash
+        run: >
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ inputs.build-type }}
+          -DCOYOTL_LIBMPV_PREFIX="$PWD/third_party/mpv/out-win"
+          -DCOYOTL_NOTICES_FILE="$PWD/third_party/mpv/out-win/THIRD_PARTY_NOTICES.txt"
+      - name: Build
+        run: cmake --build build
+      - name: Qt Quick Test (navigation and focus)
+        run: ctest --test-dir build --output-on-failure
+        env: { QT_QPA_PLATFORM: offscreen }
+      - name: Install into the package folder
+        shell: bash
+        run: |
+          cmake --install build --prefix dist/Huehuecoyotl
+          # The Visual C++ runtime goes next to the exe (app-local), not as vc_redist.x64.exe.
+          windeployqt --release --qmldir app/qml --no-translations --no-system-d3d-compiler \
+            --no-compiler-runtime dist/Huehuecoyotl/bin/coyotl.exe
+          cp "$VCToolsRedistDir"/x64/Microsoft.VC14*.CRT/*.dll dist/Huehuecoyotl/bin/
+          cp third_party/mpv/out-win/THIRD_PARTY_NOTICES.txt LICENSE NOTICE dist/Huehuecoyotl/
+      - uses: actions/upload-artifact@v4
+        with: { name: huehuecoyotl-windows-x64, path: dist }
+      - name: Portable zip, MSIX and winget manifests
+        shell: pwsh
+        run: packaging/windows/package.ps1 -App dist/Huehuecoyotl -Out release
+      - name: The MSIX installs and the app starts (unsigned, sideloaded)
+        shell: pwsh
+        continue-on-error: true
+        run: packaging/windows/smoke-test.ps1 -Msix (Get-Item release/*.msix).FullName
+      - uses: actions/upload-artifact@v4
+        with: { name: release-windows, path: release }
