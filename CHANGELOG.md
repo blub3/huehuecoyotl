@@ -4,7 +4,7 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 
 ## Unreleased
 
-- Governance: while CI is unavailable, Windows packages may be built from the release tag on a dedicated Windows build VM, with passing tests, checksums and a note in the release.
+- Governance: while CI is unavailable, packages may be built from the release tag on a maintainer's Linux machine or a dedicated Windows build VM, with passing tests, checksums and a note in the release.
 - Windows packages in releases (#23): a portable zip and an MSIX (Start menu, file associations for video files, uninstall in Settings), both unsigned for now (the unsigned MSIX needs Windows 11; Windows 10 uses the zip), plus winget manifests for later. The Visual C++ runtime now ships next to `coyotl.exe`, so the separate `vc_redist.x64.exe` is gone. CI and releases share one Windows workflow, and CI test-installs the MSIX. The release also carries the exact LGPL sources of the Windows libmpv bundle.
 
 ## 3.0.1 – 2026-11-23 (Linux)
