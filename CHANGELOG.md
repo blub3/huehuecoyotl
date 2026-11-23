@@ -10,7 +10,7 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 - Add to Library (#154, part of 3.0): copy a song, album, artist, movie, show or book into your library, named and tagged, with a preview first. The originals stay where they are. Imports under Downloads shows progress and what waits for you; importing something again copies nothing, and an unsure match or an occupied folder waits instead of being guessed or overwritten. Schema 18.
 - Review of imports (#155, part of 3.0): an unsure match waits for your choice, or imports with its own names. The same album or film in another quality can become another version, replace the library's copy (the old files go to a `.trash` folder in the library) or be left out. A folder holding other files is never written into.
 - Automatic import (#156, part of 3.0): per media type, new items in the folders you watch are copied into your library once they are matched. Unsure ones wait for you, and what was already in a folder when you started watching it stays where it is.
-- Edit tags (#157, part of 3.0): change the tags of a song, an album or all of an artist in your files, after a preview of every change. Read-only and unreachable files are reported and left alone, and a file changed meanwhile is not overwritten. Files are never renamed or moved.
+- Edit tags (#157, part of 3.0): change the tags of a song, an album or all of an artist in your files, after a preview of every change. Read-only and unreachable files are reported and left alone, and a file changed meanwhile is not overwritten. Files are never renamed or moved. Under Flatpak, allowing writes now accepts only the folder that really holds these files.
 
 ## 2.9.2 – 2026-11-23 (Linux)
 

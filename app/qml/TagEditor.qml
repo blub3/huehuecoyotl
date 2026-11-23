@@ -23,8 +23,9 @@ Popup {
     property var result: null
     property string error: ""
     property bool busy: false
-    property var pending: ({ plan: 0, values: 0, preview: 0, write: 0 })
-    signal grantRequested(var source)
+    property var pending: ({ plan: 0, values: 0, preview: 0, write: 0, grant: 0 })
+    // The source and its folder, so the picker opens at the right place.
+    signal grantRequested(var source, string root)
 
     readonly property var scopeId: scope === "track" ? scopes.track : scope === "album" ? scopes.album : scopes.artist
     readonly property var fieldKeys: ["albumArtist", "artist", "album", "year", "genre", "disc", "title"]
@@ -87,6 +88,12 @@ Popup {
         if (only) e.only = only
         pending.write = backend.libraryCall("tagWrite", e)
     }
+    // The folder the portal gave: once the core has checked and stored it, write again.
+    function grant(source, path) {
+        error = ""
+        busy = true
+        pending.grant = backend.libraryCall("tagGrant", { source: Number(source), path: path })
+    }
     function reasonText(r) {
         return r === "changed" ? qsTr("the file changed while it was written, so it was left as it was")
              : r === "gone" ? qsTr("the file is gone") : r
@@ -117,6 +124,8 @@ Popup {
                 editor.previewData = detail
                 editor.step = "preview"
                 Qt.callLater(() => (detail.willChange > 0 ? writeButton : backButton).forceActiveFocus())
+            } else if (requestId === editor.pending.grant && kind === "tagGranted") {
+                editor.write(null)
             } else if (requestId === editor.pending.write && kind === "tagResult") {
                 editor.busy = false
                 editor.result = detail
@@ -127,7 +136,8 @@ Popup {
         function onRequestFailed(requestId, kind, message) {
             if (Object.values(editor.pending).indexOf(requestId) >= 0) {
                 editor.busy = false
-                editor.error = message
+                editor.error = message === "wrongFolder" && requestId === editor.pending.grant
+                               ? qsTr("That is not the folder of these files. Choose the folder shown in the picker.") : message
             }
         }
     }
@@ -335,7 +345,10 @@ Popup {
                 visible: !!editor.result && editor.result.flatpak === true && editor.result.readOnly.some(f => f.local)
                 text: qsTr("Allow writing to this folder…")
                 KeyNavigation.right: retry
-                onClicked: editor.grantRequested(editor.result.readOnly.find(f => f.local).sourceId)
+                onClicked: {
+                    const f = editor.result.readOnly.find(x => x.local)
+                    editor.grantRequested(f.sourceId, f.root)
+                }
             }
             Group {
                 objectName: "resultOffline"

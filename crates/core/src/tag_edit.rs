@@ -453,7 +453,7 @@ async fn write(inner: &Arc<Inner>, args: &Value) -> CResult<Value> {
                 inner.read_only_sources.lock().unwrap().insert(f.source);
                 read_only.push(
                     json!({ "file": f.path, "source": root.2, "sourceId": f.source,
-                                       "local": root.0 == "local" }),
+                                       "local": root.0 == "local", "root": root.1.as_str() }),
                 );
             }
             Outcome::Offline => offline.push(json!({ "file": f.path, "source": root.2 })),
@@ -500,6 +500,36 @@ pub(crate) async fn action(
                 args["source"].as_i64().unwrap_or(0),
                 args["path"].as_str().unwrap_or("").to_string(),
             );
+            // The chosen folder must be this source: the same file at the same place. Another
+            // folder with similar names must never receive these writes.
+            let probe = inner
+                .lib
+                .read(move |c| {
+                    Ok(c.query_row(
+                        "SELECT path, coalesce(size, 0), coalesce(mtime, 0) FROM file
+                         WHERE source_id = ?1 ORDER BY id LIMIT 1",
+                        [source],
+                        |r| {
+                            Ok((
+                                r.get::<_, String>(0)?,
+                                r.get::<_, i64>(1)?,
+                                r.get::<_, i64>(2)?,
+                            ))
+                        },
+                    )
+                    .ok())
+                })
+                .await?;
+            let same = match probe {
+                Some((rel, size, mtime)) => LocalSource
+                    .stat(&VPath::new(path.clone()).join(&rel))
+                    .await
+                    .is_ok_and(|e| e.size == size as u64 && e.mtime == mtime),
+                None => false,
+            };
+            if !same {
+                return Err(CoreError::new(ErrorKind::Unsupported, "wrongFolder"));
+            }
             let mut g = grants(inner).await?;
             g[source.to_string()] = json!(path);
             let text = g.to_string();

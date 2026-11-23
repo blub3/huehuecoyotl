@@ -29,6 +29,14 @@ Item {
             if (action === "tagPreview") d = { files: 4, willChange: 3, same: 0, readOnly: 1, readOnlyNames: ["archive"], offline: 0, offlineNames: [],
                 rows: [{ file: "a/01.flac", field: "album", before: "Lux", after: "LUX" }] }
             if (action === "tagWrite") { kind = "tagResult"; d = stub.resultData }
+            if (action === "tagGrant") {
+                if (args.path === "/wrong") {
+                    Qt.callLater(() => stub.requestFailed(id, 0, "wrongFolder"))
+                    return id
+                }
+                kind = "tagGranted"
+                d = { source: args.source }
+            }
             const k = kind
             Qt.callLater(() => stub.musicDetailReady(id, k, d))
             return id
@@ -85,6 +93,33 @@ Item {
             compare(c("grantWrite").visible, false)
             c("tagRetry").clicked()
             tryVerify(() => last().action === "tagWrite" && last().args.only !== undefined && last().args.only[0] === 9)
+        }
+        function test_grantThenWrite() {
+            begin()
+            stub.resultData = { updated: 0, same: 0, attempted: 0, flatpak: true, offline: [], failed: [],
+                readOnly: [{ file: "x.flac", source: "Music", sourceId: 4, local: true, root: "/home/you/Music" }] }
+            editor.setText("album", "LUX")
+            c("tagToPreview").clicked()
+            tryCompare(editor, "step", "preview")
+            c("tagWrite").clicked()
+            tryCompare(editor, "step", "result")
+            compare(c("grantWrite").visible, true)
+            let asked = null
+            const on = (s, r) => asked = [s, r]
+            editor.grantRequested.connect(on)
+            c("grantWrite").clicked()
+            editor.grantRequested.disconnect(on)
+            compare(asked, [4, "/home/you/Music"])
+            // A wrong folder is refused and nothing is written.
+            stub.calls = []
+            editor.grant(4, "/wrong")
+            tryVerify(() => editor.error.length > 0)
+            compare(stub.calls.filter(x => x.action === "tagWrite").length, 0)
+            // The right one: the write runs only after the grant is stored.
+            stub.calls = []
+            editor.grant(4, "/run/user/1000/doc/x/Music")
+            compare(stub.calls.filter(x => x.action === "tagWrite").length, 0)
+            tryVerify(() => stub.calls.some(x => x.action === "tagWrite"))
         }
         function test_artistScope() {
             begin()

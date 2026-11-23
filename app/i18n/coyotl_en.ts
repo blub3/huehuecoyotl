@@ -713,7 +713,7 @@
 <context>
     <name>TagEditor</name>
     <message numerus="yes">
-        <location filename="../qml/TagEditor.qml" line="192"/>
+        <location filename="../qml/TagEditor.qml" line="202"/>
         <source>All of %1 (%n album(s))</source>
         <translation>
             <numerusform>All of %1 (%n album)</numerusform>
@@ -721,7 +721,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/TagEditor.qml" line="202"/>
+        <location filename="../qml/TagEditor.qml" line="212"/>
         <source>%n file(s)</source>
         <translation>
             <numerusform>%n file</numerusform>
@@ -729,7 +729,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/TagEditor.qml" line="202"/>
+        <location filename="../qml/TagEditor.qml" line="212"/>
         <source>%n not reachable</source>
         <translation>
             <numerusform>%n not reachable</numerusform>
@@ -737,7 +737,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/TagEditor.qml" line="314"/>
+        <location filename="../qml/TagEditor.qml" line="324"/>
         <source>✓  %n updated</source>
         <translation>
             <numerusform>✓  %n updated</numerusform>
@@ -745,7 +745,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/TagEditor.qml" line="321"/>
+        <location filename="../qml/TagEditor.qml" line="331"/>
         <source>!  %n failed</source>
         <translation>
             <numerusform>!  %n failed</numerusform>
@@ -753,7 +753,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/TagEditor.qml" line="328"/>
+        <location filename="../qml/TagEditor.qml" line="338"/>
         <source>–  %n skipped: read-only</source>
         <translation>
             <numerusform>–  %n skipped: read-only</numerusform>
@@ -761,7 +761,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/TagEditor.qml" line="343"/>
+        <location filename="../qml/TagEditor.qml" line="356"/>
         <source>–  %n skipped: not reachable</source>
         <translation>
             <numerusform>–  %n skipped: not reachable</numerusform>
@@ -769,7 +769,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/TagEditor.qml" line="403"/>
+        <location filename="../qml/TagEditor.qml" line="416"/>
         <source>Write %n file(s)</source>
         <translation>
             <numerusform>Write %n file</numerusform>
