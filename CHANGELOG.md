@@ -2,17 +2,16 @@
 
 All notable changes are listed here. The format follows Keep a Changelog; versions follow SemVer.
 
-## Unreleased (3.0)
+## 2.9.2 – 2026-11-23 (Linux)
 
-- Writing to network shares (#151, part of 3.0, not visible in the app yet): SMB, NFS, WebDAV, FTP and SFTP can write, rename and create folders. A file is written under a temporary name and replaces the old one only when complete; read-only shares and files changed on the server are reported and left untouched.
-
-## Unreleased (2.9.2)
+Linux release as a Flatpak bundle. Built locally (GitHub Actions is disabled). A missing codec is explained, new libraries ask before their first online lookup, and the licence notices are completed. No migration: the library stays at schema 16.
 
 - A missing codec is explained (#171). When a video has no decoder for its picture or sound, a notice names the codec while the other track keeps playing; if nothing can play, the error says why. Music and audiobooks do the same. In the Flatpak the notice shows the command that installs the codec extension.
 - Online lookups are your choice (#165). When you add your first music or audiobook folder, the app explains what goes to MusicBrainz, the Cover Art Archive and Open Library and asks whether to use them or your files only. Nothing is sent before you answer, and the scan of your files does not wait. Existing libraries are not asked.
 - Third-party notices name the authors of the SMB library (#163): the `smb` crates' upstream MIT notice replaces a generic template with placeholders.
 - Licence boundaries are documented (#164): `docs/PROVENANCE.md` records the logo, icons, FFmpeg bindings and test fixtures. The notices in every package now include the logo's terms and the licence of the FFmpeg-derived types.
 - Settings → About shows TMDB's approved logo (#162), next to the required notice and smaller than the app's logo. The notices name its source and terms.
+- Writing to network shares (#151, groundwork for 3.0, not used by the app yet): SMB, NFS, WebDAV, FTP and SFTP can write, rename and create folders. A file is written under a temporary name and replaces the old one only when complete; read-only shares and files changed on the server are reported and left untouched.
 
 ## 2.9.1 – 2026-11-22 (Linux)
 

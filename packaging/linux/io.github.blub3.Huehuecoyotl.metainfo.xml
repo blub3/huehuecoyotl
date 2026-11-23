@@ -93,6 +93,11 @@
     <keyword>mpv</keyword>
   </keywords>
   <releases>
+    <release version="2.9.2" date="2026-11-23" type="stable">
+      <description>
+        <p>When a video, song or audiobook has no decoder, the app now names the codec and shows how to add it, instead of a black picture. A new library asks whether to use online services or your files only before anything is sent. Settings shows TMDB's approved logo, and the licence notices are complete.</p>
+      </description>
+    </release>
     <release version="2.9.1" date="2026-11-22" type="stable">
       <description>
         <p>One entry per artist: spellings like Rosalia and Rosalía join when they are the same artist, a matched artist shows the MusicBrainz name unless you choose your own, and Merge with… joins the rest. Each MusicBrainz release is its own album, so standard and deluxe editions stay apart and link to each other under Other editions. The app now uses the codecs of its runtime: H.264, HEVC, VC-1 and E-AC-3 need Flathub's codecs-extra extension.</p>
