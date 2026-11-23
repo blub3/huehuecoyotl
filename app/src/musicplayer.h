@@ -165,6 +165,7 @@ class MusicPlayer : public QObject {
     int m_volume = 100;
     QVariantMap m_in, m_out, m_signal;
     QString m_ao;
+    QString m_noDecoder; // Issue #171: the codec the current file has no decoder for
     bool m_filters = false;
     // The chosen device could not be opened: playing on the default device instead.
     bool m_fellBack = false;

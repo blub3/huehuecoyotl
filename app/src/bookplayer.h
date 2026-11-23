@@ -164,6 +164,7 @@ class BookPlayer : public QObject {
     bool m_seeking = false;
     quint64 m_request = 0;
     QString m_sleep = QStringLiteral("off");
+    QString m_noDecoder; // Issue #171: the codec the current file has no decoder for
     int m_sleepLeft = 0;
     // Timeline seconds where "end of chapter" stops.
     double m_sleepAt = 0;

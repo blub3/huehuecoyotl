@@ -505,6 +505,14 @@ note on the `insecure` option above.
 **Video stutters on a network share.** Over Wi-Fi, 4K films can need more bandwidth than the
 connection has. A wired connection or SMB instead of WebDAV usually helps.
 
+**No picture or no sound, with a notice about a decoder.** The Flatpak uses the codecs of its
+runtime. H.264, HEVC, VC-1 and E-AC-3 need Flathub's codec extension, which Flatpak normally
+installs with the runtime. Install it, then start the app again:
+
+```bash
+flatpak install flathub org.freedesktop.Platform.codecs-extra//25.08-extra
+```
+
 **Something else.** Open **Settings → Troubleshooting → Export diagnostics**. This saves a
 text file to your Downloads folder with the app's log and version information. Server names,
 user names, addresses, keys and your home folder are removed from it. Attach it to a

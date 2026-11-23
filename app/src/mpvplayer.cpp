@@ -1,4 +1,5 @@
 #include "mpvplayer.h"
+#include "missingcodec.h"
 
 #include <QHash>
 #include <QLoggingCategory>
@@ -157,6 +158,7 @@ void MpvPlayer::setDisplayFps(double fps)
 void MpvPlayer::load(const QString &url, const LoadOptions &o)
 {
     m_error.clear();
+    clearMissing(true, true);
     m_eof = false;
     m_position = 0;
     m_duration = 0;
@@ -263,8 +265,29 @@ void MpvPlayer::setSubtitleLift(int px)
     emit subtitleLiftChanged();
 }
 
+QString MpvPlayer::codecNotice() const
+{
+    if (!m_noVideo.isEmpty() && m_noAudio.isEmpty()) return MissingCodec::noPicture(m_noVideo);
+    if (!m_noAudio.isEmpty() && m_noVideo.isEmpty()) return MissingCodec::noSound(m_noAudio);
+    return {}; // Both: nothing plays, and the file ends with the error.
+}
+
+QString MpvPlayer::codecCommand() const
+{
+    return m_noVideo.isEmpty() && m_noAudio.isEmpty() ? QString() : MissingCodec::command();
+}
+
+void MpvPlayer::clearMissing(bool video, bool audio)
+{
+    const bool had = (video && !m_noVideo.isEmpty()) || (audio && !m_noAudio.isEmpty());
+    if (video) m_noVideo.clear();
+    if (audio) m_noAudio.clear();
+    if (had) emit codecChanged();
+}
+
 void MpvPlayer::setAudioTrack(int id)
 {
+    clearMissing(false, true); // Another track may have a decoder; if not, mpv says so again.
     const QByteArray v = id > 0 ? QByteArray::number(id) : QByteArray("no");
     mpv_set_property_string(m_mpv, "aid", v.constData());
     emit userChangedTracks();
@@ -327,7 +350,13 @@ void MpvPlayer::drainEvents()
         case MPV_EVENT_END_FILE: {
             auto *ef = static_cast<mpv_event_end_file *>(e->data);
             if (ef->reason == MPV_END_FILE_REASON_ERROR) {
-                m_error = tr("Cannot play this file: %1").arg(QString::fromUtf8(mpv_error_string(ef->error)));
+                QStringList missing;
+                if (!m_noVideo.isEmpty()) missing << m_noVideo;
+                if (!m_noAudio.isEmpty()) missing << m_noAudio;
+                m_error =
+                    missing.isEmpty()
+                        ? tr("Cannot play this file: %1").arg(QString::fromUtf8(mpv_error_string(ef->error)))
+                        : MissingCodec::cannotPlay(missing.join(QStringLiteral(", ")));
                 m_fileOpen = false;
                 setState(Error);
                 emit stateChanged();
@@ -339,7 +368,12 @@ void MpvPlayer::drainEvents()
             break;
         case MPV_EVENT_LOG_MESSAGE: {
             auto *m = static_cast<mpv_event_log_message *>(e->data);
-            qCWarning(lcMpv).noquote() << m->prefix << QString::fromUtf8(m->text).trimmed();
+            const QString text = QString::fromUtf8(m->text).trimmed();
+            qCWarning(lcMpv).noquote() << m->prefix << text;
+            if (const auto hit = MissingCodec::parse(m->prefix, text)) {
+                (hit->video ? m_noVideo : m_noAudio) = hit->codec;
+                emit codecChanged();
+            }
             break;
         }
         default:

@@ -1,5 +1,6 @@
 #include "bookplayer.h"
 #include "bookoptions.h"
+#include "missingcodec.h"
 
 #include <QLoggingCategory>
 #include <QQmlEngine>
@@ -471,10 +472,14 @@ void BookPlayer::drainEvents()
         }
         case MPV_EVENT_END_FILE: {
             auto *ef = static_cast<mpv_event_end_file *>(e->data);
+            if (ef->reason != MPV_END_FILE_REASON_ERROR) m_noDecoder.clear();
             if (ef->reason == MPV_END_FILE_REASON_ERROR) {
-                emit failed(tr("Cannot play “%1”: %2")
-                                .arg(m_book.value("title").toString(),
-                                     QString::fromUtf8(mpv_error_string(ef->error))));
+                const QString title = m_book.value("title").toString();
+                emit failed(m_noDecoder.isEmpty()
+                                ? tr("Cannot play “%1”: %2")
+                                      .arg(title, QString::fromUtf8(mpv_error_string(ef->error)))
+                                : MissingCodec::withFix(MissingCodec::cannotPlayTitled(title, m_noDecoder)));
+                m_noDecoder.clear();
                 m_loaded = false;
                 setState(Error);
             } else if (ef->reason == MPV_END_FILE_REASON_EOF &&
@@ -491,7 +496,10 @@ void BookPlayer::drainEvents()
         }
         case MPV_EVENT_LOG_MESSAGE: {
             auto *m = static_cast<mpv_event_log_message *>(e->data);
-            qCWarning(lcBook).noquote() << m->prefix << QString::fromUtf8(m->text).trimmed();
+            const QString text = QString::fromUtf8(m->text).trimmed();
+            qCWarning(lcBook).noquote() << m->prefix << text;
+            if (const auto hit = MissingCodec::parse(m->prefix, text); hit && !hit->video)
+                m_noDecoder = hit->codec;
             break;
         }
         default:
