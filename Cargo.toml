@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/core", "crates/core-api", "crates/library", "crates/vfs", "crates/vfs-sftp", "crates/probe", "crates/scanner", "crates/metadata", "crates/stream", "crates/cli"]
 
 [workspace.package]
-version = "2.9.2"
+version = "3.0.0"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/blub3/huehuecoyotl"

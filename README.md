@@ -8,7 +8,7 @@ the living-room PC alike: everything works with a keyboard or remote.
 The name honours Huehuecoyotl, the dancing coyote of the Nahua tradition, patron of music,
 dance and storytelling. The command and config folder use the short form `coyotl`.
 
-**Status:** version 2.9.2 (a clear notice for missing codecs, and a choice before the first online lookup) is released for Linux (Flatpak). The Windows release follows without a
+**Status:** version 3.0 (a managed library: your own named and tagged copies, imports with review, and tag editing) is released for Linux (Flatpak). The Windows release follows without a
 version number yet. See the [user guide](docs/user/README.md), the
 [architecture specification](docs/SPEC.md) and the [M4 status](docs/milestones/M4.md).
 
