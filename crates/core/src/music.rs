@@ -78,6 +78,16 @@ pub(crate) fn facts(r: &Release) -> music::ReleaseFacts {
                 })
             })
             .collect(),
+        barcode: r.barcode.clone(),
+        track_ids: r
+            .media
+            .iter()
+            .flat_map(|m| {
+                m.tracks
+                    .iter()
+                    .map(move |t| (m.position, t.position, t.id.clone(), t.isrcs.clone()))
+            })
+            .collect(),
     }
 }
 

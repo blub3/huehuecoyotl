@@ -198,6 +198,7 @@ pub fn parse_release(v: &Value) -> Release {
             .and_then(|g| opt_text(g, "primary-type"))
             .map(|t| t.to_lowercase()),
         compilation: secondary.iter().any(|s| s == "compilation"),
+        barcode: opt_text(v, "barcode").filter(|b| !b.is_empty()),
         media: v
             .get("media")
             .and_then(Value::as_array)
@@ -222,6 +223,18 @@ pub fn parse_release(v: &Value) -> Release {
                                             .map(|r| text(r, "id"))
                                             .unwrap_or_default(),
                                         length_ms: t.get("length").and_then(Value::as_u64),
+                                        id: text(t, "id"),
+                                        isrcs: t
+                                            .get("recording")
+                                            .and_then(|r| r.get("isrcs"))
+                                            .and_then(Value::as_array)
+                                            .map(|a| {
+                                                a.iter()
+                                                    .filter_map(Value::as_str)
+                                                    .map(str::to_string)
+                                                    .collect()
+                                            })
+                                            .unwrap_or_default(),
                                     })
                                     .collect()
                             })
@@ -352,7 +365,7 @@ impl MusicProvider for MusicBrainz {
         let v = self
             .get(
                 &format!("/release/{id}"),
-                &[("inc", "artist-credits recordings release-groups")],
+                &[("inc", "artist-credits recordings release-groups isrcs")],
             )
             .await?;
         Ok(parse_release(&v))

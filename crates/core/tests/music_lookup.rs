@@ -44,9 +44,11 @@ fn release(id: &str, title: &str, artist: &str, n: u32) -> Release {
                     title: format!("Song {p}"),
                     recording_id: format!("rec-{id}-{p}"),
                     length_ms: None,
+                    ..Default::default()
                 })
                 .collect(),
         }],
+        ..Default::default()
     }
 }
 

@@ -872,6 +872,28 @@ fn place(
             params![track, mb.to_lowercase()],
         )?;
     }
+    // Issue #153: the other IDs a copy will carry. ISRCs and barcodes keep their case.
+    if let Some(mb) = &tg.mb_track {
+        tx.execute("DELETE FROM external_id WHERE item_id = ?1 AND provider = 'musicbrainz' AND kind = 'track'", [track])?;
+        tx.execute(
+            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'musicbrainz', 'track', ?2)",
+            params![track, mb.to_lowercase()],
+        )?;
+    }
+    for isrc in &tg.isrc {
+        tx.execute(
+            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'musicbrainz', 'isrc', ?2)",
+            params![track, isrc.trim().to_uppercase()],
+        )?;
+    }
+    if let Some(b) = &tg.barcode {
+        tx.execute(
+            "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value)
+             SELECT ?1, 'musicbrainz', 'barcode', ?2
+             WHERE NOT EXISTS (SELECT 1 FROM external_id WHERE item_id = ?1 AND provider = 'musicbrainz' AND kind = 'barcode')",
+            params![album, b.trim()],
+        )?;
+    }
     let a = &tg.audio;
     tx.execute(
         "INSERT OR REPLACE INTO file_audio(file_id, codec, sample_rate, bit_depth, channels, lossless, bitrate, duration_ms)
