@@ -2927,52 +2927,52 @@
 <context>
     <name>LibrarySettings</name>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="31"/>
+        <location filename="../qml/LibrarySettings.qml" line="34"/>
         <source>Movies</source>
         <translation>Filme</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="31"/>
+        <location filename="../qml/LibrarySettings.qml" line="34"/>
         <source>TV Shows</source>
         <translation>Serien</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="32"/>
+        <location filename="../qml/LibrarySettings.qml" line="35"/>
         <source>Music</source>
         <translation>Musik</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="32"/>
+        <location filename="../qml/LibrarySettings.qml" line="35"/>
         <source>Audiobooks</source>
         <translation>Hörbücher</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="56"/>
+        <location filename="../qml/LibrarySettings.qml" line="59"/>
         <source>Offline</source>
         <translation>Offline</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="56"/>
+        <location filename="../qml/LibrarySettings.qml" line="59"/>
         <source>Reachable</source>
         <translation>Erreichbar</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="149"/>
+        <location filename="../qml/LibrarySettings.qml" line="152"/>
         <source>Where your library lives</source>
         <translation>Wo deine Bibliothek liegt</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="154"/>
+        <location filename="../qml/LibrarySettings.qml" line="157"/>
         <source>Your library holds your own copies, named and tagged. Huehuecoyotl writes only in this folder; your other folders and shares stay as they are.</source>
         <translation>Deine Bibliothek enthält deine eigenen Kopien, benannt und getaggt. Huehuecoyotl schreibt nur in diesen Ordner; deine anderen Ordner und Freigaben bleiben, wie sie sind.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="161"/>
+        <location filename="../qml/LibrarySettings.qml" line="164"/>
         <source>No library folder yet.</source>
         <translation>Noch kein Bibliotheksordner.</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/LibrarySettings.qml" line="163"/>
+        <location filename="../qml/LibrarySettings.qml" line="166"/>
         <source>%n copies</source>
         <translation>
             <numerusform>%n Kopie</numerusform>
@@ -2980,17 +2980,17 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="164"/>
+        <location filename="../qml/LibrarySettings.qml" line="167"/>
         <source>%1 free</source>
         <translation>%1 frei</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="174"/>
+        <location filename="../qml/LibrarySettings.qml" line="177"/>
         <source>The move is paused and continues when the place is back: %1</source>
         <translation>Der Umzug pausiert und geht weiter, sobald der Ort wieder da ist: %1</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/LibrarySettings.qml" line="175"/>
+        <location filename="../qml/LibrarySettings.qml" line="178"/>
         <source>Moving your library: %n copies to go. They keep playing.</source>
         <translation>
             <numerusform>Deine Bibliothek zieht um: noch %n Kopie. Sie bleibt abspielbar.</numerusform>
@@ -2998,125 +2998,140 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="184"/>
+        <location filename="../qml/LibrarySettings.qml" line="187"/>
         <source>This computer</source>
         <translation>Dieser Computer</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="185"/>
+        <location filename="../qml/LibrarySettings.qml" line="188"/>
         <source>Fast and always there. Other devices see it only if you share the folder yourself.</source>
         <translation>Schnell und immer da. Andere Geräte sehen sie nur, wenn du den Ordner selbst freigibst.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="192"/>
+        <location filename="../qml/LibrarySettings.qml" line="195"/>
         <source>A network share</source>
         <translation>Eine Netzwerkfreigabe</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="193"/>
+        <location filename="../qml/LibrarySettings.qml" line="196"/>
         <source>One library on your NAS. Needs a share you may write to.</source>
         <translation>Eine Bibliothek auf deinem NAS. Du brauchst eine Freigabe, auf die du schreiben darfst.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="202"/>
+        <location filename="../qml/LibrarySettings.qml" line="205"/>
         <source>Your shares</source>
         <translation>Deine Freigaben</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="208"/>
+        <location filename="../qml/LibrarySettings.qml" line="211"/>
         <source>No network share has been added yet.</source>
         <translation>Es wurde noch keine Netzwerkfreigabe hinzugefügt.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="224"/>
+        <location filename="../qml/LibrarySettings.qml" line="227"/>
         <source>Add network share…</source>
         <translation>Netzwerkfreigabe hinzufügen…</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="235"/>
+        <location filename="../qml/LibrarySettings.qml" line="238"/>
         <source>What goes in</source>
         <translation>Was hineinkommt</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="252"/>
+        <location filename="../qml/LibrarySettings.qml" line="255"/>
         <source>Use the library for this type</source>
         <translation>Bibliothek für diesen Typ verwenden</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="263"/>
+        <location filename="../qml/LibrarySettings.qml" line="266"/>
         <source>Manual import</source>
         <translation>Manueller Import</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="264"/>
+        <location filename="../qml/LibrarySettings.qml" line="267"/>
         <source>Everything plays from where it is. Add to Library copies what you choose, named and tagged.</source>
         <translation>Alles wird von dort abgespielt, wo es liegt. „Zur Bibliothek hinzufügen“ kopiert, was du auswählst, benannt und getaggt.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="271"/>
+        <location filename="../qml/LibrarySettings.qml" line="274"/>
         <source>Automatically import</source>
         <translation>Automatisch importieren</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="272"/>
+        <location filename="../qml/LibrarySettings.qml" line="275"/>
         <source>New items in the folders you watch are copied here once they are matched. Unsure ones wait for you.</source>
         <translation>Neues aus den beobachteten Ordnern wird hierher kopiert, sobald es zugeordnet ist. Unsichere Fälle warten auf dich.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="280"/>
+        <location filename="../qml/LibrarySettings.qml" line="286"/>
+        <source>Watch these folders</source>
+        <translation>Diese Ordner beobachten</translation>
+    </message>
+    <message>
+        <location filename="../qml/LibrarySettings.qml" line="292"/>
+        <source>No folder of this type yet. Add one under Sources.</source>
+        <translation>Noch kein Ordner dieses Typs. Füge einen unter Quellen hinzu.</translation>
+    </message>
+    <message>
+        <location filename="../qml/LibrarySettings.qml" line="314"/>
+        <source>What is in a folder when you start watching it stays where it is. Only what is new from then on is imported.</source>
+        <translation>Was beim Start der Beobachtung schon im Ordner liegt, bleibt, wo es ist. Importiert wird nur, was danach neu dazukommt.</translation>
+    </message>
+    <message>
+        <location filename="../qml/LibrarySettings.qml" line="320"/>
         <source>Write the matched tags and IDs into the copies</source>
         <translation>Zugeordnete Tags und IDs in die Kopien schreiben</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="288"/>
+        <location filename="../qml/LibrarySettings.qml" line="328"/>
         <source>Keep the original files where they are</source>
         <translation>Originaldateien dort lassen, wo sie sind</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="290"/>
+        <location filename="../qml/LibrarySettings.qml" line="330"/>
         <source>A copy will be named like</source>
         <translation>Eine Kopie heißt zum Beispiel</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="317"/>
+        <location filename="../qml/LibrarySettings.qml" line="357"/>
         <source>Choose a folder on “%1”</source>
         <translation>Ordner auf „%1“ wählen</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="349"/>
-        <location filename="../qml/LibrarySettings.qml" line="350"/>
+        <location filename="../qml/LibrarySettings.qml" line="389"/>
+        <location filename="../qml/LibrarySettings.qml" line="390"/>
         <source>New folder here</source>
         <translation>Neuer Ordner hier</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="357"/>
+        <location filename="../qml/LibrarySettings.qml" line="397"/>
         <source>Create</source>
         <translation>Anlegen</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="365"/>
+        <location filename="../qml/LibrarySettings.qml" line="405"/>
         <source>Up</source>
         <translation>Nach oben</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="366"/>
-        <location filename="../qml/LibrarySettings.qml" line="448"/>
+        <location filename="../qml/LibrarySettings.qml" line="406"/>
+        <location filename="../qml/LibrarySettings.qml" line="488"/>
         <source>Cancel</source>
         <translation>Abbrechen</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="371"/>
-        <location filename="../qml/LibrarySettings.qml" line="454"/>
+        <location filename="../qml/LibrarySettings.qml" line="411"/>
+        <location filename="../qml/LibrarySettings.qml" line="494"/>
         <source>Use this folder</source>
         <translation>Diesen Ordner verwenden</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="397"/>
+        <location filename="../qml/LibrarySettings.qml" line="437"/>
         <source>Use this folder for your library?</source>
         <translation>Diesen Ordner für deine Bibliothek verwenden?</translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/LibrarySettings.qml" line="421"/>
+        <location filename="../qml/LibrarySettings.qml" line="461"/>
         <source>Your library has %n copies (%1) in %2</source>
         <translation>
             <numerusform>Deine Bibliothek hat %n Kopie (%1) in %2</numerusform>
@@ -3124,102 +3139,102 @@
         </translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="426"/>
+        <location filename="../qml/LibrarySettings.qml" line="466"/>
         <source>Move them there (recommended)</source>
         <translation>Dorthin verschieben (empfohlen)</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="427"/>
+        <location filename="../qml/LibrarySettings.qml" line="467"/>
         <source>One by one: each copy is written there, checked, and only then removed here. They keep playing during the move. If the place goes away, the move pauses and continues later.</source>
         <translation>Eine nach der anderen: Jede Kopie wird dort geschrieben, geprüft und erst dann hier entfernt. Sie bleiben während des Umzugs abspielbar. Ist der Ort weg, pausiert der Umzug und geht später weiter.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="436"/>
+        <location filename="../qml/LibrarySettings.qml" line="476"/>
         <source>Start empty there</source>
         <translation>Dort leer beginnen</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="437"/>
+        <location filename="../qml/LibrarySettings.qml" line="477"/>
         <source>New imports go there. The old copies stay where they are and become a normal folder in Sources, so nothing disappears.</source>
         <translation>Neue Importe landen dort. Die alten Kopien bleiben, wo sie sind, und werden ein normaler Ordner unter Quellen, damit nichts verschwindet.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="444"/>
+        <location filename="../qml/LibrarySettings.qml" line="484"/>
         <source>Nothing is deleted without a finished, checked copy.</source>
         <translation>Nichts wird ohne eine fertige, geprüfte Kopie gelöscht.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="454"/>
+        <location filename="../qml/LibrarySettings.qml" line="494"/>
         <source>Move library</source>
         <translation>Bibliothek verschieben</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="464"/>
+        <location filename="../qml/LibrarySettings.qml" line="504"/>
         <source>Reachable now</source>
         <translation>Jetzt erreichbar</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="465"/>
+        <location filename="../qml/LibrarySettings.qml" line="505"/>
         <source>This folder does not exist.</source>
         <translation>Diesen Ordner gibt es nicht.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="466"/>
+        <location filename="../qml/LibrarySettings.qml" line="506"/>
         <source>This is not a folder.</source>
         <translation>Das ist kein Ordner.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="467"/>
+        <location filename="../qml/LibrarySettings.qml" line="507"/>
         <source>Cannot be reached: %1</source>
         <translation>Nicht erreichbar: %1</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="469"/>
+        <location filename="../qml/LibrarySettings.qml" line="509"/>
         <source>Folders can be created, files written, renamed and removed</source>
         <translation>Ordner können angelegt, Dateien geschrieben, umbenannt und entfernt werden</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="470"/>
+        <location filename="../qml/LibrarySettings.qml" line="510"/>
         <source>Read-only: the server does not allow changes here.</source>
         <translation>Schreibgeschützt: Der Server erlaubt hier keine Änderungen.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="471"/>
+        <location filename="../qml/LibrarySettings.qml" line="511"/>
         <source>Writing could not be tested.</source>
         <translation>Schreiben konnte nicht getestet werden.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="472"/>
+        <location filename="../qml/LibrarySettings.qml" line="512"/>
         <source>Writing failed: %1</source>
         <translation>Schreiben fehlgeschlagen: %1</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="474"/>
+        <location filename="../qml/LibrarySettings.qml" line="514"/>
         <source>Not enough free space for your copies (%1 needed).</source>
         <translation>Nicht genug freier Speicher für deine Kopien (%1 nötig).</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="475"/>
+        <location filename="../qml/LibrarySettings.qml" line="515"/>
         <source>This server does not report its free space.</source>
         <translation>Dieser Server meldet seinen freien Speicher nicht.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="476"/>
+        <location filename="../qml/LibrarySettings.qml" line="516"/>
         <source>%1 free, enough for your library</source>
         <translation>%1 frei, genug für deine Bibliothek</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="478"/>
+        <location filename="../qml/LibrarySettings.qml" line="518"/>
         <source>No other library is in this folder</source>
         <translation>In diesem Ordner liegt keine andere Bibliothek</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="479"/>
+        <location filename="../qml/LibrarySettings.qml" line="519"/>
         <source>This already is your library folder.</source>
         <translation>Das ist bereits dein Bibliotheksordner.</translation>
     </message>
     <message>
-        <location filename="../qml/LibrarySettings.qml" line="480"/>
+        <location filename="../qml/LibrarySettings.qml" line="520"/>
         <source>This folder overlaps “%1”, which is already in your sources.</source>
         <translation>Dieser Ordner überschneidet sich mit „%1“, das schon in deinen Quellen ist.</translation>
     </message>

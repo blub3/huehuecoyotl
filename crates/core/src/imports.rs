@@ -327,6 +327,35 @@ async fn write_cover(inner: &Arc<Inner>, scoped: &Scoped, to: &dyn Source, w: &W
     }
 }
 
+/// Issue #156: after a scan or a lookup, new items of the watched folders are imported.
+pub(crate) async fn auto_run(inner: &Arc<Inner>, after_scan: bool) {
+    let result = inner
+        .lib
+        .write(move |c| {
+            if after_scan {
+                imports::retry_automatic(c)?;
+            }
+            let mut plans = Vec::new();
+            for item in imports::auto_candidates(c)? {
+                plans.extend(imports::plan(c, item)?);
+            }
+            // Nothing to copy needs no entry in the list.
+            plans.retain(|p| !p.files.is_empty());
+            let started = !plans.is_empty();
+            imports::start(c, &plans, true)?;
+            Ok(started || after_scan)
+        })
+        .await;
+    match result {
+        Ok(true) => {
+            enqueue(inner).await;
+            inner.mark_changed();
+        }
+        Ok(false) => {}
+        Err(e) => tracing::warn!("automatic import: {e}"),
+    }
+}
+
 /// The persisted job: one file per run. Returns the seconds until the next run, `None` when
 /// nothing is left.
 pub(crate) async fn run(inner: &Arc<Inner>) -> Option<i64> {

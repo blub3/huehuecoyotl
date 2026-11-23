@@ -15,7 +15,13 @@ use huehuecoyotl_library::rusqlite::Connection;
 use huehuecoyotl_vfs::{LocalSource, VPath};
 use serde_json::{Value, json};
 
-const RELEASE: &str = "aaaaaaaa-0000-4000-8000-000000000001";
+/// One release per album title: one release ID is one album (issue #147).
+fn release_of(album: &str) -> String {
+    let n = album
+        .bytes()
+        .fold(7u64, |h, b| h.wrapping_mul(131).wrapping_add(u64::from(b)));
+    format!("aaaaaaaa-0000-4000-8000-{:012x}", n & 0xffff_ffff_ffff)
+}
 
 fn ffmpeg(args: &[&str]) -> bool {
     Command::new("ffmpeg")
@@ -32,7 +38,7 @@ fn track(dir: &Path, n: u32, album: &str, ids: bool) {
         format!("track={n}"),
         format!("album={album}"),
     );
-    let rel = format!("MUSICBRAINZ_ALBUMID={RELEASE}");
+    let rel = format!("MUSICBRAINZ_ALBUMID={}", release_of(album));
     let p = dir.join(format!("0{n}.flac"));
     let src = format!("sine=frequency={}:duration=1", 200 + n * 40);
     let mut a = vec![
@@ -226,7 +232,7 @@ fn an_album_is_copied_named_and_tagged() {
         (t.title.as_deref(), t.album.as_deref()),
         (Some("Song 1"), Some("Sample"))
     );
-    assert_eq!(t.mb_release.as_deref(), Some(RELEASE));
+    assert_eq!(t.mb_release, Some(release_of("Sample")));
     assert_eq!(
         std::fs::read(music.join("in/01.flac")).unwrap(),
         before,
@@ -454,7 +460,7 @@ fn a_movie_gets_its_nfo_and_a_book_stays_one_book() {
 fn quality_copy(dir: &Path, album: &str) {
     std::fs::create_dir_all(dir).unwrap();
     let (tr, al) = ("track=1".to_string(), format!("album={album}"));
-    let rel = format!("MUSICBRAINZ_ALBUMID={RELEASE}");
+    let rel = format!("MUSICBRAINZ_ALBUMID={}", release_of(album));
     let p = dir.join("01.flac");
     assert!(ffmpeg(&[
         "-f",
@@ -754,4 +760,93 @@ fn walk(dir: &Path) -> Vec<PathBuf> {
         }
     }
     out
+}
+
+#[test]
+fn watched_folders_import_what_is_new() {
+    let d = tempfile::tempdir().unwrap();
+    let (watched, other, lib) = (
+        d.path().join("watched"),
+        d.path().join("other"),
+        d.path().join("lib"),
+    );
+    std::fs::create_dir_all(&lib).unwrap();
+    track(&watched.join("old"), 1, "Before", true);
+    track(&other.join("x"), 1, "Elsewhere", true);
+    let a = App::new(&d.path().join("data"));
+    a.library(&lib);
+    let w = a.add(&watched, "music", 1);
+    let o = a.add(&other, "music", 1);
+    a.call(
+        "setType",
+        json!({ "type": "music", "changes": { "import": "auto", "watch": [w] } }),
+    )
+    .unwrap();
+    let files = |n: &str| lib.join(format!("Music/Test Band/{n} (2001)/01 - Song 1.flac"));
+    std::thread::sleep(Duration::from_millis(20));
+
+    // A new album in the watched folder is imported after the scan; one elsewhere is not.
+    track(&watched.join("new"), 1, "Fresh", true);
+    track(&other.join("y"), 1, "Outside", true);
+    a.core.rescan(o);
+    a.core.rescan(w);
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while !files("Fresh").is_file() {
+        assert!(
+            Instant::now() < deadline,
+            "{}",
+            a.call("imports", json!({})).unwrap()
+        );
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    let l = a.finish(20);
+    assert_eq!(a.job(&l, "Fresh")["automatic"], true);
+    assert!(!files("Before").exists(), "what was there before stays");
+    assert!(!files("Outside").exists(), "another folder is not watched");
+
+    // Without a match it waits for the user.
+    track(&watched.join("unsure"), 1, "Unsure", false);
+    a.core.rescan(w);
+    let deadline = Instant::now() + Duration::from_secs(30);
+    loop {
+        let l = a.call("imports", json!({})).unwrap();
+        if l["jobs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|j| j["title"] == "Unsure")
+        {
+            assert_eq!(a.job(&l, "Unsure")["state"], "review", "{l}");
+            break;
+        }
+        assert!(Instant::now() < deadline, "{l}");
+        std::thread::sleep(Duration::from_millis(100));
+    }
+
+    // Turned off: nothing more.
+    a.call(
+        "setType",
+        json!({ "type": "music", "changes": { "import": "manual" } }),
+    )
+    .unwrap();
+    track(&watched.join("later"), 1, "Later", true);
+    a.core.rescan(w);
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while a
+        .db()
+        .query_row("SELECT count(*) FROM item WHERE title = 'Later'", [], |r| {
+            r.get::<_, i64>(0)
+        })
+        .unwrap()
+        == 0
+    {
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    std::thread::sleep(Duration::from_secs(1));
+    assert!(!files("Later").exists());
+    assert!(
+        watched.join("new/01.flac").is_file(),
+        "nothing leaves the source"
+    );
 }

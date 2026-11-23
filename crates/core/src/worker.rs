@@ -194,6 +194,21 @@ async fn run(inner: &Arc<Inner>, kind: &str, payload: &str) -> Outcome {
         // Issue #148: newly matched artists get MusicBrainz's spelling.
         crate::music_matching::enqueue_artist_names(inner).await;
     }
+    // Issue #156: what a scan found, or a lookup just matched, may be due for the library.
+    if res.is_ok()
+        && matches!(
+            kind,
+            "scan"
+                | "match"
+                | "music_match"
+                | "rematch_video"
+                | "rematch_music"
+                | "rematch_book"
+                | "book_match"
+        )
+    {
+        crate::imports::auto_run(inner, kind == "scan").await;
+    }
     match res {
         Ok(()) => Outcome::Done,
         Err(e) => Outcome::Retry(e, None),

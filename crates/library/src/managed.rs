@@ -161,6 +161,8 @@ pub fn type_settings(c: &Connection) -> Result<Value> {
                 "import": if s["import"] == "auto" { "auto" } else { "manual" },
                 "watch": s["watch"].as_array().cloned().unwrap_or_default(),
                 "writeTags": s["writeTags"].as_bool().unwrap_or(true),
+                // Issue #156: since when each watched folder counts its items as new (ms).
+                "since": s["since"].as_object().cloned().unwrap_or_default(),
             }),
         );
     }
@@ -171,13 +173,70 @@ pub fn type_settings(c: &Connection) -> Result<Value> {
 pub fn set_type(c: &Connection, key: &str, changes: &Value) -> Result<()> {
     let mut all = type_settings(c)?;
     if let (Some(t), Some(ch)) = (all.get_mut(key), changes.as_object()) {
+        let was_auto = t["import"] == "auto" && t["enabled"] != false;
         for f in ["enabled", "import", "watch", "writeTags"] {
             if let Some(v) = ch.get(f) {
                 t[f] = v.clone();
             }
         }
+        // Issue #156: what is already in a folder when it starts being watched is not "new".
+        let auto = t["import"] == "auto" && t["enabled"] != false;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_millis() as i64);
+        let watched: Vec<String> = t["watch"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(Value::as_i64)
+                    .map(|i| i.to_string())
+                    .collect()
+            })
+            .unwrap_or_default();
+        let old = t["since"].as_object().cloned().unwrap_or_default();
+        let mut since = serde_json::Map::new();
+        for w in watched {
+            let keep = was_auto && auto;
+            let at = old.get(&w).filter(|_| keep).cloned().unwrap_or(json!(now));
+            since.insert(w, at);
+        }
+        t["since"] = Value::Object(since);
     }
     copies::set_setting(c, TYPES_SETTING, Some(&all.to_string()))
+}
+
+/// Issue #156: (type, watched source, new since) of the types set to import automatically.
+pub fn watched(c: &Connection) -> Result<Vec<(String, i64, i64)>> {
+    let all = type_settings(c)?;
+    let mut out = Vec::new();
+    for (key, ..) in TYPES {
+        let t = &all[key];
+        if t["import"] != "auto" || t["enabled"] == false {
+            continue;
+        }
+        for w in t["watch"].as_array().into_iter().flatten() {
+            if let Some(id) = w.as_i64() {
+                let since = t["since"][id.to_string()].as_i64().unwrap_or(i64::MAX);
+                out.push((key.to_string(), id, since));
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// The folders a type can watch: the user's sources of its content, not the library's own.
+pub fn watchable(c: &Connection) -> Result<Vec<Value>> {
+    let mut st = c.prepare(
+        "SELECT id, name, content, coalesce(root, '') FROM source
+         WHERE root IS NOT NULL AND managed IS NULL AND moving_to IS NULL ORDER BY name",
+    )?;
+    let rows = st.query_map([], |r| {
+        Ok(
+            json!({ "id": r.get::<_, i64>(0)?, "name": r.get::<_, String>(1)?,
+                   "content": r.get::<_, String>(2)?, "root": r.get::<_, String>(3)? }),
+        )
+    })?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
 // ---- moving the copies ----------------------------------------------------------------------

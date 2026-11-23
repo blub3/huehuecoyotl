@@ -1193,3 +1193,68 @@ pub fn drop_copy(c: &Connection, file: i64) -> Result<()> {
     }
     Ok(())
 }
+
+// ---- automatic import (issue #156) ----------------------------------------------------------
+
+fn fits_type(kind: &str, item_kind: &str) -> bool {
+    match kind {
+        "movies" => matches!(item_kind, "movie" | "video"),
+        "shows" => item_kind == "show",
+        "music" => item_kind == "album",
+        "audiobooks" => item_kind == "audiobook",
+        _ => false,
+    }
+}
+
+/// New items of the watched folders that are ready: matched, or with no lookup left to wait for
+/// (those go to review). Anything that already had an import is left alone.
+pub fn auto_candidates(c: &Connection) -> Result<Vec<i64>> {
+    let mut out = BTreeSet::new();
+    for (kind, source, since) in crate::managed::watched(c)? {
+        for item in items_of_source(c, source)? {
+            let row: Option<(String, Option<i64>, Option<String>)> = c
+                .query_row(
+                    "SELECT kind, added_at, match_state FROM item WHERE id = ?1",
+                    [item],
+                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                )
+                .optional()?;
+            let Some((item_kind, added, state)) = row else {
+                continue;
+            };
+            if !fits_type(&kind, &item_kind) || added.unwrap_or(0) < since {
+                continue;
+            }
+            let had_job: bool = c.query_row(
+                "SELECT EXISTS (SELECT 1 FROM import_job WHERE item_id = ?1)",
+                [item],
+                |r| r.get(0),
+            )?;
+            if had_job {
+                continue;
+            }
+            // A lookup is still on its way: the item waits for it, not for the user.
+            let looking: bool = c.query_row(
+                "SELECT EXISTS (SELECT 1 FROM job WHERE state IN ('queued', 'running')
+                   AND json_extract(payload_json, '$.item_id') = ?1)",
+                [item],
+                |r| r.get(0),
+            )?;
+            if state.as_deref() != Some("matched") && looking {
+                continue;
+            }
+            out.insert(item);
+        }
+    }
+    Ok(out.into_iter().collect())
+}
+
+/// A failed automatic import tries again with the next scan.
+pub fn retry_automatic(c: &Connection) -> Result<()> {
+    c.execute(
+        "UPDATE import_job SET state = 'queued', note = '', updated_at = ?1
+         WHERE automatic = 1 AND state = 'failed'",
+        [now()],
+    )?;
+    Ok(())
+}

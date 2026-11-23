@@ -27,6 +27,9 @@ ColumnLayout {
     property var target: null
     property var pending: ({ status: 0, check: 0, apply: 0, set: 0, browse: 0, create: 0 })
     readonly property var type: status.types ? (status.types[kind] || {}) : {}
+    // Issue #156: the user's folders that hold this type.
+    readonly property var watchable: (status.watchable || []).filter(f =>
+        f.content === (kind === "music" ? "music" : kind === "audiobooks" ? "audiobooks" : "video"))
     readonly property var kinds: [
         { key: "movies", label: qsTr("Movies") }, { key: "shows", label: qsTr("TV Shows") },
         { key: "music", label: qsTr("Music") }, { key: "audiobooks", label: qsTr("Audiobooks") }
@@ -272,6 +275,43 @@ ColumnLayout {
             body: qsTr("New items in the folders you watch are copied here once they are matched. Unsure ones wait for you.")
             selected: root.type["import"] === "auto"
             onClicked: root.setType({ "import": "auto" })
+        }
+    }
+    // Issue #156: the folders this type watches.
+    ColumnLayout {
+        objectName: "watchBox"
+        visible: root.type["import"] === "auto" && root.type.enabled !== false
+        Layout.fillWidth: true
+        spacing: 2
+        Label { text: qsTr("Watch these folders"); color: Theme.text; font.bold: true }
+        Label {
+            visible: root.watchable.length === 0
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            color: Theme.textDim
+            text: qsTr("No folder of this type yet. Add one under Sources.")
+        }
+        Repeater {
+            model: root.watchable
+            Tick {
+                required property var modelData
+                required property int index
+                objectName: "watch" + index
+                text: modelData.name + "  ·  " + (modelData.root || "/")
+                checked: (root.type.watch || []).indexOf(modelData.id) >= 0
+                onToggled: {
+                    const now = (root.type.watch || []).filter(x => x !== modelData.id)
+                    if (checked) now.push(modelData.id)
+                    root.setType({ watch: now })
+                }
+            }
+        }
+        Label {
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            color: Theme.textDim
+            font.pixelSize: Theme.fontSmall
+            text: qsTr("What is in a folder when you start watching it stays where it is. Only what is new from then on is imported.")
         }
     }
     Tick {
