@@ -21,7 +21,8 @@ Apache License 2.0; see assets/logo/LICENSE.
 The media probe's generated FFmpeg types (crates/probe/src/ffi_types*.rs) derive from FFmpeg's
 headers and are licensed under the LGPL 2.1 or later; see docs/PROVENANCE.md.
 
-This product uses the TMDB API but is not endorsed or certified by TMDB.
+This product uses the TMDB API but is not endorsed or certified by TMDB. The TMDB logo
+(assets/tmdb) belongs to TMDB and is not covered by the Apache License 2.0.
 
 Music information (2.0) comes from MusicBrainz (https://musicbrainz.org). Only its core data
 is used: artists, releases, release groups, recordings and their identifiers, released under
