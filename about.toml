@@ -8,3 +8,53 @@ accepted = [
 targets = ["x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
 ignore-build-dependencies = true
 ignore-dev-dependencies = true
+
+# Issue #163: the smb-rs crates are MIT but carry no licence file; their notice is the one in the
+# upstream repository at the commit each crate was published from.
+[smb.clarify]
+license = "MIT"
+[[smb.clarify.git]]
+path = "LICENSE.md"
+checksum = "b1ae904b7ae199a3cce5c5b8ca5b3fa323b98c51ac4d30e40775af11e9967788"
+
+[smb-dtyp.clarify]
+license = "MIT"
+[[smb-dtyp.clarify.git]]
+path = "LICENSE.md"
+checksum = "b1ae904b7ae199a3cce5c5b8ca5b3fa323b98c51ac4d30e40775af11e9967788"
+
+[smb-dtyp-derive.clarify]
+license = "MIT"
+[[smb-dtyp-derive.clarify.git]]
+path = "LICENSE.md"
+checksum = "b1ae904b7ae199a3cce5c5b8ca5b3fa323b98c51ac4d30e40775af11e9967788"
+
+[smb-fscc.clarify]
+license = "MIT"
+[[smb-fscc.clarify.git]]
+path = "LICENSE.md"
+checksum = "b1ae904b7ae199a3cce5c5b8ca5b3fa323b98c51ac4d30e40775af11e9967788"
+
+[smb-msg.clarify]
+license = "MIT"
+[[smb-msg.clarify.git]]
+path = "LICENSE.md"
+checksum = "b1ae904b7ae199a3cce5c5b8ca5b3fa323b98c51ac4d30e40775af11e9967788"
+
+[smb-msg-derive.clarify]
+license = "MIT"
+[[smb-msg-derive.clarify.git]]
+path = "LICENSE.md"
+checksum = "b1ae904b7ae199a3cce5c5b8ca5b3fa323b98c51ac4d30e40775af11e9967788"
+
+[smb-rpc.clarify]
+license = "MIT"
+[[smb-rpc.clarify.git]]
+path = "LICENSE.md"
+checksum = "b1ae904b7ae199a3cce5c5b8ca5b3fa323b98c51ac4d30e40775af11e9967788"
+
+[smb-transport.clarify]
+license = "MIT"
+[[smb-transport.clarify.git]]
+path = "LICENSE.md"
+checksum = "b1ae904b7ae199a3cce5c5b8ca5b3fa323b98c51ac4d30e40775af11e9967788"
