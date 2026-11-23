@@ -8,6 +8,7 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 - Names for library copies (#152, part of 3.0): movies, shows, music and audiobooks get consistent folder and file names from their matched metadata, with IDs, disc numbers and track artists where they belong. Settings → Library shows an example.
 - Metadata for library copies (#153, part of 3.0): every MusicBrainz ID, ISRC and barcode is stored and can be written into a copy's tags (FLAC, Ogg, Opus, MP3, M4A, M4B), keeping ReplayGain and audiobook chapters. Movies and episodes get an `.nfo` beside the file.
 - Add to Library (#154, part of 3.0): copy a song, album, artist, movie, show or book into your library, named and tagged, with a preview first. The originals stay where they are. Imports under Downloads shows progress and what waits for you; importing something again copies nothing, and an unsure match or an occupied folder waits instead of being guessed or overwritten. Schema 18.
+- Review of imports (#155, part of 3.0): an unsure match waits for your choice, or imports with its own names. The same album or film in another quality can become another version, replace the library's copy (the old files go to a `.trash` folder in the library) or be left out. A folder holding other files is never written into.
 
 ## 2.9.2 – 2026-11-23 (Linux)
 

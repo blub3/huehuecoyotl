@@ -4,7 +4,7 @@
 <context>
     <name>AddToLibrarySheet</name>
     <message numerus="yes">
-        <location filename="../qml/AddToLibrarySheet.qml" line="77"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="79"/>
         <source>%n item(s)</source>
         <translation>
             <numerusform>%n item</numerusform>
@@ -12,7 +12,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AddToLibrarySheet.qml" line="94"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="108"/>
         <source>%n item(s) are not surely matched or are already in your library. They wait under Imports → To review, and nothing is guessed.</source>
         <translation>
             <numerusform>%n item is not surely matched or is already in your library. It waits under Imports → To review, and nothing is guessed.</numerusform>
@@ -20,7 +20,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AddToLibrarySheet.qml" line="166"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="180"/>
         <source>… %n more</source>
         <translation>
             <numerusform>… %n more</numerusform>
@@ -28,7 +28,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/AddToLibrarySheet.qml" line="205"/>
+        <location filename="../qml/AddToLibrarySheet.qml" line="219"/>
         <source>Add %n file(s) to Library</source>
         <translation>
             <numerusform>Add %n file to Library</numerusform>
@@ -191,6 +191,19 @@
         <translation>
             <numerusform>%n file exists already in %1. Replace it?</numerusform>
             <numerusform>%n files exist already in %1. Replace them?</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>ImportReviewDialog</name>
+    <message numerus="yes">
+        <location filename="../qml/ImportReviewDialog.qml" line="146"/>
+        <location filename="../qml/ImportReviewDialog.qml" line="175"/>
+        <location filename="../qml/ImportReviewDialog.qml" line="182"/>
+        <source>%n file(s)</source>
+        <translation>
+            <numerusform>%n file</numerusform>
+            <numerusform>%n files</numerusform>
         </translation>
     </message>
 </context>

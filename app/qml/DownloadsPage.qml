@@ -46,6 +46,40 @@ FocusScope {
     // Issue #154: saved copies, or imports into the library.
     property string view: "saved"
 
+    // Issue #155: what an import waits for. A match chosen in the matchers plans the job again.
+    property var reviewJob: 0
+    function matched() { if (reviewJob) Core.libraryCall("importReplan", { job: reviewJob }); reviewJob = 0 }
+    ImportReviewDialog {
+        id: importReview
+        backend: Core
+        onResolved: importsPanel.load()
+        onFindMatch: (i) => {
+            page.reviewJob = i.job
+            if (i.type === "music") reviewMusic.search(i.item, "album", i.title, i.artist, importsPanel)
+            else if (i.type === "audiobooks") reviewBook.search(i.item, "audiobook", i.title, i.artist, importsPanel)
+            else reviewVideo.openFor(i.item, i.title, i.year, i.itemKind)
+        }
+    }
+    MusicMatch {
+        id: reviewMusic
+        backend: Core
+        onNotice: (text) => (page.Window.window as Main).showError(text)
+        onSettingsRequested: (tab) => Nav.settings(tab)
+        onChanged: page.matched()
+    }
+    BookMatch {
+        id: reviewBook
+        backend: Core
+        onNotice: (text) => (page.Window.window as Main).showError(text)
+        onSettingsRequested: (tab) => Nav.settings(tab)
+        onChanged: page.matched()
+    }
+    FixMatchDialog {
+        id: reviewVideo
+        backend: Core
+        onChosen: page.matched()
+    }
+
     Timer { id: settle; interval: 300; onTriggered: page.reload() }
 
     Connections {
@@ -117,6 +151,7 @@ FocusScope {
             backend: Core
             onLeaveUp: importsTab.forceActiveFocus()
             onLeaveLeft: Nav.focusRail()
+            onReviewRequested: (job) => importReview.show(job, importsPanel)
         }
         Label {
             visible: page.view === "saved"

@@ -227,12 +227,11 @@ fn plan_album(c: &Connection, album: i64, only: Option<i64>) -> Result<Option<Pl
         (set.len() as i64).max(disc_total)
     };
     let mut files = Vec::new();
+    let mut held = Vec::new();
     let mut already = 0;
     for (t, file) in &tracks {
-        if is_managed_file(c, *t)? {
-            already += 1;
-            continue;
-        }
+        let in_library = is_managed_file(c, *t)?;
+        already += usize::from(in_library);
         let (name, disc, no): (String, Option<u32>, Option<u32>) = c.query_row(
             "SELECT coalesce(title, ''), season_no, episode_no FROM item WHERE id = ?1",
             [t],
@@ -253,12 +252,17 @@ fn plan_album(c: &Connection, album: i64, only: Option<i64>) -> Result<Option<Pl
             compilation,
             ext: ext(&p),
         });
-        files.push(PlanFile {
+        let f = PlanFile {
             file: *file,
             item: *t,
             dest: format!("{folder_rel}/{tf}"),
             size,
-        });
+        };
+        if in_library {
+            held.push(f);
+        } else {
+            files.push(f);
+        }
     }
     // Every track is there: the same quality is done, another one is the user's call.
     let mut review = None;
@@ -267,20 +271,7 @@ fn plan_album(c: &Connection, album: i64, only: Option<i64>) -> Result<Option<Pl
             && quality(c, l)? != quality(c, version)?
         {
             review = Some("clash".to_string());
-            for (t, file) in &tracks {
-                let p = path_of(c, *file)?;
-                let size: i64 = c.query_row(
-                    "SELECT coalesce(size, 0) FROM file WHERE id = ?1",
-                    [file],
-                    |r| r.get(0),
-                )?;
-                files.push(PlanFile {
-                    file: *file,
-                    item: *t,
-                    dest: p,
-                    size,
-                });
-            }
+            files = held;
             already = 0;
         }
     } else if state.as_deref() != Some("matched") && release.is_none() {
@@ -384,7 +375,26 @@ fn plan_movie(c: &Connection, item: i64) -> Result<Option<Plan>> {
         |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
     )?;
     let has = is_managed_file(c, item)?;
-    let best = if has { None } else { best_video(c, item)? };
+    let best = best_video(c, item)?;
+    // Issue #155: the film is there, in another quality: the user decides.
+    let other_quality = has
+        && match &best {
+            Some((_, _, _, probe)) => {
+                let lib: Option<String> = c
+                    .query_row(
+                        "SELECT f.probe_json FROM file f JOIN source s ON s.id = f.source_id
+                         WHERE f.item_id = ?1 AND s.managed IS NOT NULL LIMIT 1",
+                        [item],
+                        |r| r.get(0),
+                    )
+                    .optional()?
+                    .flatten();
+                let (a, b) = (video_tech(probe.as_deref()), video_tech(lib.as_deref()));
+                (a.resolution, a.vcodec) != (b.resolution, b.vcodec)
+            }
+            None => false,
+        };
+    let best = if has && !other_quality { None } else { best };
     let mut files = Vec::new();
     let mut folder = String::new();
     if let Some((file, path, size, probe)) = best {
@@ -406,15 +416,18 @@ fn plan_movie(c: &Connection, item: i64) -> Result<Option<Plan>> {
             size,
         });
     }
-    let review =
-        (!files.is_empty() && state.as_deref() != Some("matched")).then(|| "match".to_string());
+    let review = if other_quality {
+        Some("clash".to_string())
+    } else {
+        (!files.is_empty() && state.as_deref() != Some("matched")).then(|| "match".to_string())
+    };
     Ok(Some(Plan {
         item,
         kind: "movies".into(),
         subtitle: year.map(|y| y.to_string()).unwrap_or_default(),
         title,
         folder,
-        already: usize::from(has),
+        already: usize::from(has && !other_quality),
         files,
         review,
         version: 0,
@@ -902,4 +915,281 @@ pub fn list(c: &Connection) -> Result<Value> {
     let waiting = jobs.iter().filter(|j| j["state"] == "review").count();
     let active = jobs.iter().filter(|j| j["state"] == "queued").count();
     Ok(json!({ "jobs": jobs, "waiting": waiting, "active": active }))
+}
+
+// ---- review (issue #155) --------------------------------------------------------------------
+
+fn format_of(c: &Connection, file: i64) -> Result<String> {
+    let audio: Option<(Option<String>, Option<i64>, Option<i64>)> = c
+        .query_row(
+            "SELECT codec, sample_rate, bit_depth FROM file_audio WHERE file_id = ?1",
+            [file],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .optional()?;
+    if let Some((Some(codec), rate, depth)) = audio {
+        let khz = rate.filter(|r| *r > 0).map(|r| {
+            if r % 1000 == 0 {
+                (r / 1000).to_string()
+            } else {
+                format!("{:.1}", r as f64 / 1000.0)
+            }
+        });
+        return Ok(match (depth.filter(|d| *d > 0), khz) {
+            (Some(d), Some(k)) => format!("{} {d}/{k}", codec.to_uppercase()),
+            (_, Some(k)) => format!("{} {k} kHz", codec.to_uppercase()),
+            _ => codec.to_uppercase(),
+        });
+    }
+    let probe: Option<String> = c
+        .query_row("SELECT probe_json FROM file WHERE id = ?1", [file], |r| {
+            r.get(0)
+        })
+        .optional()?
+        .flatten();
+    let t = video_tech(probe.as_deref());
+    Ok([t.resolution.as_str(), t.hdr.as_str(), t.vcodec.as_str()]
+        .iter()
+        .filter(|x| !x.is_empty())
+        .copied()
+        .collect::<Vec<_>>()
+        .join(" "))
+}
+
+/// The label of a second copy's folder: `24-96`, `mp3`, `1080p`.
+fn quality_label(c: &Connection, file: i64) -> Result<String> {
+    let f = format_of(c, file)?;
+    let (codec, rest) = f.split_once(' ').unwrap_or((f.as_str(), ""));
+    Ok(if let Some((d, k)) = rest.split_once('/') {
+        format!("{d}-{k}")
+    } else if rest.ends_with("kHz") {
+        codec.to_lowercase()
+    } else {
+        f.split(' ').next().unwrap_or("").to_string()
+    })
+}
+
+/// (row, source file, item, destination, size)
+type JobFile = (i64, Option<i64>, i64, String, i64);
+
+fn job_files(c: &Connection, job: i64) -> Result<Vec<JobFile>> {
+    let mut st = c.prepare(
+        "SELECT id, file_id, coalesce(item_id, 0), dest, size FROM import_file
+         WHERE job_id = ?1 AND state = 'pending' ORDER BY id",
+    )?;
+    let rows = st.query_map([job], |r| {
+        Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?))
+    })?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+/// The library's copies of a job's items: (file, source, path).
+pub fn library_copies(c: &Connection, job: i64) -> Result<Vec<(i64, i64, String)>> {
+    let mut st = c.prepare(
+        "SELECT DISTINCT f.id, f.source_id, f.path FROM file f JOIN source s ON s.id = f.source_id
+         WHERE s.managed IS NOT NULL AND f.item_id IN (SELECT item_id FROM import_file WHERE job_id = ?1)
+         ORDER BY f.path",
+    )?;
+    let rows = st.query_map([job], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+/// What the review screens show of a waiting import.
+pub fn review_info(c: &Connection, job: i64) -> Result<Value> {
+    let (item, kind, title, review, folder): (Option<i64>, String, String, Option<String>, String) =
+        c.query_row(
+            "SELECT item_id, type, title, review, folder FROM import_job WHERE id = ?1",
+            [job],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+        )?;
+    let files = job_files(c, job)?;
+    let size: i64 = files.iter().map(|f| f.4).sum();
+    let first = files.iter().find_map(|f| f.1);
+    let (format, from) = match first {
+        Some(f) => {
+            let p: String = c.query_row(
+                "SELECT s.name || ' › ' || f.path FROM file f JOIN source s ON s.id = f.source_id WHERE f.id = ?1",
+                [f],
+                |r| r.get(0),
+            )?;
+            (
+                format_of(c, f)?,
+                p.rsplit_once('/').map_or(p.clone(), |(d, _)| d.to_string()),
+            )
+        }
+        None => (String::new(), String::new()),
+    };
+    let held = library_copies(c, job)?;
+    let library = match held.first() {
+        Some((f, _, path)) => json!({
+            "files": held.len(),
+            "format": format_of(c, *f)?,
+            "folder": path.rsplit_once('/').map_or("", |(d, _)| d),
+        }),
+        None => Value::Null,
+    };
+    let label = match first {
+        Some(f) => quality_label(c, f)?,
+        None => String::new(),
+    };
+    let (item_kind, year, artist): (Option<String>, Option<i64>, String) = match item {
+        Some(i) => {
+            let (k, y) = c
+                .query_row("SELECT kind, year FROM item WHERE id = ?1", [i], |r| {
+                    Ok((r.get(0)?, r.get(1)?))
+                })
+                .optional()?
+                .unwrap_or((String::new(), None));
+            (Some(k), y, first_credit(c, i, "album_artist")?)
+        }
+        None => (None, None, String::new()),
+    };
+    Ok(json!({
+        "job": job, "item": item, "itemKind": item_kind, "type": kind, "title": title, "year": year,
+        "artist": artist, "review": review, "folder": folder, "files": files.len(), "size": size,
+        "format": format, "from": from, "library": library, "label": label,
+    }))
+}
+
+/// A waiting job's plan again, after a match changed: its files, or what the match now says.
+pub fn replan(c: &mut Connection, job: i64) -> Result<()> {
+    let (item, state): (Option<i64>, String) = c.query_row(
+        "SELECT item_id, state FROM import_job WHERE id = ?1",
+        [job],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    let Some(item) = item else { return Ok(()) };
+    if state != "review" {
+        return Ok(());
+    }
+    let wanted: BTreeSet<i64> = job_files(c, job)?.into_iter().map(|f| f.2).collect();
+    let Some(mut p) = plan(c, item)?.into_iter().find(|p| p.item == item) else {
+        return Ok(());
+    };
+    p.files.retain(|f| wanted.contains(&f.item));
+    let tx = c.transaction()?;
+    tx.execute(
+        "DELETE FROM import_file WHERE job_id = ?1 AND state = 'pending'",
+        [job],
+    )?;
+    for f in &p.files {
+        tx.execute(
+            "INSERT OR IGNORE INTO import_file(job_id, file_id, item_id, dest, size) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![job, f.file, f.item, f.dest, f.size],
+        )?;
+    }
+    let (st, note) = if p.files.is_empty() {
+        ("done", "already")
+    } else if p.review.is_some() {
+        ("review", "")
+    } else {
+        ("queued", "")
+    };
+    tx.execute(
+        "UPDATE import_job SET state = ?2, review = ?3, note = ?4, title = ?5, folder = ?6, version_id = ?7, updated_at = ?8 WHERE id = ?1",
+        params![job, st, p.review.as_deref().filter(|_| st == "review"), note, p.title, p.folder, p.version, now()],
+    )?;
+    tx.commit()?;
+    Ok(())
+}
+
+fn any_in_folder(c: &Connection, kind: &str, rel: &str) -> Result<bool> {
+    Ok(c.query_row(
+        "SELECT EXISTS (SELECT 1 FROM file f JOIN source s ON s.id = f.source_id
+           WHERE s.managed = ?1 AND substr(f.path, 1, length(?2) + 1) = ?2 || '/')",
+        params![kind, rel],
+        |r| r.get(0),
+    )?)
+}
+
+/// Move a job's pending files into `{folder} [label]`, numbered when that is taken too.
+fn relabel(c: &Connection, job: i64, label: &str) -> Result<()> {
+    let (kind, folder): (String, String) = c.query_row(
+        "SELECT type, folder FROM import_job WHERE id = ?1",
+        [job],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    let clean = naming::clean(label);
+    let mut target = format!("{folder} [{clean}]");
+    let mut n = 2;
+    while any_in_folder(c, &kind, &target)? {
+        target = format!("{folder} [{clean} {n}]");
+        n += 1;
+    }
+    for (row, _, _, dest, _) in job_files(c, job)? {
+        let rest = dest
+            .strip_prefix(&format!("{folder}/"))
+            .unwrap_or(&dest)
+            .to_string();
+        c.execute(
+            "UPDATE import_file SET dest = ?2 WHERE id = ?1",
+            params![row, format!("{target}/{rest}")],
+        )?;
+    }
+    c.execute(
+        "UPDATE import_job SET folder = ?2 WHERE id = ?1",
+        params![job, target],
+    )?;
+    Ok(())
+}
+
+/// The user's answer to a waiting import, without the file work of `replace` (done by the core
+/// before it calls this). `choice`: asIs, version, rename (with `label`), replace or keep.
+pub fn resolve(c: &Connection, job: i64, choice: &str, label: &str) -> Result<()> {
+    match choice {
+        "asIs" | "replace" => set_state(c, job, "queued", None, ""),
+        "keep" => {
+            c.execute(
+                "UPDATE import_file SET state = 'skipped' WHERE job_id = ?1 AND state = 'pending'",
+                [job],
+            )?;
+            set_state(c, job, "done", None, "kept")
+        }
+        "version" | "rename" => {
+            let wanted = if label.trim().is_empty() {
+                match job_files(c, job)?.into_iter().find_map(|f| f.1) {
+                    Some(f) => quality_label(c, f)?,
+                    None => String::new(),
+                }
+            } else {
+                label.trim().to_string()
+            };
+            let wanted = if wanted.is_empty() {
+                "2".to_string()
+            } else {
+                wanted
+            };
+            relabel(c, job, &wanted)?;
+            set_state(c, job, "queued", None, "")
+        }
+        _ => Ok(()),
+    }
+}
+
+/// Other clashes waiting, for "Do the same for the next clashes of this import".
+pub fn other_clashes(c: &Connection, job: i64) -> Result<Vec<i64>> {
+    let mut st = c.prepare(
+        "SELECT id FROM import_job WHERE state = 'review' AND review = 'clash' AND id != ?1 ORDER BY id",
+    )?;
+    let rows = st.query_map([job], |r| r.get(0))?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+/// After `replace` moved a copy away: its row goes, and an album version left empty with it.
+/// The item, its play counts and playlists stay.
+pub fn drop_copy(c: &Connection, file: i64) -> Result<()> {
+    let version: Option<i64> = c
+        .query_row("SELECT version_id FROM file WHERE id = ?1", [file], |r| {
+            r.get(0)
+        })
+        .optional()?
+        .flatten();
+    c.execute("DELETE FROM file WHERE id = ?1", [file])?;
+    if let Some(v) = version {
+        c.execute(
+            "DELETE FROM album_version WHERE id = ?1 AND NOT EXISTS (SELECT 1 FROM file f WHERE f.version_id = ?1)",
+            [v],
+        )?;
+    }
+    Ok(())
 }
