@@ -200,7 +200,7 @@ async fn check(inner: &Arc<Inner>, p: &managed::Place) -> CResult<Value> {
 }
 
 async fn status(inner: &Arc<Inner>) -> CResult<Value> {
-    let (place, (files, bytes), (left, left_bytes), types, list) = inner
+    let (place, (files, bytes), (left, left_bytes), types, list, watchable) = inner
         .lib
         .read(|c| {
             Ok((
@@ -209,6 +209,7 @@ async fn status(inner: &Arc<Inner>) -> CResult<Value> {
                 managed::move_left(c)?,
                 managed::type_settings(c)?,
                 share_db::list(c)?,
+                managed::watchable(c)?,
             ))
         })
         .await?;
@@ -243,6 +244,7 @@ async fn status(inner: &Arc<Inner>) -> CResult<Value> {
         "moveError": error,
         "types": types,
         "shares": shares,
+        "watchable": watchable,
         "examples": {
             "movies": naming::example("movies"),
             "shows": naming::example("shows"),
