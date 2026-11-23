@@ -19,6 +19,11 @@ FocusScope {
     property string tint: ""
     property int idleMs: 5000
     property bool awake: true
+    // Issue #191: the shell's Back bar is in use (pointer on it, focus, its trail): stay awake.
+    property bool held: false
+    onHeldChanged: idle.restart()
+    // The view's ground; the shell's Back bar takes it too, so it fades without an edge.
+    readonly property color ground: tint !== "" ? Qt.darker(tint, 1.25) : "#0b1218"
     readonly property bool queueOpen: queuePanel.visible
     signal leaveRequested()
 
@@ -44,7 +49,7 @@ FocusScope {
         resumeFocus = null
     }
     function sleep() {
-        if (queueOpen || !awake) return
+        if (queueOpen || !awake || held) return
         const w = view.Window.window
         resumeFocus = w && w.activeFocusItem && view.activeFocus ? w.activeFocusItem : null
         awake = false
@@ -96,7 +101,7 @@ FocusScope {
 
     Rectangle {
         anchors.fill: parent
-        color: view.tint !== "" ? Qt.darker(view.tint, 1.25) : "#0b1218"
+        color: view.ground
         Behavior on color { ColorAnimation { duration: 400 } }
     }
 

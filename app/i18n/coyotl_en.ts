@@ -386,7 +386,7 @@
 <context>
     <name>MusicFullScreen</name>
     <message numerus="yes">
-        <location filename="../qml/MusicFullScreen.qml" line="345"/>
+        <location filename="../qml/MusicFullScreen.qml" line="350"/>
         <source>and %n more</source>
         <translation>
             <numerusform>and %n more</numerusform>
@@ -477,7 +477,7 @@
 <context>
     <name>NowPlayingPage</name>
     <message numerus="yes">
-        <location filename="../qml/NowPlayingPage.qml" line="290"/>
+        <location filename="../qml/NowPlayingPage.qml" line="295"/>
         <source>%n channel(s)</source>
         <translation>
             <numerusform>%n channel</numerusform>
@@ -485,7 +485,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/NowPlayingPage.qml" line="557"/>
+        <location filename="../qml/NowPlayingPage.qml" line="562"/>
         <source>%n track(s)</source>
         <translation>
             <numerusform>%n track</numerusform>

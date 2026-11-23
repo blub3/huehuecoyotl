@@ -49,6 +49,7 @@ Button {
     }
     // The trail: this page (dimmed), then the pages below it, nearest first.
     property var trail: []
+    readonly property bool trailOpen: trailPopup.opened
     // Opened by holding Esc or Back: that key's release (and its repeats) must not close it.
     property bool keyHeld: false
     function openTrail(byHold) {

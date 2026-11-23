@@ -37,7 +37,12 @@ FocusScope {
     // Issue #82: the tint and the waveform of the song playing.
     property string tint: ""
     // Issue #134: the strip with the Back button above the page takes the page's colour.
-    readonly property color pageBackground: tint !== "" ? tint : "#142029"
+    readonly property color pageBackground: fullIdleView ? fullIdleView.ground : tint !== "" ? tint : "#142029"
+    // Issue #191: the shell hides its Back bar while the full-screen view is idle.
+    readonly property MusicFullScreen fullIdleView: full ? fullView.item as MusicFullScreen : null
+    readonly property bool fullIdle: fullIdleView !== null && !fullIdleView.awake
+    property bool holdAwake: false
+    function wakeFull() { if (fullIdleView) fullIdleView.wake() }
     property var peaks: []
     property var visualsRequest: 0
     readonly property real peakMax: Math.max(1, ...peaks)
@@ -713,6 +718,7 @@ FocusScope {
         sourceComponent: MusicFullScreen {
             player: Music
             tint: page.tint
+            held: page.holdAwake
             onLeaveRequested: page.toggleFull()
         }
         onLoaded: Qt.callLater(() => { const v = item as MusicFullScreen; if (v) v.focusPlay() })
