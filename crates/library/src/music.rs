@@ -14,15 +14,96 @@ fn now_ms() -> i64 {
 
 /// The `setting` key that turns online music information off ("0"); on by default (v1.9).
 pub const ONLINE_SETTING: &str = "music_online";
+/// Set while a new library waits for the user to choose online or local-only (issue #165).
+const ONLINE_PENDING: &str = "music_online_pending";
 /// An album without a match is tried again after a week, like video.
 const RETRY_AFTER_MS: i64 = 7 * 24 * 3600 * 1000;
 
 pub fn online(c: &Connection) -> Result<bool> {
-    Ok(crate::copies::setting(c, ONLINE_SETTING)?.as_deref() != Some("0"))
+    Ok(
+        crate::copies::setting(c, ONLINE_SETTING)?.as_deref() != Some("0")
+            && crate::copies::setting(c, ONLINE_PENDING)?.is_none(),
+    )
 }
 
+/// The user's choice: it also ends the wait for one (issue #165).
 pub fn set_online(c: &Connection, on: bool) -> Result<()> {
+    crate::copies::set_setting(c, ONLINE_PENDING, None)?;
     crate::copies::set_setting(c, ONLINE_SETTING, Some(if on { "1" } else { "0" }))
+}
+
+/// Issue #165: nothing has been looked up yet and nobody has chosen, so lookups wait for the
+/// user's answer. A library that already has music or audiobooks keeps working as it did.
+pub fn prepare_online_choice(c: &Connection) -> Result<()> {
+    let undecided = crate::copies::setting(c, ONLINE_SETTING)?.is_none();
+    let has_media: bool = c.query_row(
+        "SELECT EXISTS (SELECT 1 FROM source WHERE content IN ('music', 'audiobooks'))",
+        [],
+        |r| r.get(0),
+    )?;
+    if undecided && !has_media {
+        crate::copies::set_setting(c, ONLINE_PENDING, Some("1"))?;
+    }
+    Ok(())
+}
+
+/// Issue #165: the first music or audiobook folder is there and the choice is still open.
+pub fn online_choice_due(c: &Connection) -> Result<bool> {
+    if crate::copies::setting(c, ONLINE_PENDING)?.is_none() {
+        return Ok(false);
+    }
+    Ok(c.query_row(
+        "SELECT EXISTS (SELECT 1 FROM source WHERE content IN ('music', 'audiobooks'))",
+        [],
+        |r| r.get(0),
+    )?)
+}
+
+#[cfg(test)]
+mod online_choice_tests {
+    use super::*;
+
+    fn db() -> Connection {
+        let mut c = Connection::open_in_memory().unwrap();
+        crate::migrate(&mut c).unwrap();
+        c
+    }
+
+    #[test]
+    fn a_new_library_waits_for_the_choice() {
+        let c = db();
+        prepare_online_choice(&c).unwrap();
+        assert!(!online(&c).unwrap());
+        assert!(!online_choice_due(&c).unwrap());
+        c.execute(
+            "INSERT INTO source(id, kind, name, content) VALUES (2, 'local', 'Music', 'music')",
+            [],
+        )
+        .unwrap();
+        assert!(online_choice_due(&c).unwrap());
+        assert!(!online(&c).unwrap());
+        set_online(&c, false).unwrap();
+        assert!(!online_choice_due(&c).unwrap());
+        assert!(!online(&c).unwrap());
+        // The answer stays, also through the next start.
+        prepare_online_choice(&c).unwrap();
+        assert!(!online_choice_due(&c).unwrap());
+        set_online(&c, true).unwrap();
+        assert!(online(&c).unwrap());
+    }
+
+    #[test]
+    fn an_existing_library_is_not_asked() {
+        let c = db();
+        c.execute(
+            "INSERT INTO source(id, kind, name, content) VALUES (2, 'local', 'Books', 'audiobooks')",
+            [],
+        )
+        .unwrap();
+        prepare_online_choice(&c).unwrap();
+        assert!(online(&c).unwrap());
+        assert!(!online_choice_due(&c).unwrap());
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

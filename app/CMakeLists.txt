@@ -76,6 +76,7 @@ qt_add_qml_module(coyotl
     qml/ArtistMergeDialog.qml
     qml/OtherEditions.qml
     qml/CodecNotice.qml
+    qml/OnlineChoiceDialog.qml
     qml/ShareEditor.qml
     qml/ShareEditPage.qml
     qml/ShareFoldersPage.qml

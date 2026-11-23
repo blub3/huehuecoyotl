@@ -2,7 +2,7 @@
 
 Nov 9, 2026 · @Björn Blankenhagen · amended Nov 10, 2026 after the first M0 spike run · amended Nov 11, 2026 for the 1.0 release and for the 1.1 scope
 
-**Changes in v1.19:** 2.9.2, in progress: a notice when a track has no decoder (issue #171, section 10, *Codecs at run time*).
+**Changes in v1.19:** 2.9.2, in progress: a notice when a track has no decoder (issue #171, section 10, *Codecs at run time*); the choice of online lookups or files only before the first request (issue #165, section 7, *Privacy*).
 
 **Changes in v1.18:** 2.9.1 is released for Linux on Nov 22, 2026: artist and album identity (issues #146 to #149), and the Flatpak uses the KDE runtime's FFmpeg with a source bundle for its LGPL libraries (#161, planned for 2.9.2 and merged before this release; section 10): one artist per MusicBrainz artist ID and per name without case and accents, migration 14; the artist's name (MusicBrainz's spelling, the files' or the user's), migration 15; Merge with…; one album per MusicBrainz release, with the release group linking its editions, which replaces the grouping of #63, migration 16 (section 7, *Artist identity*, *Artist names*, *Merge with…*, *One album per release*; section 9, *Other editions*).
 
@@ -488,6 +488,8 @@ ALTER TABLE playstate ADD COLUMN last_played_at INTEGER;
 
 
 *Privacy.* Online lookups send artist and album names (and ids) to third parties. Settings → Metadata has "Music information: from file tags only, or also from MusicBrainz and the Cover Art Archive". With tags only, no request leaves the machine for music; a test asserts that. The default is online (decided in v1.9, section 12): lookups start with the first music folder, and the user guide and the setting say what is sent. The setting is the `setting` key `music_online` ("0" turns it off); turning it on queues the albums never looked up. The attribution sits under Settings → About and in `NOTICE`.
+
+*The first choice (2.9.2, issue #165).* At start-up a library with no music or audiobook source and no stored choice is marked as waiting (`music_online_pending`), and `music::online`, the one gate of every music and book lookup, answers no while it waits. When the first such folder exists, `OnlineChoiceDialog.qml` names what goes to which service and offers online or files only. The scan runs meanwhile from tags and files. Online then queues the lookups; files only stores the setting. Libraries that already have music or audiobooks keep their behaviour and are not asked.
 
 **Audiobook library (2.5)**
 

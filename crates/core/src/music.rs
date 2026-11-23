@@ -425,6 +425,33 @@ impl Core {
         });
     }
 
+    /// Issue #165: at start-up, a library without music or audiobooks waits for the user's
+    /// choice before its first lookup. Answers with the setting in effect.
+    pub fn prepare_online_choice(&self, request_id: u64) {
+        self.spawn(request_id, move |inner| async move {
+            let online = inner
+                .lib
+                .write(|c| {
+                    music::prepare_online_choice(c)?;
+                    music::online(c)
+                })
+                .await?;
+            Ok(Event::MusicOnline { request_id, online })
+        });
+    }
+
+    /// Issue #165: whether to ask now (MusicDetail "onlineChoice").
+    pub fn online_choice(&self, request_id: u64) {
+        self.spawn(request_id, move |inner| async move {
+            let due = inner.lib.read(music::online_choice_due).await?;
+            Ok(Event::MusicDetail {
+                request_id,
+                kind: "onlineChoice".into(),
+                json: serde_json::json!({ "due": due }).to_string(),
+            })
+        });
+    }
+
     /// Turn online music information on or off (Settings → Metadata). Turning it on queues the
     /// albums that were never looked up.
     pub fn set_music_online(&self, request_id: u64, on: bool) {

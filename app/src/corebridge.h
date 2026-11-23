@@ -181,6 +181,8 @@ class CoreBridge : public QObject {
     static qint64 endOfChapter(const QList<qint64> &starts, qint64 duration, qint64 position);
     bool musicOnline() const { return m_musicOnline; }
     void setMusicOnline(bool on);
+    // Issue #165: whether to ask about online lookups now (musicDetailReady "onlineChoice").
+    Q_INVOKABLE quint64 onlineChoice();
 
     // M3: network sources. `spec`: protocol, host, port, share, user, tls, path, name.
     // browseNetwork answers with folderListed (or requestFailed: wrong password, unreachable).

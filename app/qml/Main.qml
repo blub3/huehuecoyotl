@@ -125,4 +125,6 @@ ApplicationWindow {
     Binding { target: Music; property: "preference"; value: Appearance.preferredVersion }
 
     Toast { id: toast }
+    // Issue #165: before the first online lookup.
+    OnlineChoiceDialog { backend: Core }
 }

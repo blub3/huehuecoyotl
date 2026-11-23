@@ -473,8 +473,10 @@ For audiobooks see [Audiobooks](#audiobooks).
   release types, dates and ids, and album covers come from the Cover Art Archive. For
   audiobook folders (from 2.5), titles, authors and ISBNs are sent to Open Library for
   descriptions, years and covers (books tagged with MusicBrainz ids go to MusicBrainz instead).
-  Turn both off under **Settings → Metadata → Music and book information online**;
-  information then comes from your files, their tags and metadata files only, and nothing is
+  When you add your first music or audiobook folder, the app asks whether to use these
+  services or your files only, and sends nothing before you answer. Change it later under
+  **Settings → Metadata → Music and book information online**. Turned off,
+  information comes from your files, their tags and metadata files only, and nothing is
   sent.
 - Optionally, with your own keys (see *Music*), MusicBrainz ids of your artists and albums
   are sent to TheAudioDB and Fanart.tv for artist images, biographies and album art. Without
@@ -515,7 +517,8 @@ flatpak install flathub org.freedesktop.Platform.codecs-extra//25.08-extra
 
 **Something else.** Open **Settings → Troubleshooting → Export diagnostics**. This saves a
 text file to your Downloads folder with the app's log and version information. Server names,
-user names, addresses, keys and your home folder are removed from it. Attach it to a
+user names, addresses, keys and your home folder are removed from it. Read it before you post
+it, because bug reports are public and file or album names can remain in it. Then attach it to a
 [bug report](https://github.com/blub3/huehuecoyotl/issues).
 
 To start the app from a terminal with more detailed logging:
