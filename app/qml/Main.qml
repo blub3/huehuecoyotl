@@ -143,17 +143,18 @@ ApplicationWindow {
     TagEditor {
         id: tagEditor
         backend: Core
-        onGrantRequested: (source) => { grantDialog.source = source; grantDialog.open() }
+        onGrantRequested: (source, root) => {
+            grantDialog.source = source
+            grantDialog.currentFolder = "file://" + root
+            grantDialog.open()
+        }
     }
     // Issue #157: under Flatpak the portal grants write access to the folder of a source.
     FolderDialog {
         id: grantDialog
         property var source: 0
         title: qsTr("Allow writing to this folder")
-        onAccepted: {
-            Core.libraryCall("tagGrant", { source: Number(source), path: decodeURIComponent(String(selectedFolder).replace(/^file:\/\//, "")) })
-            tagEditor.write(null)
-        }
+        onAccepted: tagEditor.grant(source, decodeURIComponent(String(selectedFolder).replace(/^file:\/\//, "")))
     }
     // Issue #155: after another release is chosen, the sheet shows what it now means.
     MusicMatch {
