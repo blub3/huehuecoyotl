@@ -55,18 +55,21 @@ impl MusicProvider for Mb {
                         title: "Northern Lights".into(),
                         recording_id: format!("{id}-r1"),
                         length_ms: Some(300),
+                        ..Default::default()
                     },
                     Track {
                         position: 2,
                         title: "Thaw".into(),
                         recording_id: format!("{id}-r2"),
                         length_ms: Some(300),
+                        ..Default::default()
                     },
                     Track {
                         position: 3,
                         title: "Bonus".into(),
                         recording_id: format!("{id}-r3"),
                         length_ms: Some(300),
+                        ..Default::default()
                     },
                 ],
             }],

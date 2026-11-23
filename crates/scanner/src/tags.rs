@@ -43,6 +43,10 @@ pub struct TrackTags {
     pub mb_release: Option<String>,
     pub mb_release_group: Option<String>,
     pub mb_recording: Option<String>,
+    /// Issue #153: the track on the release, its ISRCs and the release's barcode.
+    pub mb_track: Option<String>,
+    pub isrc: Vec<String>,
+    pub barcode: Option<String>,
     pub mb_artists: Vec<String>,
     pub mb_album_artists: Vec<String>,
     pub rg_track_gain: Option<f64>,
@@ -289,7 +293,7 @@ fn gain(tag: &Tag, key: ItemKey) -> Option<f64> {
     })
 }
 
-fn extract(file: &lofty::file::TaggedFile, file_type: FileType) -> TrackTags {
+pub(crate) fn extract(file: &lofty::file::TaggedFile, file_type: FileType) -> TrackTags {
     let props = file.properties();
     let bit_depth = props.bit_depth();
     let (codec, lossless) = match file_type {
@@ -379,6 +383,9 @@ fn extract(file: &lofty::file::TaggedFile, file_type: FileType) -> TrackTags {
         mb_release: first(tag, ItemKey::MusicBrainzReleaseId),
         mb_release_group: first(tag, ItemKey::MusicBrainzReleaseGroupId),
         mb_recording: first(tag, ItemKey::MusicBrainzRecordingId),
+        mb_track: first(tag, ItemKey::MusicBrainzTrackId),
+        isrc: strings(tag, ItemKey::Isrc),
+        barcode: first(tag, ItemKey::Barcode),
         mb_artists: strings(tag, ItemKey::MusicBrainzArtistId),
         mb_album_artists: strings(tag, ItemKey::MusicBrainzReleaseArtistId),
         rg_track_gain: gain(tag, ItemKey::ReplayGainTrackGain),

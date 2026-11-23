@@ -48,8 +48,10 @@ impl MusicProvider for Mb {
                     title: "Song".into(),
                     recording_id: "rec-1".into(),
                     length_ms: None,
+                    ..Default::default()
                 }],
             }],
+            ..Default::default()
         })
     }
 }

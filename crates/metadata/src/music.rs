@@ -22,6 +22,9 @@ pub struct Track {
     pub title: String,
     pub recording_id: String,
     pub length_ms: Option<u64>,
+    /// Issue #153: the track on this release, and its recording's ISRCs.
+    pub id: String,
+    pub isrcs: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44,6 +47,8 @@ pub struct Release {
     pub release_type: Option<String>,
     pub compilation: bool,
     pub media: Vec<Medium>,
+    /// Issue #153.
+    pub barcode: Option<String>,
 }
 
 /// One search result.

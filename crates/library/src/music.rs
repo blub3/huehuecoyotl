@@ -184,6 +184,9 @@ pub struct ReleaseFacts {
     pub artists: Vec<(String, String)>,
     /// (disc, position, title, recording id)
     pub tracks: Vec<(u32, u32, String, String)>,
+    /// Issue #153: the release's barcode, and (disc, position, track id, ISRCs).
+    pub barcode: Option<String>,
+    pub track_ids: Vec<(u32, u32, String, Vec<String>)>,
 }
 
 fn norm(s: &str) -> String {
@@ -216,8 +219,8 @@ fn set_external(c: &Connection, item: i64, kind: &str, value: &str) -> Result<()
 pub fn replace_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result<Vec<i64>> {
     c.execute(
         "DELETE FROM external_id WHERE provider = 'musicbrainz' AND (
-           (item_id = ?1 AND kind IN ('release', 'release_group'))
-           OR (kind = 'recording' AND item_id IN (SELECT id FROM item WHERE parent_id = ?1 AND kind = 'track')))",
+           (item_id = ?1 AND kind IN ('release', 'release_group', 'barcode'))
+           OR (kind IN ('recording', 'track', 'isrc') AND item_id IN (SELECT id FROM item WHERE parent_id = ?1 AND kind = 'track')))",
         [album],
     )?;
     // Issue #147: a chosen release speaks for every copy of the album, whatever the tags say.
@@ -240,6 +243,9 @@ pub fn apply_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result
     set_external(&tx, album, "release", &r.id)?;
     if let Some(g) = &r.group_id {
         set_external(&tx, album, "release_group", g)?;
+    }
+    if let Some(b) = &r.barcode {
+        set_external(&tx, album, "barcode", b)?;
     }
     tx.execute(
         "INSERT INTO music(item_id, release_type, compilation, release_date) VALUES (?1, ?2, ?3, ?4)
@@ -279,8 +285,19 @@ pub fn apply_release(c: &mut Connection, album: i64, r: &ReleaseFacts) -> Result
                 norm(t) == norm(title)
             }
         });
-        if let Some((_, _, _, rec)) = hit {
+        if let Some((d, p, _, rec)) = hit {
             set_external(&tx, *id, "recording", rec)?;
+            // Issue #153: the track's own ID and ISRCs (which keep their upper case).
+            if let Some((_, _, tid, isrcs)) = r.track_ids.iter().find(|(x, y, ..)| x == d && y == p)
+            {
+                set_external(&tx, *id, "track", tid)?;
+                for i in isrcs {
+                    tx.execute(
+                        "INSERT OR IGNORE INTO external_id(item_id, provider, kind, value) VALUES (?1, 'musicbrainz', 'isrc', ?2)",
+                        params![id, i.trim().to_uppercase()],
+                    )?;
+                }
+            }
         }
     }
     tx.execute(

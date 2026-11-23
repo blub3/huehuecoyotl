@@ -265,6 +265,7 @@ fn release(id: &str, title: &str, artist: &str) -> Release {
                 title: "Song".into(),
                 recording_id: format!("rec-{id}"),
                 length_ms: None,
+                ..Default::default()
             }],
         }],
         ..Default::default()
