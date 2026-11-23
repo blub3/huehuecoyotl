@@ -399,6 +399,9 @@ mod ffi {
         /// Issue #11: online music information (MusicBrainz, Cover Art Archive).
         fn music_online(self: &Core, request_id: u64);
         fn set_music_online(self: &Core, request_id: u64, on: bool);
+        /// Issue #165: the choice before the first lookup.
+        fn prepare_online_choice(self: &Core, request_id: u64);
+        fn online_choice(self: &Core, request_id: u64);
         /// Issue #10: an album's or an artist's page (answers with MusicDetail).
         /// Issue #63: `version` 0 picks the one played last, else by `preference` (quality,
         /// smallest or lossless).
@@ -1599,6 +1602,14 @@ impl Core {
         guard("set_music_online", || {
             self.0.set_music_online(request_id, on)
         })
+    }
+    fn prepare_online_choice(&self, request_id: u64) {
+        guard("prepare_online_choice", || {
+            self.0.prepare_online_choice(request_id)
+        })
+    }
+    fn online_choice(&self, request_id: u64) {
+        guard("online_choice", || self.0.online_choice(request_id))
     }
     fn test_tmdb_key(&self, request_id: u64) {
         guard("test_tmdb_key", || self.0.test_tmdb_key(request_id))

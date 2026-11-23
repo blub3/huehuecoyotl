@@ -5,6 +5,7 @@ All notable changes are listed here. The format follows Keep a Changelog; versio
 ## Unreleased (2.9.2)
 
 - A missing codec is explained (#171). When a video has no decoder for its picture or sound, a notice names the codec while the other track keeps playing; if nothing can play, the error says why. Music and audiobooks do the same. In the Flatpak the notice shows the command that installs the codec extension.
+- Online lookups are your choice (#165). When you add your first music or audiobook folder, the app explains what goes to MusicBrainz, the Cover Art Archive and Open Library and asks whether to use them or your files only. Nothing is sent before you answer, and the scan of your files does not wait. Existing libraries are not asked.
 
 ## 2.9.1 – 2026-11-22 (Linux)
 

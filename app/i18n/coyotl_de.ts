@@ -1445,37 +1445,37 @@
 <context>
     <name>CoreBridge</name>
     <message>
-        <location filename="../src/corebridge.cpp" line="1033"/>
+        <location filename="../src/corebridge.cpp" line="1040"/>
         <source>Access denied. Check the permissions or credentials.</source>
         <translation>Zugriff verweigert. Bitte Berechtigungen oder Zugangsdaten prüfen.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1035"/>
+        <location filename="../src/corebridge.cpp" line="1042"/>
         <source>The location cannot be reached right now.</source>
         <translation>Der Ort ist gerade nicht erreichbar.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1037"/>
+        <location filename="../src/corebridge.cpp" line="1044"/>
         <source>Not found. It may have been moved or deleted.</source>
         <translation>Nicht gefunden. Möglicherweise verschoben oder gelöscht.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1039"/>
+        <location filename="../src/corebridge.cpp" line="1046"/>
         <source>This is not supported.</source>
         <translation>Das wird nicht unterstützt.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1041"/>
+        <location filename="../src/corebridge.cpp" line="1048"/>
         <source>There is not enough free space on the drive.</source>
         <translation>Auf dem Laufwerk ist nicht genug Platz frei.</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1043"/>
+        <location filename="../src/corebridge.cpp" line="1050"/>
         <source>Something went wrong: %1</source>
         <translation>Etwas ist schiefgelaufen: %1</translation>
     </message>
     <message>
-        <location filename="../src/corebridge.cpp" line="1297"/>
+        <location filename="../src/corebridge.cpp" line="1304"/>
         <source>The licence texts are missing from this build.</source>
         <translation>Die Lizenztexte fehlen in diesem Build.</translation>
     </message>
@@ -3219,33 +3219,33 @@
 <context>
     <name>MpvPlayer</name>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="357"/>
+        <location filename="../src/mpvplayer.cpp" line="358"/>
         <source>Cannot play this file: %1</source>
         <translation>Diese Datei kann nicht abgespielt werden: %1</translation>
     </message>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="441"/>
+        <location filename="../src/mpvplayer.cpp" line="442"/>
         <source>software decoding</source>
         <translation>Software-Dekodierung</translation>
     </message>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="452"/>
-        <location filename="../src/mpvplayer.cpp" line="519"/>
+        <location filename="../src/mpvplayer.cpp" line="453"/>
+        <location filename="../src/mpvplayer.cpp" line="520"/>
         <source>Forced</source>
         <translation>Erzwungen</translation>
     </message>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="511"/>
+        <location filename="../src/mpvplayer.cpp" line="512"/>
         <source>external</source>
         <translation>extern</translation>
     </message>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="512"/>
+        <location filename="../src/mpvplayer.cpp" line="513"/>
         <source>forced</source>
         <translation>erzwungen</translation>
     </message>
     <message>
-        <location filename="../src/mpvplayer.cpp" line="513"/>
+        <location filename="../src/mpvplayer.cpp" line="514"/>
         <source>Track %1</source>
         <translation>Spur %1</translation>
     </message>
@@ -4435,6 +4435,54 @@
         <location filename="../qml/NowPlayingPage.qml" line="735"/>
         <source>Add to playlist…</source>
         <translation>Zur Playlist hinzufügen …</translation>
+    </message>
+</context>
+<context>
+    <name>OnlineChoiceDialog</name>
+    <message>
+        <location filename="../qml/OnlineChoiceDialog.qml" line="45"/>
+        <source>Look up music and audiobooks online?</source>
+        <translation>Musik und Hörbücher online nachschlagen?</translation>
+    </message>
+    <message>
+        <location filename="../qml/OnlineChoiceDialog.qml" line="54"/>
+        <source>Online services can add release dates, covers and descriptions. Nothing has been sent yet.</source>
+        <translation>Online-Dienste können Erscheinungsdaten, Cover und Beschreibungen ergänzen. Bisher wurde nichts gesendet.</translation>
+    </message>
+    <message>
+        <location filename="../qml/OnlineChoiceDialog.qml" line="63"/>
+        <source>MusicBrainz receives album and artist names, track counts and MusicBrainz IDs.</source>
+        <translation>MusicBrainz erhält Album- und Künstlernamen, Titelanzahlen und MusicBrainz-IDs.</translation>
+    </message>
+    <message>
+        <location filename="../qml/OnlineChoiceDialog.qml" line="64"/>
+        <source>The Cover Art Archive receives MusicBrainz IDs of albums.</source>
+        <translation>Das Cover Art Archive erhält die MusicBrainz-IDs von Alben.</translation>
+    </message>
+    <message>
+        <location filename="../qml/OnlineChoiceDialog.qml" line="65"/>
+        <source>Open Library receives audiobook titles, authors and ISBNs.</source>
+        <translation>Open Library erhält Titel, Autoren und ISBNs von Hörbüchern.</translation>
+    </message>
+    <message>
+        <location filename="../qml/OnlineChoiceDialog.qml" line="66"/>
+        <source>Like any website, these services also see your IP address.</source>
+        <translation>Wie jede Website sehen auch diese Dienste deine IP-Adresse.</translation>
+    </message>
+    <message>
+        <location filename="../qml/OnlineChoiceDialog.qml" line="70"/>
+        <source>With files only, information comes from your files, their tags and metadata files, and nothing is sent. You can change this under Settings → Metadata.</source>
+        <translation>Mit „Nur Dateien“ stammen die Informationen aus deinen Dateien, ihren Tags und Metadatendateien, und nichts wird gesendet. Du kannst das unter Einstellungen → Metadaten ändern.</translation>
+    </message>
+    <message>
+        <location filename="../qml/OnlineChoiceDialog.qml" line="81"/>
+        <source>Files only</source>
+        <translation>Nur Dateien</translation>
+    </message>
+    <message>
+        <location filename="../qml/OnlineChoiceDialog.qml" line="89"/>
+        <source>Use online services</source>
+        <translation>Online-Dienste nutzen</translation>
     </message>
 </context>
 <context>

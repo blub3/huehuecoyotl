@@ -175,7 +175,7 @@ CoreBridge::CoreBridge(const QString &dataDir, const QString &language, QObject 
     try {
         m_core.emplace(coyotl::core::core_open(rs(dir), rs(lang), std::move(sink)));
         refreshKeyStatus();
-        (*m_core)->music_online(nextId());
+        (*m_core)->prepare_online_choice(nextId());
         qCInfo(lcCore) << "core" << version() << "opened in" << dataDir;
         EpisodeModel::setBackend(
             {[this](qint64 season, int offset, int limit) { return seasonEpisodes(season, offset, limit); },
@@ -856,6 +856,13 @@ quint64 CoreBridge::artistDetail(qint64 artistId)
 void CoreBridge::setMusicOnline(bool on)
 {
     if (m_core) (*m_core)->set_music_online(nextId(), on);
+}
+
+quint64 CoreBridge::onlineChoice()
+{
+    const quint64 id = nextId();
+    if (m_core) (*m_core)->online_choice(id);
+    return id;
 }
 
 quint64 CoreBridge::testTmdbKey()

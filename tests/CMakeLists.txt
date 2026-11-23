@@ -39,7 +39,9 @@ set(_ui_files Theme.qml FocusButton.qml TrackMenu.qml PlayerControls.qml
   # Issue #147: other editions of an album.
   OtherEditions.qml
   # Issue #171: a missing codec.
-  CodecNotice.qml)
+  CodecNotice.qml
+  # Issue #165: online lookups or files only.
+  OnlineChoiceDialog.qml)
 file(MAKE_DIRECTORY "${_ui_dir}")
 set(_qmldir "module CoyotlUi\nsingleton Theme 1.0 Theme.qml\n")
 foreach(f IN LISTS _ui_files)
